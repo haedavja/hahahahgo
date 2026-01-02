@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file growthSlice.actions.test.ts
  * @description 피라미드 성장 시스템 액션 테스트
@@ -120,7 +119,7 @@ describe('growthSlice actions', () => {
       const { actions, getState } = createActionsWithMockStore(initialState);
       actions.updatePyramidLevel();
 
-      expect(getState().growth.pyramidLevel).toBe(3);
+      expect(getState().growth!.pyramidLevel).toBe(3);
     });
 
     it('레벨업 시 스킬포인트를 획득한다', () => {
@@ -131,7 +130,7 @@ describe('growthSlice actions', () => {
       actions.updatePyramidLevel();
 
       // 개성 3개 = 스킬포인트 3개 (새로 획득한 개성 수만큼)
-      expect(getState().growth.skillPoints).toBe(3);
+      expect(getState().growth!.skillPoints).toBe(3);
     });
 
     it('개성 이름에 해당하는 에토스를 자동 해금한다', () => {
@@ -141,7 +140,7 @@ describe('growthSlice actions', () => {
       const { actions, getState } = createActionsWithMockStore(initialState);
       actions.updatePyramidLevel();
 
-      expect(getState().growth.unlockedEthos).toContain('bravery');
+      expect(getState().growth!.unlockedEthos).toContain('bravery');
     });
 
     it('이미 추적된 개성은 스킬포인트를 추가 획득하지 않는다', () => {
@@ -156,7 +155,7 @@ describe('growthSlice actions', () => {
       actions.updatePyramidLevel();
 
       // 이미 추적된 개성이므로 스킬포인트 추가 없음
-      expect(getState().growth.skillPoints).toBe(5);
+      expect(getState().growth!.skillPoints).toBe(5);
     });
   });
 
@@ -167,7 +166,7 @@ describe('growthSlice actions', () => {
 
       actions.addSkillPoints(3);
 
-      expect(getState().growth.skillPoints).toBe(8);
+      expect(getState().growth!.skillPoints).toBe(8);
     });
 
     it('음수 스킬포인트도 추가할 수 있다', () => {
@@ -176,7 +175,7 @@ describe('growthSlice actions', () => {
 
       actions.addSkillPoints(-2);
 
-      expect(getState().growth.skillPoints).toBe(3);
+      expect(getState().growth!.skillPoints).toBe(3);
     });
   });
 
@@ -187,7 +186,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBaseEthos('bravery');
 
-      expect(getState().growth.unlockedEthos).toContain('bravery');
+      expect(getState().growth!.unlockedEthos).toContain('bravery');
     });
 
     it('피라미드 레벨이 1 미만이면 해금하지 않는다', () => {
@@ -196,7 +195,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBaseEthos('bravery');
 
-      expect(getState().growth.unlockedEthos).not.toContain('bravery');
+      expect(getState().growth!.unlockedEthos).not.toContain('bravery');
     });
 
     it('이미 해금된 에토스는 중복 해금하지 않는다', () => {
@@ -208,7 +207,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBaseEthos('bravery');
 
-      expect(getState().growth.unlockedEthos.filter(e => e === 'bravery').length).toBe(1);
+      expect(getState().growth!.unlockedEthos.filter(e => e === 'bravery').length).toBe(1);
     });
 
     it('존재하지 않는 에토스는 해금하지 않는다', () => {
@@ -217,7 +216,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBaseEthos('invalid_ethos');
 
-      expect(getState().growth.unlockedEthos).toEqual([]);
+      expect(getState().growth!.unlockedEthos).toEqual([]);
     });
   });
 
@@ -228,8 +227,8 @@ describe('growthSlice actions', () => {
 
       actions.selectBasePathos('quick_draw');
 
-      expect(getState().growth.unlockedPathos).toContain('quick_draw');
-      expect(getState().growth.skillPoints).toBe(2);
+      expect(getState().growth!.unlockedPathos).toContain('quick_draw');
+      expect(getState().growth!.skillPoints).toBe(2);
     });
 
     it('피라미드 레벨이 2 미만이면 해금하지 않는다', () => {
@@ -238,7 +237,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBasePathos('quick_draw');
 
-      expect(getState().growth.unlockedPathos).not.toContain('quick_draw');
+      expect(getState().growth!.unlockedPathos).not.toContain('quick_draw');
     });
 
     it('스킬포인트가 부족하면 해금하지 않는다', () => {
@@ -247,7 +246,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBasePathos('quick_draw');
 
-      expect(getState().growth.unlockedPathos).not.toContain('quick_draw');
+      expect(getState().growth!.unlockedPathos).not.toContain('quick_draw');
     });
 
     it('이미 해금된 파토스는 중복 해금하지 않는다', () => {
@@ -260,7 +259,7 @@ describe('growthSlice actions', () => {
 
       actions.selectBasePathos('quick_draw');
 
-      expect(getState().growth.skillPoints).toBe(3); // 스킬포인트 소모 안됨
+      expect(getState().growth!.skillPoints).toBe(3); // 스킬포인트 소모 안됨
     });
   });
 
@@ -276,12 +275,12 @@ describe('growthSlice actions', () => {
 
       actions.unlockNode('advance', 'ethos');
 
-      expect(getState().growth.unlockedNodes).toContain('advance');
-      expect(getState().growth.pendingNodeSelection).toEqual({
+      expect(getState().growth!.unlockedNodes).toContain('advance');
+      expect(getState().growth!.pendingNodeSelection).toEqual({
         nodeId: 'advance',
         type: 'ethos',
       });
-      expect(getState().growth.skillPoints).toBe(1);
+      expect(getState().growth!.skillPoints).toBe(1);
     });
 
     it('파토스 노드를 해금할 수 있다', () => {
@@ -290,8 +289,8 @@ describe('growthSlice actions', () => {
 
       actions.unlockNode('bullet_node', 'pathos');
 
-      expect(getState().growth.unlockedNodes).toContain('bullet_node');
-      expect(getState().growth.pendingNodeSelection?.type).toBe('pathos');
+      expect(getState().growth!.unlockedNodes).toContain('bullet_node');
+      expect(getState().growth!.pendingNodeSelection?.type).toBe('pathos');
     });
 
     it('피라미드 레벨이 노드 티어보다 낮으면 해금하지 않는다', () => {
@@ -300,7 +299,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockNode('advance', 'ethos'); // tier 3 필요
 
-      expect(getState().growth.unlockedNodes).not.toContain('advance');
+      expect(getState().growth!.unlockedNodes).not.toContain('advance');
     });
 
     it('스킬포인트가 부족하면 해금하지 않는다', () => {
@@ -309,7 +308,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockNode('advance', 'ethos');
 
-      expect(getState().growth.unlockedNodes).not.toContain('advance');
+      expect(getState().growth!.unlockedNodes).not.toContain('advance');
     });
 
     it('이미 해금된 노드는 중복 해금하지 않는다', () => {
@@ -322,7 +321,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockNode('advance', 'ethos');
 
-      expect(getState().growth.skillPoints).toBe(2);
+      expect(getState().growth!.skillPoints).toBe(2);
     });
   });
 
@@ -336,8 +335,8 @@ describe('growthSlice actions', () => {
 
       actions.selectNodeChoice('flame');
 
-      expect(getState().growth.unlockedEthos).toContain('flame');
-      expect(getState().growth.pendingNodeSelection).toBeNull();
+      expect(getState().growth!.unlockedEthos).toContain('flame');
+      expect(getState().growth!.pendingNodeSelection).toBeNull();
     });
 
     it('파토스 노드 선택지도 해금할 수 있다', () => {
@@ -349,7 +348,7 @@ describe('growthSlice actions', () => {
 
       actions.selectNodeChoice('iron_bullet');
 
-      expect(getState().growth.unlockedPathos).toContain('iron_bullet');
+      expect(getState().growth!.unlockedPathos).toContain('iron_bullet');
     });
 
     it('대기 중인 노드가 없으면 아무것도 하지 않는다', () => {
@@ -358,7 +357,7 @@ describe('growthSlice actions', () => {
 
       actions.selectNodeChoice('flame');
 
-      expect(getState().growth.unlockedEthos).not.toContain('flame');
+      expect(getState().growth!.unlockedEthos).not.toContain('flame');
     });
 
     it('해당 노드의 선택지가 아니면 해금하지 않는다', () => {
@@ -370,7 +369,7 @@ describe('growthSlice actions', () => {
 
       actions.selectNodeChoice('shadow'); // emperor 노드의 선택지
 
-      expect(getState().growth.unlockedEthos).not.toContain('shadow');
+      expect(getState().growth!.unlockedEthos).not.toContain('shadow');
     });
   });
 
@@ -381,7 +380,7 @@ describe('growthSlice actions', () => {
 
       actions.selectIdentity('gunslinger');
 
-      expect(getState().growth.identities).toContain('gunslinger');
+      expect(getState().growth!.identities).toContain('gunslinger');
     });
 
     it('하이브리드 (두 자아 모두 선택) 가능하다', () => {
@@ -393,8 +392,8 @@ describe('growthSlice actions', () => {
 
       actions.selectIdentity('swordsman');
 
-      expect(getState().growth.identities).toContain('gunslinger');
-      expect(getState().growth.identities).toContain('swordsman');
+      expect(getState().growth!.identities).toContain('gunslinger');
+      expect(getState().growth!.identities).toContain('swordsman');
     });
 
     it('피라미드 레벨이 요구치 미만이면 선택하지 않는다', () => {
@@ -403,7 +402,7 @@ describe('growthSlice actions', () => {
 
       actions.selectIdentity('gunslinger');
 
-      expect(getState().growth.identities).not.toContain('gunslinger');
+      expect(getState().growth!.identities).not.toContain('gunslinger');
     });
 
     it('이미 선택한 자아는 중복 선택하지 않는다', () => {
@@ -415,7 +414,7 @@ describe('growthSlice actions', () => {
 
       actions.selectIdentity('gunslinger');
 
-      expect(getState().growth.identities.filter(i => i === 'gunslinger').length).toBe(1);
+      expect(getState().growth!.identities.filter(i => i === 'gunslinger').length).toBe(1);
     });
   });
 
@@ -430,8 +429,8 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('common');
 
-      expect(getState().growth.logosLevels.common).toBe(1);
-      expect(getState().growth.skillPoints).toBe(1);
+      expect(getState().growth!.logosLevels.common).toBe(1);
+      expect(getState().growth!.skillPoints).toBe(1);
     });
 
     it('gunkata 로고스는 총잡이 자아가 필요하다', () => {
@@ -444,7 +443,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('gunkata');
 
-      expect(getState().growth.logosLevels.gunkata).toBe(1);
+      expect(getState().growth!.logosLevels.gunkata).toBe(1);
     });
 
     it('battleWaltz 로고스는 검잡이 자아가 필요하다', () => {
@@ -457,7 +456,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('battleWaltz');
 
-      expect(getState().growth.logosLevels.battleWaltz).toBe(1);
+      expect(getState().growth!.logosLevels.battleWaltz).toBe(1);
     });
 
     it('자아가 없으면 로고스를 해금하지 않는다', () => {
@@ -470,7 +469,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('common');
 
-      expect(getState().growth.logosLevels.common).toBe(0);
+      expect(getState().growth!.logosLevels.common).toBe(0);
     });
 
     it('스킬포인트가 부족하면 해금하지 않는다', () => {
@@ -483,7 +482,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('common');
 
-      expect(getState().growth.logosLevels.common).toBe(0);
+      expect(getState().growth!.logosLevels.common).toBe(0);
     });
 
     it('최대 레벨(3)을 초과하면 해금하지 않는다', () => {
@@ -497,8 +496,8 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('common');
 
-      expect(getState().growth.logosLevels.common).toBe(3);
-      expect(getState().growth.skillPoints).toBe(2); // 스킬포인트 소모 안됨
+      expect(getState().growth!.logosLevels.common).toBe(3);
+      expect(getState().growth!.skillPoints).toBe(2); // 스킬포인트 소모 안됨
     });
 
     it('피라미드 레벨에 따른 최대 해금 레벨을 초과하면 해금하지 않는다', () => {
@@ -512,7 +511,7 @@ describe('growthSlice actions', () => {
 
       actions.unlockLogos('common');
 
-      expect(getState().growth.logosLevels.common).toBe(1);
+      expect(getState().growth!.logosLevels.common).toBe(1);
     });
   });
 
@@ -525,7 +524,7 @@ describe('growthSlice actions', () => {
 
       actions.equipPathos(['quick_draw', 'reload']);
 
-      expect(getState().growth.equippedPathos).toEqual(['quick_draw', 'reload']);
+      expect(getState().growth!.equippedPathos).toEqual(['quick_draw', 'reload']);
     });
 
     it('해금되지 않은 파토스는 장착하지 않는다', () => {
@@ -536,7 +535,7 @@ describe('growthSlice actions', () => {
 
       actions.equipPathos(['quick_draw', 'reload']);
 
-      expect(getState().growth.equippedPathos).toEqual(['quick_draw']);
+      expect(getState().growth!.equippedPathos).toEqual(['quick_draw']);
     });
 
     it('최대 3개까지만 장착한다', () => {
@@ -547,7 +546,7 @@ describe('growthSlice actions', () => {
 
       actions.equipPathos(['quick_draw', 'reload', 'iron_bullet', 'fire_bullet']);
 
-      expect(getState().growth.equippedPathos.length).toBe(3);
+      expect(getState().growth!.equippedPathos.length).toBe(3);
     });
   });
 
@@ -573,7 +572,7 @@ describe('growthSlice actions', () => {
       actions.usePathos('reload');
 
       // 상태 변경 없음
-      expect(getState().growth.equippedPathos).toEqual(['quick_draw']);
+      expect(getState().growth!.equippedPathos).toEqual(['quick_draw']);
     });
   });
 
@@ -591,7 +590,7 @@ describe('growthSlice actions', () => {
 
       actions.resetGrowth();
 
-      const growth = getState().growth;
+      const growth = getState().growth!;
       expect(growth.pyramidLevel).toBe(0);
       expect(growth.skillPoints).toBe(0);
       expect(growth.unlockedEthos).toEqual([]);
@@ -609,12 +608,12 @@ describe('growthSlice actions', () => {
       // selectEthos는 get()을 호출하여 액션을 가져오려 하지만,
       // 테스트 환경에서는 액션이 없으므로 상태 변경 없이 반환
       // 이 테스트는 잘못된 에토스 ID에 대해 상태가 변경되지 않음을 확인
-      const beforeState = { ...getState().growth };
+      const beforeState = { ...getState().growth! };
 
       // 노드 에토스이지만 대기 노드가 없는 경우
       actions.selectEthos('shadow'); // emperor 노드 에토스
 
-      expect(getState().growth.unlockedEthos).toEqual(beforeState.unlockedEthos);
+      expect(getState().growth!.unlockedEthos).toEqual(beforeState.unlockedEthos);
     });
   });
 
@@ -623,12 +622,12 @@ describe('growthSlice actions', () => {
       const initialState = createMockState({ pyramidLevel: 4, skillPoints: 1 });
       const { actions, getState } = createActionsWithMockStore(initialState);
 
-      const beforeState = { ...getState().growth };
+      const beforeState = { ...getState().growth! };
 
       // 노드 파토스이지만 대기 노드가 없는 경우
       actions.selectPathos('iron_bullet');
 
-      expect(getState().growth.unlockedPathos).toEqual(beforeState.unlockedPathos);
+      expect(getState().growth!.unlockedPathos).toEqual(beforeState.unlockedPathos);
     });
   });
 });

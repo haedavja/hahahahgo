@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file eventSlice.test.ts
  * @description 이벤트 슬라이스 테스트
@@ -442,7 +441,7 @@ describe('eventSlice', () => {
             id: 'test',
             choices: [{ id: 'choice1', label: 'Go to stage2', nextStage: 'stage2' }],
             stages: {
-              stage2: { choices: [{ id: 'choice2', label: 'End' }] },
+              stage2: { description: 'Stage 2', choices: [{ id: 'choice2', label: 'End' }] },
             },
           },
           currentStage: null,
@@ -586,7 +585,7 @@ describe('eventSlice', () => {
             id: 'test',
             choices: [{ id: 'root_choice', label: 'Root' }],
             stages: {
-              stage1: { choices: [{ id: 'stage1_choice', label: 'Stage 1 Choice' }] },
+              stage1: { description: 'Stage 1', choices: [{ id: 'stage1_choice', label: 'Stage 1 Choice' }] },
             },
           },
           currentStage: 'stage1',
@@ -679,7 +678,7 @@ describe('eventSlice', () => {
         },
       });
       store.getState().chooseEvent('choice1');
-      expect(store.getState().activeEvent?.outcome?.resultDescription).toBe('특별한 결과');
+      expect((store.getState().activeEvent?.outcome as any)?.resultDescription).toBe('특별한 결과');
     });
 
     it('resultDescription이 없으면 null이다', () => {
@@ -697,7 +696,7 @@ describe('eventSlice', () => {
         },
       });
       store.getState().chooseEvent('choice1');
-      expect(store.getState().activeEvent?.outcome?.resultDescription).toBeNull();
+      expect((store.getState().activeEvent?.outcome as any)?.resultDescription).toBeNull();
     });
   });
 
@@ -827,7 +826,7 @@ describe('eventSlice', () => {
         },
       });
       store.getState().chooseEvent('shop');
-      expect(store.getState().activeEvent?.outcome?.success).toBe(true);
+      expect((store.getState().activeEvent?.outcome as any)?.success).toBe(true);
     });
   });
 
@@ -868,7 +867,7 @@ describe('eventSlice', () => {
       });
       store.getState().invokePrayer(30);
 
-      expect(store.getState().activeEvent?.outcome?.cost?.etherPts).toBe(30);
+      expect((store.getState().activeEvent?.outcome as any)?.cost?.etherPts).toBe(30);
     });
   });
 

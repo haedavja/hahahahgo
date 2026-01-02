@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file cache.test.ts
  * @description 캐싱 레이어 단위 테스트
@@ -26,11 +25,13 @@ function createMockResult(overrides: Partial<SimulationSummary> = {}): Simulatio
       totalBattles: 100,
       wins: 60,
       losses: 40,
+      draws: 0,
       winRate: 0.6,
       avgTurns: 10,
       avgPlayerDamage: 25,
       avgEnemyDamage: 30,
       topCards: [],
+      cardEfficiency: {},
       ...overrides,
     },
     results: [],

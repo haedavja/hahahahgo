@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file gameFlow.e2e.test.ts
  * @description 게임 플로우 E2E 통합 테스트
@@ -20,8 +19,7 @@ import {
   removeToken,
   hasToken,
   getTokenStacks,
-  createEmptyTokens,
-  processTokenCancellation
+  createEmptyTokens
 } from '../lib/tokenUtils';
 
 // 카드 강화 시스템
@@ -126,7 +124,7 @@ describe('E2E: 덱 빌딩 플로우', () => {
       ];
 
       // 민첩 3 적용
-      const agiCards = applyAgilityToCards(cards, 3);
+      const agiCards = applyAgilityToCards(cards as any, 3);
 
       expect(agiCards[0].speedCost).toBe(7);  // 10 - 3
       expect(agiCards[1].speedCost).toBe(2);  // 5 - 3
@@ -200,7 +198,7 @@ describe('E2E: 토큰 시스템 플로우', () => {
       entity.tokens = result1.tokens;
 
       // 면역 토큰이 usage에 있는지 확인
-      const hasImmunity = entity.tokens.usage.some(t => t.id === 'immunity');
+      const hasImmunity = entity.tokens.usage!.some(t => t.id === 'immunity');
       expect(hasImmunity).toBe(true);
 
       // 취약 토큰 시도 (negative category)
@@ -259,19 +257,19 @@ describe('E2E: 전투 라운드 플로우', () => {
 
   describe('단일 라운드 시뮬레이션', () => {
     it('플레이어 공격 -> 적 방어 -> 플레이어 재공격', () => {
-      let state = createCombatState();
+      let state = createCombatState() as CombatState;
 
       // 1. 플레이어 공격 (20 데미지)
       const attackCard1 = { type: 'attack', name: '타격', damage: 20 } as Card;
       const result1 = applyAction(state, 'player', attackCard1);
-      state = result1.updatedState;
+      state = result1.updatedState as CombatState;
 
       expect((state.enemy as Combatant).hp).toBe(80);
 
       // 2. 적 방어 (15 방어력)
       const defenseCard = { type: 'defense', name: '방어', defense: 15 } as Card;
       const result2 = applyAction(state, 'enemy', defenseCard);
-      state = result2.updatedState;
+      state = result2.updatedState as CombatState;
 
       expect((state.enemy as Combatant).block).toBe(15);
       expect((state.enemy as Combatant).def).toBe(true);
@@ -279,7 +277,7 @@ describe('E2E: 전투 라운드 플로우', () => {
       // 3. 플레이어 재공격 (25 데미지, 15 차단, 10 관통)
       const attackCard2 = { type: 'attack', name: '강타', damage: 25 } as Card;
       const result3 = applyAction(state, 'player', attackCard2);
-      state = result3.updatedState;
+      state = result3.updatedState as CombatState;
 
       expect((state.enemy as Combatant).block).toBe(0);
       expect((state.enemy as Combatant).hp).toBe(70); // 80 - 10

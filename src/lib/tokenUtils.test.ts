@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file tokenUtils.test.js
  * @description tokenUtils 함수 테스트
@@ -39,7 +38,7 @@ describe('tokenUtils', () => {
       const result = addToken(entity, 'offense', 2);
 
       // 토큰이 추가되었는지 확인 (offense는 usage 타입)
-      const allTokens = [...result.tokens.usage, ...result.tokens.turn, ...result.tokens.permanent];
+      const allTokens = [...(result.tokens.usage ?? []), ...(result.tokens.turn ?? []), ...(result.tokens.permanent ?? [])];
       const addedToken = allTokens.find(t => t.id === 'offense');
 
       expect(addedToken).toBeDefined();
@@ -55,7 +54,7 @@ describe('tokenUtils', () => {
 
       const result = addToken(entity, 'offense', 2);
 
-      const usageTokens = result.tokens.usage;
+      const usageTokens = result.tokens.usage!;
       const offenseToken = usageTokens.find(t => t.id === 'offense');
 
       expect(offenseToken!.stacks).toBe(3); // 1 + 2
@@ -88,7 +87,7 @@ describe('tokenUtils', () => {
 
       const result = removeToken(entity, 'offense', 'turn', 1);
 
-      const offenseToken = result.tokens.turn.find(t => t.id === 'offense');
+      const offenseToken = result.tokens.turn!.find(t => t.id === 'offense');
       expect(offenseToken!.stacks).toBe(2);
     });
 
@@ -101,7 +100,7 @@ describe('tokenUtils', () => {
 
       const result = removeToken(entity, 'offense', 'turn', 1);
 
-      const offenseToken = result.tokens.turn.find(t => t.id === 'offense');
+      const offenseToken = result.tokens.turn!.find(t => t.id === 'offense');
       expect(offenseToken).toBeUndefined();
       expect(result.logs.length).toBeGreaterThan(0);
     });
@@ -213,9 +212,9 @@ describe('tokenUtils', () => {
       expect(result.tokens.permanent).toHaveLength(1);
 
       // grantedAt 없는 턴 토큰만 제거
-      expect(result.tokens.turn.find(t => t.id === 'turn_token1')).toBeUndefined();
+      expect(result.tokens.turn!.find(t => t.id === 'turn_token1')).toBeUndefined();
       // grantedAt 있는 턴 토큰은 유지
-      expect(result.tokens.turn.find(t => t.id === 'turn_token2')).toBeDefined();
+      expect(result.tokens.turn!.find(t => t.id === 'turn_token2')).toBeDefined();
     });
 
     it('null 엔티티에 대해 안전하게 처리해야 함', () => {

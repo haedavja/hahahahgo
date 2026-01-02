@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file dataIntegrity.integration.test.ts
  * @description 데이터 무결성 통합 테스트
@@ -198,8 +197,8 @@ describe('토큰 시스템 무결성', () => {
 
     // 토큰 추가
     const addResult = addToken(entity, 'offense', 2);
-    expect(addResult.tokens.usage.length).toBe(1);
-    expect(addResult.tokens.usage[0].stacks).toBe(2);
+    expect(addResult.tokens.usage!.length).toBe(1);
+    expect(addResult.tokens.usage![0].stacks).toBe(2);
 
     // 토큰 조회
     entity.tokens = addResult.tokens;
@@ -208,7 +207,7 @@ describe('토큰 시스템 무결성', () => {
 
     // 토큰 제거
     const removeResult = removeToken(entity, 'offense', TOKEN_TYPES.USAGE, 1);
-    expect(removeResult.tokens.usage[0].stacks).toBe(1);
+    expect(removeResult.tokens.usage![0].stacks).toBe(1);
   });
 
   it('null/undefined 엔티티에서 안전하게 작동한다', () => {

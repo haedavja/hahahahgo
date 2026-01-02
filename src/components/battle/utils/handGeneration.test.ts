@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file handGeneration.test.js
  * @description 핸드/덱 생성 테스트
@@ -501,7 +500,7 @@ describe('handGeneration', () => {
         // vanish가 3강에서 제거되어 특화로도 추가되지 않음
         expect(card?.traits).toBeDefined();
         expect(card?.traits).not.toContain('vanish');
-        expect(card?.enhancedStats?.removedTraits).toContain('vanish');
+        expect((card?.enhancedStats as any)?.removedTraits).toContain('vanish');
       });
 
       it('강화로 제거되지 않은 특성은 특화로 추가되어야 함', () => {

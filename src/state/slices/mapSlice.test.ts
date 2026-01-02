@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file mapSlice.test.ts
  * @description 맵 슬라이스 테스트
@@ -134,7 +133,7 @@ describe('mapSlice', () => {
     });
 
     it('선택 불가능한 노드는 무시한다', () => {
-      const node = { id: 'node1', type: 'battle', selectable: false, cleared: false };
+      const node = { id: 'node1', type: 'battle', selectable: false, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -145,7 +144,7 @@ describe('mapSlice', () => {
     });
 
     it('이미 클리어한 노드는 무시한다', () => {
-      const node = { id: 'node1', type: 'battle', selectable: true, cleared: true };
+      const node = { id: 'node1', type: 'battle', selectable: true, cleared: true, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -156,7 +155,7 @@ describe('mapSlice', () => {
     });
 
     it('던전 노드를 선택하면 activeDungeon을 설정한다', () => {
-      const node = { id: 'dungeon1', type: 'dungeon', selectable: true, cleared: false };
+      const node = { id: 'dungeon1', type: 'dungeon', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -170,7 +169,7 @@ describe('mapSlice', () => {
     });
 
     it('전투 노드를 선택하면 activeBattle을 설정한다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -180,7 +179,7 @@ describe('mapSlice', () => {
     });
 
     it('이벤트 노드를 선택하면 activeEvent를 설정한다', () => {
-      const node = { id: 'event1', type: 'event', selectable: true, cleared: false };
+      const node = { id: 'event1', type: 'event', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -190,7 +189,7 @@ describe('mapSlice', () => {
     });
 
     it('휴식 노드를 선택하면 activeRest를 설정한다', () => {
-      const node = { id: 'rest1', type: 'rest', selectable: true, cleared: false };
+      const node = { id: 'rest1', type: 'rest', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -200,7 +199,7 @@ describe('mapSlice', () => {
     });
 
     it('상점 노드를 선택하면 activeShop을 설정한다', () => {
-      const node = { id: 'shop1', type: 'shop', selectable: true, cleared: false };
+      const node = { id: 'shop1', type: 'shop', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -213,7 +212,7 @@ describe('mapSlice', () => {
     });
 
     it('노드 이동 시 기억을 획득한다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -224,7 +223,7 @@ describe('mapSlice', () => {
     });
 
     it('황금 나침반 상징이 있으면 노드 이동 시 에테르를 획득한다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -236,7 +235,7 @@ describe('mapSlice', () => {
     });
 
     it('노드 이동 시 itemBuffs를 초기화한다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -247,7 +246,7 @@ describe('mapSlice', () => {
     });
 
     it('노드 이동 후 현재 노드 ID가 업데이트된다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },
@@ -257,7 +256,7 @@ describe('mapSlice', () => {
     });
 
     it('노드 이동 후 해당 노드가 클리어 상태가 된다', () => {
-      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false };
+      const node = { id: 'battle1', type: 'battle', selectable: true, cleared: false, layer: 1, connections: [] };
       store.setState({
         ...store.getState(),
         map: { nodes: [node], currentNodeId: 'start' },

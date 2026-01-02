@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file gameStoreHelpers.test.ts
  * @description 게임 스토어 유틸리티 함수 테스트
@@ -90,8 +89,8 @@ describe('gameStoreHelpers', () => {
   describe('cloneNodes', () => {
     it('노드 배열을 복제한다', () => {
       const nodes: MapNode[] = [
-        { id: '1', type: 'battle', connections: ['2', '3'], x: 0, y: 0, row: 0, col: 0 },
-        { id: '2', type: 'event', connections: ['4'], x: 0, y: 0, row: 1, col: 0 },
+        { id: '1', type: 'battle', connections: ['2', '3'], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true },
+        { id: '2', type: 'event', connections: ['4'], x: 0, y: 0, row: 1, col: 0, layer: 1, cleared: false, selectable: false },
       ];
 
       const cloned = cloneNodes(nodes);
@@ -127,7 +126,7 @@ describe('gameStoreHelpers', () => {
     });
 
     it('min만 있으면 min을 반환한다', () => {
-      const value = { min: 15 };
+      const value = { min: 15, max: 15 };
       expect(resolveAmount(value)).toBe(15);
     });
 
@@ -249,7 +248,7 @@ describe('gameStoreHelpers', () => {
 
   describe('ensureEventKey', () => {
     it('이벤트 키를 할당한다', () => {
-      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0 };
+      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true } as MapNode;
 
       ensureEventKey(node, []);
 
@@ -257,7 +256,7 @@ describe('gameStoreHelpers', () => {
     });
 
     it('이미 eventKey가 있으면 변경하지 않는다', () => {
-      const node = { id: '1', type: 'event', eventKey: 'existing', connections: [], x: 0, y: 0, row: 0, col: 0 };
+      const node = { id: '1', type: 'event', eventKey: 'existing', connections: [], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true };
 
       const result = ensureEventKey(node, []);
 
@@ -266,7 +265,7 @@ describe('gameStoreHelpers', () => {
     });
 
     it('완료된 이벤트는 제외한다', () => {
-      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0 };
+      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true } as MapNode;
 
       ensureEventKey(node, ['event_001', 'event_002']);
 
@@ -274,12 +273,12 @@ describe('gameStoreHelpers', () => {
     });
 
     it('pendingNextEvent를 우선 고려한다', () => {
-      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0 };
+      const node = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true } as MapNode;
 
       // 랜덤 기반이므로 여러 번 시도해야 할 수 있음
       let usedPending = false;
       for (let i = 0; i < 100; i++) {
-        const testNode = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0 };
+        const testNode = { id: '1', type: 'event', connections: [], x: 0, y: 0, row: 0, col: 0, layer: 0, cleared: false, selectable: true } as MapNode;
         const result = ensureEventKey(testNode, [], 'event_001');
         if (result) {
           usedPending = true;

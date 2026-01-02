@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file anomaly-system.test.ts
  * @description 이변(Anomaly) 시스템 테스트
@@ -23,8 +22,8 @@ import {
   getToxicMistDamage,
   getRegenerationFieldHeal,
   getEliteSurgeMultipliers,
-  type GameState,
 } from '../core/anomaly-system';
+import type { GameState } from '../core/types';
 
 // Mock dependencies
 vi.mock('../data/game-data-sync', () => ({
@@ -74,7 +73,7 @@ const createMockGameState = (): GameState => ({
   enemy: { hp: 50, maxHp: 50, block: 0, tokens: {} },
   turn: 1,
   phase: 'player',
-} as GameState);
+} as unknown as GameState);
 
 describe('anomaly-system', () => {
   beforeEach(() => {

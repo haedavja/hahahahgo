@@ -1,4 +1,4 @@
-// @ts-nocheck - Legacy test file with complex type issues
+// @ts-nocheck - Legacy simulator with unimplemented functions
 /**
  * @file gameSimulator.ts
  * @description 게임 시뮬레이터 - 자동 전투 및 통계 수집

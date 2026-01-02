@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file preAttackSpecials.test.js
  * @description 공격 전 특수 효과 테스트
@@ -226,7 +225,7 @@ describe('preAttackSpecials', () => {
         attackerName: 'player'
       } as any);
 
-      const gunJam = result.attacker.tokens.permanent.find(t => t.id === 'gun_jam');
+      const gunJam = result.attacker.tokens!.permanent!.find(t => t.id === 'gun_jam');
       expect(gunJam).toBeUndefined();
     });
   });

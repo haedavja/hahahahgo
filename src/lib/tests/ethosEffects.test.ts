@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file ethosEffects.test.ts
  * @description 에토스 패시브 효과 처리 테스트
@@ -111,10 +110,7 @@ vi.mock('../../data/growth/ethosData', () => ({
 }));
 
 // gameStore 모킹
-const mockGrowthState: GrowthState = {
-  level: 1,
-  experience: 0,
-  tier: 'apprentice',
+const mockGrowthState = {
   unlockedEthos: ['battle_start_token', 'flame_ethos', 'gap_ethos', 'sword_mastery'],
   equippedPathos: [],
   unlockedLogos: [],
@@ -161,11 +157,8 @@ function createMockCombatant(overrides: Partial<Combatant> = {}): Combatant {
 }
 
 // 테스트용 성장 상태 생성
-function createMockGrowth(overrides: Partial<GrowthState> = {}): GrowthState {
+function createMockGrowth(overrides: any = {}): any {
   return {
-    level: 1,
-    experience: 0,
-    tier: 'apprentice',
     unlockedEthos: [],
     equippedPathos: [],
     unlockedLogos: [],

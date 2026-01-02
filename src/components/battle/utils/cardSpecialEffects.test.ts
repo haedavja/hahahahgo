@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file cardSpecialEffects.test.js
  * @description 카드 special 효과 유닛 테스트
@@ -286,8 +285,8 @@ describe('processPostAttackSpecials', () => {
         attackerName: 'player',
         damageDealt: 14
       });
-      expect(result.defender.tokens.turn).toBeDefined();
-      expect(result.defender.tokens.turn.some(t => t.id === 'vulnerable')).toBe(true);
+      expect(result.defender.tokens!.turn).toBeDefined();
+      expect(result.defender.tokens!.turn!.some(t => t.id === 'vulnerable')).toBe(true);
     });
 
     it('방어력 있으면 취약 부여 안함', () => {
@@ -311,7 +310,7 @@ describe('processPostAttackSpecials', () => {
         attackerName: 'player',
         damageDealt: 10
       });
-      expect(result.defender.tokens.turn.find(t => t.id === 'vulnerable')!.stacks).toBe(2);
+      expect(result.defender.tokens!.turn!.find(t => t.id === 'vulnerable')!.stacks).toBe(2);
     });
   });
 
@@ -376,7 +375,7 @@ describe('processPostAttackSpecials', () => {
         attackerName: 'player',
         damageDealt: 20
       });
-      expect(result.attacker.tokens.turn.some(t => t.id === 'persistent_strike')).toBe(true);
+      expect(result.attacker.tokens!.turn!.some(t => t.id === 'persistent_strike')).toBe(true);
       expect(result.attacker._persistentStrikeDamage).toBe(20);
     });
   });
@@ -390,7 +389,7 @@ describe('processPostAttackSpecials', () => {
         attackerName: 'player',
         damageDealt: 30
       });
-      expect(result.defender.tokens.turn.some(t => t.id === 'half_ether')).toBe(true);
+      expect(result.defender.tokens!.turn!.some(t => t.id === 'half_ether')).toBe(true);
     });
   });
 });

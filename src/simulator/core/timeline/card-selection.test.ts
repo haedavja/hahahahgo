@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file card-selection.test.ts
  * @description 카드 선택 AI 테스트
@@ -208,6 +207,7 @@ describe('카드 선택 AI', () => {
         relics: [],
         ether: overrides.ether ?? 0,
         block: 0,
+        gold: 0,
       },
       enemy: {
         id: 'test_enemy',

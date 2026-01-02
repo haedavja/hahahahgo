@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file enemy-passives.test.ts
  * @description 적 패시브 효과 시스템 테스트
@@ -128,7 +127,9 @@ describe('enemy-passives', () => {
 
       processEnemyBattleStartPassives(state);
 
-      expect(state.enemy.units[0].tokens['veil']).toBe(1);
+      const firstUnit = state.enemy.units?.[0];
+      expect(firstUnit).toBeDefined();
+      expect(firstUnit?.tokens?.['veil']).toBe(1);
     });
   });
 
@@ -407,6 +408,7 @@ describe('enemy-passives', () => {
         tokens: {},
         deck: [],
         cardsPerTurn: 2,
+        maxSpeed: 10,
       };
 
       const summary = getEnemyPassivesSummary(enemy);
@@ -424,6 +426,7 @@ describe('enemy-passives', () => {
         tokens: {},
         deck: [],
         cardsPerTurn: 2,
+        maxSpeed: 10,
         passives: {
           veilAtStart: true,
           healPerTurn: 5,

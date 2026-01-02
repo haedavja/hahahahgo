@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file analysis.test.ts
  * @description 분석 모듈 단위 테스트
@@ -150,11 +149,13 @@ describe('TrendAnalyzer', () => {
         totalBattles: 100,
         wins: 60,
         losses: 40,
+        draws: 0,
         winRate: 0.6,
         avgTurns: 10,
         avgPlayerDamage: 25,
         avgEnemyDamage: 30,
         topCards: [],
+        cardEfficiency: {},
       };
 
       analyzer.recordDataPoint(summary);

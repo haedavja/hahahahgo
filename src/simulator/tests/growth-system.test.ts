@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file growth-system.test.ts
  * @description 피라미드 성장 시스템 테스트
@@ -374,6 +373,21 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
@@ -396,6 +410,21 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
@@ -406,7 +435,7 @@ describe('growth-system', () => {
     });
 
     it('시작 기교 토큰을 적용한다', () => {
-      const playerState = { hp: 70, maxHp: 80, tokens: {} };
+      const playerState = { hp: 70, maxHp: 80, tokens: {} as Record<string, number> };
       const bonuses: GrowthBonuses = {
         maxHpBonus: 0,
         attackBonus: 0,
@@ -418,16 +447,31 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
       applyGrowthBonuses(playerState, bonuses);
 
-      expect(playerState.tokens?.['finesse']).toBe(2);
+      expect(playerState.tokens!['finesse']).toBe(2);
     });
 
     it('시작 집중 토큰을 적용한다', () => {
-      const playerState = { hp: 70, maxHp: 80, tokens: {} };
+      const playerState = { hp: 70, maxHp: 80, tokens: {} as Record<string, number> };
       const bonuses: GrowthBonuses = {
         maxHpBonus: 0,
         attackBonus: 0,
@@ -439,16 +483,31 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
       applyGrowthBonuses(playerState, bonuses);
 
-      expect(playerState.tokens?.['focus']).toBe(3);
+      expect(playerState.tokens!['focus']).toBe(3);
     });
 
     it('토큰이 없는 상태에서도 토큰 객체를 생성한다', () => {
-      const playerState = { hp: 70, maxHp: 80 };
+      const playerState: { hp: number; maxHp: number; tokens?: Record<string, number> } = { hp: 70, maxHp: 80 };
       const bonuses: GrowthBonuses = {
         maxHpBonus: 0,
         attackBonus: 0,
@@ -460,17 +519,32 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
       applyGrowthBonuses(playerState, bonuses);
 
       expect(playerState.tokens).toBeDefined();
-      expect(playerState.tokens?.['finesse']).toBe(1);
+      expect(playerState.tokens!['finesse']).toBe(1);
     });
 
     it('기존 토큰에 추가한다', () => {
-      const playerState = { hp: 70, maxHp: 80, tokens: { finesse: 2 } };
+      const playerState = { hp: 70, maxHp: 80, tokens: { finesse: 2 } as Record<string, number> };
       const bonuses: GrowthBonuses = {
         maxHpBonus: 0,
         attackBonus: 0,
@@ -482,12 +556,27 @@ describe('growth-system', () => {
         ammoBonus: 0,
         chainDamageBonus: 0,
         crossRangeBonus: 0,
+        etherGainBonus: 0,
+        etherGainMultiplier: 0,
+        startingEther: 0,
+        logosEffects: {
+          expandCrossRange: false,
+          extraSubSlots: 0,
+          extraMainSlots: 0,
+          blockToShoot: false,
+          reduceJamChance: false,
+          gunCritBonus: 0,
+          gunCritReload: false,
+          minFinesse: false,
+          armorPenetration: 0,
+          combatTokens: false,
+        },
         specialEffects: [],
       };
 
       applyGrowthBonuses(playerState, bonuses);
 
-      expect(playerState.tokens?.['finesse']).toBe(5);
+      expect(playerState.tokens!['finesse']).toBe(5);
     });
   });
 });

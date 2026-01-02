@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file gameSimulator.test.ts
  * @description 게임 시뮬레이터 테스트
@@ -345,9 +344,9 @@ describe('덱 비교 시뮬레이션', () => {
   });
 
   it('덱 프리셋으로 시뮬레이션을 실행할 수 있다', async () => {
-    const { DECK_PRESETS, runSimulation, SimulationConfig } = await import('./gameSimulator');
+    const { DECK_PRESETS, runSimulation } = await import('./gameSimulator');
 
-    const config: SimulationConfig = {
+    const config = {
       battles: 10,
       maxTurns: 30,
       enemyIds: ['ghoul'],

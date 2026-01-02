@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file battleReducer.test.ts
  * @description 전투 상태 관리 Reducer 테스트
@@ -7,22 +6,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { battleReducer, ACTIONS, createInitialState } from './battleReducer';
 import type { FullBattleState } from './battleReducerState';
+import type { Card } from '../../../types';
 
 // Mock randomUtils
 vi.mock('../../../lib/randomUtils', () => ({
   shuffle: vi.fn((arr) => [...arr].reverse()),
 }));
 
+// Helper to create test cards
+const createTestCard = (id: string, name: string, type: Card['type'] = 'attack'): Card => ({
+  id,
+  name,
+  type,
+  speedCost: 1,
+  actionCost: 1,
+  description: '',
+});
+
 describe('battleReducer', () => {
   let initialState: FullBattleState;
 
   beforeEach(() => {
-    initialState = createInitialState({});
+    initialState = createInitialState({
+      initialPlayerState: {
+        hp: 100,
+        maxHp: 100,
+        block: 0,
+        tokens: {},
+        energy: 3,
+        maxEnergy: 3,
+      },
+      initialEnemyState: {
+        hp: 50,
+        maxHp: 50,
+        block: 0,
+        tokens: {},
+      },
+    });
   });
 
   describe('플레이어/적 상태', () => {
     it('SET_PLAYER가 플레이어 상태를 설정한다', () => {
-      const newPlayer = { hp: 100, maxHp: 100, block: 0, tokens: {} };
+      const newPlayer = { hp: 100, maxHp: 100, block: 0, tokens: {}, energy: 3, maxEnergy: 3 };
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_PLAYER,
         payload: newPlayer,
@@ -68,7 +93,10 @@ describe('battleReducer', () => {
 
   describe('카드 관리', () => {
     it('SET_HAND가 핸드를 설정한다', () => {
-      const hand = [{ id: 'card1' }, { id: 'card2' }];
+      const hand = [
+        createTestCard('card1', 'Card 1', 'attack'),
+        createTestCard('card2', 'Card 2', 'defense'),
+      ];
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_HAND,
         payload: hand,
@@ -77,7 +105,10 @@ describe('battleReducer', () => {
     });
 
     it('SET_SELECTED가 선택된 카드를 설정한다', () => {
-      const selected = [0, 1];
+      const selected = [
+        createTestCard('card1', 'Card 1', 'attack'),
+        createTestCard('card2', 'Card 2', 'defense'),
+      ];
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_SELECTED,
         payload: selected,
@@ -86,21 +117,26 @@ describe('battleReducer', () => {
     });
 
     it('ADD_SELECTED가 선택된 카드를 추가한다', () => {
-      const stateWithSelected = { ...initialState, selected: [0] };
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
+      const stateWithSelected = { ...initialState, selected: [card1] };
       const result = battleReducer(stateWithSelected, {
         type: ACTIONS.ADD_SELECTED,
-        payload: 1,
+        payload: card2,
       });
-      expect(result.selected).toEqual([0, 1]);
+      expect(result.selected).toEqual([card1, card2]);
     });
 
     it('REMOVE_SELECTED가 선택된 카드를 제거한다', () => {
-      const stateWithSelected = { ...initialState, selected: [0, 1, 2] };
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
+      const card3 = createTestCard('card3', 'Card 3', 'general');
+      const stateWithSelected = { ...initialState, selected: [card1, card2, card3] };
       const result = battleReducer(stateWithSelected, {
         type: ACTIONS.REMOVE_SELECTED,
         payload: 1,
       });
-      expect(result.selected).toEqual([0, 2]);
+      expect(result.selected).toEqual([card1, card3]);
     });
 
     it('SET_CAN_REDRAW가 재추첨 가능 여부를 설정한다', () => {
@@ -112,11 +148,12 @@ describe('battleReducer', () => {
     });
 
     it('ADD_VANISHED_CARD가 소멸 카드를 추가한다', () => {
+      const card = createTestCard('card1', 'Card 1', 'attack');
       const result = battleReducer(initialState, {
         type: ACTIONS.ADD_VANISHED_CARD,
-        payload: 'card1',
+        payload: card,
       });
-      expect(result.vanishedCards).toContain('card1');
+      expect(result.vanishedCards).toContain(card);
     });
 
     it('INCREMENT_CARD_USAGE가 카드 사용 횟수를 증가시킨다', () => {
@@ -136,7 +173,11 @@ describe('battleReducer', () => {
 
   describe('덱/무덤 시스템', () => {
     it('SET_DECK이 덱을 설정한다', () => {
-      const deck = ['card1', 'card2', 'card3'];
+      const deck = [
+        createTestCard('card1', 'Card 1', 'attack'),
+        createTestCard('card2', 'Card 2', 'defense'),
+        createTestCard('card3', 'Card 3', 'general'),
+      ];
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_DECK,
         payload: deck,
@@ -145,7 +186,10 @@ describe('battleReducer', () => {
     });
 
     it('SET_DISCARD_PILE이 무덤을 설정한다', () => {
-      const discard = ['card1', 'card2'];
+      const discard = [
+        createTestCard('card1', 'Card 1', 'attack'),
+        createTestCard('card2', 'Card 2', 'defense'),
+      ];
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_DISCARD_PILE,
         payload: discard,
@@ -154,41 +198,50 @@ describe('battleReducer', () => {
     });
 
     it('ADD_TO_DISCARD가 단일 카드를 무덤에 추가한다', () => {
+      const card = createTestCard('card1', 'Card 1', 'attack');
       const result = battleReducer(initialState, {
         type: ACTIONS.ADD_TO_DISCARD,
-        payload: 'card1',
+        payload: card,
       });
-      expect(result.discardPile).toContain('card1');
+      expect(result.discardPile).toContain(card);
     });
 
     it('ADD_TO_DISCARD가 배열 카드를 무덤에 추가한다', () => {
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
       const result = battleReducer(initialState, {
         type: ACTIONS.ADD_TO_DISCARD,
-        payload: ['card1', 'card2'],
+        payload: [card1, card2] as any,
       });
-      expect(result.discardPile).toContain('card1');
-      expect(result.discardPile).toContain('card2');
+      expect(result.discardPile).toContain(card1);
+      expect(result.discardPile).toContain(card2);
     });
 
     it('DRAW_FROM_DECK이 덱에서 카드를 뽑는다', () => {
-      const stateWithDeck = {
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
+      const card3 = createTestCard('card3', 'Card 3', 'general');
+      const stateWithDeck: FullBattleState = {
         ...initialState,
-        deck: ['card1', 'card2', 'card3'],
+        deck: [card1, card2, card3],
         hand: [],
       };
       const result = battleReducer(stateWithDeck, {
         type: ACTIONS.DRAW_FROM_DECK,
         payload: 2,
       });
-      expect(result.deck).toEqual(['card3']);
-      expect(result.hand).toEqual(['card1', 'card2']);
+      expect(result.deck).toEqual([card3]);
+      expect(result.hand).toEqual([card1, card2]);
     });
 
     it('SHUFFLE_DISCARD_INTO_DECK이 무덤을 덱에 섞는다', () => {
-      const stateWithDiscard = {
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
+      const card3 = createTestCard('card3', 'Card 3', 'general');
+      const stateWithDiscard: FullBattleState = {
         ...initialState,
-        deck: ['card1'],
-        discardPile: ['card2', 'card3'],
+        deck: [card1],
+        discardPile: [card2, card3],
       };
       const result = battleReducer(stateWithDiscard, {
         type: ACTIONS.SHUFFLE_DISCARD_INTO_DECK,
@@ -200,7 +253,13 @@ describe('battleReducer', () => {
 
   describe('실행 큐', () => {
     it('SET_QUEUE가 큐를 설정한다', () => {
-      const queue = [{ actor: 'player', sp: 1 }];
+      const queue = [
+        {
+          actor: 'player' as const,
+          card: createTestCard('card1', 'Card 1', 'attack'),
+          sp: 1,
+        },
+      ];
       const result = battleReducer(initialState, {
         type: ACTIONS.SET_QUEUE,
         payload: queue,
@@ -290,13 +349,13 @@ describe('battleReducer', () => {
     });
 
     it('UPDATE_ENEMY_UNIT이 적 유닛을 업데이트한다', () => {
-      const stateWithUnits = {
+      const stateWithUnits: FullBattleState = {
         ...initialState,
         enemy: {
           ...initialState.enemy,
           units: [
-            { unitId: 0, hp: 20, maxHp: 20, block: 0 },
-            { unitId: 1, hp: 15, maxHp: 15, block: 0 },
+            { unitId: 0, hp: 20, maxHp: 20, block: 0, tokens: {} },
+            { unitId: 1, hp: 15, maxHp: 15, block: 0, tokens: {} },
           ],
         },
       };
@@ -304,7 +363,7 @@ describe('battleReducer', () => {
         type: ACTIONS.UPDATE_ENEMY_UNIT,
         payload: { unitId: 0, updates: { hp: 10 } },
       });
-      const unit = result.enemy.units?.find((u: { unitId: number }) => u.unitId === 0);
+      const unit = result.enemy.units?.find((u) => u.unitId === 0);
       expect(unit?.hp).toBe(10);
     });
   });
@@ -333,7 +392,10 @@ describe('battleReducer', () => {
 
   describe('토큰 시스템', () => {
     it('UPDATE_PLAYER_TOKENS가 플레이어 토큰을 업데이트한다', () => {
-      const tokens = { strength: 2, burn: 1 };
+      const tokens = {
+        usage: [{ id: 'strength', stacks: 2 }],
+        turn: [{ id: 'burn', stacks: 1 }],
+      };
       const result = battleReducer(initialState, {
         type: ACTIONS.UPDATE_PLAYER_TOKENS,
         payload: tokens,
@@ -342,7 +404,9 @@ describe('battleReducer', () => {
     });
 
     it('UPDATE_ENEMY_TOKENS가 적 토큰을 업데이트한다', () => {
-      const tokens = { vulnerable: 1 };
+      const tokens = {
+        turn: [{ id: 'vulnerable', stacks: 1 }],
+      };
       const result = battleReducer(initialState, {
         type: ACTIONS.UPDATE_ENEMY_TOKENS,
         payload: tokens,
@@ -369,10 +433,10 @@ describe('battleReducer', () => {
     });
 
     it('RESET_DISTRIBUTION이 분배 상태를 초기화한다', () => {
-      const stateWithDistribution = {
+      const stateWithDistribution: FullBattleState = {
         ...initialState,
         distributionMode: true,
-        pendingDistributionCard: { id: 'card1' },
+        pendingDistributionCard: createTestCard('card1', 'Card 1', 'attack'),
         damageDistribution: { 0: 10, 1: 5 },
         totalDistributableDamage: 15,
       };
@@ -388,9 +452,11 @@ describe('battleReducer', () => {
 
   describe('복합 액션', () => {
     it('RESET_TURN이 턴 상태를 초기화한다', () => {
-      const stateWithTurnData = {
+      const card1 = createTestCard('card1', 'Card 1', 'attack');
+      const card2 = createTestCard('card2', 'Card 2', 'defense');
+      const stateWithTurnData: FullBattleState = {
         ...initialState,
-        selected: [0, 1],
+        selected: [card1, card2],
         canRedraw: false,
         usedCardIndices: [0, 1, 2],
         disappearingCards: [0],
@@ -428,7 +494,7 @@ describe('battleReducer', () => {
   describe('알 수 없는 액션', () => {
     it('알 수 없는 액션은 상태를 변경하지 않는다', () => {
       const result = battleReducer(initialState, {
-        type: 'UNKNOWN_ACTION' as typeof ACTIONS.SET_PHASE,
+        type: 'UNKNOWN_ACTION' as any,
         payload: 'test',
       });
       expect(result).toBe(initialState);

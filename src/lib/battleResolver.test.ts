@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file battleResolver.test.ts
  * @description battleResolver 함수 테스트
@@ -43,7 +42,7 @@ describe('battleResolver', () => {
     describe('공격 처리', () => {
       it('플레이어 공격이 적 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -59,7 +58,7 @@ describe('battleResolver', () => {
 
       it('적 공격이 플레이어 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'enemy', cardId: 'strike', speedCost: 8 },
+          { order: 1, actor: 'enemy', cardId: 'strike', speedCost: 8, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -73,7 +72,7 @@ describe('battleResolver', () => {
 
       it('방어력이 피해를 흡수해야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -88,7 +87,7 @@ describe('battleResolver', () => {
 
       it('방어력보다 높은 피해는 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'strike', speedCost: 8 },
+          { order: 1, actor: 'player', cardId: 'strike', speedCost: 8, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -103,8 +102,8 @@ describe('battleResolver', () => {
 
       it('연속 공격이 누적되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
-          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 6, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -121,7 +120,7 @@ describe('battleResolver', () => {
     describe('방어 처리', () => {
       it('방어 카드가 방어력을 추가해야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -136,8 +135,8 @@ describe('battleResolver', () => {
 
       it('연속 방어가 누적되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
-          { order: 2, actor: 'player', cardId: 'marche', speedCost: 12 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 2, actor: 'player', cardId: 'marche', speedCost: 12, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 5 },
@@ -153,7 +152,7 @@ describe('battleResolver', () => {
     describe('승패 판정', () => {
       it('적 HP가 0이면 플레이어 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12 },
+          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -168,7 +167,7 @@ describe('battleResolver', () => {
 
       it('플레이어 HP가 0이면 적 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'enemy', cardId: 'lunge', speedCost: 12 },
+          { order: 1, actor: 'enemy', cardId: 'lunge', speedCost: 12, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 20, block: 0 },
@@ -183,7 +182,7 @@ describe('battleResolver', () => {
 
       it('양쪽 다 생존하면 HP가 높은 쪽이 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 30, block: 0 },
@@ -199,7 +198,7 @@ describe('battleResolver', () => {
 
       it('HP가 같으면 플레이어 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 35, block: 0 },
@@ -215,9 +214,9 @@ describe('battleResolver', () => {
 
       it('HP가 0이 되면 나머지 카드 실행 중단', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12 },
-          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 15 },
-          { order: 3, actor: 'enemy', cardId: 'lunge', speedCost: 12 },
+          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 15, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 3, actor: 'enemy', cardId: 'lunge', speedCost: 12, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -236,7 +235,7 @@ describe('battleResolver', () => {
     describe('로그 기록', () => {
       it('로그에 카드 정보가 기록되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
 
         const result = simulateBattle(timeline);
@@ -249,7 +248,7 @@ describe('battleResolver', () => {
 
       it('공격 로그에 피해 정보가 있어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -269,7 +268,7 @@ describe('battleResolver', () => {
 
       it('방어 로그에 방어량 정보가 있어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
 
         const result = simulateBattle(timeline);
@@ -285,8 +284,8 @@ describe('battleResolver', () => {
     describe('존재하지 않는 카드', () => {
       it('존재하지 않는 카드는 무시해야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'nonexistent_card', speedCost: 5 },
-          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 8 },
+          { order: 1, actor: 'player', cardId: 'nonexistent_card', speedCost: 5, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 8, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
 
         const result = simulateBattle(timeline);
@@ -299,7 +298,7 @@ describe('battleResolver', () => {
     describe('지원 카드', () => {
       it('피해/방어 없는 카드는 지원 타입으로 처리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'shout', speedCost: 1 },
+          { order: 1, actor: 'player', cardId: 'shout', speedCost: 1, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
 
         const result = simulateBattle(timeline);
@@ -311,9 +310,9 @@ describe('battleResolver', () => {
     describe('복합 시나리오', () => {
       it('공격과 방어가 교차하는 전투', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'octave', speedCost: 8 },
-          { order: 2, actor: 'enemy', cardId: 'strike', speedCost: 10 },
-          { order: 3, actor: 'player', cardId: 'strike', speedCost: 18 },
+          { order: 1, actor: 'player', cardId: 'octave', speedCost: 8, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 2, actor: 'enemy', cardId: 'strike', speedCost: 10, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
+          { order: 3, actor: 'player', cardId: 'strike', speedCost: 18, tu: 0, priorityWeight: 0, priority: '', actionCost: 0, tags: [], roll: 0 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },

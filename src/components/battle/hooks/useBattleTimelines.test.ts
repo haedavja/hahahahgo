@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file useBattleTimelines.test.ts
  * @description 전투 타임라인 계산 훅 테스트
@@ -131,8 +130,8 @@ describe('useBattleTimelines', () => {
       const { result } = renderHook(() => useBattleTimelines(props as any));
 
       expect(result.current.playerTimeline).toHaveLength(2);
-      expect(result.current.playerTimeline[0].card.id).toBe(1);
-      expect(result.current.playerTimeline[1].card.id).toBe(3);
+      expect((result.current.playerTimeline[0].card as any).id).toBe(1);
+      expect((result.current.playerTimeline[1].card as any).id).toBe(3);
     });
 
     it('fixedOrder에서 적 카드 필터', () => {
@@ -148,7 +147,7 @@ describe('useBattleTimelines', () => {
       const { result } = renderHook(() => useBattleTimelines(props as any));
 
       expect(result.current.enemyTimeline).toHaveLength(1);
-      expect(result.current.enemyTimeline[0].card.id).toBe(2);
+      expect((result.current.enemyTimeline[0].card as any).id).toBe(2);
     });
 
     it('fixedOrder가 없으면 빈 배열', () => {

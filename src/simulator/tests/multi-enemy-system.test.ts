@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file multi-enemy-system.test.ts
  * @description 다중 적 동시 전투 시스템 테스트
@@ -38,6 +37,7 @@ function createMockEnemy(overrides: Partial<EnemyState> = {}): EnemyState {
     deck: ['enemy_slash', 'enemy_guard'],
     cardsPerTurn: 2,
     emoji: '👹',
+    maxSpeed: 10,
     ...overrides,
   };
 }
@@ -388,12 +388,12 @@ describe('multi-enemy-system', () => {
   describe('processEnemyTurnStart', () => {
     it('재생 패시브가 있으면 회복한다', () => {
       const state = createMultiEnemyState([
-        createMockEnemy({ hp: 30, passives: { regeneration: 5 } }),
+        createMockEnemy({ hp: 30, passives: { healPerTurn: 5 } }),
       ]);
 
       const effects = processEnemyTurnStart(state);
 
-      expect(effects.some(e => e.includes('재생'))).toBe(true);
+      expect(effects.some(e => e.includes('재생') || e.includes('회복'))).toBe(true);
       expect(state.units[0].hp).toBe(35);
     });
 
@@ -410,7 +410,7 @@ describe('multi-enemy-system', () => {
 
     it('죽은 유닛은 처리하지 않는다', () => {
       const state = createMultiEnemyState([
-        createMockEnemy({ hp: 0, passives: { regeneration: 5 } }),
+        createMockEnemy({ hp: 0, passives: { healPerTurn: 5 } }),
       ]);
       state.units[0].isDead = true;
 

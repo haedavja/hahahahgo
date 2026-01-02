@@ -1,4 +1,3 @@
-// @ts-nocheck - Test factory file with complex type issues
 /**
  * @file factories.ts
  * @description 테스트용 팩토리 함수
@@ -495,26 +494,20 @@ export class EntityBuilder {
   }
 
   addUsageToken(token: TestTokenPayload): this {
-    if (!this.entity.tokens) {
-      this.entity.tokens = createEmptyTokenState();
-    }
-    this.entity.tokens.usage.push(token as unknown as TokenInstance);
+    this.entity.tokens = this.entity.tokens ?? createEmptyTokenState();
+    this.entity.tokens.usage!.push(token as TokenInstance);
     return this;
   }
 
   addTurnToken(token: TestTokenPayload): this {
-    if (!this.entity.tokens) {
-      this.entity.tokens = createEmptyTokenState();
-    }
-    this.entity.tokens.turn.push(token as unknown as TokenInstance);
+    this.entity.tokens = this.entity.tokens ?? createEmptyTokenState();
+    this.entity.tokens.turn!.push(token as TokenInstance);
     return this;
   }
 
   addPermanentToken(token: TestTokenPayload): this {
-    if (!this.entity.tokens) {
-      this.entity.tokens = createEmptyTokenState();
-    }
-    this.entity.tokens.permanent.push(token as unknown as TokenInstance);
+    this.entity.tokens = this.entity.tokens ?? createEmptyTokenState();
+    this.entity.tokens.permanent!.push(token as TokenInstance);
     return this;
   }
 

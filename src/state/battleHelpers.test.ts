@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file battleHelpers.test.ts
  * @description 전투 헬퍼 함수 테스트
@@ -11,7 +10,7 @@
  * 속성 누락 버그 방지 (speed, isBoss 등)
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import {
   createBattleEnemyData,
   resolveEnemyDeck,

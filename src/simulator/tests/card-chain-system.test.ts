@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file card-chain-system.test.ts
  * @description 카드 연계/창조 시스템 테스트
@@ -84,7 +83,7 @@ function createMockGameState(): GameBattleState {
     },
     timeline: [],
     comboUsageCount: {},
-  } as GameBattleState;
+  } as unknown as GameBattleState;
 }
 
 // 테스트용 카드 라이브러리
@@ -316,6 +315,7 @@ describe('card-chain-system', () => {
         bonusDamage: 20,
         bonusBlock: 0,
         speedReduction: 0,
+        etherBonus: 0,
         effects: [],
         chainEnded: true,
       };
@@ -340,6 +340,7 @@ describe('card-chain-system', () => {
         bonusDamage: 0,
         bonusBlock: 0,
         speedReduction: 0,
+        etherBonus: 0,
         effects: [],
         chainEnded: false,
       };
@@ -357,6 +358,7 @@ describe('card-chain-system', () => {
         bonusDamage: 0,
         bonusBlock: 0,
         speedReduction: 3,
+        etherBonus: 0,
         effects: [],
         chainEnded: false,
       };
@@ -381,6 +383,7 @@ describe('card-chain-system', () => {
         bonusDamage: 5,
         bonusBlock: 2,
         speedReduction: 2,
+        etherBonus: 0,
         effects: [],
         chainEnded: false,
       };

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file growthSlice.test.ts
  * @description 피라미드 성장 시스템 상태 슬라이스 테스트
@@ -389,6 +388,7 @@ describe('growthSlice', () => {
           battleWaltz: 1,
         },
         equippedPathos: ['quick_draw'],
+        traitCounts: {},
       };
 
       expect(state.pyramidLevel).toBe(3);

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file gameStore.test.ts
  * @description 메인 게임 상태 저장소 테스트
@@ -56,7 +55,7 @@ describe('gameStore', () => {
       const state = useGameStore.getState();
 
       // 자원 변경
-      if (state.updateResources) {
+      if (typeof state.updateResources === 'function') {
         state.updateResources({ gold: 1000 });
       }
 

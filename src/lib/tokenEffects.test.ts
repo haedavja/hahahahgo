@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file tokenEffects.test.js
  * @description tokenEffects 함수 테스트
@@ -342,7 +341,7 @@ describe('tokenEffects', () => {
       const result = consumeTokens(entity, [createConsumedToken('offense', 'usage')]);
 
       // 스택이 1 감소
-      const foundToken = result.tokens.usage.find(t => t.id === 'offense');
+      const foundToken = result.tokens.usage!.find(t => t.id === 'offense');
       expect(foundToken?.stacks).toBe(1);
     });
   });

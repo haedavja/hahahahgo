@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file useBreachSelection.test.ts
  * @description 브리치/창조 카드 선택 훅 테스트
@@ -12,9 +11,10 @@
  * - 다중 선택 큐 처리
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBreachSelection } from './useBreachSelection';
+import type { Card } from '../../../types';
 
 // 유틸리티 모킹
 vi.mock('../../../lib/randomUtils', () => ({
@@ -202,7 +202,7 @@ describe('useBreachSelection', () => {
       act(() => {
         result.current.creationQueueRef.current = [
           {
-            cards: CARDS,
+            cards: CARDS as Card[],
             insertSp: 5,
             breachCard: { id: 'creation' } as any,
             totalSelections: 2,

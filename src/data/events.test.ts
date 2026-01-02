@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file events.test.ts
  * @description 이벤트 시스템 테스트
@@ -15,8 +14,8 @@ function createMockEvent(overrides: Partial<NewEventDefinition> = {}): NewEventD
     title: '테스트 이벤트',
     description: '테스트 설명',
     choices: [
-      { text: '선택 1', next: 'step2' },
-      { text: '선택 2', final: true },
+      { id: 'choice1', label: '선택 1', text: '선택 1', next: 'step2' },
+      { id: 'choice2', label: '선택 2', text: '선택 2', final: true },
     ],
     ...overrides,
   } as NewEventDefinition;
@@ -45,11 +44,11 @@ describe('events', () => {
         stages: {
           start: {
             description: '시작 단계',
-            choices: [{ text: '다음', next: 'step2' }],
+            choices: [{ id: 'choice1', label: '다음', text: '다음', next: 'step2' }],
           },
           step2: {
             description: '두번째 단계',
-            choices: [{ text: '종료', final: true }],
+            choices: [{ id: 'choice2', label: '종료', text: '종료', final: true }],
           },
         },
       });
@@ -93,7 +92,7 @@ describe('events', () => {
     it('단일 단계 이벤트 (레거시) 처리', () => {
       const event = createMockEvent({
         description: '레거시 설명',
-        choices: [{ text: '확인', final: true }],
+        choices: [{ id: 'choice1', label: '확인', text: '확인', final: true }],
       });
 
       const result = getEventStep(event);

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file token-system.test.ts
  * @description 시뮬레이터 토큰 시스템 테스트
@@ -34,9 +33,10 @@ import {
   exhaustCard,
   recoverExhausted,
   resetExhaustState,
-  type TokenState,
   type ExhaustState,
 } from '../core/token-system';
+
+type TokenState = Record<string, number>;
 
 // Mock dependencies
 vi.mock('../data/game-data-sync', () => ({

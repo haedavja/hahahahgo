@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file combatActions.integration.test.js
  * @description 전투 시스템 통합 테스트 (Mock 없음)
@@ -287,7 +286,7 @@ describe('통합 테스트: Special 효과', () => {
       const result = applyAction(state, 'player', card);
 
       // 취약 토큰 확인
-      const enemyTokens = (result.updatedState.enemy as Combatant).tokens;
+      const enemyTokens = (result.updatedState.enemy as Combatant).tokens!;
       const hasVulnerable = enemyTokens.turn?.some(t => t.id === 'vulnerable');
       expect(hasVulnerable).toBe(true);
     });
@@ -298,7 +297,7 @@ describe('통합 테스트: Special 효과', () => {
 
       const result = applyAction(state, 'player', card);
 
-      const enemyTokens = (result.updatedState.enemy as Combatant).tokens;
+      const enemyTokens = (result.updatedState.enemy as Combatant).tokens!;
       const hasVulnerable = enemyTokens.turn?.some(t => t.id === 'vulnerable');
       expect(hasVulnerable).toBeFalsy();
     });
@@ -311,7 +310,7 @@ describe('통합 테스트: Special 효과', () => {
 
       const result = applyAction(state, 'player', card);
 
-      const enemyTokens = (result.updatedState.enemy as Combatant).tokens;
+      const enemyTokens = (result.updatedState.enemy as Combatant).tokens!;
       const vulnToken = enemyTokens.turn?.find(t => t.id === 'vulnerable');
       expect(vulnToken?.stacks).toBe(2);
     });
@@ -324,7 +323,7 @@ describe('통합 테스트: Special 효과', () => {
 
       const result = applyAction(state, 'player', card);
 
-      const playerTokens = (result.updatedState.player as Combatant).tokens;
+      const playerTokens = (result.updatedState.player as Combatant).tokens!;
       const hasPersistentStrike = playerTokens.turn?.some(t => t.id === 'persistent_strike');
       expect(hasPersistentStrike).toBe(true);
     });
@@ -337,7 +336,7 @@ describe('통합 테스트: Special 효과', () => {
 
       const result = applyAction(state, 'player', card);
 
-      const enemyTokens = (result.updatedState.enemy as Combatant).tokens;
+      const enemyTokens = (result.updatedState.enemy as Combatant).tokens!;
       const hasHalfEther = enemyTokens.turn?.some(t => t.id === 'half_ether');
       expect(hasHalfEther).toBe(true);
     });

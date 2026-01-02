@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file enhanced-battle-processor.test.ts
  * @description 통합 전투 처리기 테스트
@@ -64,23 +63,23 @@ vi.mock('../core/multi-enemy-battle-engine', () => ({
 vi.mock('../core/token-effects-processor', () => ({
   processAttackTokenEffects: vi.fn((state, actor, baseDamage) => ({
     modifiedValue: baseDamage + 5,
-    effects: ['힘 +5'],
+    appliedEffects: ['힘 +5'],
   })),
   processDefenseTokenEffects: vi.fn((state, actor, baseBlock) => ({
     modifiedValue: baseBlock + 3,
-    effects: ['민첩 +3'],
+    appliedEffects: ['민첩 +3'],
   })),
   processDamageTakenTokenEffects: vi.fn((state, actor, damage) => ({
     modifiedValue: Math.max(0, damage - 2),
-    effects: ['방어력 -2'],
+    appliedEffects: ['방어력 -2'],
   })),
   processTurnStartTokenEffects: vi.fn(() => ({
-    effects: ['독 피해 3'],
-    damageDealt: 3,
+    appliedEffects: ['독 피해 3'],
+    bonusDamage: 3,
   })),
   processTurnEndTokenEffects: vi.fn(() => ({
-    effects: ['재생 2'],
-    healAmount: 2,
+    appliedEffects: ['재생 2'],
+    heal: 2,
   })),
   consumeTokens: vi.fn(),
   applyTokenEffects: vi.fn(),
@@ -107,7 +106,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       type: 'attack',
       damage: 10,
       description: '10 피해',
-    } as GameCard,
+    } as unknown as GameCard,
     card_002: {
       id: 'card_002',
       name: '방어',
@@ -115,7 +114,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       type: 'skill',
       block: 5,
       description: '5 방어',
-    } as GameCard,
+    } as unknown as GameCard,
     chain_001: {
       id: 'chain_001',
       name: '연계 시작',
@@ -124,7 +123,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 8,
       traits: ['chain'],
       description: '연계 시작',
-    } as GameCard,
+    } as unknown as GameCard,
     followup_001: {
       id: 'followup_001',
       name: '후속',
@@ -133,7 +132,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 6,
       traits: ['followup'],
       description: '후속',
-    } as GameCard,
+    } as unknown as GameCard,
     finisher_001: {
       id: 'finisher_001',
       name: '마무리',
@@ -142,7 +141,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 15,
       traits: ['finisher'],
       description: '마무리',
-    } as GameCard,
+    } as unknown as GameCard,
   };
 }
 
@@ -183,7 +182,7 @@ function createMockGameState(): GameBattleState {
     enemy: createMockEnemy(),
     timeline: [],
     comboUsageCount: {},
-  } as GameBattleState;
+  } as unknown as GameBattleState;
 }
 
 describe('enhanced-battle-processor', () => {
@@ -441,7 +440,7 @@ describe('enhanced-battle-processor', () => {
 
         const result = processor.processTurnStart(state, 'player');
 
-        expect(result.effects).toContain('독 피해 3');
+        expect(result.appliedEffects).toContain('독 피해 3');
       });
 
       it('토큰 효과가 비활성화되면 빈 결과를 반환한다', () => {
@@ -470,7 +469,7 @@ describe('enhanced-battle-processor', () => {
 
         const result = processor.processTurnEnd(state, 'player');
 
-        expect(result.effects).toContain('재생 2');
+        expect(result.appliedEffects).toContain('재생 2');
       });
 
       it('토큰 효과가 비활성화되면 빈 결과를 반환한다', () => {
@@ -491,7 +490,7 @@ describe('enhanced-battle-processor', () => {
         const result = processor.processAttack(state, 'player', 10);
 
         expect(result.modifiedValue).toBe(15); // 10 + 5
-        expect(result.effects).toContain('힘 +5');
+        expect(result.appliedEffects).toContain('힘 +5');
       });
 
       it('카드 정보가 전달된다', () => {

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file postAttackSpecials.test.js
  * @description 공격 후 특수 효과 테스트
@@ -78,7 +77,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 10
       } as any);
 
-      const vulnToken = result.defender.tokens.turn.find(t => t.id === 'vulnerable');
+      const vulnToken = result.defender.tokens!.turn!.find(t => t.id === 'vulnerable');
       expect(vulnToken).toBeDefined();
     });
 
@@ -91,7 +90,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 5
       } as any);
 
-      const vulnToken = result.defender.tokens.turn?.find(t => t.id === 'vulnerable');
+      const vulnToken = result.defender.tokens!.turn?.find(t => t.id === 'vulnerable');
       expect(vulnToken).toBeUndefined();
     });
 
@@ -104,7 +103,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 10
       } as any);
 
-      const vulnToken = result.defender.tokens.turn.find(t => t.id === 'vulnerable');
+      const vulnToken = result.defender.tokens!.turn!.find(t => t.id === 'vulnerable');
       expect(vulnToken).toBeDefined();
       expect(vulnToken!.stacks).toBe(2);
     });
@@ -157,7 +156,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 20
       } as any);
 
-      const strikeToken = result.attacker.tokens.turn.find(t => t.id === 'persistent_strike');
+      const strikeToken = result.attacker.tokens!.turn!.find(t => t.id === 'persistent_strike');
       expect(strikeToken).toBeDefined();
       expect(result.attacker._persistentStrikeDamage).toBe(20);
     });
@@ -171,7 +170,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 10
       } as any);
 
-      const etherToken = result.defender.tokens.turn.find(t => t.id === 'half_ether');
+      const etherToken = result.defender.tokens!.turn!.find(t => t.id === 'half_ether');
       expect(etherToken).toBeDefined();
     });
 
@@ -184,7 +183,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 10
       } as any);
 
-      const jamToken = result.attacker.tokens.permanent.find(t => t.id === 'gun_jam');
+      const jamToken = result.attacker.tokens!.permanent!.find(t => t.id === 'gun_jam');
       expect(jamToken).toBeDefined();
     });
 
@@ -218,7 +217,7 @@ describe('postAttackSpecials', () => {
         battleContext: { isCritical: true} as any
       } as any);
 
-      const jamToken = result.attacker.tokens.permanent.find(t => t.id === 'gun_jam');
+      const jamToken = result.attacker.tokens!.permanent!.find(t => t.id === 'gun_jam');
       expect(jamToken).toBeUndefined();
     });
 
@@ -231,7 +230,7 @@ describe('postAttackSpecials', () => {
         damageDealt: 10
       } as any);
 
-      const burnToken = result.defender.tokens.turn.find(t => t.id === 'burn');
+      const burnToken = result.defender.tokens!.turn!.find(t => t.id === 'burn');
       expect(burnToken).toBeDefined();
       expect(burnToken!.stacks).toBe(3);
     });

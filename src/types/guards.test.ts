@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * 타입 가드 테스트
  */
@@ -562,7 +561,7 @@ describe('mergeEntityState', () => {
   it('새 속성을 추가한다', () => {
     const current = { hp: 100 };
     const updates = { gold: 50 };
-    const result = mergeEntityState(current, updates);
+    const result = mergeEntityState(current as any, updates as any);
     expect(result).toEqual({ hp: 100, gold: 50 });
   });
 

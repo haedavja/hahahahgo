@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file card-effects.test.ts
  * @description 카드 특수 효과 및 교차 보너스 테스트
@@ -49,7 +48,7 @@ function createMockGameState(): GameBattleState {
     },
     timeline: [],
     comboUsageCount: {},
-  } as GameBattleState;
+  } as unknown as GameBattleState;
 }
 
 // 테스트용 카드 생성

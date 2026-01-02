@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file enemy-patterns.test.ts
  * @description 적 AI 패턴 시스템 테스트
@@ -79,7 +78,7 @@ function createCardLibrary(): Record<string, GameCard> {
     }),
     fast1: createMockCard({ id: 'fast1', name: '빠른 공격', damage: 8, speedCost: 2, type: 'attack' }),
     slow1: createMockCard({ id: 'slow1', name: '느린 공격', damage: 15, speedCost: 7, type: 'attack' }),
-    cross1: createMockCard({ id: 'cross1', name: '교차 공격', damage: 10, crossBonus: 5, type: 'attack' }),
+    cross1: createMockCard({ id: 'cross1', name: '교차 공격', damage: 10, crossBonus: { type: 'damage_mult', damage: 5 }, type: 'attack' }),
     trait1: createMockCard({
       id: 'trait1',
       name: '양날의 검',
@@ -649,7 +648,7 @@ describe('enemy-patterns', () => {
     it('플레이어 tokens가 비어있어도 처리', () => {
       const decision = ai.selectCards(
         createMockEnemy(),
-        createMockPlayer({ tokens: [] }),
+        createMockPlayer({ tokens: {} }),
         ['attack1'],
         1
       );

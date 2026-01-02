@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file game-simulator.test.ts
  * @description 전체 게임 시뮬레이터 통합 테스트
@@ -14,21 +13,23 @@ import {
   RunSimulator,
   GameSimulator,
   createDefaultPlayer,
+  type EventDefinition,
+  type EventChoice,
 } from '../game';
 
 // ==================== 이벤트 시뮬레이터 테스트 ====================
 
 describe('EventSimulator', () => {
-  const mockEvents = {
+  const mockEvents: Record<string, EventDefinition> = {
     'test-event': {
       id: 'test-event',
       title: '테스트 이벤트',
       description: '테스트용 이벤트입니다.',
       difficulty: 'easy' as const,
       choices: [
-        { id: 'choice1', label: '선택 1', rewards: { gold: 50 } },
-        { id: 'choice2', label: '선택 2', cost: { gold: 30 }, rewards: { intel: 40 } },
-        { id: 'choice3', label: '통찰 체크', statRequirement: { insight: 3 }, rewards: { gold: 100 } },
+        { id: 'choice1', label: '선택 1', rewards: { gold: 50 } } as EventChoice,
+        { id: 'choice2', label: '선택 2', cost: { gold: 30 }, rewards: { intel: 40 } } as EventChoice,
+        { id: 'choice3', label: '통찰 체크', statRequirement: { insight: 3 }, rewards: { gold: 100 } } as EventChoice,
       ],
     },
   };
@@ -45,9 +46,9 @@ describe('EventSimulator', () => {
     const resources = { gold: 50, intel: 0, material: 0, loot: 0, grace: 0, hp: 80, maxHp: 80 };
     const stats = { strength: 1, agility: 1, insight: 2 };
 
-    const choice1 = mockEvents['test-event'].choices[0];
-    const choice2 = mockEvents['test-event'].choices[1];
-    const choice3 = mockEvents['test-event'].choices[2];
+    const choice1 = mockEvents['test-event'].choices![0];
+    const choice2 = mockEvents['test-event'].choices![1];
+    const choice3 = mockEvents['test-event'].choices![2];
 
     expect(simulator.canSelectChoice(choice1, resources, stats).canSelect).toBe(true);
     expect(simulator.canSelectChoice(choice2, resources, stats).canSelect).toBe(true);
@@ -69,7 +70,7 @@ describe('EventSimulator', () => {
 
   it('선택지 가치를 계산할 수 있다', () => {
     const simulator = new EventSimulator(mockEvents);
-    const choice = mockEvents['test-event'].choices[0];
+    const choice = mockEvents['test-event'].choices![0];
 
     const value = simulator.calculateChoiceValue(choice);
     expect(value).toBe(50); // gold 50

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file cardEnhancement.test.ts
  * @description 카드 강화 시스템 통합 테스트
@@ -734,7 +733,7 @@ describe('generateEnhancedDescription', () => {
   describe('특수 효과 표시 테스트', () => {
     it('extraBlur 특수 효과가 설명에 반영되어야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 10, speedCost: 4, actionCost: 1 };
-      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'extraBlur', value: 2 }] };
+      const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'extraBlur', value: 2 }] };
       const result = generateEnhancedDescription(card, '흐릿함 1회 획득', stats);
       // 흐릿함 1 + 2 = 3회로 교체됨
       expect(result).toContain('흐릿함 3회');
@@ -742,14 +741,14 @@ describe('generateEnhancedDescription', () => {
 
     it('counterOnHit 특수 효과가 설명에 추가되어야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 10, speedCost: 4, actionCost: 1 };
-      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'counterOnHit', value: 2 }] };
+      const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'counterOnHit', value: 2 }] };
       const result = generateEnhancedDescription(card, '방어', stats);
       expect(result).toContain('반격 2회 부여');
     });
 
     it('특수 효과 설명이 대괄호 안에 표시되어야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
-      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'extraShot', value: 1 }] };
+      const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'extraShot', value: 1 }] };
       const result = generateEnhancedDescription(card, '공격', stats);
       expect(result).toContain('[');
       expect(result).toContain(']');
@@ -791,12 +790,12 @@ describe('hasSpecialEffect', () => {
   }
 
   it('존재하는 특수 효과는 true를 반환해야 함', () => {
-    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
     expect(hasSpecialEffect(stats, 'executeEffect')).toBe(true);
   });
 
   it('존재하지 않는 특수 효과는 false를 반환해야 함', () => {
-    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
     expect(hasSpecialEffect(stats, 'extraShot')).toBe(false);
   });
 
@@ -806,7 +805,7 @@ describe('hasSpecialEffect', () => {
   });
 
   it('여러 특수 효과 중 하나를 찾을 수 있어야 함', () => {
-    const stats = {
+    const stats: EnhancedCardStats = {
       ...createDefaultStats(),
       specialEffects: [
         { type: 'executeEffect', value: 15 },
@@ -854,17 +853,17 @@ describe('getSpecialEffectValue', () => {
   }
 
   it('숫자 값을 가진 특수 효과의 값을 반환해야 함', () => {
-    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
     expect(getSpecialEffectValue(stats, 'executeEffect')).toBe(15);
   });
 
   it('문자열 값을 가진 특수 효과의 값을 반환해야 함', () => {
-    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'addTrait', value: 'swift' }] };
+    const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'addTrait', value: 'swift' }] };
     expect(getSpecialEffectValue(stats, 'addTrait')).toBe('swift');
   });
 
   it('존재하지 않는 특수 효과는 undefined를 반환해야 함', () => {
-    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    const stats: EnhancedCardStats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
     expect(getSpecialEffectValue(stats, 'nonexistent')).toBeUndefined();
   });
 
@@ -874,7 +873,7 @@ describe('getSpecialEffectValue', () => {
   });
 
   it('여러 특수 효과 중 특정 효과의 값을 찾을 수 있어야 함', () => {
-    const stats = {
+    const stats: EnhancedCardStats = {
       ...createDefaultStats(),
       specialEffects: [
         { type: 'executeEffect', value: 15 },

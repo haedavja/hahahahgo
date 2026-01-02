@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file timelineQueueUtils.test.ts
  * @description 타임라인 큐 조작 유틸리티 테스트
@@ -151,7 +150,7 @@ describe('timelineQueueUtils', () => {
 
       // 플레이어 카드(sp 8-5=3)가 적 카드(sp 5)보다 앞으로
       const remainingCards = result.slice(1);
-      expect(remainingCards[0].sp).toBeLessThanOrEqual(remainingCards[1].sp);
+      expect(remainingCards[0].sp).toBeLessThanOrEqual(remainingCards[1].sp!);
     });
   });
 
@@ -188,7 +187,7 @@ describe('timelineQueueUtils', () => {
       expect(result.length).toBe(3);
       // afterIndex 이후의 카드들이 SP 기준 정렬됨
       const remaining = result.slice(1);
-      expect(remaining[0].sp).toBeLessThanOrEqual(remaining[1].sp);
+      expect(remaining[0].sp).toBeLessThanOrEqual(remaining[1].sp!);
     });
   });
 

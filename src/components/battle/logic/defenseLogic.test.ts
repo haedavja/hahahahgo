@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file defenseLogic.test.ts
  * @description 방어 행동 처리 로직 테스트
@@ -156,8 +155,8 @@ describe('defenseLogic', () => {
         const context: BattleContext = {
           currentSp: 10,
           queue: [
-            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5 },
-            { actor: 'enemy', sp: 10, cardId: 'enemy-card', speedCost: 5 },
+            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5, card: {} as Card },
+            { actor: 'enemy', sp: 10, cardId: 'enemy-card', speedCost: 5, card: {} as Card },
           ],
           currentQIndex: 0,
           pathosTurnEffects: { onCrossBlock: 3 },
@@ -215,8 +214,8 @@ describe('defenseLogic', () => {
         const context: BattleContext = {
           currentSp: 10,
           queue: [
-            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5 },
-            { actor: 'enemy', sp: 10.5, cardId: 'enemy-card', speedCost: 5 },
+            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5, card: {} as Card },
+            { actor: 'enemy', sp: 10.5, cardId: 'enemy-card', speedCost: 5, card: {} as Card },
           ],
           currentQIndex: 0,
         };
@@ -271,12 +270,23 @@ describe('defenseLogic', () => {
 
     describe('유령 카드 및 토큰', () => {
       it('유령 카드는 토큰을 소모하지 않는다', () => {
-        const actor = createMockActor({ block: 0, tokens: { '수세': 1 } });
+        const actor = createMockActor({
+          block: 0,
+          tokens: {
+            usage: [],
+            turn: [{ id: '수세', stacks: 1 }],
+            permanent: []
+          }
+        });
         const card = createMockCard({ block: 5, isGhost: true });
 
         const result = applyDefense(actor, card, 'player');
 
-        expect(result.actor.tokens).toEqual({ '수세': 1 });
+        expect(result.actor.tokens).toEqual({
+          usage: [],
+          turn: [{ id: '수세', stacks: 1 }],
+          permanent: []
+        });
       });
 
       it('ignoreStatus가 true면 토큰 효과를 적용하지 않는다', () => {

@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with complex type issues
 /**
  * @file tokenExpirationProcessing.test.ts
  * @description 타임라인 기반 토큰 만료 처리 테스트
@@ -41,8 +40,8 @@ describe('tokenExpirationProcessing', () => {
   describe('processTokenExpiration', () => {
     it('토큰 만료가 없으면 hasChanges가 false', () => {
       const result = processTokenExpiration({
-        playerState: createMockEntity({ tokens: { strength: 2 } }),
-        enemyState: createMockEntity({ tokens: { weakness: 1 } }),
+        playerState: createMockEntity({ tokens: { permanent: [{ id: 'strength', stacks: 2 }] } }),
+        enemyState: createMockEntity({ tokens: { permanent: [{ id: 'weakness', stacks: 1 }] } }),
         turnNumber: 1,
         currentSp: 3,
         addLog: (msg) => logs.push(msg),
@@ -54,7 +53,7 @@ describe('tokenExpirationProcessing', () => {
 
     it('플레이어 토큰이 만료되면 로그가 추가된다', () => {
       const result = processTokenExpiration({
-        playerState: createMockEntity({ tokens: { strength: 2 } }),
+        playerState: createMockEntity({ tokens: { permanent: [{ id: 'strength', stacks: 2 }] } }),
         enemyState: createMockEntity({ tokens: {} }),
         turnNumber: 2,
         currentSp: 6,
@@ -69,7 +68,7 @@ describe('tokenExpirationProcessing', () => {
     it('적 토큰이 만료되면 로그가 추가된다', () => {
       const result = processTokenExpiration({
         playerState: createMockEntity({ tokens: {} }),
-        enemyState: createMockEntity({ tokens: { block: 5 } }),
+        enemyState: createMockEntity({ tokens: { permanent: [{ id: 'block', stacks: 5 }] } }),
         turnNumber: 2,
         currentSp: 6,
         addLog: (msg) => logs.push(msg),
@@ -81,8 +80,8 @@ describe('tokenExpirationProcessing', () => {
 
     it('양쪽 모두 토큰이 만료되면 두 로그가 추가된다', () => {
       const result = processTokenExpiration({
-        playerState: createMockEntity({ tokens: { strength: 2 } }),
-        enemyState: createMockEntity({ tokens: { weakness: 1 } }),
+        playerState: createMockEntity({ tokens: { permanent: [{ id: 'strength', stacks: 2 }] } }),
+        enemyState: createMockEntity({ tokens: { permanent: [{ id: 'weakness', stacks: 1 }] } }),
         turnNumber: 2,
         currentSp: 6,
         addLog: (msg) => logs.push(msg),
@@ -94,8 +93,8 @@ describe('tokenExpirationProcessing', () => {
 
     it('만료된 토큰이 제거된 상태를 반환한다', () => {
       const result = processTokenExpiration({
-        playerState: createMockEntity({ tokens: { strength: 2, agility: 1 } }),
-        enemyState: createMockEntity({ tokens: { weakness: 1 } }),
+        playerState: createMockEntity({ tokens: { permanent: [{ id: 'strength', stacks: 2 }, { id: 'agility', stacks: 1 }] } }),
+        enemyState: createMockEntity({ tokens: { permanent: [{ id: 'weakness', stacks: 1 }] } }),
         turnNumber: 2,
         currentSp: 6,
         addLog: (msg) => logs.push(msg),

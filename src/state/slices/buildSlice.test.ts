@@ -1,4 +1,3 @@
-// @ts-nocheck - Test file with type issues
 /**
  * @file buildSlice.test.ts
  * @description 빌드 슬라이스 테스트
@@ -21,6 +20,7 @@ const createInitialState = (): BuildSliceState => ({
   },
   cardUpgrades: {},
   cardGrowth: {},
+  storedTraits: [],
 });
 
 type TestStore = BuildSliceState & BuildActionsSlice;
