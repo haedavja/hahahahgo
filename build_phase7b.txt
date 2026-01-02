@@ -1,0 +1,57 @@
+
+> strategy-map@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 84 modules transformed.
+[31m✗[39m Build failed in 481ms
+[31merror during build:
+[31msrc/components/battle/utils/comboMultiplier.js (8:34): "applyRelicComboMultiplier" is not exported by "src/lib/relicEffects.js", imported by "src/components/battle/utils/comboMultiplier.js".[31m
+file: [36mZ:/바이브코딩/memory bank/hahahahgo/src/components/battle/utils/comboMultiplier.js:8:34[31m
+[33m
+ 6: 
+ 7: import { RELICS } from "../../../data/relics";
+ 8: import { calculatePassiveEffects, applyRelicComboMultiplier } from "../../../lib/relicEffects";
+                                      ^
+ 9: 
+10: /**
+[31m
+    at getRollupError (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:16946:16)
+    at Module.traceVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:17400:29)
+    at ModuleScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:15067:39)
+    at FunctionScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at FunctionBodyScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at ReturnValueScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at FunctionBodyScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at TrackingScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)[39m
+
+> strategy-map@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 84 modules transformed.
+[31m✗[39m Build failed in 498ms
+[31merror during build:
+[31msrc/components/battle/utils/comboMultiplier.js (7:9): "RELICS" is not exported by "src/lib/relics.js", imported by "src/components/battle/utils/comboMultiplier.js".[31m
+file: [36mZ:/바이브코딩/memory bank/hahahahgo/src/components/battle/utils/comboMultiplier.js:7:9[31m
+[33m
+5:  */
+6: 
+7: import { RELICS, applyRelicComboMultiplier } from "../../../lib/relics";
+            ^
+8: import { calculatePassiveEffects } from "../../../lib/relicEffects";
+[31m
+    at getRollupError (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:16946:16)
+    at Module.traceVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:17400:29)
+    at ModuleScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:15067:39)
+    at FunctionScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at FunctionBodyScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at ReturnValueScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at FunctionBodyScope.findVariable (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5641:38)
+    at Identifier.bind (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:5415:40)[39m

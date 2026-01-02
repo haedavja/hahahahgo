@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-31",
+  "presets": {
+    "balanced": {
+      "name": "균형 덱",
+      "description": "공격과 방어의 균형",
+      "cards": ["slash", "slash", "defend", "defend", "bash", "shieldBash", "quickSlash", "ironWall"],
+      "archetype": "balanced",
+      "difficulty": "easy"
+    },
+    "aggressive": {
+      "name": "공격 덱",
+      "description": "강력한 공격 집중",
+      "cards": ["slash", "slash", "slash", "heavyBlow", "heavyBlow", "rage", "combo", "execute"],
+      "archetype": "aggressive",
+      "difficulty": "medium"
+    },
+    "defensive": {
+      "name": "방어 덱",
+      "description": "방어와 지구전",
+      "cards": ["defend", "defend", "defend", "ironWall", "ironWall", "shieldBash", "heal", "counterAttack"],
+      "archetype": "defensive",
+      "difficulty": "medium"
+    },
+    "combo": {
+      "name": "콤보 덱",
+      "description": "연속 공격과 연계",
+      "cards": ["combo", "combo", "dualWield", "whirlwind", "quickSlash", "quickSlash", "rage", "evasion"],
+      "archetype": "combo",
+      "difficulty": "hard"
+    },
+    "ranged": {
+      "name": "총기 덱",
+      "description": "원거리 공격 특화",
+      "cards": ["pistolShot", "pistolShot", "rifleShot", "rifleShot", "retreat", "defend", "quickSlash", "evasion"],
+      "archetype": "ranged",
+      "difficulty": "medium"
+    },
+    "counter": {
+      "name": "반격 덱",
+      "description": "반격과 카운터",
+      "cards": ["counterAttack", "counterAttack", "defend", "defend", "ironWall", "shieldBash", "bash", "retreat"],
+      "archetype": "reactive",
+      "difficulty": "hard"
+    },
+    "elite": {
+      "name": "엘리트 덱",
+      "description": "고급 카드 조합",
+      "cards": ["execute", "execute", "dualWield", "whirlwind", "rage", "rage", "charge", "evasion"],
+      "archetype": "elite",
+      "difficulty": "expert"
+    },
+    "starter": {
+      "name": "기본 덱",
+      "description": "시작 덱",
+      "cards": ["slash", "slash", "slash", "defend", "defend", "defend", "bash", "shieldBash"],
+      "archetype": "starter",
+      "difficulty": "easy"
+    }
+  }
+}

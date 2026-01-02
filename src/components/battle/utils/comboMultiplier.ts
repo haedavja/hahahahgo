@@ -1,0 +1,122 @@
+/**
+ * @file comboMultiplier.ts
+ * @description 콤보 배율 계산 시스템
+ */
+
+import type { ComboExplainResult } from '../../../types';
+import { getRelicById } from "../../../data/relics";
+import { applyRelicComboMultiplier } from "../../../lib/relics";
+import { calculatePassiveEffects } from "../../../lib/relicEffects";
+
+// 상징 효과 타입 (모든 가능한 효과 속성)
+interface RelicEffects {
+  type?: string;
+  comboMultiplierPerCard?: number;
+  etherMultiplier?: number;
+  etherCardMultiplier?: number;
+  etherFiveCardBonus?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * 상징 효과를 적용한 콤보 배율 계산
+ */
+export function computeComboMultiplier(
+  baseMult: number,
+  cardsCount: number,
+  includeFiveCard: boolean = true,
+  includeRefBook: boolean = true,
+  relicOrderOverride: string[] | null = null,
+  orderedRelicList: string[] = []
+): number {
+  let mult = baseMult;
+  const order = relicOrderOverride || orderedRelicList;
+  const passive = calculatePassiveEffects(order);
+
+  order.forEach((rid) => {
+    const relic = getRelicById(rid);
+    if (!relic?.effects) return;
+    const effects = relic.effects as RelicEffects;
+    if (effects.comboMultiplierPerCard || effects.etherMultiplier) {
+      mult = applyRelicComboMultiplier([rid], mult, cardsCount);
+    }
+  });
+
+  if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
+      if (!relic?.effects) return;
+      const effects = relic.effects as RelicEffects;
+      if (!effects.etherCardMultiplier) return;
+      mult *= (1 + cardsCount * 0.1);
+    });
+  }
+
+  if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+    // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
+      if (!relic?.effects) return;
+      const effects = relic.effects as RelicEffects;
+      if (!effects.etherFiveCardBonus) return;
+      mult *= effects.etherFiveCardBonus;
+    });
+  }
+
+  return mult;
+}
+
+/**
+ * 배율 계산 과정을 설명용으로 반환
+ */
+export function explainComboMultiplier(
+  baseMult: number,
+  cardsCount: number,
+  includeFiveCard: boolean = true,
+  includeRefBook: boolean = true,
+  relicOrderOverride: string[] | null = null,
+  orderedRelicList: string[] = []
+): ComboExplainResult {
+  let mult = baseMult;
+  const order = relicOrderOverride || orderedRelicList;
+  const steps: string[] = [`기본: ${mult.toFixed(2)}`];
+  const passive = calculatePassiveEffects(order);
+
+  order.forEach((rid) => {
+    const relic = getRelicById(rid);
+    if (!relic?.effects) return;
+    const effects = relic.effects as RelicEffects;
+    if (effects.comboMultiplierPerCard || effects.etherMultiplier) {
+      const prev = mult;
+      mult = applyRelicComboMultiplier([rid], mult, cardsCount);
+      steps.push(`${relic.name}: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+    }
+  });
+
+  if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
+      if (!relic?.effects) return;
+      const effects = relic.effects as RelicEffects;
+      if (!effects.etherCardMultiplier) return;
+      const prev = mult;
+      mult *= (1 + cardsCount * 0.1);
+      steps.push(`참고서: ${prev.toFixed(2)} → ${mult.toFixed(2)} (카드 ${cardsCount}장)`);
+    });
+  }
+
+  if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+    // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
+      if (!relic?.effects) return;
+      const effects = relic.effects as RelicEffects;
+      if (!effects.etherFiveCardBonus) return;
+      const prev = mult;
+      mult *= effects.etherFiveCardBonus;
+      steps.push(`${relic.name}: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+    });
+  }
+
+  return { multiplier: mult, steps };
+}

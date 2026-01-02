@@ -1,0 +1,31 @@
+
+> strategy-map@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 34 modules transformed.
+[31m✗[39m Build failed in 196ms
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+Z:/바이브코딩/memory bank/hahahahgo/src/components/battle/LegacyBattleApp.jsx:751:10: ERROR: Expected ";" but found ":"[31m
+file: [36mZ:/바이브코딩/memory bank/hahahahgo/src/components/battle/LegacyBattleApp.jsx:751:10[31m
+[33m
+[33mExpected ";" but found ":"[33m
+749 |  
+750 |        block: turnStartRelicEffects.block,
+751 |        heal: turnStartRelicEffects.heal,
+    |            ^
+752 |        energy: turnStartRelicEffects.energy
+753 |      });
+[31m
+    at failureErrorWithLog (Z:\바이브코딩\memory bank\hahahahgo\node_modules\esbuild\lib\main.js:1467:15)
+    at Z:\바이브코딩\memory bank\hahahahgo\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (Z:\바이브코딩\memory bank\hahahahgo\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (Z:\바이브코딩\memory bank\hahahahgo\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (Z:\바이브코딩\memory bank\hahahahgo\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m

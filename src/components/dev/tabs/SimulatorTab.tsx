@@ -1,0 +1,1998 @@
+/**
+ * SimulatorTab.tsx
+ * 시뮬레이터 탭 - 게임 내에서 런 시뮬레이션 실행 및 상세 통계 확인
+ */
+
+import { useState, useCallback, memo } from 'react';
+import type { CSSProperties } from 'react';
+import { RELICS } from '../../../data/relics';
+import { ITEMS } from '../../../data/items';
+import { CARDS, ENEMIES } from '../../battle/battleData';
+import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
+import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
+import { analyzeStats, generateAnalysisGuidelines } from '../../../simulator/analysis/stats-analysis-framework';
+
+// 전략 타입 및 레이블
+type StrategyType = 'balanced' | 'aggressive' | 'defensive';
+const STRATEGY_LABELS: Record<StrategyType, string> = {
+  balanced: '균형',
+  aggressive: '공격적',
+  defensive: '방어적',
+};
+const ALL_STRATEGIES: StrategyType[] = ['balanced', 'aggressive', 'defensive'];
+
+// 전략별 통계 타입
+type StatsByStrategy = Record<StrategyType, DetailedStats | null>;
+
+// 단일 전략 통계 포맷 함수
+function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string): string[] {
+  const lines: string[] = [];
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  const num = (v: number) => v.toFixed(1);
+  const getCardName = (id: string) => CARDS.find(c => c.id === id)?.name || id;
+  const getMonsterName = (id: string) => ENEMIES.find(e => e.id === id)?.name || id;
+  const getRelicNameLocal = (id: string) => (RELICS as Record<string, { name?: string }>)[id]?.name || id;
+  const getItemNameLocal = (id: string) => ITEMS[id]?.name || id;
+  const getEventNameLocal = (id: string) => NEW_EVENT_LIBRARY[id]?.title || id;
+
+  lines.push(`## 📊 ${strategyLabel} 전략 결과`);
+  lines.push('');
+
+  // ==================== 1. 런 통계 ====================
+  lines.push('### 1. 런 통계');
+  lines.push(`- 총 런: ${stats.runStats.totalRuns}회`);
+  lines.push(`- 성공: ${stats.runStats.successfulRuns}회 (${pct(stats.runStats.successRate)})`);
+  lines.push(`- 평균 도달 층: ${num(stats.runStats.avgLayerReached)}`);
+  lines.push(`- 평균 전투 승리: ${num(stats.runStats.avgBattlesWon)}`);
+  lines.push(`- 평균 골드: ${num(stats.runStats.avgGoldEarned)}`);
+  lines.push(`- 평균 덱 크기: ${num(stats.runStats.avgFinalDeckSize)}`);
+  lines.push('');
+
+  // 사망 원인
+  if (stats.runStats.deathCauses && Object.keys(stats.runStats.deathCauses).length > 0) {
+    lines.push('#### 사망 원인');
+    Object.entries(stats.runStats.deathCauses)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([cause, count]) => {
+        lines.push(`- ${cause}: ${count}회 (${pct(count / stats.runStats.totalRuns)})`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 2. 몬스터 통계 ====================
+  if (stats.monsterStats.size > 0) {
+    lines.push('### 2. 몬스터 전투');
+    lines.push('| 몬스터 | 전투 | 승률 | 평균턴 |');
+    lines.push('|--------|------|------|--------|');
+    Array.from(stats.monsterStats.entries())
+      .sort((a, b) => b[1].battles - a[1].battles)
+      .slice(0, 10)
+      .forEach(([id, m]) => {
+        lines.push(`| ${getMonsterName(id)} | ${m.battles} | ${pct(m.winRate)} | ${num(m.avgTurns)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 3. 카드 픽률 ====================
+  if (stats.cardPickStats && Object.keys(stats.cardPickStats.timesOffered || {}).length > 0) {
+    lines.push('### 3. 카드 픽률 (상위 10개)');
+    lines.push('| 카드 | 제시 | 픽률 |');
+    lines.push('|------|------|------|');
+    Object.entries(stats.cardPickStats.timesOffered || {})
+      .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
+      .slice(0, 10)
+      .forEach(([id, offered]) => {
+        const pickRate = stats.cardPickStats.pickRate[id] || 0;
+        lines.push(`| ${getCardName(id)} | ${offered} | ${pct(pickRate)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 4. 카드 기여도 ====================
+  if (stats.cardContributionStats && Object.keys(stats.cardContributionStats.contribution || {}).length > 0) {
+    lines.push('### 4. 카드 기여도 (상위 10개)');
+    lines.push('| 카드 | 보유시 승률 | 기여도 |');
+    lines.push('|------|-------------|--------|');
+    Object.entries(stats.cardContributionStats.contribution || {})
+      .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 10)
+      .forEach(([id, contrib]) => {
+        const winWith = stats.cardContributionStats.winRateWithCard[id] || 0;
+        const sign = (contrib as number) > 0 ? '+' : '';
+        lines.push(`| ${getCardName(id)} | ${pct(winWith)} | ${sign}${pct(contrib as number)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 5. 상징 통계 (상세) ====================
+  if (stats.relicStats && stats.relicStats.size > 0) {
+    const allRelics = Array.from(stats.relicStats.entries());
+    const totalRuns = stats.runStats.totalRuns || 1;
+
+    lines.push('### 5. 상징 통계 (상세)');
+    lines.push('');
+
+    // 5.1 상징 기여도 (상위 10개)
+    const topContribRelics = allRelics
+      .filter(([, s]) => s.timesAcquired >= 2)
+      .sort((a, b) => b[1].contribution - a[1].contribution)
+      .slice(0, 10);
+
+    if (topContribRelics.length > 0) {
+      lines.push('#### 5.1 상징 기여도 (상위 10개)');
+      lines.push('| 상징 | 획득 | 획득률 | 보유승률 | 미보유승률 | 기여도 |');
+      lines.push('|------|------|--------|----------|------------|--------|');
+      topContribRelics.forEach(([, s]) => {
+        const acquireRate = s.timesAcquired / totalRuns;
+        const sign = s.contribution > 0 ? '+' : '';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${pct(acquireRate)} | ${pct(s.winRateWith)} | ${pct(s.winRateWithout)} | ${sign}${pct(s.contribution)} |`);
+      });
+      lines.push('');
+    }
+
+    // 5.2 상징 획득 출처 분석
+    const sourceStats: Record<string, number> = {};
+    allRelics.forEach(([, s]) => {
+      Object.entries(s.acquiredFrom || {}).forEach(([source, count]) => {
+        sourceStats[source] = (sourceStats[source] || 0) + count;
+      });
+    });
+    if (Object.keys(sourceStats).length > 0) {
+      const sourceLabels: Record<string, string> = {
+        battle: '전투', shop: '상점', event: '이벤트',
+        dungeon: '던전', boss: '보스', starting: '시작',
+      };
+      lines.push('#### 5.2 상징 획득 출처');
+      Object.entries(sourceStats)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([source, count]) => {
+          lines.push(`- ${sourceLabels[source] || source}: ${count}회`);
+        });
+      lines.push('');
+    }
+
+    // 5.3 상징 효과 발동 (발동 횟수 있는 것만)
+    const activeRelics = allRelics
+      .filter(([, s]) => s.effectTriggers > 0)
+      .sort((a, b) => b[1].effectTriggers - a[1].effectTriggers)
+      .slice(0, 10);
+    if (activeRelics.length > 0) {
+      lines.push('#### 5.3 상징 효과 발동 (상위 10개)');
+      lines.push('| 상징 | 발동횟수 | 평균효과 | 평균도달층 |');
+      lines.push('|------|----------|----------|------------|');
+      activeRelics.forEach(([, s]) => {
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.effectTriggers}회 | ${s.avgEffectValue.toFixed(1)} | ${s.avgFloorReachedWith.toFixed(1)} |`);
+      });
+      lines.push('');
+    }
+
+    // 5.4 상징 시너지 (자주 함께 획득되는 상징)
+    const synergyPairs: { relic1: string; relic2: string; count: number }[] = [];
+    allRelics.forEach(([, s]) => {
+      if (s.commonPairs && s.commonPairs.length > 0) {
+        s.commonPairs.forEach(pair => {
+          // 중복 방지: 알파벳 순서로 정렬
+          const [first, second] = [s.relicId, pair.relicId].sort();
+          const existing = synergyPairs.find(p => p.relic1 === first && p.relic2 === second);
+          if (!existing) {
+            synergyPairs.push({ relic1: first, relic2: second, count: pair.frequency });
+          }
+        });
+      }
+    });
+    if (synergyPairs.length > 0) {
+      lines.push('#### 5.4 상징 시너지 (자주 함께 획득)');
+      lines.push('| 상징 1 | 상징 2 | 함께 획득 |');
+      lines.push('|--------|--------|-----------|');
+      synergyPairs
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .forEach(pair => {
+          lines.push(`| ${getRelicNameLocal(pair.relic1)} | ${getRelicNameLocal(pair.relic2)} | ${pair.count}회 |`);
+        });
+      lines.push('');
+    }
+
+    // 5.5 평균 획득 층 (빠른 획득 상징)
+    const earlyRelics = allRelics
+      .filter(([, s]) => s.timesAcquired >= 3 && s.avgAcquireFloor > 0)
+      .sort((a, b) => a[1].avgAcquireFloor - b[1].avgAcquireFloor)
+      .slice(0, 10);
+    if (earlyRelics.length > 0) {
+      lines.push('#### 5.5 평균 획득 층 (빠른 획득 순)');
+      lines.push('| 상징 | 평균획득층 | 획득횟수 | 도달층기여 |');
+      lines.push('|------|------------|----------|------------|');
+      earlyRelics.forEach(([, s]) => {
+        const floorContrib = s.avgFloorReachedWith - (stats.runStats.avgLayerReached || 0);
+        const sign = floorContrib > 0 ? '+' : '';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${sign}${floorContrib.toFixed(1)} |`);
+      });
+      lines.push('');
+    }
+  }
+
+  // ==================== 6. 상점 통계 ====================
+  if (stats.shopStats) {
+    lines.push('### 6. 상점 통계');
+    lines.push(`- 총 방문: ${stats.shopStats.totalVisits ?? 0}회`);
+    lines.push(`- 총 지출: ${stats.shopStats.totalSpent ?? 0}G`);
+    lines.push(`- 평균 지출: ${(stats.shopStats.avgSpentPerVisit ?? 0).toFixed(0)}G/회`);
+    lines.push(`- 카드 제거: ${stats.shopStats.cardsRemoved ?? 0}회`);
+
+    const relicsPurchased = Object.entries(stats.shopStats.relicsPurchased || {});
+    if (relicsPurchased.length > 0) {
+      lines.push('#### 구매한 상징');
+      relicsPurchased.forEach(([id, count]) => {
+        lines.push(`- ${getRelicNameLocal(id)}: ${count}회`);
+      });
+    }
+
+    const itemsPurchased = Object.entries(stats.shopStats.itemsPurchased || {});
+    if (itemsPurchased.length > 0) {
+      lines.push('#### 구매한 아이템');
+      itemsPurchased.forEach(([id, count]) => {
+        lines.push(`- ${getItemNameLocal(id)}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 7. 던전 통계 ====================
+  if (stats.dungeonStats) {
+    lines.push('### 7. 던전 통계');
+    lines.push(`- 총 진입: ${stats.dungeonStats.totalAttempts ?? 0}회`);
+    lines.push(`- 클리어율: ${pct(stats.dungeonStats.clearRate ?? 0)}`);
+    lines.push(`- 평균 소요 턴: ${num(stats.dungeonStats.avgTurns ?? 0)}`);
+    lines.push(`- 평균 받은 피해: ${num(stats.dungeonStats.avgDamageTaken ?? 0)}`);
+
+    const rewardCards = stats.dungeonStats.rewards?.cards ?? [];
+    const rewardRelics = stats.dungeonStats.rewards?.relics ?? [];
+    if (rewardCards.length > 0) {
+      lines.push(`- 획득 카드: ${rewardCards.length}장 (${rewardCards.map((id: string) => getCardName(id)).join(', ')})`);
+    }
+    if (rewardRelics.length > 0) {
+      lines.push(`- 획득 상징: ${rewardRelics.length}개 (${rewardRelics.map((id: string) => getRelicNameLocal(id)).join(', ')})`);
+    }
+    lines.push('');
+  }
+
+  // ==================== 8. 이벤트 통계 ====================
+  if (stats.eventStats && stats.eventStats.size > 0) {
+    lines.push('### 8. 이벤트 통계');
+    lines.push('| 이벤트 | 발생 | 성공 | 골드변화 | 재료변화 |');
+    lines.push('|--------|------|------|----------|----------|');
+    Array.from(stats.eventStats.entries())
+      .sort((a, b) => (b[1].occurrences ?? 0) - (a[1].occurrences ?? 0))
+      .forEach(([id, e]: [string, { occurrences?: number; successes?: number; totalGoldChange?: number; totalMaterialChange?: number }]) => {
+        lines.push(`| ${getEventNameLocal(id)} | ${e.occurrences ?? 0} | ${e.successes ?? 0} | ${e.totalGoldChange ?? 0}G | ${e.totalMaterialChange ?? 0} |`);
+      });
+    lines.push('');
+
+    // 이벤트 선택 상세
+    if (stats.eventChoiceStats && stats.eventChoiceStats.size > 0) {
+      lines.push('#### 이벤트 선택 상세');
+      Array.from(stats.eventChoiceStats.entries()).forEach(([eventId, choiceStats]: [string, { occurrences?: number; timesSkipped?: number; choiceOutcomes?: Record<string, { timesChosen?: number; avgHpChange?: number; avgGoldChange?: number; successRate?: number }> }]) => {
+        lines.push(`- **${getEventNameLocal(eventId)}**: 발생 ${choiceStats.occurrences ?? 0}회, 스킵 ${choiceStats.timesSkipped ?? 0}회`);
+        if (choiceStats.choiceOutcomes) {
+          Object.entries(choiceStats.choiceOutcomes).forEach(([choiceId, outcome]) => {
+            lines.push(`  - 선택 "${choiceId}": ${outcome.timesChosen ?? 0}회, HP ${(outcome.avgHpChange ?? 0).toFixed(1)}, 골드 ${(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 ${pct(outcome.successRate ?? 0)}`);
+          });
+        }
+      });
+      lines.push('');
+    }
+  }
+
+  // ==================== 9. 아이템 통계 ====================
+  if (stats.itemUsageStats) {
+    const itemsAcquired = Object.entries(stats.itemUsageStats.itemsAcquired || {});
+    const itemEffects = Object.entries(stats.itemUsageStats.itemEffects || {});
+
+    if (itemsAcquired.length > 0 || itemEffects.length > 0) {
+      lines.push('### 9. 아이템 통계');
+
+      if (itemsAcquired.length > 0) {
+        lines.push('#### 획득한 아이템');
+        itemsAcquired.forEach(([id, count]) => {
+          lines.push(`- ${getItemNameLocal(id)}: ${count}개`);
+        });
+      }
+
+      if (itemEffects.length > 0) {
+        lines.push('#### 아이템 사용 효과');
+        lines.push('| 아이템 | 사용 | HP회복 | 피해 |');
+        lines.push('|--------|------|--------|------|');
+        itemEffects.forEach(([id, eff]: [string, { timesUsed: number; totalHpHealed: number; totalDamage: number }]) => {
+          lines.push(`| ${getItemNameLocal(id)} | ${eff.timesUsed}회 | ${eff.totalHpHealed} | ${eff.totalDamage} |`);
+        });
+      }
+      lines.push('');
+    }
+  }
+
+  // ==================== 10. 성장 통계 ====================
+  if (stats.growthStats) {
+    lines.push('### 10. 성장 통계');
+    lines.push(`- 총 투자: ${stats.growthStats.totalInvestments ?? 0}회`);
+    lines.push(`- 런당 평균: ${(stats.growthStats.avgInvestmentsPerRun ?? 0).toFixed(1)}회`);
+
+    // 스탯별 투자
+    const statInvestments = Object.entries(stats.growthStats.statInvestments || {});
+    if (statInvestments.length > 0) {
+      lines.push('#### 스탯별 투자');
+      statInvestments.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
+        lines.push(`- ${stat}: ${count}회`);
+      });
+    }
+
+    // 스탯별 승률 상관관계
+    const statWinCorr = Object.entries(stats.growthStats.statWinCorrelation || {});
+    if (statWinCorr.length > 0) {
+      lines.push('#### 스탯별 승률 기여도');
+      lines.push('| 스탯 | 기여도 |');
+      lines.push('|------|--------|');
+      statWinCorr.sort((a, b) => (b[1] as number) - (a[1] as number)).forEach(([stat, corr]) => {
+        const sign = (corr as number) > 0 ? '+' : '';
+        lines.push(`| ${stat} | ${sign}${pct(corr as number)} |`);
+      });
+    }
+
+    // 로고스 효과 발동
+    const logosActivations = Object.entries(stats.growthStats.logosActivations || {});
+    if (logosActivations.length > 0) {
+      lines.push('#### 로고스 효과 발동');
+      logosActivations.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
+        lines.push(`- ${effect}: ${count}회`);
+      });
+    }
+
+    // 성장 경로별 승률
+    if (stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0) {
+      lines.push('#### 성장 경로별 승률 (상위 5개)');
+      lines.push('| 경로 | 횟수 | 승률 |');
+      lines.push('|------|------|------|');
+      stats.growthStats.growthPathStats.slice(0, 5).forEach(path => {
+        lines.push(`| ${path.path} | ${path.count}회 | ${pct(path.winRate)} |`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 11. 카드 승급 통계 ====================
+  if (stats.upgradeStats && stats.upgradeStats.totalUpgrades > 0) {
+    lines.push('### 11. 카드 승급 통계');
+    lines.push(`- 총 승급: ${stats.upgradeStats.totalUpgrades}회`);
+    lines.push(`- 런당 평균: ${(stats.upgradeStats.avgUpgradesPerRun ?? 0).toFixed(1)}회`);
+
+    const upgradesByCard = Object.entries(stats.upgradeStats.upgradesByCard || {});
+    if (upgradesByCard.length > 0) {
+      lines.push('#### 승급된 카드');
+      upgradesByCard.sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([id, count]) => {
+        lines.push(`- ${getCardName(id)}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 12. 사망 분석 ====================
+  if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
+    lines.push('### 12. 사망 분석');
+    lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
+    lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
+
+    if (stats.deathStats.deadliestEnemies && stats.deathStats.deadliestEnemies.length > 0) {
+      lines.push('#### 가장 위험한 적');
+      stats.deathStats.deadliestEnemies.slice(0, 3).forEach(enemy => {
+        lines.push(`- ${enemy.enemyName}: ${enemy.deaths}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 13. 카드 사용 상세 ====================
+  if (stats.cardStats && stats.cardStats.size > 0) {
+    lines.push('### 13. 카드 사용 상세');
+    lines.push('| 카드 | 사용 | 승리시 | 패배시 | 피해 | 방어 | 교차 |');
+    lines.push('|------|------|--------|--------|------|------|------|');
+    Array.from(stats.cardStats.entries())
+      .sort((a, b) => b[1].totalUses - a[1].totalUses)
+      .slice(0, 15)
+      .forEach(([id, c]) => {
+        lines.push(`| ${getCardName(id)} | ${c.totalUses} | ${c.usesInWins} | ${c.usesInLosses} | ${c.totalDamage} | ${c.totalBlock} | ${c.crossTriggers} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 14. 적 그룹 통계 ====================
+  if (stats.enemyGroupStats && stats.enemyGroupStats.size > 0) {
+    lines.push('### 14. 적 그룹 통계');
+    lines.push('| 그룹 | 전투 | 승률 | 평균턴 | 받은피해 |');
+    lines.push('|------|------|------|--------|----------|');
+    Array.from(stats.enemyGroupStats.entries())
+      .sort((a, b) => b[1].battles - a[1].battles)
+      .slice(0, 10)
+      .forEach(([, g]) => {
+        lines.push(`| ${g.groupName} | ${g.battles} | ${pct(g.winRate)} | ${num(g.avgTurns)} | ${num(g.avgDamageTaken)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 15. AI 전략 상세 ====================
+  if (stats.aiStrategyStats && Object.keys(stats.aiStrategyStats.strategyUsage || {}).length > 0) {
+    lines.push('### 15. AI 전략 상세');
+    lines.push('| 전략 | 사용 | 승률 | 평균턴 |');
+    lines.push('|------|------|------|--------|');
+    Object.entries(stats.aiStrategyStats.strategyUsage || {}).forEach(([strat, usage]) => {
+      const winRate = stats.aiStrategyStats.strategyWinRate[strat] || 0;
+      const avgTurns = stats.aiStrategyStats.strategyAvgTurns[strat] || 0;
+      lines.push(`| ${strat} | ${usage} | ${pct(winRate)} | ${num(avgTurns)} |`);
+    });
+
+    // 콤보 발동
+    const comboUsage = Object.entries(stats.aiStrategyStats.comboTypeUsage || {});
+    if (comboUsage.length > 0) {
+      lines.push('');
+      lines.push('#### 콤보 발동');
+      comboUsage.sort((a, b) => b[1] - a[1]).forEach(([combo, count]) => {
+        lines.push(`- ${combo}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 16. 기록 통계 ====================
+  if (stats.recordStats) {
+    lines.push('### 16. 기록 통계');
+    lines.push(`- 최장 연승: ${stats.recordStats.longestWinStreak}연승`);
+    lines.push(`- 무피해 전투 승리: ${stats.recordStats.flawlessVictories}회`);
+    lines.push(`- 보스 무피해 클리어: ${stats.recordStats.bossFlawlessCount}회`);
+    lines.push(`- 단일 턴 최대 피해: ${stats.recordStats.maxSingleTurnDamage}`);
+    lines.push(`- 최다 골드 보유: ${stats.recordStats.maxGoldHeld}G`);
+    if (stats.recordStats.fastestClear) {
+      lines.push(`- 가장 빠른 클리어: ${stats.recordStats.fastestClear}전투`);
+    }
+    if (stats.recordStats.smallestDeckClear) {
+      lines.push(`- 가장 작은 덱 클리어: ${stats.recordStats.smallestDeckClear}장`);
+    }
+    lines.push('');
+  }
+
+  // ==================== 17. 난이도별 통계 ====================
+  if (stats.difficultyStats && stats.difficultyStats.size > 0) {
+    lines.push('### 17. 난이도별 통계 (Hades Heat 스타일)');
+    lines.push('| 난이도 | 런 | 승률 | 평균층 | 연승 |');
+    lines.push('|--------|-----|------|--------|------|');
+    Array.from(stats.difficultyStats.entries())
+      .sort((a, b) => a[0] - b[0])
+      .forEach(([diff, d]) => {
+        lines.push(`| 🔥${diff} | ${d.runs} | ${pct(d.winRate)} | ${num(d.avgFloorReached)} | ${d.winStreak} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 18. 포커 콤보 통계 ====================
+  if (stats.pokerComboStats && Object.keys(stats.pokerComboStats.comboFrequency || {}).length > 0) {
+    lines.push('### 18. 포커 콤보 통계');
+    lines.push('| 콤보 | 발동 | 에테르총량 | 평균에테르 | 승률 |');
+    lines.push('|------|------|------------|------------|------|');
+    Object.entries(stats.pokerComboStats.comboFrequency || {})
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([combo, freq]) => {
+        const totalEther = stats.pokerComboStats.etherByCombo[combo] || 0;
+        const avgEther = stats.pokerComboStats.avgEtherByCombo[combo] || 0;
+        const winRate = stats.pokerComboStats.winRateByCombo[combo] || 0;
+        lines.push(`| ${combo} | ${freq} | ${totalEther} | ${num(avgEther)} | ${pct(winRate)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 19. 토큰 통계 ====================
+  if (stats.tokenStats && stats.tokenStats.size > 0) {
+    lines.push('### 19. 토큰 통계');
+    lines.push('| 토큰 | 획득 | 사용 | 사용률 | 만료 | 평균가치 |');
+    lines.push('|------|------|------|--------|------|----------|');
+    Array.from(stats.tokenStats.entries())
+      .sort((a, b) => b[1].timesAcquired - a[1].timesAcquired)
+      .slice(0, 15)
+      .forEach(([, t]) => {
+        lines.push(`| ${t.tokenName} | ${t.timesAcquired} | ${t.timesUsed} | ${pct(t.usageRate)} | ${t.timesExpired} | ${num(t.effectStats.avgValuePerUse)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 20. 층별 진행 분석 ====================
+  if (stats.floorProgressionAnalysis && stats.floorProgressionAnalysis.floorStats) {
+    const floorStats = stats.floorProgressionAnalysis.floorStats;
+    if (floorStats.size > 0) {
+      lines.push('### 20. 층별 진행 분석');
+      lines.push('| 층 | 도달 | 클리어율 | 종료 | 평균HP |');
+      lines.push('|----|------|----------|------|--------|');
+      Array.from(floorStats.entries())
+        .sort((a, b) => a[0] - b[0])
+        .forEach(([floor, f]) => {
+          lines.push(`| ${floor} | ${f.timesReached} | ${pct(f.clearRate)} | ${f.runsEndedHere} | ${num(f.resourceStats?.avgHp || 0)} |`);
+        });
+      lines.push('');
+    }
+  }
+
+  // ==================== 21. 카드 선택 분석 (Slay the Spire 스타일) ====================
+  if (stats.allCardChoices && stats.allCardChoices.length > 0) {
+    lines.push('### 21. 카드 선택 분석');
+
+    const cardWinContext: Record<string, { picked: number; total: number }> = {};
+    stats.allCardChoices.forEach(choice => {
+      if (choice.pickedCardId) {
+        if (!cardWinContext[choice.pickedCardId]) {
+          cardWinContext[choice.pickedCardId] = { picked: 0, total: 0 };
+        }
+        cardWinContext[choice.pickedCardId].picked++;
+        cardWinContext[choice.pickedCardId].total++;
+      }
+      choice.notPickedCardIds.forEach(notPicked => {
+        if (!cardWinContext[notPicked]) {
+          cardWinContext[notPicked] = { picked: 0, total: 0 };
+        }
+        cardWinContext[notPicked].total++;
+      });
+    });
+
+    lines.push('| 카드 | 제시 | 선택 | 선택률 |');
+    lines.push('|------|------|------|--------|');
+    Object.entries(cardWinContext)
+      .filter(([, data]) => data.total >= 3)
+      .sort((a, b) => (b[1].picked / b[1].total) - (a[1].picked / a[1].total))
+      .slice(0, 15)
+      .forEach(([cardId, data]) => {
+        lines.push(`| ${getCardName(cardId)} | ${data.total} | ${data.picked} | ${pct(data.picked / data.total)} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 22. 최근 런 진행 요약 ====================
+  if (stats.recentRunProgressions && stats.recentRunProgressions.length > 0) {
+    lines.push('### 22. 최근 런 진행 요약');
+    stats.recentRunProgressions.slice(0, 3).forEach((run, i) => {
+      lines.push(`#### 런 #${i + 1}`);
+      lines.push(`- 경로: ${run.pathTaken.join(' → ')}`);
+      lines.push(`- 최종 덱 (${run.finalDeck.length}장): ${run.finalDeck.map(getCardName).slice(0, 10).join(', ')}${run.finalDeck.length > 10 ? '...' : ''}`);
+      if (run.finalRelics.length > 0) {
+        lines.push(`- 최종 상징: ${run.finalRelics.map(getRelicNameLocal).join(', ')}`);
+      }
+      if (run.damagePerBattle.length > 0) {
+        const totalDmg = run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0);
+        lines.push(`- 전투 피해: 총 ${totalDmg}, 평균 ${num(totalDmg / run.damagePerBattle.length)}/전투`);
+      }
+      lines.push('');
+    });
+  }
+
+  return lines;
+}
+
+// AI 공유용 포맷 함수 (3개 전략 통합)
+function formatStatsForAI(statsByStrategy: StatsByStrategy, config: { runCount: number; difficulty: number }): string {
+  const lines: string[] = [];
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+  lines.push('# 시뮬레이션 결과 (3가지 전략 비교)');
+  lines.push(`설정: 전략당 ${config.runCount}런, 난이도 ${config.difficulty}`);
+  lines.push(`총 시뮬레이션: ${config.runCount * 3}런`);
+  lines.push('');
+
+  // 전략별 요약 비교 테이블
+  lines.push('## 전략 비교 요약');
+  lines.push('| 전략 | 승률 | 평균 도달 층 | 평균 덱 크기 | 평균 골드 |');
+  lines.push('|------|------|--------------|--------------|-----------|');
+  ALL_STRATEGIES.forEach(strategy => {
+    const stats = statsByStrategy[strategy];
+    if (stats) {
+      lines.push(`| ${STRATEGY_LABELS[strategy]} | ${pct(stats.runStats.successRate)} | ${stats.runStats.avgLayerReached.toFixed(1)} | ${stats.runStats.avgFinalDeckSize.toFixed(1)} | ${stats.runStats.avgGoldEarned.toFixed(0)} |`);
+    }
+  });
+  lines.push('');
+
+  // 각 전략별 상세 통계
+  ALL_STRATEGIES.forEach(strategy => {
+    const stats = statsByStrategy[strategy];
+    if (stats) {
+      lines.push('---');
+      lines.push(...formatSingleStrategyStats(stats, STRATEGY_LABELS[strategy]));
+    }
+  });
+
+  // ==================== 18. AI 분석 리포트 ====================
+  // 균형 전략 기준으로 분석 (가장 기본적인 전략)
+  const analysisStats = statsByStrategy.balanced || statsByStrategy.aggressive || statsByStrategy.defensive;
+  if (analysisStats) {
+    lines.push('---');
+    lines.push('## 18. AI 분석 리포트');
+    lines.push('');
+    lines.push(generateAnalysisGuidelines(analysisStats));
+  }
+
+  return lines.join('\n');
+}
+
+// 한글 이름 조회 헬퍼 함수들
+function getRelicName(id: string): string {
+  return (RELICS as Record<string, { name?: string }>)[id]?.name || id;
+}
+
+function getItemName(id: string): string {
+  return ITEMS[id]?.name || id;
+}
+
+function getCardName(id: string): string {
+  const card = CARDS.find(c => c.id === id);
+  return card?.name || id;
+}
+
+function getMonsterName(id: string): string {
+  const enemy = ENEMIES.find(e => e.id === id);
+  return enemy?.name || id;
+}
+
+function getEventName(id: string): string {
+  return NEW_EVENT_LIBRARY[id]?.title || id;
+}
+
+// 카드 효과 요약 문자열 생성
+function getCardEffectStr(id: string): string {
+  const card = CARDS.find(c => c.id === id);
+  if (!card) return '-';
+  const effects: string[] = [];
+  if (card.damage) effects.push(`피해 ${card.damage}${card.hits && card.hits > 1 ? `×${card.hits}` : ''}`);
+  if (card.block) effects.push(`방어 ${card.block}`);
+  if (card.speedCost) effects.push(`속도 ${card.speedCost}`);
+  return effects.join(', ') || '-';
+}
+
+// 스타일 상수
+const STYLES = {
+  sectionHeader: { marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' } as CSSProperties,
+  sectionBox: { padding: '16px', background: '#0f172a', borderRadius: '8px', marginBottom: '16px' } as CSSProperties,
+  label: { display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#cbd5e1' } as CSSProperties,
+  input: { width: '80px', padding: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
+  select: { flex: 1, padding: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
+  button: { padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer' } as CSSProperties,
+  buttonRunning: { padding: '8px 16px', background: '#64748b', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'not-allowed' } as CSSProperties,
+  statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' } as CSSProperties,
+  statItem: { padding: '8px', background: '#1e293b', borderRadius: '6px', fontSize: '0.875rem' } as CSSProperties,
+  statLabel: { color: '#94a3b8', fontSize: '0.75rem' } as CSSProperties,
+  statValue: { color: '#fbbf24', fontWeight: 'bold', fontSize: '1rem' } as CSSProperties,
+  progressBar: { height: '4px', background: '#334155', borderRadius: '2px', marginTop: '8px', overflow: 'hidden' } as CSSProperties,
+  progressFill: { height: '100%', background: '#3b82f6', transition: 'width 0.2s' } as CSSProperties,
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' } as CSSProperties,
+  th: { textAlign: 'left', padding: '6px 8px', background: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155' } as CSSProperties,
+  td: { padding: '6px 8px', borderBottom: '1px solid #334155', color: '#e2e8f0' } as CSSProperties,
+  tabButton: { padding: '6px 12px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '2px solid transparent' } as CSSProperties,
+  tabButtonActive: { padding: '6px 12px', background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '2px solid #3b82f6', fontWeight: 'bold' } as CSSProperties,
+  scrollBox: { maxHeight: '300px', overflowY: 'auto' } as CSSProperties,
+} as const;
+
+type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records' | 'difficulty' | 'cardChoice' | 'recentRuns' | 'growth' | 'aiStrategy' | 'upgrade' | 'analysis' | 'token' | 'combo' | 'enemyGroup' | 'impact' | 'relic';
+
+const SimulatorTab = memo(function SimulatorTab() {
+  const [runCount, setRunCount] = useState(10);
+  const [difficulty, setDifficulty] = useState(1);
+  const [isRunning, setIsRunning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStrategy, setCurrentStrategy] = useState<StrategyType | null>(null);
+  const [statsByStrategy, setStatsByStrategy] = useState<StatsByStrategy>({
+    balanced: null,
+    aggressive: null,
+    defensive: null,
+  });
+  const [activeStatTab, setActiveStatTab] = useState<StatTab>('run');
+  const [activeStrategyTab, setActiveStrategyTab] = useState<StrategyType>('balanced');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  // 현재 선택된 전략의 통계
+  const stats = statsByStrategy[activeStrategyTab];
+  const hasAnyStats = statsByStrategy.balanced !== null || statsByStrategy.aggressive !== null || statsByStrategy.defensive !== null;
+
+  // AI 공유용 복사 함수
+  const copyForAI = useCallback(async () => {
+    if (!hasAnyStats) return;
+
+    try {
+      const text = formatStatsForAI(statsByStrategy, { runCount, difficulty });
+      await navigator.clipboard.writeText(text);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      setCopyStatus('error');
+      setTimeout(() => setCopyStatus('idle'), 2000);
+    }
+  }, [statsByStrategy, hasAnyStats, runCount, difficulty]);
+
+  const runSimulation = useCallback(async () => {
+    setIsRunning(true);
+    setProgress(0);
+    setStatsByStrategy({ balanced: null, aggressive: null, defensive: null });
+    setCurrentStrategy(null);
+
+    try {
+      const { RunSimulator } = await import('../../../simulator/game/run-simulator');
+      const { StatsCollector } = await import('../../../simulator/analysis/detailed-stats');
+      const { setLogLevel, LogLevel } = await import('../../../simulator/core/logger');
+
+      setLogLevel(LogLevel.SILENT);
+
+      const totalRuns = runCount * 3; // 3개 전략 × runCount
+      let completedRuns = 0;
+
+      const results: StatsByStrategy = {
+        balanced: null,
+        aggressive: null,
+        defensive: null,
+      };
+
+      // 3개 전략 모두 실행
+      for (const strategy of ALL_STRATEGIES) {
+        setCurrentStrategy(strategy);
+
+        const collector = new StatsCollector();
+        const simulator = new RunSimulator();
+        simulator.setStatsCollector(collector);
+
+        await simulator.loadGameData();
+
+        for (let i = 0; i < runCount; i++) {
+          simulator.simulateRun({
+            initialPlayer: {
+              hp: 80, maxHp: 80, gold: 150, intel: 0, material: 0, loot: 0, grace: 0,
+              strength: 0, agility: 0, insight: 0,
+              deck: ['shoot', 'shoot', 'strike', 'strike', 'strike', 'reload', 'quarte', 'octave', 'breach', 'deflect'],
+              relics: [], items: [], upgradedCards: []
+            },
+            difficulty,
+            strategy
+          });
+
+          completedRuns++;
+          setProgress(Math.round((completedRuns / totalRuns) * 100));
+          if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        results[strategy] = collector.finalize();
+      }
+
+      setStatsByStrategy(results);
+      setCurrentStrategy(null);
+    } catch (err) {
+      console.error('Simulation error:', err);
+    } finally {
+      setIsRunning(false);
+    }
+  }, [runCount, difficulty]);
+
+  const statTabs: { id: StatTab; label: string }[] = [
+    { id: 'run', label: '런' },
+    { id: 'shop', label: '상점' },
+    { id: 'dungeon', label: '던전' },
+    { id: 'event', label: '이벤트' },
+    { id: 'item', label: '아이템' },
+    { id: 'monster', label: '몬스터' },
+    { id: 'enemyGroup', label: '적그룹' },
+    { id: 'card', label: '카드' },
+    { id: 'pickrate', label: '픽률' },
+    { id: 'contribution', label: '기여도' },
+    { id: 'synergy', label: '시너지' },
+    { id: 'relic', label: '상징' },
+    { id: 'token', label: '토큰' },
+    { id: 'combo', label: '콤보' },
+    { id: 'upgrade', label: '승급' },
+    { id: 'growth', label: '성장' },
+    { id: 'aiStrategy', label: 'AI전략' },
+    { id: 'difficulty', label: '난이도별' },
+    { id: 'cardChoice', label: '선택분석' },
+    { id: 'recentRuns', label: '런진행' },
+    { id: 'records', label: '기록' },
+    { id: 'impact', label: '📈영향력' },
+    { id: 'analysis', label: '🔍분석' },
+  ];
+
+  return (
+    <div>
+      <h3 style={STYLES.sectionHeader}>🎮 런 시뮬레이터</h3>
+
+      {/* 설정 섹션 */}
+      <div style={STYLES.sectionBox}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <div>
+            <label style={STYLES.label}>전략당 런 횟수</label>
+            <input type="number" min={1} max={100} value={runCount}
+              onChange={e => setRunCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+              style={STYLES.input} disabled={isRunning} />
+          </div>
+          <div>
+            <label style={STYLES.label}>난이도</label>
+            <input type="number" min={1} max={5} value={difficulty}
+              onChange={e => setDifficulty(Math.min(5, Math.max(1, parseInt(e.target.value) || 1)))}
+              style={STYLES.input} disabled={isRunning} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              총 {runCount * 3}런 (3전략 × {runCount}런)
+            </span>
+          </div>
+        </div>
+        <button onClick={runSimulation} style={isRunning ? STYLES.buttonRunning : STYLES.button} disabled={isRunning}>
+          {isRunning
+            ? `${currentStrategy ? STRATEGY_LABELS[currentStrategy] : ''} 전략 시뮬레이션 중... ${progress}%`
+            : '시뮬레이션 실행 (3가지 전략)'}
+        </button>
+        {isRunning && <div style={STYLES.progressBar}><div style={{ ...STYLES.progressFill, width: `${progress}%` }} /></div>}
+      </div>
+
+      {/* 결과 통계 */}
+      {hasAnyStats && (
+        <>
+          {/* 전략 탭 */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            {ALL_STRATEGIES.map(strategy => {
+              const strategyStats = statsByStrategy[strategy];
+              const isActive = activeStrategyTab === strategy;
+              const winRate = strategyStats ? (strategyStats.runStats.successRate * 100).toFixed(1) : '-';
+              return (
+                <button
+                  key={strategy}
+                  onClick={() => setActiveStrategyTab(strategy)}
+                  style={{
+                    padding: '8px 16px',
+                    background: isActive ? '#3b82f6' : '#1e293b',
+                    border: isActive ? '2px solid #60a5fa' : '1px solid #334155',
+                    borderRadius: '8px',
+                    color: isActive ? '#fff' : '#cbd5e1',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div>{STRATEGY_LABELS[strategy]}</div>
+                  <div style={{ fontSize: '0.7rem', color: isActive ? '#bfdbfe' : '#64748b' }}>
+                    승률: {winRate}%
+                  </div>
+                </button>
+              );
+            })}
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={copyForAI}
+              style={{
+                padding: '8px 16px',
+                background: copyStatus === 'copied' ? '#22c55e' : copyStatus === 'error' ? '#ef4444' : '#8b5cf6',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                alignSelf: 'center',
+              }}
+            >
+              {copyStatus === 'copied' ? '✓ 복사됨!' : copyStatus === 'error' ? '✗ 실패' : '📋 AI 공유용 복사 (3전략)'}
+            </button>
+          </div>
+
+          {/* 통계 탭 네비게이션 */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {statTabs.map(tab => (
+              <button key={tab.id} onClick={() => setActiveStatTab(tab.id)}
+                style={activeStatTab === tab.id ? STYLES.tabButtonActive : STYLES.tabButton}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {stats ? (
+          <div style={STYLES.sectionBox}>
+            {/* 런 통계 */}
+            {activeStatTab === 'run' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#22c55e' }}>📊 {STRATEGY_LABELS[activeStrategyTab]} 전략 런 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>총 런</div><div style={STYLES.statValue}>{stats.runStats.totalRuns ?? 0}회</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>성공률</div><div style={STYLES.statValue}>{((stats.runStats.successRate ?? 0) * 100).toFixed(1)}%</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 도달 층</div><div style={STYLES.statValue}>{(stats.runStats.avgLayerReached ?? 0).toFixed(1)}</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 전투 승리</div><div style={STYLES.statValue}>{(stats.runStats.avgBattlesWon ?? 0).toFixed(1)}</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 골드 획득</div><div style={STYLES.statValue}>{(stats.runStats.avgGoldEarned ?? 0).toFixed(0)}G</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 덱 크기</div><div style={STYLES.statValue}>{(stats.runStats.avgFinalDeckSize ?? 0).toFixed(1)}장</div></div>
+                </div>
+              </>
+            )}
+
+            {/* 상점 통계 */}
+            {activeStatTab === 'shop' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#a855f7' }}>🛒 상점 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>방문</div><div style={STYLES.statValue}>{stats.shopStats.totalVisits}회</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>총 지출</div><div style={STYLES.statValue}>{stats.shopStats.totalSpent}G</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 지출</div><div style={STYLES.statValue}>{(stats.shopStats.avgSpentPerVisit ?? 0).toFixed(0)}G/회</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>카드 제거</div><div style={STYLES.statValue}>{stats.shopStats.cardsRemoved}회</div></div>
+                </div>
+
+                <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>구매한 상징</h5>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>상징</th><th style={STYLES.th}>횟수</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.shopStats.relicsPurchased || {}).map(([id, count]) => (
+                        <tr key={id}><td style={STYLES.td}>{getRelicName(id)}</td><td style={STYLES.td}>{count as number}회</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>구매한 아이템</h5>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>횟수</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.shopStats.itemsPurchased || {}).map(([id, count]) => (
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{count as number}회</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>구매 기록 (이유별)</h5>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>타입</th><th style={STYLES.th}>가격</th><th style={STYLES.th}>이유</th></tr></thead>
+                    <tbody>
+                      {(stats.shopStats.purchaseRecords || []).map((rec: { itemName: string; type: string; price: number; reason: string }, i: number) => {
+                        const displayName = rec.type === 'relic' ? getRelicName(rec.itemName) : rec.type === 'item' ? getItemName(rec.itemName) : getCardName(rec.itemName);
+                        const typeLabel = rec.type === 'card' ? '카드' : rec.type === 'relic' ? '상징' : '아이템';
+                        return <tr key={i}><td style={STYLES.td}>{displayName}</td><td style={STYLES.td}>{typeLabel}</td><td style={STYLES.td}>{rec.price}G</td><td style={STYLES.td}>{rec.reason}</td></tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 던전 통계 */}
+            {activeStatTab === 'dungeon' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f97316' }}>🏰 던전 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>총 진입</div><div style={STYLES.statValue}>{stats.dungeonStats.totalAttempts ?? 0}회</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>클리어율</div><div style={STYLES.statValue}>{((stats.dungeonStats.clearRate ?? 0) * 100).toFixed(1)}%</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 소요 턴</div><div style={STYLES.statValue}>{(stats.dungeonStats.avgTurns ?? 0).toFixed(1)}</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 받은 피해</div><div style={STYLES.statValue}>{(stats.dungeonStats.avgDamageTaken ?? 0).toFixed(1)}</div></div>
+                </div>
+                <div style={{ marginTop: '12px', fontSize: '0.875rem', color: '#cbd5e1' }}>
+                  <div>획득 카드: {stats.dungeonStats.rewards?.cards?.length ?? 0}장 - [{(stats.dungeonStats.rewards?.cards ?? []).map((id: string) => getCardName(id)).join(', ')}]</div>
+                  <div>획득 상징: {stats.dungeonStats.rewards?.relics?.length ?? 0}개 - [{(stats.dungeonStats.rewards?.relics ?? []).map((id: string) => getRelicName(id)).join(', ')}]</div>
+                </div>
+              </>
+            )}
+
+            {/* 이벤트 통계 */}
+            {activeStatTab === 'event' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#06b6d4' }}>🎲 이벤트 통계</h4>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>이벤트</th><th style={STYLES.th}>발생</th><th style={STYLES.th}>성공</th><th style={STYLES.th}>골드</th><th style={STYLES.th}>재료</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.eventStats.entries()).sort((a: [string, { occurrences: number }], b: [string, { occurrences: number }]) => b[1].occurrences - a[1].occurrences).map(([id, e]: [string, { occurrences: number; successes: number; totalGoldChange?: number; totalMaterialChange?: number }]) => (
+                        <tr key={id}><td style={STYLES.td}>{getEventName(id)}</td><td style={STYLES.td}>{e.occurrences}회</td><td style={STYLES.td}>{e.successes}회</td><td style={STYLES.td}>{e.totalGoldChange ?? 0}</td><td style={STYLES.td}>{e.totalMaterialChange ?? 0}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>이벤트 선택 상세</h5>
+                <div style={STYLES.scrollBox}>
+                  {Array.from(stats.eventChoiceStats.entries()).map(([eventId, choiceStats]: [string, { occurrences?: number; timesSkipped?: number; choiceOutcomes?: Record<string, { timesChosen?: number; avgHpChange?: number; avgGoldChange?: number; successRate?: number }> }]) => (
+                    <div key={eventId} style={{ marginBottom: '12px', padding: '8px', background: '#1e293b', borderRadius: '6px' }}>
+                      <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{getEventName(eventId)}: 발생 {choiceStats.occurrences ?? 0}회, 스킵 {choiceStats.timesSkipped ?? 0}회</div>
+                      {choiceStats.choiceOutcomes && Object.entries(choiceStats.choiceOutcomes).map(([choiceId, outcome]) => (
+                        <div key={choiceId} style={{ marginLeft: '12px', fontSize: '0.8rem', color: '#94a3b8' }}>
+                          선택 "{choiceId}": {outcome.timesChosen ?? 0}회, HP {(outcome.avgHpChange ?? 0).toFixed(1)}, 골드 {(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 {((outcome.successRate ?? 0) * 100).toFixed(0)}%
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* 아이템 통계 */}
+            {activeStatTab === 'item' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#84cc16' }}>🎒 아이템 통계</h4>
+                <h5 style={{ margin: '0 0 8px 0', color: '#cbd5e1' }}>획득한 아이템</h5>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>획득</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.itemUsageStats.itemsAcquired || {}).map(([id, count]) => (
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{count as number}개</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>아이템 사용 효과</h5>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>HP회복</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>특수효과</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.itemUsageStats.itemEffects || {}).map(([id, eff]: [string, { timesUsed: number; totalHpHealed: number; totalDamage: number; specialEffects: Record<string, number> }]) => (
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{eff.timesUsed}회</td><td style={STYLES.td}>{eff.totalHpHealed}</td><td style={STYLES.td}>{eff.totalDamage}</td><td style={STYLES.td}>{JSON.stringify(eff.specialEffects)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 몬스터 통계 */}
+            {activeStatTab === 'monster' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#ef4444' }}>👹 몬스터 전투 통계</h4>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>몬스터</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.monsterStats.entries()).sort((a: [string, { battles: number }], b: [string, { battles: number }]) => b[1].battles - a[1].battles).map(([id, m]: [string, { battles: number; wins: number; losses: number; avgTurns?: number }]) => (
+                        <tr key={id}><td style={STYLES.td}>{getMonsterName(id)}</td><td style={STYLES.td}>{m.battles}회</td><td style={STYLES.td}>{m.wins}회</td><td style={STYLES.td}>{m.losses}회</td><td style={STYLES.td}>{m.battles > 0 ? ((m.wins / m.battles) * 100).toFixed(0) : 0}%</td><td style={STYLES.td}>{(m.avgTurns ?? 0).toFixed(1)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 통계 */}
+            {activeStatTab === 'card' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#3b82f6' }}>🃏 카드 사용 통계</h4>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승리시</th><th style={STYLES.th}>패배시</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>방어</th><th style={STYLES.th}>교차</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.cardStats.entries()).sort((a: [string, { totalUses: number }], b: [string, { totalUses: number }]) => b[1].totalUses - a[1].totalUses).map(([id, c]: [string, { totalUses: number; usesInWins: number; usesInLosses: number; totalDamage: number; totalBlock: number; crossTriggers: number }]) => (
+                        <tr key={id}><td style={STYLES.td}>{getCardName(id)}</td><td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td><td style={STYLES.td}>{c.totalUses}회</td><td style={STYLES.td}>{c.usesInWins}회</td><td style={STYLES.td}>{c.usesInLosses}회</td><td style={STYLES.td}>{c.totalDamage}</td><td style={STYLES.td}>{c.totalBlock}</td><td style={STYLES.td}>{c.crossTriggers}회</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 픽률 통계 */}
+            {activeStatTab === 'pickrate' && stats.cardPickStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#10b981' }}>📊 카드 픽률 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  제시된 카드 중 선택된 비율 (Slay the Spire 스타일)
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>스킵</th><th style={STYLES.th}>픽률</th><th style={STYLES.th}>픽률 바</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.cardPickStats.timesOffered || {})
+                        .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
+                        .map(([id, offered]) => {
+                          const picked = stats.cardPickStats.timesPicked[id] || 0;
+                          const skipped = stats.cardPickStats.timesSkipped[id] || 0;
+                          const pickRate = stats.cardPickStats.pickRate[id] || 0;
+                          return (
+                            <tr key={id}>
+                              <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
+                              <td style={STYLES.td}>{offered as number}회</td>
+                              <td style={STYLES.td}>{picked}회</td>
+                              <td style={STYLES.td}>{skipped}회</td>
+                              <td style={{...STYLES.td, color: pickRate > 0.5 ? '#22c55e' : pickRate > 0.25 ? '#fbbf24' : '#ef4444'}}>
+                                {(pickRate * 100).toFixed(1)}%
+                              </td>
+                              <td style={STYLES.td}>
+                                <div style={{ width: '80px', height: '8px', background: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${pickRate * 100}%`, height: '100%', background: pickRate > 0.5 ? '#22c55e' : pickRate > 0.25 ? '#fbbf24' : '#ef4444' }} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 기여도 통계 */}
+            {activeStatTab === 'contribution' && stats.cardContributionStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#8b5cf6' }}>📈 카드 기여도 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  카드 보유 여부에 따른 승률 차이 (기여도 = 보유시 승률 - 미보유시 승률)
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>보유시</th><th style={STYLES.th}>미보유시</th><th style={STYLES.th}>기여도</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.cardContributionStats.contribution || {})
+                        .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
+                        .sort((a, b) => (b[1] as number) - (a[1] as number))
+                        .map(([id, contrib]) => {
+                          const runsWithCard = stats.cardContributionStats.runsWithCard[id] || 0;
+                          const winRateWith = stats.cardContributionStats.winRateWithCard[id] || 0;
+                          const winRateWithout = stats.cardContributionStats.winRateWithoutCard[id] || 0;
+                          const contribution = contrib as number;
+                          return (
+                            <tr key={id}>
+                              <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
+                              <td style={STYLES.td}>{runsWithCard}회</td>
+                              <td style={{...STYLES.td, color: '#22c55e'}}>{(winRateWith * 100).toFixed(1)}%</td>
+                              <td style={{...STYLES.td, color: '#94a3b8'}}>{(winRateWithout * 100).toFixed(1)}%</td>
+                              <td style={{...STYLES.td, fontWeight: 'bold', color: contribution > 0 ? '#22c55e' : contribution < 0 ? '#ef4444' : '#94a3b8'}}>
+                                {contribution > 0 ? '+' : ''}{(contribution * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 시너지 통계 */}
+            {activeStatTab === 'synergy' && stats.cardSynergyStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f59e0b' }}>🔗 카드 시너지 분석</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  자주 함께 픽되는 카드 조합과 해당 조합의 승률 (3회 이상 등장)
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>카드 조합</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>승률 바</th></tr></thead>
+                    <tbody>
+                      {(stats.cardSynergyStats.topSynergies || []).map((synergy: { pair: string; frequency: number; winRate: number }, i: number) => {
+                        const [card1, card2] = synergy.pair.split('+');
+                        return (
+                          <tr key={i}>
+                            <td style={STYLES.td}>
+                              <span style={{ color: '#fbbf24' }}>{getCardName(card1)}</span>
+                              <span style={{ color: '#64748b', margin: '0 4px' }}>+</span>
+                              <span style={{ color: '#fbbf24' }}>{getCardName(card2)}</span>
+                            </td>
+                            <td style={{...STYLES.td, fontSize: '0.7rem', color: '#94a3b8'}}>
+                              <div>{getCardEffectStr(card1)}</div>
+                              <div>{getCardEffectStr(card2)}</div>
+                            </td>
+                            <td style={STYLES.td}>{synergy.frequency}회</td>
+                            <td style={{...STYLES.td, color: synergy.winRate > 0.6 ? '#22c55e' : synergy.winRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
+                              {(synergy.winRate * 100).toFixed(1)}%
+                            </td>
+                            <td style={STYLES.td}>
+                              <div style={{ width: '80px', height: '8px', background: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${synergy.winRate * 100}%`, height: '100%', background: synergy.winRate > 0.6 ? '#22c55e' : synergy.winRate > 0.4 ? '#fbbf24' : '#ef4444' }} />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 기록 통계 */}
+            {activeStatTab === 'records' && stats.recordStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#ec4899' }}>🏆 기록 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>최장 연승</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.longestWinStreak}연승</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>현재 연승</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.currentWinStreak}연승</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>무피해 전투 승리</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.flawlessVictories}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>보스 무피해 클리어</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.bossFlawlessCount}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>단일 턴 최대 피해</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.maxSingleTurnDamage}</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>최다 골드 보유</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.maxGoldHeld}G</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>가장 빠른 클리어</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.fastestClear || '-'}전투</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>가장 작은 덱 클리어</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.smallestDeckClear || '-'}장</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>가장 큰 덱 클리어</div>
+                    <div style={STYLES.statValue}>{stats.recordStats.largestDeckClear || '-'}장</div>
+                  </div>
+                </div>
+
+                {stats.recordStats.maxDamageRecord && (
+                  <div style={{ marginTop: '16px', padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                    <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>💥 최고 피해 기록</h5>
+                    <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>
+                      <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{stats.recordStats.maxDamageRecord.damage}</span> 피해 -
+                      <span style={{ color: '#fbbf24' }}> {getCardName(stats.recordStats.maxDamageRecord.cardId)}</span>로
+                      <span style={{ color: '#ef4444' }}> {stats.recordStats.maxDamageRecord.monster}</span> 상대
+                    </div>
+                  </div>
+                )}
+
+                {stats.recordStats.fastestClearRecord && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                    <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>⚡ 최속 클리어 기록</h5>
+                    <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>
+                      <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{stats.recordStats.fastestClearRecord.battlesWon}</span>전투 클리어 -
+                      덱 <span style={{ color: '#fbbf24' }}>{stats.recordStats.fastestClearRecord.deckSize}장</span>,
+                      전략: <span style={{ color: '#3b82f6' }}>{stats.recordStats.fastestClearRecord.strategy}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 층별 사망 분포 */}
+                {stats.runStats.deathByLayer && Object.keys(stats.runStats.deathByLayer).length > 0 && (
+                  <div style={{ marginTop: '16px' }}>
+                    <h5 style={{ margin: '0 0 8px 0', color: '#cbd5e1' }}>☠️ 층별 사망 분포</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.runStats.deathByLayer as Record<number, number>)
+                        .sort((a, b) => Number(a[0]) - Number(b[0]))
+                        .map(([layer, count]) => (
+                          <div key={layer} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{layer}층: </span>
+                            <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* 카드 승급 통계 */}
+            {activeStatTab === 'upgrade' && stats.upgradeStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f59e0b' }}>⬆️ 카드 승급 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>총 승급</div>
+                    <div style={STYLES.statValue}>{stats.upgradeStats.totalUpgrades}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>런당 평균</div>
+                    <div style={STYLES.statValue}>{(stats.upgradeStats.avgUpgradesPerRun ?? 0).toFixed(1)}회</div>
+                  </div>
+                </div>
+                {Object.keys(stats.upgradeStats.upgradesByCard || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>승급된 카드</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>승급</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.upgradeStats.upgradesByCard || {})
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([id, count]) => (
+                              <tr key={id}>
+                                <td style={STYLES.td}>{getCardName(id)}</td>
+                                <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
+                                <td style={STYLES.td}>{count}회</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 성장 통계 */}
+            {activeStatTab === 'growth' && stats.growthStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#14b8a6' }}>📈 성장 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>총 투자</div>
+                    <div style={STYLES.statValue}>{stats.growthStats.totalInvestments ?? 0}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>런당 평균</div>
+                    <div style={STYLES.statValue}>{(stats.growthStats.avgInvestmentsPerRun ?? 0).toFixed(1)}회</div>
+                  </div>
+                </div>
+
+                {/* 스탯별 투자 */}
+                {Object.keys(stats.growthStats.statInvestments || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>스탯별 투자</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.growthStats.statInvestments || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([stat, count]) => (
+                          <div key={stat} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{stat}: </span>
+                            <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 스탯별 승률 기여도 */}
+                {Object.keys(stats.growthStats.statWinCorrelation || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>스탯별 승률 기여도</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>스탯</th><th style={STYLES.th}>기여도</th><th style={STYLES.th}>바</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.growthStats.statWinCorrelation || {})
+                            .sort((a, b) => (b[1] as number) - (a[1] as number))
+                            .map(([stat, corr]) => {
+                              const corrValue = corr as number;
+                              return (
+                                <tr key={stat}>
+                                  <td style={STYLES.td}>{stat}</td>
+                                  <td style={{...STYLES.td, color: corrValue > 0 ? '#22c55e' : corrValue < 0 ? '#ef4444' : '#94a3b8'}}>
+                                    {corrValue > 0 ? '+' : ''}{(corrValue * 100).toFixed(1)}%
+                                  </td>
+                                  <td style={STYLES.td}>
+                                    <div style={{ width: '80px', height: '8px', background: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${Math.abs(corrValue) * 100}%`, height: '100%', background: corrValue > 0 ? '#22c55e' : '#ef4444' }} />
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 성장 경로별 승률 */}
+                {stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>성장 경로별 승률</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>경로</th><th style={STYLES.th}>횟수</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균레벨</th></tr></thead>
+                        <tbody>
+                          {stats.growthStats.growthPathStats.slice(0, 10).map((path, i) => (
+                            <tr key={i}>
+                              <td style={STYLES.td}>{path.path}</td>
+                              <td style={STYLES.td}>{path.count}회</td>
+                              <td style={{...STYLES.td, color: path.winRate > 0.5 ? '#22c55e' : path.winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                                {(path.winRate * 100).toFixed(1)}%
+                              </td>
+                              <td style={STYLES.td}>{path.avgFinalLevel.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 최종 스탯 분포 */}
+                {Object.keys(stats.growthStats.finalStatDistribution || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>최종 스탯 분포</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>스탯</th><th style={STYLES.th}>평균</th><th style={STYLES.th}>최대</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.growthStats.finalStatDistribution || {}).map(([stat, data]) => (
+                            <tr key={stat}>
+                              <td style={STYLES.td}>{stat}</td>
+                              <td style={STYLES.td}>{data.avg.toFixed(1)}</td>
+                              <td style={{...STYLES.td, color: '#fbbf24'}}>{data.max}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 로고스 효과 발동 */}
+                {Object.keys(stats.growthStats.logosActivations || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>로고스 효과 발동</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.growthStats.logosActivations || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([effect, count]) => (
+                          <div key={effect} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{effect}: </span>
+                            <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* AI 전략 통계 */}
+            {activeStatTab === 'aiStrategy' && stats.aiStrategyStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#6366f1' }}>🤖 AI 전략 통계</h4>
+                {Object.keys(stats.aiStrategyStats.strategyUsage || {}).length > 0 && (
+                  <>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>전략</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.aiStrategyStats.strategyUsage || {}).map(([strat, usage]) => {
+                            const winRate = stats.aiStrategyStats.strategyWinRate[strat] || 0;
+                            const avgTurns = stats.aiStrategyStats.strategyAvgTurns[strat] || 0;
+                            return (
+                              <tr key={strat}>
+                                <td style={STYLES.td}>{strat}</td>
+                                <td style={STYLES.td}>{usage}회</td>
+                                <td style={{...STYLES.td, color: winRate > 0.5 ? '#22c55e' : winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                                  {(winRate * 100).toFixed(1)}%
+                                </td>
+                                <td style={STYLES.td}>{avgTurns.toFixed(1)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 콤보 발동 */}
+                {Object.keys(stats.aiStrategyStats.comboTypeUsage || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>콤보 발동</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.aiStrategyStats.comboTypeUsage || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([combo, count]) => (
+                          <div key={combo} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{combo}: </span>
+                            <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 난이도별 통계 */}
+            {activeStatTab === 'difficulty' && stats.difficultyStats && stats.difficultyStats.size > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f43f5e' }}>🔥 난이도별 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  Hades Heat 스타일 난이도 진행
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>난이도</th><th style={STYLES.th}>런</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균층</th><th style={STYLES.th}>연승</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.difficultyStats.entries())
+                        .sort((a, b) => a[0] - b[0])
+                        .map(([diff, d]) => (
+                          <tr key={diff}>
+                            <td style={{...STYLES.td, fontWeight: 'bold', color: '#f43f5e'}}>🔥{diff}</td>
+                            <td style={STYLES.td}>{d.runs}회</td>
+                            <td style={STYLES.td}>{d.wins}회</td>
+                            <td style={{...STYLES.td, color: d.winRate > 0.5 ? '#22c55e' : d.winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                              {(d.winRate * 100).toFixed(1)}%
+                            </td>
+                            <td style={STYLES.td}>{d.avgFloorReached.toFixed(1)}</td>
+                            <td style={STYLES.td}>{d.winStreak}연승</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 선택 분석 */}
+            {activeStatTab === 'cardChoice' && stats.allCardChoices && stats.allCardChoices.length > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#0ea5e9' }}>🎯 카드 선택 분석</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  Slay the Spire 스타일 카드 경쟁 분석 - 어떤 카드가 어떤 카드를 이겼는지
+                </p>
+                {(() => {
+                  const cardWinContext: Record<string, { picked: number; total: number; competitors: Record<string, number> }> = {};
+                  stats.allCardChoices.forEach(choice => {
+                    if (choice.pickedCardId) {
+                      if (!cardWinContext[choice.pickedCardId]) {
+                        cardWinContext[choice.pickedCardId] = { picked: 0, total: 0, competitors: {} };
+                      }
+                      cardWinContext[choice.pickedCardId].picked++;
+                      cardWinContext[choice.pickedCardId].total++;
+                      choice.notPickedCardIds.forEach(notPicked => {
+                        cardWinContext[choice.pickedCardId].competitors[notPicked] =
+                          (cardWinContext[choice.pickedCardId].competitors[notPicked] || 0) + 1;
+                      });
+                    }
+                    choice.notPickedCardIds.forEach(notPicked => {
+                      if (!cardWinContext[notPicked]) {
+                        cardWinContext[notPicked] = { picked: 0, total: 0, competitors: {} };
+                      }
+                      cardWinContext[notPicked].total++;
+                    });
+                  });
+
+                  return (
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>선택률</th><th style={STYLES.th}>주요 경쟁카드</th></tr></thead>
+                        <tbody>
+                          {Object.entries(cardWinContext)
+                            .filter(([, data]) => data.total >= 3)
+                            .sort((a, b) => (b[1].picked / b[1].total) - (a[1].picked / a[1].total))
+                            .slice(0, 20)
+                            .map(([cardId, data]) => {
+                              const topCompetitors = Object.entries(data.competitors)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 2)
+                                .map(([id]) => getCardName(id))
+                                .join(', ') || '-';
+                              const selectRate = data.picked / data.total;
+                              return (
+                                <tr key={cardId}>
+                                  <td style={STYLES.td}>{getCardName(cardId)}</td>
+                                  <td style={STYLES.td}>{data.total}회</td>
+                                  <td style={STYLES.td}>{data.picked}회</td>
+                                  <td style={{...STYLES.td, color: selectRate > 0.5 ? '#22c55e' : selectRate > 0.25 ? '#fbbf24' : '#ef4444'}}>
+                                    {(selectRate * 100).toFixed(1)}%
+                                  </td>
+                                  <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{topCompetitors}</td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* 최근 런 진행 요약 */}
+            {activeStatTab === 'recentRuns' && stats.recentRunProgressions && stats.recentRunProgressions.length > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#a855f7' }}>🛤️ 최근 런 진행 요약</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  최근 런들의 경로, 덱, 전투 피해 요약
+                </p>
+                <div style={STYLES.scrollBox}>
+                  {stats.recentRunProgressions.slice(0, 5).map((run, i) => (
+                    <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                      <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>런 #{i + 1}</h5>
+                      <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                        <strong>경로:</strong> {run.pathTaken.join(' → ')}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                        <strong>최종 덱 ({run.finalDeck.length}장):</strong>{' '}
+                        <span style={{ color: '#94a3b8' }}>{run.finalDeck.map(getCardName).join(', ')}</span>
+                      </div>
+                      {run.finalRelics.length > 0 && (
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                          <strong>최종 상징:</strong>{' '}
+                          <span style={{ color: '#fbbf24' }}>{run.finalRelics.map(getRelicName).join(', ')}</span>
+                        </div>
+                      )}
+                      {run.damagePerBattle.length > 0 && (
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>
+                          <strong>전투 피해:</strong>{' '}
+                          총 {run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0)},
+                          평균 {(run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0) / run.damagePerBattle.length).toFixed(1)}/전투
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* 적 그룹 통계 */}
+            {activeStatTab === 'enemyGroup' && stats.enemyGroupStats && stats.enemyGroupStats.size > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#dc2626' }}>👥 적 그룹 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  다수 적 전투 분석 - 그룹 조합별 통계
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>그룹</th><th style={STYLES.th}>전투</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th><th style={STYLES.th}>받은피해</th><th style={STYLES.th}>그룹HP</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.enemyGroupStats.entries())
+                        .sort((a, b) => b[1].battles - a[1].battles)
+                        .map(([groupId, g]) => (
+                          <tr key={groupId}>
+                            <td style={STYLES.td}>{g.groupName}</td>
+                            <td style={STYLES.td}>{g.battles}회</td>
+                            <td style={{...STYLES.td, color: g.winRate > 0.6 ? '#22c55e' : g.winRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
+                              {(g.winRate * 100).toFixed(1)}%
+                            </td>
+                            <td style={STYLES.td}>{g.avgTurns.toFixed(1)}</td>
+                            <td style={{...STYLES.td, color: g.avgDamageTaken > 30 ? '#ef4444' : g.avgDamageTaken > 15 ? '#fbbf24' : '#22c55e'}}>
+                              {g.avgDamageTaken.toFixed(1)}
+                            </td>
+                            <td style={STYLES.td}>{g.totalGroupHp}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 상징 통계 */}
+            {activeStatTab === 'relic' && stats.relicStats && stats.relicStats.size > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f59e0b' }}>💎 상징 상세 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  상징별 발동 횟수, 효과, 기여도
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>상징</th><th style={STYLES.th}>획득</th><th style={STYLES.th}>발동</th><th style={STYLES.th}>평균발동</th><th style={STYLES.th}>기여도</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.relicStats.entries())
+                        .sort((a, b) => b[1].contribution - a[1].contribution)
+                        .slice(0, 20)
+                        .map(([relicId, r]) => {
+                          const sign = r.contribution > 0 ? '+' : '';
+                          return (
+                            <tr key={relicId}>
+                              <td style={STYLES.td}>{getRelicName(relicId)}</td>
+                              <td style={STYLES.td}>{r.timesAcquired}회</td>
+                              <td style={STYLES.td}>{r.activationStats?.totalActivations ?? 0}회</td>
+                              <td style={STYLES.td}>{(r.activationStats?.avgActivationsPerBattle ?? 0).toFixed(1)}/전투</td>
+                              <td style={{...STYLES.td, fontWeight: 'bold', color: r.contribution > 0 ? '#22c55e' : r.contribution < 0 ? '#ef4444' : '#94a3b8'}}>
+                                {sign}{(r.contribution * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 토큰 통계 */}
+            {activeStatTab === 'token' && stats.tokenStats && stats.tokenStats.size > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#14b8a6' }}>🎫 토큰 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  토큰 획득/사용/만료 통계
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>토큰</th><th style={STYLES.th}>획득</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>사용률</th><th style={STYLES.th}>만료</th><th style={STYLES.th}>평균가치</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.tokenStats.entries())
+                        .sort((a, b) => b[1].timesAcquired - a[1].timesAcquired)
+                        .map(([tokenId, t]) => (
+                          <tr key={tokenId}>
+                            <td style={STYLES.td}>{t.tokenName}</td>
+                            <td style={STYLES.td}>{t.timesAcquired}회</td>
+                            <td style={STYLES.td}>{t.timesUsed}회</td>
+                            <td style={{...STYLES.td, color: t.usageRate > 0.7 ? '#22c55e' : t.usageRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
+                              {(t.usageRate * 100).toFixed(1)}%
+                            </td>
+                            <td style={{...STYLES.td, color: t.timesExpired > 0 ? '#ef4444' : '#94a3b8'}}>
+                              {t.timesExpired}회
+                            </td>
+                            <td style={STYLES.td}>{t.effectStats.avgValuePerUse.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 포커 콤보 통계 */}
+            {activeStatTab === 'combo' && stats.pokerComboStats && Object.keys(stats.pokerComboStats.comboFrequency || {}).length > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#8b5cf6' }}>🃏 포커 콤보 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  포커 조합 발동 횟수 및 에테르 획득
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>콤보</th><th style={STYLES.th}>발동</th><th style={STYLES.th}>에테르총량</th><th style={STYLES.th}>평균에테르</th><th style={STYLES.th}>전투승률</th></tr></thead>
+                    <tbody>
+                      {Object.entries(stats.pokerComboStats.comboFrequency || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([combo, freq]) => {
+                          const totalEther = stats.pokerComboStats.etherByCombo[combo] || 0;
+                          const avgEther = stats.pokerComboStats.avgEtherByCombo[combo] || 0;
+                          const winRate = stats.pokerComboStats.winRateByCombo[combo] || 0;
+                          return (
+                            <tr key={combo}>
+                              <td style={{...STYLES.td, fontWeight: 'bold', color: '#fbbf24'}}>{combo}</td>
+                              <td style={STYLES.td}>{freq}회</td>
+                              <td style={STYLES.td}>{totalEther}</td>
+                              <td style={{...STYLES.td, color: avgEther >= 3 ? '#22c55e' : avgEther >= 2 ? '#fbbf24' : '#94a3b8'}}>
+                                {avgEther.toFixed(1)}
+                              </td>
+                              <td style={{...STYLES.td, color: winRate > 0.6 ? '#22c55e' : winRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
+                                {(winRate * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 영향력 분석 */}
+            {activeStatTab === 'impact' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#ec4899' }}>📈 영향력 분석 (WHY 분석)</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  이벤트, 상징 시너지, AI 결정이 게임 결과에 미치는 영향
+                </p>
+
+                {/* 이벤트 영향력 */}
+                {stats.eventImpactAnalysis && stats.eventImpactAnalysis.eventImpacts && stats.eventImpactAnalysis.eventImpacts.size > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#fbbf24' }}>🎭 이벤트 영향력</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>이벤트</th><th style={STYLES.th}>발생</th><th style={STYLES.th}>발생후 승률</th><th style={STYLES.th}>스킵시 승률</th><th style={STYLES.th}>순영향</th></tr></thead>
+                        <tbody>
+                          {Array.from(stats.eventImpactAnalysis.eventImpacts.entries())
+                            .sort((a, b) => Math.abs(b[1].netImpact) - Math.abs(a[1].netImpact))
+                            .slice(0, 10)
+                            .map(([eventId, e]) => {
+                              const sign = e.netImpact > 0 ? '+' : '';
+                              return (
+                                <tr key={eventId}>
+                                  <td style={STYLES.td}>{e.eventName}</td>
+                                  <td style={STYLES.td}>{e.occurrences}회</td>
+                                  <td style={STYLES.td}>{(e.winRateAfterEvent * 100).toFixed(1)}%</td>
+                                  <td style={STYLES.td}>{(e.winRateWhenSkipped * 100).toFixed(1)}%</td>
+                                  <td style={{...STYLES.td, fontWeight: 'bold', color: e.netImpact > 0 ? '#22c55e' : e.netImpact < 0 ? '#ef4444' : '#94a3b8'}}>
+                                    {sign}{(e.netImpact * 100).toFixed(1)}%p
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 상징 시너지 */}
+                {stats.relicSynergyImpactAnalysis && stats.relicSynergyImpactAnalysis.topSynergies && stats.relicSynergyImpactAnalysis.topSynergies.length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#22c55e' }}>💎 TOP 상징 시너지</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>조합</th><th style={STYLES.th}>승률 증가</th><th style={STYLES.th}>효율성</th></tr></thead>
+                        <tbody>
+                          {stats.relicSynergyImpactAnalysis.topSynergies.slice(0, 5).map((s, i) => (
+                            <tr key={i}>
+                              <td style={{...STYLES.td, color: '#fbbf24'}}>{s.relicNames.join(' + ')}</td>
+                              <td style={{...STYLES.td, color: '#22c55e'}}>+{(s.winRateBoost * 100).toFixed(1)}%p</td>
+                              <td style={STYLES.td}>{s.efficiency.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 핵심 상징 */}
+                {stats.relicSynergyImpactAnalysis && stats.relicSynergyImpactAnalysis.coreRelics && stats.relicSynergyImpactAnalysis.coreRelics.length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>⭐ 핵심 상징</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {stats.relicSynergyImpactAnalysis.coreRelics.slice(0, 5).map((r, i) => (
+                        <div key={i} style={{ padding: '8px 12px', background: '#1e293b', borderRadius: '8px', borderLeft: r.isBuildDefining ? '3px solid #fbbf24' : '3px solid #3b82f6' }}>
+                          <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{r.relicName}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            +{(r.coreScore * 100).toFixed(1)}%p 기여도
+                          </div>
+                          {r.isBuildDefining && <div style={{ fontSize: '0.7rem', color: '#ec4899' }}>빌드 정의 상징</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* AI 성장 결정 분석 */}
+                {stats.growthDecisionAnalysis && stats.growthDecisionAnalysis.optimalPaths && stats.growthDecisionAnalysis.optimalPaths.length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#8b5cf6' }}>📊 최적 성장 경로</h5>
+                    <div style={STYLES.scrollBox}>
+                      {stats.growthDecisionAnalysis.optimalPaths.slice(0, 3).map((path, i) => (
+                        <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontWeight: 'bold', color: '#fbbf24' }}>{path.pathName}</span>
+                            <span style={{ color: '#22c55e' }}>승률 {(path.winRate * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                            {path.steps.slice(0, 3).map(s => s.stat).join(' → ')}
+                          </div>
+                          {path.recommendedFor.length > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: '#06b6d4', marginTop: '4px' }}>
+                              권장: {path.recommendedFor.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 카드 선택 이유 분석 */}
+                {stats.cardSelectionReasoningAnalysis && stats.cardSelectionReasoningAnalysis.skipReasonAnalysis && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#06b6d4' }}>🃏 카드 선택 분석</h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {/* 과대평가 카드 */}
+                      {stats.cardSelectionReasoningAnalysis.skipReasonAnalysis.shouldHaveSkipped?.length > 0 && (
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
+                          <div style={{ fontWeight: 'bold', color: '#ef4444', marginBottom: '8px' }}>⚠️ 과대평가 카드</div>
+                          {stats.cardSelectionReasoningAnalysis.skipReasonAnalysis.shouldHaveSkipped.slice(0, 3).map((c, i) => (
+                            <div key={i} style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>
+                              • {getCardName(c.cardId)}: -{(c.winRateLoss * 100).toFixed(1)}%p
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 과소평가 카드 */}
+                      {stats.cardSelectionReasoningAnalysis.skipReasonAnalysis.shouldNotHaveSkipped?.length > 0 && (
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
+                          <div style={{ fontWeight: 'bold', color: '#22c55e', marginBottom: '8px' }}>💡 과소평가 카드</div>
+                          {stats.cardSelectionReasoningAnalysis.skipReasonAnalysis.shouldNotHaveSkipped.slice(0, 3).map((c, i) => (
+                            <div key={i} style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>
+                              • {getCardName(c.cardId)}: 스킵시 -{(c.winRateLoss * 100).toFixed(1)}%p
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 분석 리포트 */}
+            {activeStatTab === 'analysis' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f97316' }}>🔍 AI 분석 리포트</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  통계 기반 자동 분석 - 문제점, 원인, 개선 방향 제시
+                </p>
+                {(() => {
+                  const analysis = analyzeStats(stats);
+                  return (
+                    <>
+                      {/* 요약 */}
+                      <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
+                        <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>📊 요약</h5>
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{analysis.summary}</div>
+                      </div>
+
+                      {/* 문제점 */}
+                      {analysis.problems.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>⚠️ 문제점 ({analysis.problems.length}개)</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.problems.map((problem, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${problem.severity >= 4 ? '#ef4444' : problem.severity >= 3 ? '#f59e0b' : '#3b82f6'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>{problem.category}</span>
+                                  <span style={{ fontSize: '0.75rem', color: problem.severity >= 4 ? '#ef4444' : '#fbbf24' }}>심각도 {problem.severity}/5</span>
+                                </div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{problem.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 원인 분석 */}
+                      {analysis.rootCauses.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#8b5cf6' }}>🔬 원인 분석</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.rootCauses.map((cause, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginBottom: '4px' }}>{cause.type}</div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{cause.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 개선 권장사항 */}
+                      {analysis.recommendations.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#22c55e' }}>💡 개선 권장사항</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.recommendations.map((rec, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.target}</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>우선순위 {rec.priority}</span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>[{rec.type}]</div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>{rec.suggestion}</div>
+                                <div style={{ fontSize: '0.8rem', color: '#06b6d4' }}>→ {rec.expectedImpact}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 추가 조사 필요 */}
+                      {analysis.needsInvestigation.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🔎 추가 조사 필요</h5>
+                          <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
+                            {analysis.needsInvestigation.map((item, i) => (
+                              <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>• {item}</div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+          ) : (
+            <div style={{ ...STYLES.sectionBox, textAlign: 'center', color: '#94a3b8' }}>
+              이 전략의 통계가 아직 없습니다.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+});
+
+export default SimulatorTab;
