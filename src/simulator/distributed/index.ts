@@ -135,8 +135,43 @@ export interface RedisConfig {
   retryAttempts?: number;
 }
 
+// Redis 클라이언트 생성자 타입 (ioredis/redis 공통)
+type RedisConstructor = new (options: {
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  connectTimeout?: number;
+  retryStrategy?: (times: number) => number | null;
+}) => RedisClient;
+
+interface RedisClient {
+  ping(): Promise<string>;
+  multi(): RedisTransaction;
+  hset(key: string, field: string, value: string): Promise<number>;
+  hget(key: string, field: string): Promise<string | null>;
+  hdel(key: string, field: string): Promise<number>;
+  hmget(key: string, ...fields: string[]): Promise<(string | null)[]>;
+  zadd(key: string, score: number, member: string): Promise<number>;
+  zpopmax(key: string): Promise<string[]>;
+  zrevrange(key: string, start: number, stop: number): Promise<string[]>;
+  zcard(key: string): Promise<number>;
+  del(key: string): Promise<number>;
+  quit(): Promise<void>;
+  duplicate(): RedisClient;
+  subscribe(channel: string): Promise<void>;
+  publish(channel: string, message: string): Promise<number>;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+}
+
+interface RedisTransaction {
+  hset(key: string, field: string, value: string): RedisTransaction;
+  zadd(key: string, score: number, member: string): RedisTransaction;
+  exec(): Promise<unknown[]>;
+}
+
 export class RedisQueue<T> implements IQueue<T> {
-  private client: any = null;
+  private client: RedisClient | null = null;
   private connected: boolean = false;
   private name: string;
   private config: RedisConfig;
@@ -185,20 +220,28 @@ export class RedisQueue<T> implements IQueue<T> {
     }
   }
 
-  private async loadRedisLibrary(): Promise<any> {
+  private async loadRedisLibrary(): Promise<RedisConstructor | null> {
     try {
-      // @ts-ignore - ioredis may not be installed
-      const { default: Redis } = await import('ioredis');
-      return Redis;
-    } catch {
-      try {
-        // @ts-ignore - redis may not be installed
-        const { createClient } = await import('redis');
-        return createClient;
-      } catch {
-        return null;
+      // ioredis 동적 로드 시도
+      const ioredisModule = await import('ioredis').catch(() => null);
+      if (ioredisModule) {
+        return ioredisModule.default as unknown as RedisConstructor;
       }
+    } catch {
+      // 무시
     }
+
+    try {
+      // redis 패키지 동적 로드 시도
+      const redisModule = await import('redis').catch(() => null);
+      if (redisModule) {
+        return redisModule.createClient as unknown as RedisConstructor;
+      }
+    } catch {
+      // 무시
+    }
+
+    return null;
   }
 
   async push(item: T, priority: number = 0): Promise<void> {
@@ -323,7 +366,8 @@ export class RedisQueue<T> implements IQueue<T> {
 
     const subscriber = this.client.duplicate();
     await subscriber.subscribe(channel);
-    subscriber.on('message', (_channel: string, message: string) => {
+    subscriber.on('message', (...args: unknown[]) => {
+      const message = args[1] as string;
       handler(message);
     });
   }

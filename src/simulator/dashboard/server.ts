@@ -3,10 +3,46 @@
  * @description 실시간 WebSocket 대시보드 서버
  */
 
-import { createServer, IncomingMessage, ServerResponse } from 'http';
-// @ts-ignore - ws module may not have type declarations
-import { WebSocketServer, WebSocket } from 'ws';
+import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { readFileSync, existsSync } from 'fs';
+
+// ==================== WebSocket 타입 정의 (ws 모듈 선택적 의존성) ====================
+
+interface IWebSocket {
+  readyState: number;
+  send(data: string): void;
+  close(): void;
+  on(event: 'message' | 'close' | 'error', handler: (...args: unknown[]) => void): void;
+}
+
+interface IWebSocketServer {
+  on(event: 'connection', handler: (ws: IWebSocket) => void): void;
+  close(callback?: () => void): void;
+}
+
+interface WSModule {
+  WebSocketServer: new (options: { server: Server }) => IWebSocketServer;
+  WebSocket: { OPEN: number };
+}
+
+// 동적 ws 모듈 로더
+let wsModule: WSModule | null = null;
+let wsLoadError: Error | null = null;
+
+async function loadWsModule(): Promise<WSModule | null> {
+  if (wsModule) return wsModule;
+  if (wsLoadError) return null;
+
+  try {
+    const ws = await import('ws') as unknown as WSModule;
+    wsModule = ws;
+    return ws;
+  } catch (error) {
+    wsLoadError = error instanceof Error ? error : new Error(String(error));
+    console.warn('ws 모듈 로드 실패 (WebSocket 대시보드 비활성화):', wsLoadError.message);
+    return null;
+  }
+}
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { EventEmitter } from 'events';
@@ -47,11 +83,13 @@ interface ServerMessage {
 
 export class DashboardServer extends EventEmitter {
   private httpServer: ReturnType<typeof createServer>;
-  private wss: WebSocketServer;
-  private clients: Set<WebSocket> = new Set();
+  private wss: IWebSocketServer | null = null;
+  private wsConst: { OPEN: number } | null = null;
+  private clients: Set<IWebSocket> = new Set();
   private state: DashboardState;
   private options: Required<DashboardServerOptions>;
   private updateInterval: NodeJS.Timeout | null = null;
+  private initialized: boolean = false;
 
   constructor(options: Partial<DashboardServerOptions> = {}) {
     super();
@@ -76,18 +114,34 @@ export class DashboardServer extends EventEmitter {
 
     // HTTP 서버 생성
     this.httpServer = createServer(this.handleHttpRequest.bind(this));
+  }
 
-    // WebSocket 서버 생성
-    this.wss = new WebSocketServer({ server: this.httpServer });
+  private async initWebSocket(): Promise<boolean> {
+    if (this.initialized) return !!this.wss;
+
+    const ws = await loadWsModule();
+    if (!ws) {
+      console.warn('WebSocket 기능이 비활성화됩니다. ws 모듈을 설치하세요: npm install ws');
+      return false;
+    }
+
+    this.wss = new ws.WebSocketServer({ server: this.httpServer });
+    this.wsConst = ws.WebSocket;
     this.wss.on('connection', this.handleConnection.bind(this));
+    this.initialized = true;
+    return true;
   }
 
   // ==================== 서버 시작/종료 ====================
 
   async start(): Promise<void> {
+    // WebSocket 초기화 시도
+    const wsEnabled = await this.initWebSocket();
+
     return new Promise((resolve, reject) => {
       this.httpServer.listen(this.options.port, this.options.host, () => {
-        console.log(`📊 대시보드 서버 시작: http://${this.options.host}:${this.options.port}`);
+        const wsStatus = wsEnabled ? '(WebSocket 활성화)' : '(HTTP only)';
+        console.log(`📊 대시보드 서버 시작: http://${this.options.host}:${this.options.port} ${wsStatus}`);
 
         // 주기적 상태 업데이트 시작
         this.updateInterval = setInterval(() => this.updateSystemStats(), 1000);
@@ -111,12 +165,19 @@ export class DashboardServer extends EventEmitter {
     }
 
     return new Promise((resolve) => {
-      this.wss.close(() => {
+      if (this.wss) {
+        this.wss.close(() => {
+          this.httpServer.close(() => {
+            this.emit('stopped');
+            resolve();
+          });
+        });
+      } else {
         this.httpServer.close(() => {
           this.emit('stopped');
           resolve();
         });
-      });
+      }
     });
   }
 
@@ -194,7 +255,7 @@ export class DashboardServer extends EventEmitter {
 
   // ==================== WebSocket 핸들러 ====================
 
-  private handleConnection(ws: WebSocket): void {
+  private handleConnection(ws: IWebSocket): void {
     this.clients.add(ws);
     console.log(`📡 클라이언트 연결 (총 ${this.clients.size}명)`);
 
@@ -218,13 +279,13 @@ export class DashboardServer extends EventEmitter {
       console.log(`📡 클라이언트 연결 해제 (총 ${this.clients.size}명)`);
     });
 
-    ws.on('error', (error: Error) => {
-      console.error('WebSocket error:', error);
+    ws.on('error', () => {
+      console.error('WebSocket error');
       this.clients.delete(ws);
     });
   }
 
-  private handleClientMessage(ws: WebSocket, message: ClientMessage): void {
+  private handleClientMessage(ws: IWebSocket, message: ClientMessage): void {
     switch (message.type) {
       case 'subscribe':
         // 특정 이벤트 구독
@@ -249,16 +310,19 @@ export class DashboardServer extends EventEmitter {
 
   // ==================== 브로드캐스트 ====================
 
-  private sendToClient(ws: WebSocket, message: ServerMessage): void {
-    if (ws.readyState === WebSocket.OPEN) {
+  private sendToClient(ws: IWebSocket, message: ServerMessage): void {
+    const OPEN = this.wsConst?.OPEN ?? 1;
+    if (ws.readyState === OPEN) {
       ws.send(JSON.stringify(message));
     }
   }
 
   broadcast(message: ServerMessage): void {
+    if (!this.wsConst) return; // WebSocket 비활성화 상태
+    const OPEN = this.wsConst.OPEN;
     const data = JSON.stringify(message);
     for (const client of this.clients) {
-      if (client.readyState === WebSocket.OPEN) {
+      if (client.readyState === OPEN) {
         client.send(data);
       }
     }

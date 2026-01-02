@@ -351,9 +351,12 @@ export class SqliteStorage implements StorageAdapter {
   private async initDatabase(): Promise<void> {
     try {
       // better-sqlite3 동적 임포트 시도
-      // @ts-ignore - better-sqlite3 may not be installed
-      const Database = (await import('better-sqlite3')).default;
-      this.db = new Database(this.dbPath);
+      const sqliteModule = await import('better-sqlite3').catch(() => null);
+      if (!sqliteModule) {
+        throw new Error('better-sqlite3 모듈을 찾을 수 없습니다');
+      }
+      const Database = sqliteModule.default;
+      this.db = Database(this.dbPath) as BetterSqliteDatabase;
 
       // 테이블 생성
       this.db!.exec(`
