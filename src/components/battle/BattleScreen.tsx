@@ -4,12 +4,14 @@
  * 전투 화면 컴포넌트 - 전투 페이로드 생성 및 BattleApp 렌더링
  */
 
-import { FC, useMemo, useCallback, useState, useEffect, memo } from "react";
+import { FC, useMemo, useCallback, useState, useEffect, memo, lazy, Suspense } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
-import { DevTools } from "../dev/DevTools";
 import { BattleErrorBoundary } from "./BattleErrorBoundary";
+
+// DevTools 지연 로딩 (초기 번들 크기 감소)
+const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
 import type {
@@ -336,7 +338,11 @@ export const BattleScreen: FC = memo(function BattleScreen() {
           onBattleResult={handleBattleResult}
         />
 
-        <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
+        {devToolsOpen && (
+          <Suspense fallback={<div style={{ position: 'fixed', top: 0, left: 0, padding: '20px', background: '#1e293b', color: '#fff' }}>Loading DevTools...</div>}>
+            <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
+          </Suspense>
+        )}
       </div>
     </BattleErrorBoundary>
   );

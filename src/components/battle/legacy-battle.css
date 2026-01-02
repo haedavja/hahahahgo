@@ -61,6 +61,34 @@ button:focus-visible,
   }
 }
 
+/* ==================== 성능 최적화 (Performance) ==================== */
+
+/* GPU 가속을 위한 will-change 힌트 */
+.timeline-marker,
+.card-enhanced,
+.soul-orb,
+.hp-bar-enhanced,
+.character-display {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 애니메이션 성능 최적화 */
+.timeline-active,
+.hit-animation,
+.block-animation,
+.overdrive-burst,
+.soul-shatter-target {
+  will-change: transform, box-shadow;
+}
+
+/* contain: layout paint으로 리페인트 범위 제한 */
+.hand-area,
+.timeline-container {
+  contain: layout paint;
+}
+
 /* ==================== 기본 스타일 ==================== */
 
 body {
