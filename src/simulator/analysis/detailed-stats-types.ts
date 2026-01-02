@@ -32,6 +32,132 @@ export interface CardEffectStats {
   crossTriggers: number;
   /** 승률 기여도 (사용 시 승률) */
   winContribution: number;
+  /** HP 상태별 카드 사용 통계 */
+  contextByHpState: CardHpContextStats;
+  /** 층별 카드 사용 통계 */
+  contextByFloor: CardFloorContextStats;
+  /** 적 유형별 카드 효과 통계 */
+  contextByEnemy: CardEnemyContextStats;
+  /** 턴 순서별 카드 통계 */
+  contextByTurn: CardTurnContextStats;
+}
+
+/** HP 상태별 카드 사용 컨텍스트 */
+export interface CardHpContextStats {
+  /** 위기 상황 (HP < 30%) */
+  critical: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 불안정 상황 (HP 30-60%) */
+  unstable: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 안정 상황 (HP > 60%) */
+  stable: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+}
+
+/** 층별 카드 사용 컨텍스트 */
+export interface CardFloorContextStats {
+  /** 초반 (층 1-5) */
+  early: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 중반 (층 6-10) */
+  mid: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 후반 (층 11+) */
+  late: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 층별 상세 데이터 */
+  byFloor: Map<number, { uses: number; avgDamage: number; avgBlock: number; winRate: number }>;
+}
+
+/** 적 유형별 카드 효과 컨텍스트 */
+export interface CardEnemyContextStats {
+  /** 일반 몬스터 대상 */
+  vsNormal: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 엘리트 대상 */
+  vsElite: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 보스 대상 */
+  vsBoss: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 다수 적 대상 */
+  vsMultiple: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 특정 적 유형별 상세 */
+  byEnemyType: Map<string, { uses: number; avgDamage: number; avgBlock: number; winRate: number }>;
+}
+
+/** 턴 순서별 카드 사용 컨텍스트 */
+export interface CardTurnContextStats {
+  /** 첫 턴 */
+  firstTurn: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 초반 (2-3턴) */
+  earlyTurns: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 중반 (4-6턴) */
+  midTurns: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
+  /** 후반 (7턴+) */
+  lateTurns: {
+    uses: number;
+    avgDamage: number;
+    avgBlock: number;
+    winRate: number;
+  };
 }
 
 /** 몬스터 전투 통계 */
@@ -62,6 +188,100 @@ export interface MonsterBattleStats {
   avgHpRemainingOnWin: number;
   /** 주로 사용된 카드 TOP 5 */
   topCardsUsed: { cardId: string; count: number }[];
+  /** 출현 컨텍스트별 통계 (단독 vs 다수) */
+  contextStats: MonsterContextStats;
+}
+
+/** 적 출현 컨텍스트별 통계 */
+export interface MonsterContextStats {
+  /** 단독 출현 시 통계 */
+  solo: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+  };
+  /** 다수 출현 시 통계 (같은 종류) */
+  withSameType: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+    avgGroupSize: number;
+  };
+  /** 혼합 그룹 시 통계 (다른 종류와 함께) */
+  withMixedGroup: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+    frequentPartners: { monsterId: string; count: number }[];
+  };
+}
+
+/** 적 그룹 전투 통계 */
+export interface EnemyGroupStats {
+  groupId: string;
+  groupName: string;
+  /** 그룹 구성 (적 ID 배열) */
+  composition: string[];
+  /** 적 수 */
+  enemyCount: number;
+  /** 티어 */
+  tier: number;
+  /** 보스 그룹 여부 */
+  isBoss: boolean;
+  /** 전투 횟수 */
+  battles: number;
+  /** 승리 횟수 */
+  wins: number;
+  /** 패배 횟수 */
+  losses: number;
+  /** 승률 */
+  winRate: number;
+  /** 평균 전투 턴 */
+  avgTurns: number;
+  /** 플레이어가 받은 평균 피해 */
+  avgDamageTaken: number;
+  /** 플레이어가 받은 최대 피해 */
+  maxDamageTaken: number;
+  /** 그룹 총 HP */
+  totalGroupHp: number;
+  /** 플레이어가 준 평균 피해 */
+  avgDamageDealt: number;
+  /** 승리 시 남은 HP 평균 */
+  avgHpRemainingOnWin: number;
+  /** 적별 피해 기여도 */
+  damageContribution: { monsterId: string; avgDamage: number; percentage: number }[];
+  /** 첫 처치 순서 (어떤 적이 먼저 죽는지) */
+  killOrder: { monsterId: string; avgOrder: number }[];
+  /** 출현 노드 범위 */
+  nodeRange: [number, number] | null;
+  /** 가장 효과적인 카드 TOP 5 */
+  effectiveCards: { cardId: string; winRateBoost: number }[];
+}
+
+/** 개별 적 피해 기록 (전투 내) */
+export interface IndividualEnemyDamageRecord {
+  /** 적 인스턴스 ID (전투 내 고유) */
+  instanceId: string;
+  /** 적 타입 ID */
+  monsterId: string;
+  /** 적 이름 */
+  monsterName: string;
+  /** 이 적이 플레이어에게 준 피해 */
+  damageDealt: number;
+  /** 이 적이 받은 피해 */
+  damageReceived: number;
+  /** 처치 순서 (1부터 시작, 0이면 생존) */
+  killOrder: number;
+  /** 생존 여부 */
+  survived: boolean;
+  /** 이 적이 사용한 카드들 */
+  cardsUsed: Record<string, number>;
 }
 
 /** 이벤트 통계 */
@@ -308,6 +528,28 @@ export interface BattleRecord {
   specialEffects: Record<string, number>;
   crossTriggers: number;
   combosTriggered: Record<string, number>;
+  /** 그룹 전투 정보 (다수 적 전투 시) */
+  groupInfo: BattleGroupInfo | null;
+}
+
+/** 전투 그룹 정보 */
+export interface BattleGroupInfo {
+  /** 그룹 ID (예: ghoul_duo, wildrat_swarm) */
+  groupId: string;
+  /** 그룹 이름 */
+  groupName: string;
+  /** 총 적 수 */
+  enemyCount: number;
+  /** 개별 적 피해 기록 */
+  individualEnemies: IndividualEnemyDamageRecord[];
+  /** 그룹 구성 (적 타입 ID 배열) */
+  composition: string[];
+  /** 동종 그룹 여부 (같은 타입만 있음) */
+  isHomogeneous: boolean;
+  /** 그룹 총 HP */
+  totalGroupHp: number;
+  /** 그룹 총 피해 (플레이어가 받음) */
+  totalGroupDamage: number;
 }
 
 /** AI 전략 통계 */
@@ -440,6 +682,297 @@ export interface DeathStats {
   deadliestEnemies: { enemyId: string; enemyName: string; deaths: number; encounterRate: number }[];
 }
 
+// ==================== 상징(Relic) 상세 통계 ====================
+
+/** 상징 상세 통계 (확장) */
+export interface RelicDetailedStats {
+  relicId: string;
+  relicName: string;
+  rarity: string;
+  /** 획득 횟수 */
+  timesAcquired: number;
+  /** 보유 시 런 승률 */
+  winRateWithRelic: number;
+  /** 미보유 시 런 승률 */
+  winRateWithoutRelic: number;
+  /** 기여도 (보유 승률 - 미보유 승률) */
+  contribution: number;
+  /** 발동 통계 */
+  activationStats: RelicActivationStats;
+  /** 컨텍스트별 통계 */
+  contextStats: RelicContextStats;
+  /** 시너지 상징 */
+  synergies: { relicId: string; combinedWinRate: number; count: number }[];
+}
+
+/** 상징 발동 통계 */
+export interface RelicActivationStats {
+  /** 총 발동 횟수 */
+  totalActivations: number;
+  /** 전투당 평균 발동 */
+  avgActivationsPerBattle: number;
+  /** 발동 조건별 횟수 */
+  activationsByTrigger: Record<string, number>;
+  /** 발동 시 효과별 총 가치 */
+  effectValues: {
+    damageDealt: number;
+    damageBlocked: number;
+    hpHealed: number;
+    etherGained: number;
+    cardsDrawn: number;
+    goldGained: number;
+    otherEffects: Record<string, number>;
+  };
+  /** 평균 효과 가치 (발동당) */
+  avgValuePerActivation: number;
+  /** 발동 실패 횟수 (조건 미충족) */
+  failedActivations: number;
+}
+
+/** 상징 컨텍스트별 통계 */
+export interface RelicContextStats {
+  /** 층 구간별 발동 */
+  byFloorRange: {
+    early: { activations: number; avgValue: number };
+    mid: { activations: number; avgValue: number };
+    late: { activations: number; avgValue: number };
+  };
+  /** 전투 유형별 발동 */
+  byBattleType: {
+    normal: { activations: number; avgValue: number };
+    elite: { activations: number; avgValue: number };
+    boss: { activations: number; avgValue: number };
+  };
+  /** HP 상태별 발동 */
+  byHpState: {
+    critical: { activations: number; avgValue: number };
+    unstable: { activations: number; avgValue: number };
+    stable: { activations: number; avgValue: number };
+  };
+  /** 획득 시점 (층) */
+  avgAcquisitionFloor: number;
+  /** 획득 방법별 횟수 */
+  acquisitionMethods: Record<string, number>;
+}
+
+// ==================== 토큰 통계 ====================
+
+/** 토큰 상세 통계 */
+export interface TokenStats {
+  tokenId: string;
+  tokenName: string;
+  category: string;
+  /** 획득 횟수 */
+  timesAcquired: number;
+  /** 사용 횟수 */
+  timesUsed: number;
+  /** 사용률 (사용/획득) */
+  usageRate: number;
+  /** 만료 횟수 (사용 안하고 소멸) */
+  timesExpired: number;
+  /** 효과 통계 */
+  effectStats: TokenEffectStats;
+  /** 컨텍스트별 통계 */
+  contextStats: TokenContextStats;
+}
+
+/** 토큰 효과 통계 */
+export interface TokenEffectStats {
+  /** 총 피해량 */
+  totalDamage: number;
+  /** 총 방어량 */
+  totalBlock: number;
+  /** 총 회복량 */
+  totalHealing: number;
+  /** 총 에테르 획득 */
+  totalEtherGained: number;
+  /** 특수 효과 횟수 */
+  specialEffects: Record<string, number>;
+  /** 평균 효과 가치 */
+  avgValuePerUse: number;
+}
+
+/** 토큰 컨텍스트별 통계 */
+export interface TokenContextStats {
+  /** HP 상태별 사용 */
+  byHpState: {
+    critical: { uses: number; avgValue: number };
+    unstable: { uses: number; avgValue: number };
+    stable: { uses: number; avgValue: number };
+  };
+  /** 전투 유형별 사용 */
+  byBattleType: {
+    normal: { uses: number; avgValue: number };
+    elite: { uses: number; avgValue: number };
+    boss: { uses: number; avgValue: number };
+  };
+  /** 턴별 사용 (어느 턴에 주로 쓰는지) */
+  byTurn: Map<number, { uses: number; avgValue: number }>;
+  /** 함께 사용된 카드 TOP 5 */
+  frequentCardCombos: { cardId: string; count: number }[];
+}
+
+// ==================== 포커 콤보 통계 ====================
+
+/** 포커 콤보 상세 통계 */
+export interface PokerComboStats {
+  /** 콤보별 발동 횟수 */
+  comboFrequency: Record<string, number>;
+  /** 콤보별 에테르 획득 총량 */
+  etherByCombo: Record<string, number>;
+  /** 콤보별 평균 에테르 */
+  avgEtherByCombo: Record<string, number>;
+  /** 콤보별 승률 (해당 전투) */
+  winRateByCombo: Record<string, number>;
+  /** 콤보별 상세 통계 */
+  comboDetails: Map<string, ComboDetailStats>;
+}
+
+/** 콤보 상세 통계 */
+export interface ComboDetailStats {
+  comboType: string;
+  /** 총 발동 횟수 */
+  totalOccurrences: number;
+  /** 승리한 전투에서 발동 */
+  inWins: number;
+  /** 패배한 전투에서 발동 */
+  inLosses: number;
+  /** 총 에테르 획득 */
+  totalEtherGained: number;
+  /** 평균 에테르 획득 */
+  avgEtherGained: number;
+  /** 발동 후 승률 */
+  winRateAfterCombo: number;
+  /** 컨텍스트별 통계 */
+  contextStats: {
+    /** 층 구간별 */
+    byFloorRange: Record<string, { occurrences: number; avgEther: number }>;
+    /** 적 유형별 */
+    byEnemyType: Record<string, { occurrences: number; avgEther: number }>;
+    /** 턴별 */
+    byTurn: Map<number, { occurrences: number; avgEther: number }>;
+  };
+  /** 카드 조합별 발동 (어떤 카드들로 콤보 완성) */
+  cardCombinations: { cards: string[]; count: number }[];
+}
+
+// ==================== 층별 상세 통계 ====================
+
+/** 층별 상세 통계 */
+export interface FloorDetailedStats {
+  floor: number;
+  /** 해당 층 도달 횟수 */
+  timesReached: number;
+  /** 해당 층 클리어 횟수 */
+  timesCleared: number;
+  /** 해당 층 클리어율 */
+  clearRate: number;
+  /** 해당 층에서 런 종료 횟수 */
+  runsEndedHere: number;
+  /** 전투 통계 */
+  battleStats: FloorBattleStats;
+  /** 자원 통계 */
+  resourceStats: FloorResourceStats;
+  /** 노드 타입별 통계 */
+  nodeTypeStats: Record<string, FloorNodeStats>;
+}
+
+/** 층별 전투 통계 */
+export interface FloorBattleStats {
+  /** 해당 층 전투 횟수 */
+  totalBattles: number;
+  /** 승리 횟수 */
+  wins: number;
+  /** 패배 횟수 */
+  losses: number;
+  /** 승률 */
+  winRate: number;
+  /** 평균 전투 턴 */
+  avgTurns: number;
+  /** 평균 받은 피해 */
+  avgDamageTaken: number;
+  /** 평균 준 피해 */
+  avgDamageDealt: number;
+  /** 해당 층 주요 적 */
+  commonEnemies: { monsterId: string; count: number; winRate: number }[];
+  /** 무피해 클리어 횟수 */
+  flawlessVictories: number;
+}
+
+/** 층별 자원 통계 */
+export interface FloorResourceStats {
+  /** 해당 층 도달 시 평균 HP */
+  avgHpOnArrival: number;
+  /** 해당 층 도달 시 평균 HP 비율 */
+  avgHpRatioOnArrival: number;
+  /** 해당 층 도달 시 평균 골드 */
+  avgGoldOnArrival: number;
+  /** 해당 층 도달 시 평균 덱 크기 */
+  avgDeckSizeOnArrival: number;
+  /** 해당 층 도달 시 평균 상징 수 */
+  avgRelicCountOnArrival: number;
+  /** HP 분포 (구간별 도달 비율) */
+  hpDistribution: {
+    critical: number;  // < 30%
+    unstable: number;  // 30-60%
+    stable: number;    // > 60%
+  };
+  /** 런 생존 가능성 (해당 층에서 승리한 런의 최종 성공률) */
+  survivalProjection: number;
+}
+
+/** 층별 노드 타입 통계 */
+export interface FloorNodeStats {
+  nodeType: string;
+  /** 방문 횟수 */
+  visits: number;
+  /** 선택률 (해당 층에서 선택한 비율) */
+  selectionRate: number;
+  /** 방문 후 런 성공률 */
+  winRateAfterVisit: number;
+  /** 평균 HP 변화 */
+  avgHpChange: number;
+  /** 평균 골드 변화 */
+  avgGoldChange: number;
+  /** 획득한 카드 수 */
+  cardsGained: number;
+  /** 획득한 상징 수 */
+  relicsGained: number;
+}
+
+// ==================== 통합 층 진행 분석 ====================
+
+/** 층 진행 분석 통계 */
+export interface FloorProgressionAnalysis {
+  /** 층별 상세 통계 */
+  floorStats: Map<number, FloorDetailedStats>;
+  /** 난이도 스파이크 층 (승률 급락) */
+  difficultySpikes: { floor: number; winRateDrop: number; reason: string }[];
+  /** 자원 커브 분석 */
+  resourceCurves: {
+    /** 층별 평균 HP 커브 */
+    hpCurve: { floor: number; avgHp: number; avgHpRatio: number }[];
+    /** 층별 평균 골드 커브 */
+    goldCurve: { floor: number; avgGold: number }[];
+    /** 층별 평균 덱 크기 커브 */
+    deckSizeCurve: { floor: number; avgSize: number }[];
+  };
+  /** 최적 경로 분석 */
+  optimalPathAnalysis: {
+    /** 승률 높은 경로 패턴 */
+    highWinRatePaths: { path: string[]; winRate: number; count: number }[];
+    /** 승률 낮은 경로 패턴 */
+    lowWinRatePaths: { path: string[]; winRate: number; count: number }[];
+  };
+  /** 병목 구간 분석 */
+  bottleneckAnalysis: {
+    /** 가장 많이 실패하는 층 */
+    highFailureFloors: { floor: number; failureRate: number; mainCause: string }[];
+    /** 자원 부족으로 실패하는 구간 */
+    resourceDepletionZones: { floorRange: [number, number]; avgHpAtFailure: number }[];
+  };
+}
+
 /** 층별 진행 데이터 (Slay the Spire 스타일) */
 export interface FloorProgressionData {
   /** 층 번호 */
@@ -564,10 +1097,15 @@ export interface DetailedStats {
   cardStats: Map<string, CardEffectStats>;
   /** 몬스터별 통계 */
   monsterStats: Map<string, MonsterBattleStats>;
+  /** 적 그룹별 통계 */
+  enemyGroupStats: Map<string, EnemyGroupStats>;
   /** 이벤트별 통계 */
   eventStats: Map<string, EventStats>;
   /** 런 전체 통계 */
-  runStats: RunStats;
+  runStats: RunStats & {
+    /** 난이도 (시뮬레이션 설정) */
+    difficulty?: number;
+  };
   /** 전투 기록 목록 */
   battleRecords: BattleRecord[];
   /** 카드 승급 통계 */
@@ -606,4 +1144,15 @@ export interface DetailedStats {
   recentRunProgressions: RunProgressionStats[];
   /** 전체 카드 선택 기록 (분석용) */
   allCardChoices: CardChoiceContext[];
+
+  // ==================== 신규 상세 통계 ====================
+
+  /** 상징별 통계 */
+  relicStats: Map<string, RelicStats>;
+  /** 토큰별 통계 */
+  tokenStats: Map<string, TokenStats>;
+  /** 포커 콤보 통계 */
+  pokerComboStats: PokerComboStats;
+  /** 층 진행 분석 */
+  floorProgressionAnalysis: FloorProgressionAnalysis;
 }
