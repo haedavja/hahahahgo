@@ -19,10 +19,11 @@ const __dirname = dirname(__filename);
 export interface CardData {
   id: string;
   name: string;
-  type: 'attack' | 'defense' | 'skill';
+  type: 'attack' | 'defense' | 'skill' | 'reaction' | 'general' | 'move' | 'support';
   cost: number;
   attack?: number;
   defense?: number;
+  hits?: number;
   traits?: string[];
   effects?: Record<string, unknown>;
   description: string;
