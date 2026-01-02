@@ -1,11 +1,17 @@
 /**
  * @file stats-analysis-framework.ts
- * @description AI 통계 분석 프레임워크 v2
+ * @description AI 통계 분석 프레임워크 v3 - 하하하GO 맞춤형
  *
- * 게임 업계 베스트 프랙티스 참고:
- * - Riot Games (LoL): 동적 임계값 (평균 ±2σ), 학습 곡선, "data-informed not data-driven"
- * - Supercell (Clash Royale): Use Rate + Win Rate 매트릭스, 4분면 분석
- * - MegaCrit (Slay the Spire): 카드 경쟁 분석, 적별 피해량, 75M+ 런 데이터 기반
+ * ⚠️ AI 시뮬레이션 한계 인지:
+ * - 이 분석은 AI 시뮬레이터가 생성한 데이터 기반
+ * - AI 판단 ≠ 실제 플레이어 판단 (픽률, 전략 등)
+ * - 반드시 직접 플레이 테스트와 병행해야 함
+ * - "재미" 요소는 데이터로 측정 불가
+ *
+ * 게임 업계 베스트 프랙티스 참고 (하하하GO에 맞게 조정):
+ * - Riot Games: 동적 임계값, 학습 곡선 (PvP→싱글플레이어 조정)
+ * - Supercell: Use Rate + Win Rate 매트릭스 (AI 편향 고려)
+ * - MegaCrit (StS): 카드 경쟁 분석 (가장 유사한 장르)
  *
  * Sources:
  * - https://medium.com/snipe-gg/understanding-league-of-legends-data-analytics-c2e5d77b55e6
@@ -14,6 +20,32 @@
 
 import type { DetailedStats } from './detailed-stats-types';
 
+// ==================== 하하하GO 게임 설정 ====================
+
+/**
+ * 난이도별 목표 승률
+ * - 싱글플레이어 로그라이크는 PvP와 달리 50%가 정답이 아님
+ * - 난이도가 높을수록 목표 승률이 낮아야 도전 요소 유지
+ */
+export const DIFFICULTY_TARGET_WIN_RATES: Record<number, { target: number; tolerance: number; description: string }> = {
+  1: { target: 0.75, tolerance: 0.10, description: '입문자용 - 대부분 클리어 가능해야 함' },
+  2: { target: 0.60, tolerance: 0.10, description: '쉬움 - 기본기 익히면 클리어' },
+  3: { target: 0.45, tolerance: 0.10, description: '보통 - 적절한 도전과 보상' },
+  4: { target: 0.30, tolerance: 0.08, description: '어려움 - 숙련자 도전 구간' },
+  5: { target: 0.15, tolerance: 0.05, description: '극한 - 최적 플레이 + 운 필요' },
+};
+
+/**
+ * AI 시뮬레이션 한계 경고 레벨
+ */
+export const AI_LIMITATION_WARNINGS = {
+  PICK_RATE_BIAS: 'AI 픽률은 알고리즘 편향이 있음 - 실제 플레이어와 다를 수 있음',
+  SYNERGY_BLIND_SPOT: 'AI가 발견 못한 시너지는 데이터에 없음',
+  FUN_FACTOR: '"재미" 요소는 측정 불가 - 직접 플레이 테스트 필수',
+  SAMPLE_SIZE: 'AI 시뮬레이션은 동일 전략 반복 - 다양성 부족',
+  SKILL_CEILING: 'AI는 "최적 플레이"만 시도 - 플레이어 실수 미반영',
+};
+
 // ==================== 분석 결과 타입 ====================
 
 export interface AnalysisResult {
@@ -21,6 +53,10 @@ export interface AnalysisResult {
   summary: string;
   /** 데이터 신뢰도 */
   confidence: ConfidenceLevel;
+  /** 난이도별 밸런스 평가 */
+  difficultyAssessment: DifficultyAssessment;
+  /** AI 시뮬레이션 한계 경고 */
+  aiLimitationWarnings: string[];
   /** 핵심 문제점들 */
   problems: Problem[];
   /** 원인 분석 */
@@ -31,6 +67,23 @@ export interface AnalysisResult {
   needsInvestigation: string[];
   /** 메타 분석 결과 */
   metaAnalysis: MetaAnalysis;
+}
+
+export interface DifficultyAssessment {
+  /** 분석된 난이도 */
+  difficulty: number;
+  /** 목표 승률 */
+  targetWinRate: number;
+  /** 실제 승률 */
+  actualWinRate: number;
+  /** 허용 오차 */
+  tolerance: number;
+  /** 목표 달성 여부 */
+  isOnTarget: boolean;
+  /** 평가 메시지 */
+  assessment: string;
+  /** 조정 필요 방향 */
+  adjustmentNeeded: 'none' | 'easier' | 'harder';
 }
 
 export interface ConfidenceLevel {
@@ -877,7 +930,51 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
     };
   });
 
-  // 8. 추가 조사 필요 항목
+  // 8. 난이도별 밸런스 평가
+  const difficulty = stats.runStats.difficulty ?? 3; // 기본 난이도 3
+  const targetConfig = DIFFICULTY_TARGET_WIN_RATES[difficulty] || DIFFICULTY_TARGET_WIN_RATES[3];
+  const actualWinRate = stats.runStats.successRate;
+  const diff = actualWinRate - targetConfig.target;
+  const isOnTarget = Math.abs(diff) <= targetConfig.tolerance;
+
+  let assessment = '';
+  let adjustmentNeeded: DifficultyAssessment['adjustmentNeeded'] = 'none';
+
+  if (isOnTarget) {
+    assessment = `✅ 목표 달성 - 난이도 ${difficulty} 밸런스 적절 (${targetConfig.description})`;
+  } else if (diff > 0) {
+    assessment = `⚠️ 너무 쉬움 - 승률 ${(actualWinRate * 100).toFixed(1)}%가 목표 ${(targetConfig.target * 100).toFixed(1)}%보다 ${(diff * 100).toFixed(1)}%p 높음`;
+    adjustmentNeeded = 'harder';
+  } else {
+    assessment = `⚠️ 너무 어려움 - 승률 ${(actualWinRate * 100).toFixed(1)}%가 목표 ${(targetConfig.target * 100).toFixed(1)}%보다 ${(Math.abs(diff) * 100).toFixed(1)}%p 낮음`;
+    adjustmentNeeded = 'easier';
+  }
+
+  const difficultyAssessment: DifficultyAssessment = {
+    difficulty,
+    targetWinRate: targetConfig.target,
+    actualWinRate,
+    tolerance: targetConfig.tolerance,
+    isOnTarget,
+    assessment,
+    adjustmentNeeded,
+  };
+
+  // 9. AI 시뮬레이션 한계 경고
+  const aiLimitationWarnings: string[] = [
+    AI_LIMITATION_WARNINGS.PICK_RATE_BIAS,
+    AI_LIMITATION_WARNINGS.FUN_FACTOR,
+  ];
+
+  if (sampleSize < 50) {
+    aiLimitationWarnings.push(AI_LIMITATION_WARNINGS.SAMPLE_SIZE);
+  }
+
+  if (metaAnalysis.cardQuadrants.hiddenGem.length > 2) {
+    aiLimitationWarnings.push(AI_LIMITATION_WARNINGS.SYNERGY_BLIND_SPOT);
+  }
+
+  // 10. 추가 조사 필요 항목
   const needsInvestigation: string[] = [];
 
   if (confidence.level === 'low') {
@@ -892,7 +989,13 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
     needsInvestigation.push(`히든젬 ${metaAnalysis.cardQuadrants.hiddenGem.length}개 발견 - 플레이어 가이드/튜토리얼 개선 고려`);
   }
 
-  // 9. 요약 생성
+  if (!isOnTarget) {
+    needsInvestigation.push(`난이도 ${difficulty} 밸런스 조정 필요 - ${adjustmentNeeded === 'easier' ? '쉽게' : '어렵게'} 조정 고려`);
+  }
+
+  needsInvestigation.push('⚠️ 직접 플레이 테스트 필수 - AI 분석만으로 밸런스 결정 금지');
+
+  // 11. 요약 생성
   const highConfidenceProblems = allProblems.filter(p => p.severity >= 4 && p.confidence >= 0.7);
   const summary = confidence.level === 'low'
     ? `⚠️ 데이터 부족 (${sampleSize}런) - ${allProblems.length}개 잠재적 이슈 감지됨, 추가 데이터 필요`
@@ -903,8 +1006,10 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
         : '주요 문제 없음 - 밸런스 양호';
 
   return {
-    summary,
+    summary: `${summary} | ${difficultyAssessment.assessment}`,
     confidence,
+    difficultyAssessment,
+    aiLimitationWarnings,
     problems: allProblems,
     rootCauses,
     recommendations,
@@ -922,12 +1027,35 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
   const analysis = analyzeStats(stats);
   const lines: string[] = [];
 
-  lines.push('# 시뮬레이션 분석 리포트 v2');
+  lines.push('# 시뮬레이션 분석 리포트 v3 - 하하하GO 맞춤형');
   lines.push('');
+
+  // AI 한계 경고 (맨 위에 표시)
+  lines.push('## ⚠️ AI 시뮬레이션 한계');
+  lines.push('');
+  analysis.aiLimitationWarnings.forEach(warning => {
+    lines.push(`- ${warning}`);
+  });
+  lines.push('');
+
+  // 난이도별 밸런스 평가
+  lines.push('## 🎯 난이도 밸런스 평가');
+  lines.push('');
+  const da = analysis.difficultyAssessment;
+  lines.push(`- 난이도: **${da.difficulty}** (${DIFFICULTY_TARGET_WIN_RATES[da.difficulty]?.description || '알 수 없음'})`);
+  lines.push(`- 목표 승률: ${(da.targetWinRate * 100).toFixed(0)}% ±${(da.tolerance * 100).toFixed(0)}%`);
+  lines.push(`- 실제 승률: ${(da.actualWinRate * 100).toFixed(1)}%`);
+  lines.push(`- 평가: ${da.assessment}`);
+  if (da.adjustmentNeeded !== 'none') {
+    lines.push(`- 조정 방향: **${da.adjustmentNeeded === 'easier' ? '쉽게' : '어렵게'}** 조정 필요`);
+  }
+  lines.push('');
+
   lines.push('## 분석 방법론');
-  lines.push('- Riot Games: 동적 임계값 (평균 ±2σ), "data-informed not data-driven"');
+  lines.push('- Riot Games: 동적 임계값 (평균 ±2σ), 학습 곡선');
   lines.push('- Supercell: Use Rate + Win Rate 4분면 매트릭스');
-  lines.push('- MegaCrit (StS): 카드 경쟁 분석, 적별 피해 프로파일');
+  lines.push('- MegaCrit (StS): 카드 경쟁 분석');
+  lines.push('- **하하하GO 맞춤**: 난이도별 목표 승률, AI 편향 고려');
   lines.push('');
 
   lines.push('## 데이터 신뢰도');
@@ -1009,22 +1137,25 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
 
   lines.push('---');
   lines.push('');
-  lines.push('## AI 분석 가이드라인 (업계 베스트 프랙티스)');
+  lines.push('## 하하하GO 분석 가이드라인');
   lines.push('');
-  lines.push('### Riot Games 원칙');
-  lines.push('1. **Data-informed, not data-driven**: 데이터는 도구일 뿐, 결정은 경험과 직관을 함께 사용');
-  lines.push('2. **±2% = 유의미, ±5% = broken**: 50% 기준 편차로 판단');
-  lines.push('3. **학습 곡선 고려**: 야스오처럼 초기 36% 승률도 35게임 후 50%+ 도달 가능');
+  lines.push('### 핵심 원칙');
+  lines.push('1. **AI 분석은 참고용**: 최종 결정은 직접 플레이 테스트 후');
+  lines.push('2. **난이도별 목표 승률 준수**: 난이도 1(75%) ~ 5(15%)');
+  lines.push('3. **재미 > 밸런스**: 숫자보다 플레이 경험 우선');
+  lines.push('4. **버프 우선 정책**: 너프보다 약한 것 강화');
   lines.push('');
-  lines.push('### Supercell 원칙');
-  lines.push('1. **Use Rate + Win Rate 매트릭스**: 단일 지표가 아닌 조합으로 판단');
-  lines.push('2. **65%+ 승률 2패치 지속 불가**: 지속적인 밸런스 모니터링');
-  lines.push('3. **스킬 레벨별 분석**: 초보/고수 구간 분리 분석');
+  lines.push('### 업계 참고 (하하하GO 맞춤 적용)');
+  lines.push('- Riot: 동적 임계값 사용 (단, PvP 50% 목표 → 난이도별 목표로 조정)');
+  lines.push('- Supercell: 4분면 분석 사용 (단, AI 픽률 편향 고려)');
+  lines.push('- StS: 카드 경쟁 분석 사용 (가장 유사한 장르)');
   lines.push('');
-  lines.push('### Slay the Spire 원칙');
-  lines.push('1. **카드 제시 시 선택률**: 단순 보유가 아닌 경쟁 상황에서의 선택');
-  lines.push('2. **적별 피해 프로파일**: 어떤 적에게 어떤 카드가 효과적인지');
-  lines.push('3. **데이터 + 직관**: "intuitively decide how to make a card more fun"');
+  lines.push('### 향후 개선 방향');
+  lines.push('1. 실제 플레이어 데이터 수집 시스템');
+  lines.push('2. "재미" 지표 정량화 시도 (극적 역전, 콤보 달성률 등)');
+  lines.push('3. 난이도별 AI 전략 다양화');
+  lines.push('4. 플레이어 실수 패턴 시뮬레이션');
+  lines.push('5. 지속적인 방법론 검증 및 조정');
   lines.push('');
 
   return lines.join('\n');
@@ -1033,13 +1164,15 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
 // ==================== 내보내기 ====================
 
 export const StatsAnalyzer = {
+  // 메인 분석
   analyzeStats,
+  generateAnalysisGuidelines,
+  // 개별 분석
   analyzeEnemyBalance,
   analyzeCardBalance,
   analyzeProgressionCurve,
   analyzeSynergies,
   analyzeGrowthPaths,
-  generateAnalysisGuidelines,
   // 유틸리티
   calculateDynamicThresholds,
   analyzeCardQuadrants,
@@ -1049,6 +1182,9 @@ export const StatsAnalyzer = {
   calculateZScore,
   calculateConfidence,
   wilsonScoreLower,
+  // 하하하GO 설정
+  DIFFICULTY_TARGET_WIN_RATES,
+  AI_LIMITATION_WARNINGS,
 };
 
 export default StatsAnalyzer;
