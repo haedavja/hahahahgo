@@ -142,6 +142,24 @@ export interface GrowthStats {
   logosActivations: Record<string, number>;
   /** 성장 레벨 분포 */
   levelDistribution: Record<number, number>;
+  /** 스탯별 승률 상관관계 */
+  statWinCorrelation: Record<string, number>;
+  /** 성장 경로별 통계 (어떤 순서로 스탯을 올렸는지) */
+  growthPathStats: GrowthPathStats[];
+  /** 최종 스탯 분포 (런 종료 시) */
+  finalStatDistribution: Record<string, { total: number; avg: number; max: number }>;
+}
+
+/** 성장 경로 통계 */
+export interface GrowthPathStats {
+  /** 성장 경로 (예: "strength→agility→insight") */
+  path: string;
+  /** 해당 경로 사용 횟수 */
+  count: number;
+  /** 해당 경로 승률 */
+  winRate: number;
+  /** 평균 최종 레벨 */
+  avgFinalLevel: number;
 }
 
 /** 구매 결정 기록 */
@@ -340,6 +358,68 @@ export interface CardSynergyStats {
   topSynergies: { pair: string; frequency: number; winRate: number }[];
 }
 
+/** 층별 진행 데이터 (Slay the Spire 스타일) */
+export interface FloorProgressionData {
+  /** 층 번호 */
+  floor: number;
+  /** 노드 타입 */
+  nodeType: string;
+  /** 해당 시점 HP */
+  hp: number;
+  /** 해당 시점 최대 HP */
+  maxHp: number;
+  /** 해당 시점 골드 */
+  gold: number;
+  /** 해당 시점 덱 크기 */
+  deckSize: number;
+  /** 해당 시점 상징 개수 */
+  relicCount: number;
+}
+
+/** 카드 선택 컨텍스트 (Slay the Spire 스타일) */
+export interface CardChoiceContext {
+  /** 선택된 카드 ID */
+  pickedCardId: string | null;
+  /** 제시된 다른 카드들 */
+  notPickedCardIds: string[];
+  /** 선택 시점 층 */
+  floor: number;
+  /** 스킵 여부 */
+  skipped: boolean;
+}
+
+/** 난이도별 통계 (Hades Heat 스타일) */
+export interface DifficultyStats {
+  /** 난이도 레벨 */
+  difficulty: number;
+  /** 해당 난이도 런 횟수 */
+  runs: number;
+  /** 해당 난이도 성공 횟수 */
+  wins: number;
+  /** 해당 난이도 승률 */
+  winRate: number;
+  /** 해당 난이도 평균 도달 층 */
+  avgFloorReached: number;
+  /** 해당 난이도 연승 기록 */
+  winStreak: number;
+}
+
+/** 런 진행 기록 (Slay the Spire run_data 스타일) */
+export interface RunProgressionStats {
+  /** 층별 진행 데이터 */
+  floorProgression: FloorProgressionData[];
+  /** 카드 선택 기록 */
+  cardChoices: CardChoiceContext[];
+  /** 전투별 받은 피해 */
+  damagePerBattle: { monsterId: string; damage: number; floor: number }[];
+  /** 경로 선택 (노드 타입 순서) */
+  pathTaken: string[];
+  /** 최종 덱 구성 */
+  finalDeck: string[];
+  /** 최종 상징 */
+  finalRelics: string[];
+}
+
 /** 기록 통계 (Hades/Balatro 스타일) */
 export interface RecordStats {
   /** 최장 연승 기록 */
@@ -406,4 +486,10 @@ export interface DetailedStats {
   cardSynergyStats: CardSynergyStats;
   /** 기록 통계 */
   recordStats: RecordStats;
+  /** 난이도별 통계 (Hades Heat 스타일) */
+  difficultyStats: Map<number, DifficultyStats>;
+  /** 최근 런 진행 기록 (최대 10개) */
+  recentRunProgressions: RunProgressionStats[];
+  /** 전체 카드 선택 기록 (분석용) */
+  allCardChoices: CardChoiceContext[];
 }

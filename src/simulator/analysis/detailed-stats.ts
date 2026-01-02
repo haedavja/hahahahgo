@@ -36,6 +36,12 @@ export type {
   CardSynergyStats,
   RecordStats,
   DetailedStats,
+  // 새 타입 (다른 게임 참고)
+  FloorProgressionData,
+  CardChoiceContext,
+  DifficultyStats,
+  RunProgressionStats,
+  GrowthPathStats,
 } from './detailed-stats-types';
 
 import type {
@@ -55,9 +61,14 @@ import type {
   ItemUsageStats,
   CardUpgradeStats,
   GrowthStats,
+  GrowthPathStats,
   ShopStats,
   DungeonStats,
   RunStats,
+  DifficultyStats,
+  RunProgressionStats,
+  CardChoiceContext,
+  FloorProgressionData,
 } from './detailed-stats-types';
 
 // ==================== 통계 수집기 ====================
@@ -91,6 +102,13 @@ export class StatsCollector {
   private statInvestments: Record<string, number> = {};
   private logosActivations: Record<string, number> = {};
   private growthLevels: number[] = [];
+  // 성장 경로 추적
+  private growthPaths: { path: string[]; success: boolean; finalLevel: number }[] = [];
+  private currentGrowthPath: string[] = [];
+  // 스탯별 승률 추적
+  private statRunResults: { stats: Record<string, number>; success: boolean }[] = [];
+  // 최종 스탯 추적
+  private finalStats: Record<string, number[]> = {};
 
   // 상점 통계
   private shopVisits = 0;
@@ -172,6 +190,14 @@ export class StatsCollector {
   private smallestDeckClear = Infinity;
   private maxGoldHeld = 0;
   private bossFlawlessCount = 0;
+
+  // 난이도별 통계 (Hades Heat 스타일)
+  private difficultyResults: Map<number, { runs: number; wins: number; floors: number[]; currentStreak: number; longestStreak: number }> = new Map();
+
+  // 런 진행 기록 (Slay the Spire 스타일)
+  private recentRunProgressions: RunProgressionStats[] = [];
+  private currentRunProgression: RunProgressionStats | null = null;
+  private allCardChoices: CardChoiceContext[] = [];
 
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
@@ -511,11 +537,44 @@ export class StatsCollector {
   /** 성장 시스템 투자 기록 */
   recordGrowthInvestment(stat: string, amount: number = 1) {
     this.statInvestments[stat] = (this.statInvestments[stat] || 0) + amount;
+    // 성장 경로에 추가
+    this.currentGrowthPath.push(stat);
   }
 
   /** 로고스 효과 활성화 기록 */
   recordLogosActivation(effectName: string) {
     this.logosActivations[effectName] = (this.logosActivations[effectName] || 0) + 1;
+  }
+
+  /** 런 종료 시 성장 통계 기록 */
+  recordGrowthRunEnd(data: {
+    success: boolean;
+    finalStats: Record<string, number>;
+    finalLevel: number;
+  }) {
+    // 성장 경로 저장
+    if (this.currentGrowthPath.length > 0) {
+      this.growthPaths.push({
+        path: [...this.currentGrowthPath],
+        success: data.success,
+        finalLevel: data.finalLevel,
+      });
+      this.currentGrowthPath = [];
+    }
+
+    // 스탯별 결과 저장
+    this.statRunResults.push({
+      stats: { ...data.finalStats },
+      success: data.success,
+    });
+
+    // 최종 스탯 분포 저장
+    for (const [stat, value] of Object.entries(data.finalStats)) {
+      if (!this.finalStats[stat]) {
+        this.finalStats[stat] = [];
+      }
+      this.finalStats[stat].push(value);
+    }
   }
 
   /** 상점 서비스 이용 기록 */
@@ -802,6 +861,86 @@ export class StatsCollector {
     }
   }
 
+  // ==================== 새 통계 기록 메서드 (다른 게임 참고) ====================
+
+  /** 런 시작 기록 (진행 추적용) */
+  startRunProgression() {
+    this.currentRunProgression = {
+      floorProgression: [],
+      cardChoices: [],
+      damagePerBattle: [],
+      pathTaken: [],
+      finalDeck: [],
+      finalRelics: [],
+    };
+  }
+
+  /** 층 진행 기록 */
+  recordFloorProgress(data: FloorProgressionData) {
+    if (this.currentRunProgression) {
+      this.currentRunProgression.floorProgression.push(data);
+      this.currentRunProgression.pathTaken.push(data.nodeType);
+    }
+  }
+
+  /** 카드 선택 컨텍스트 기록 (어떤 카드들 중 어떤 걸 골랐는지) */
+  recordCardChoice(data: { pickedCardId: string | null; offeredCardIds: string[]; floor: number; skipped: boolean }) {
+    const choice: CardChoiceContext = {
+      pickedCardId: data.pickedCardId,
+      notPickedCardIds: data.offeredCardIds.filter(id => id !== data.pickedCardId),
+      floor: data.floor,
+      skipped: data.skipped,
+    };
+
+    this.allCardChoices.push(choice);
+    if (this.currentRunProgression) {
+      this.currentRunProgression.cardChoices.push(choice);
+    }
+  }
+
+  /** 전투 피해 기록 (런 진행용) */
+  recordBattleDamage(monsterId: string, damage: number, floor: number) {
+    if (this.currentRunProgression) {
+      this.currentRunProgression.damagePerBattle.push({ monsterId, damage, floor });
+    }
+  }
+
+  /** 런 종료 기록 (진행 저장) */
+  endRunProgression(data: { finalDeck: string[]; finalRelics: string[] }) {
+    if (this.currentRunProgression) {
+      this.currentRunProgression.finalDeck = data.finalDeck;
+      this.currentRunProgression.finalRelics = data.finalRelics;
+
+      // 최근 10개만 유지
+      this.recentRunProgressions.push(this.currentRunProgression);
+      if (this.recentRunProgressions.length > 10) {
+        this.recentRunProgressions.shift();
+      }
+      this.currentRunProgression = null;
+    }
+  }
+
+  /** 난이도별 런 결과 기록 (Hades Heat 스타일) */
+  recordDifficultyRun(difficulty: number, success: boolean, floorReached: number) {
+    if (!this.difficultyResults.has(difficulty)) {
+      this.difficultyResults.set(difficulty, { runs: 0, wins: 0, floors: [], currentStreak: 0, longestStreak: 0 });
+    }
+
+    const stats = this.difficultyResults.get(difficulty)!;
+    stats.runs++;
+    stats.floors.push(floorReached);
+
+    if (success) {
+      stats.wins++;
+      stats.currentStreak++;
+      if (stats.currentStreak > stats.longestStreak) {
+        stats.longestStreak = stats.currentStreak;
+      }
+    } else {
+      stats.currentStreak = 0;
+    }
+  }
+
   /** 런 완료 기록 (기록 통계용) - recordRun 확장 */
   recordRunComplete(data: {
     success: boolean;
@@ -865,6 +1004,8 @@ export class StatsCollector {
     const cardSynergyStats = this.calculateCardSynergyStats();
     const recordStats = this.calculateRecordStats();
 
+    const difficultyStats = this.calculateDifficultyStats();
+
     return {
       startTime: this.startTime,
       endTime: new Date(),
@@ -885,7 +1026,32 @@ export class StatsCollector {
       cardContributionStats,
       cardSynergyStats,
       recordStats,
+      difficultyStats,
+      recentRunProgressions: [...this.recentRunProgressions],
+      allCardChoices: [...this.allCardChoices],
     };
+  }
+
+  /** 난이도별 통계 계산 */
+  private calculateDifficultyStats(): Map<number, DifficultyStats> {
+    const result = new Map<number, DifficultyStats>();
+
+    for (const [difficulty, data] of this.difficultyResults) {
+      const avgFloor = data.floors.length > 0
+        ? data.floors.reduce((a, b) => a + b, 0) / data.floors.length
+        : 0;
+
+      result.set(difficulty, {
+        difficulty,
+        runs: data.runs,
+        wins: data.wins,
+        winRate: data.runs > 0 ? data.wins / data.runs : 0,
+        avgFloorReached: avgFloor,
+        winStreak: data.longestStreak,
+      });
+    }
+
+    return result;
   }
 
   /** AI 전략 통계 계산 */
@@ -1078,12 +1244,76 @@ export class StatsCollector {
       levelDistribution[level] = (levelDistribution[level] || 0) + 1;
     }
 
+    // 스탯별 승률 상관관계 계산
+    const statWinCorrelation: Record<string, number> = {};
+    const allStats = new Set<string>();
+    for (const result of this.statRunResults) {
+      for (const stat of Object.keys(result.stats)) {
+        allStats.add(stat);
+      }
+    }
+
+    for (const stat of allStats) {
+      const runsWithStat = this.statRunResults.filter(r => (r.stats[stat] || 0) > 0);
+      const runsWithoutStat = this.statRunResults.filter(r => (r.stats[stat] || 0) === 0);
+
+      const winRateWithStat = runsWithStat.length > 0
+        ? runsWithStat.filter(r => r.success).length / runsWithStat.length
+        : 0;
+      const winRateWithoutStat = runsWithoutStat.length > 0
+        ? runsWithoutStat.filter(r => r.success).length / runsWithoutStat.length
+        : 0;
+
+      statWinCorrelation[stat] = winRateWithStat - winRateWithoutStat;
+    }
+
+    // 성장 경로별 통계 계산
+    const pathCounts: Record<string, { count: number; wins: number; levels: number[] }> = {};
+    for (const growth of this.growthPaths) {
+      // 처음 3개 투자만 경로로 사용 (너무 길면 의미없음)
+      const pathKey = growth.path.slice(0, 3).join('→') || '없음';
+      if (!pathCounts[pathKey]) {
+        pathCounts[pathKey] = { count: 0, wins: 0, levels: [] };
+      }
+      pathCounts[pathKey].count++;
+      if (growth.success) pathCounts[pathKey].wins++;
+      pathCounts[pathKey].levels.push(growth.finalLevel);
+    }
+
+    const growthPathStats: GrowthPathStats[] = Object.entries(pathCounts)
+      .filter(([, data]) => data.count >= 2)
+      .map(([path, data]) => ({
+        path,
+        count: data.count,
+        winRate: data.count > 0 ? data.wins / data.count : 0,
+        avgFinalLevel: data.levels.length > 0
+          ? data.levels.reduce((a, b) => a + b, 0) / data.levels.length
+          : 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.count - a.count)
+      .slice(0, 10);
+
+    // 최종 스탯 분포 계산
+    const finalStatDistribution: Record<string, { total: number; avg: number; max: number }> = {};
+    for (const [stat, values] of Object.entries(this.finalStats)) {
+      if (values.length > 0) {
+        finalStatDistribution[stat] = {
+          total: values.reduce((a, b) => a + b, 0),
+          avg: values.reduce((a, b) => a + b, 0) / values.length,
+          max: Math.max(...values),
+        };
+      }
+    }
+
     return {
       statInvestments: this.statInvestments,
       totalInvestments,
       avgInvestmentsPerRun: totalInvestments / totalRuns,
       logosActivations: this.logosActivations,
       levelDistribution,
+      statWinCorrelation,
+      growthPathStats,
+      finalStatDistribution,
     };
   }
 
@@ -1182,6 +1412,10 @@ export class StatsCollector {
     this.statInvestments = {};
     this.logosActivations = {};
     this.growthLevels = [];
+    this.growthPaths = [];
+    this.currentGrowthPath = [];
+    this.statRunResults = [];
+    this.finalStats = {};
     this.shopVisits = 0;
     this.shopSpent = 0;
     this.shopCardsPurchased = {};
@@ -1244,6 +1478,11 @@ export class StatsCollector {
     this.smallestDeckClear = Infinity;
     this.maxGoldHeld = 0;
     this.bossFlawlessCount = 0;
+    // 새 통계 초기화
+    this.difficultyResults.clear();
+    this.recentRunProgressions = [];
+    this.currentRunProgression = null;
+    this.allCardChoices = [];
     this.startTime = new Date();
   }
 }

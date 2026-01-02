@@ -225,11 +225,70 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     lines.push('');
   }
 
-  // ==================== 12. AI 전략 통계 ====================
+  // ==================== 12. 성장 통계 ====================
+  if (stats.growthStats && stats.growthStats.totalInvestments > 0) {
+    lines.push('## 12. 성장 통계');
+    lines.push(`- 총 투자: ${stats.growthStats.totalInvestments}회`);
+    lines.push(`- 런당 평균: ${num(stats.growthStats.avgInvestmentsPerRun)}회`);
+
+    // 스탯별 투자
+    const statEntries = Object.entries(stats.growthStats.statInvestments || {});
+    if (statEntries.length > 0) {
+      lines.push('### 스탯별 투자');
+      statEntries.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
+        lines.push(`- ${stat}: ${count}회`);
+      });
+    }
+
+    // 스탯별 승률 상관관계
+    const corrEntries = Object.entries(stats.growthStats.statWinCorrelation || {});
+    if (corrEntries.length > 0) {
+      lines.push('### 스탯별 승률 기여도');
+      lines.push('| 스탯 | 기여도 |');
+      lines.push('|------|--------|');
+      corrEntries.sort((a, b) => (b[1] as number) - (a[1] as number)).forEach(([stat, corr]) => {
+        const sign = (corr as number) > 0 ? '+' : '';
+        lines.push(`| ${stat} | ${sign}${pct(corr as number)} |`);
+      });
+    }
+
+    // 성장 경로별 통계
+    if (stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0) {
+      lines.push('### 성장 경로별 승률');
+      lines.push('| 경로 | 횟수 | 승률 | 평균레벨 |');
+      lines.push('|------|------|------|----------|');
+      stats.growthStats.growthPathStats.slice(0, 5).forEach(path => {
+        lines.push(`| ${path.path} | ${path.count} | ${pct(path.winRate)} | ${num(path.avgFinalLevel)} |`);
+      });
+    }
+
+    // 최종 스탯 분포
+    const finalStatEntries = Object.entries(stats.growthStats.finalStatDistribution || {});
+    if (finalStatEntries.length > 0) {
+      lines.push('### 최종 스탯 분포');
+      lines.push('| 스탯 | 평균 | 최대 |');
+      lines.push('|------|------|------|');
+      finalStatEntries.forEach(([stat, data]) => {
+        lines.push(`| ${stat} | ${num(data.avg)} | ${data.max} |`);
+      });
+    }
+
+    // 로고스 효과
+    const logosEntries = Object.entries(stats.growthStats.logosActivations || {});
+    if (logosEntries.length > 0) {
+      lines.push('### 로고스 효과 발동');
+      logosEntries.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
+        lines.push(`- ${effect}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 13. AI 전략 통계 ====================
   if (stats.aiStrategyStats) {
     const stratUsage = Object.entries(stats.aiStrategyStats.strategyUsage || {});
     if (stratUsage.length > 0) {
-      lines.push('## 12. AI 전략');
+      lines.push('## 13. AI 전략');
       lines.push('| 전략 | 사용 | 승률 | 평균턴 |');
       lines.push('|------|------|------|--------|');
       stratUsage.forEach(([strat, usage]) => {
@@ -251,9 +310,9 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     }
   }
 
-  // ==================== 13. 기록 통계 ====================
+  // ==================== 14. 기록 통계 ====================
   if (stats.recordStats) {
-    lines.push('## 13. 기록');
+    lines.push('## 14. 기록');
     lines.push(`- 최장 연승: ${stats.recordStats.longestWinStreak}연승`);
     lines.push(`- 현재 연승: ${stats.recordStats.currentWinStreak}연승`);
     lines.push(`- 무피해 전투 승리: ${stats.recordStats.flawlessVictories}회`);
@@ -272,6 +331,90 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     if (stats.recordStats.largestDeckClear > 0) {
       lines.push(`- 가장 큰 덱 클리어: ${stats.recordStats.largestDeckClear}장`);
     }
+  }
+  lines.push('');
+
+  // ==================== 15. 난이도별 통계 (Hades Heat 스타일) ====================
+  if (stats.difficultyStats && stats.difficultyStats.size > 0) {
+    lines.push('## 15. 난이도별 통계');
+    lines.push('| 난이도 | 런 | 승리 | 승률 | 평균층 | 연승 |');
+    lines.push('|--------|-----|------|------|--------|------|');
+    Array.from(stats.difficultyStats.entries())
+      .sort((a, b) => a[0] - b[0])
+      .forEach(([diff, d]) => {
+        lines.push(`| ${diff} | ${d.runs} | ${d.wins} | ${pct(d.winRate)} | ${num(d.avgFloorReached)} | ${d.winStreak} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 16. 카드 선택 컨텍스트 (Slay the Spire 스타일) ====================
+  if (stats.allCardChoices && stats.allCardChoices.length > 0) {
+    lines.push('## 16. 카드 선택 분석');
+
+    // 카드별로 경쟁 상황 분석
+    const cardWinContext: Record<string, { picked: number; total: number; competitors: Record<string, number> }> = {};
+
+    stats.allCardChoices.forEach(choice => {
+      if (choice.pickedCardId) {
+        if (!cardWinContext[choice.pickedCardId]) {
+          cardWinContext[choice.pickedCardId] = { picked: 0, total: 0, competitors: {} };
+        }
+        cardWinContext[choice.pickedCardId].picked++;
+        cardWinContext[choice.pickedCardId].total++;
+
+        // 경쟁 카드 기록
+        choice.notPickedCardIds.forEach(notPicked => {
+          cardWinContext[choice.pickedCardId].competitors[notPicked] =
+            (cardWinContext[choice.pickedCardId].competitors[notPicked] || 0) + 1;
+        });
+      }
+
+      // 선택되지 않은 카드들도 total 증가
+      choice.notPickedCardIds.forEach(notPicked => {
+        if (!cardWinContext[notPicked]) {
+          cardWinContext[notPicked] = { picked: 0, total: 0, competitors: {} };
+        }
+        cardWinContext[notPicked].total++;
+      });
+    });
+
+    lines.push('### 카드별 선택 경쟁률');
+    lines.push('| 카드 | 제시 | 선택 | 선택률 | 주요 경쟁카드 |');
+    lines.push('|------|------|------|--------|--------------|');
+    Object.entries(cardWinContext)
+      .filter(([, data]) => data.total >= 3)
+      .sort((a, b) => (b[1].picked / b[1].total) - (a[1].picked / a[1].total))
+      .slice(0, 15)
+      .forEach(([cardId, data]) => {
+        const topCompetitor = Object.entries(data.competitors)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2)
+          .map(([id]) => getCardName(id))
+          .join(', ') || '-';
+        lines.push(`| ${getCardName(cardId)} | ${data.total} | ${data.picked} | ${pct(data.picked / data.total)} | ${topCompetitor} |`);
+      });
+    lines.push('');
+  }
+
+  // ==================== 17. 최근 런 진행 요약 ====================
+  if (stats.recentRunProgressions && stats.recentRunProgressions.length > 0) {
+    lines.push('## 17. 최근 런 진행 요약');
+    stats.recentRunProgressions.slice(0, 3).forEach((run, i) => {
+      lines.push(`### 런 ${i + 1}`);
+      lines.push(`- 경로: ${run.pathTaken.join(' → ')}`);
+      lines.push(`- 최종 덱(${run.finalDeck.length}장): ${run.finalDeck.map(getCardName).join(', ')}`);
+      if (run.finalRelics.length > 0) {
+        lines.push(`- 최종 상징: ${run.finalRelics.map(getRelicNameLocal).join(', ')}`);
+      }
+
+      // 전투별 피해 요약
+      if (run.damagePerBattle.length > 0) {
+        const totalDamage = run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0);
+        const avgDamage = totalDamage / run.damagePerBattle.length;
+        lines.push(`- 전투 피해: 총 ${totalDamage}, 평균 ${num(avgDamage)}/전투`);
+      }
+      lines.push('');
+    });
   }
 
   return lines.join('\n');
