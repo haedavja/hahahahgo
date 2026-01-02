@@ -506,14 +506,14 @@ export class RunSimulator {
       this.statsCollector.recordRelicRunEnd({
         relics: player.relics,
         success: result.success,
-        floorReached: result.layerReached,
+        floorReached: result.finalLayer,
       });
 
       // 난이도별 통계 기록 (Hades Heat 스타일)
       this.statsCollector.recordDifficultyRun(
         config.difficulty,
         result.success,
-        result.layerReached
+        result.finalLayer
       );
 
       // 성장 통계 기록

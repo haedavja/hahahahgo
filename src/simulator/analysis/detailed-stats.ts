@@ -186,6 +186,9 @@ export class StatsCollector {
   private cardSelectionReasons: Record<string, number> = {};
   private synergyTriggers: Record<string, number> = {};
   private comboTypeUsage: Record<string, number> = {};
+  private comboTypeWins: Record<string, number> = {};
+  private comboTypeBattles: Record<string, number> = {};
+  private comboTypeEther: Record<string, number> = {};
   private tokenTypeUsage: Record<string, number> = {};
 
   // 카드 픽률 통계 (Slay the Spire 스타일)
@@ -310,10 +313,17 @@ export class StatsCollector {
     // 적 조우 횟수 기록 (사망률 계산용)
     this.enemyEncounters[monster.id] = (this.enemyEncounters[monster.id] || 0) + 1;
 
-    // 콤보 통계 집계
+    // 콤보 통계 집계 (발동 횟수, 승률, 에테르)
     if (result.comboStats) {
       for (const [comboName, count] of Object.entries(result.comboStats)) {
         this.comboTypeUsage[comboName] = (this.comboTypeUsage[comboName] || 0) + count;
+        // 콤보가 발동된 전투 횟수와 승리 횟수 기록
+        this.comboTypeBattles[comboName] = (this.comboTypeBattles[comboName] || 0) + 1;
+        if (isWin) {
+          this.comboTypeWins[comboName] = (this.comboTypeWins[comboName] || 0) + 1;
+        }
+        // 에테르 획득량 기록
+        this.comboTypeEther[comboName] = (this.comboTypeEther[comboName] || 0) + (result.etherGained || 0);
       }
     }
 
@@ -1945,22 +1955,25 @@ export class StatsCollector {
     // 배틀 기록에서 콤보 통계 추출
     for (const comboType of Object.keys(this.comboTypeUsage)) {
       const frequency = this.comboTypeUsage[comboType] || 0;
+      const battles = this.comboTypeBattles[comboType] || 0;
+      const wins = this.comboTypeWins[comboType] || 0;
+      const totalEther = this.comboTypeEther[comboType] || 0;
 
-      // 기본 에테르 값 (실제 수집 로직 필요)
-      etherByCombo[comboType] = 0;
-      avgEtherByCombo[comboType] = 0;
+      // 에테르 통계
+      etherByCombo[comboType] = totalEther;
+      avgEtherByCombo[comboType] = battles > 0 ? totalEther / battles : 0;
 
-      // 콤보 발생 전투에서의 승률 (추후 상세 수집 필요)
-      winRateByCombo[comboType] = 0;
+      // 콤보 발생 전투에서의 승률
+      winRateByCombo[comboType] = battles > 0 ? wins / battles : 0;
 
       comboDetails.set(comboType, {
         comboType,
         totalOccurrences: frequency,
-        inWins: 0,
-        inLosses: 0,
-        totalEtherGained: 0,
-        avgEtherGained: 0,
-        winRateAfterCombo: 0,
+        inWins: wins,
+        inLosses: battles - wins,
+        totalEtherGained: totalEther,
+        avgEtherGained: battles > 0 ? totalEther / battles : 0,
+        winRateAfterCombo: battles > 0 ? wins / battles : 0,
         contextStats: {
           byFloorRange: {},
           byEnemyType: {},
