@@ -472,6 +472,20 @@ export class RunSimulator {
         gold: result.totalGoldEarned,
         deck: player.deck,
       });
+
+      // 성장 통계 기록
+      const growthState = player.growth as GrowthState | undefined;
+      if (growthState) {
+        this.statsCollector.recordGrowthRunEnd({
+          success: result.success,
+          finalStats: {
+            strength: player.strength || 0,
+            agility: player.agility || 0,
+            insight: player.insight || 0,
+          },
+          finalLevel: growthState.pyramidLevel || 0,
+        });
+      }
     }
 
     return result;
@@ -1813,10 +1827,20 @@ export class RunSimulator {
     const traits = traitsByStrategy[strategy] || ['용맹함', '굳건함'];
     for (const trait of traits) {
       growthSystem.addTrait(trait);
+      // 성장 투자 기록
+      if (this.statsCollector) {
+        this.statsCollector.recordGrowthInvestment(trait);
+      }
     }
 
     // 자동 성장 (전략에 맞게)
-    growthSystem.autoGrow(strategy);
+    const selections = growthSystem.autoGrow(strategy);
+    // 자동 성장 선택 기록
+    if (this.statsCollector && selections) {
+      for (const selection of selections) {
+        this.statsCollector.recordGrowthInvestment(selection.id);
+      }
+    }
   }
 
   /**
@@ -1853,6 +1877,11 @@ export class RunSimulator {
       if (availableTraits.length > 0) {
         const newTrait = rng.pick(availableTraits);
         growthSystem.addTrait(newTrait);
+
+        // 성장 투자 기록
+        if (this.statsCollector) {
+          this.statsCollector.recordGrowthInvestment(newTrait);
+        }
 
         // 성장 상태 업데이트
         player.growth = growthSystem.getState();
