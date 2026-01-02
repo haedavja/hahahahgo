@@ -124,9 +124,81 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
     }
   }
 
-  // ==================== 6. 사망 분석 ====================
+  // ==================== 6. 상점 통계 ====================
+  if (stats.shopStats) {
+    lines.push('### 6. 상점 통계');
+    lines.push(`- 총 방문: ${stats.shopStats.totalVisits ?? 0}회`);
+    lines.push(`- 총 지출: ${stats.shopStats.totalSpent ?? 0}G`);
+    lines.push(`- 평균 지출: ${(stats.shopStats.avgSpentPerVisit ?? 0).toFixed(0)}G/회`);
+    lines.push(`- 카드 제거: ${stats.shopStats.cardsRemoved ?? 0}회`);
+
+    const relicsPurchased = Object.entries(stats.shopStats.relicsPurchased || {});
+    if (relicsPurchased.length > 0) {
+      lines.push('#### 구매한 상징');
+      relicsPurchased.forEach(([id, count]) => {
+        lines.push(`- ${getRelicNameLocal(id)}: ${count}회`);
+      });
+    }
+
+    const itemsPurchased = Object.entries(stats.shopStats.itemsPurchased || {});
+    if (itemsPurchased.length > 0) {
+      lines.push('#### 구매한 아이템');
+      itemsPurchased.forEach(([id, count]) => {
+        lines.push(`- ${getItemNameLocal(id)}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 7. 던전 통계 ====================
+  if (stats.dungeonStats) {
+    lines.push('### 7. 던전 통계');
+    lines.push(`- 총 진입: ${stats.dungeonStats.totalAttempts ?? 0}회`);
+    lines.push(`- 클리어율: ${pct(stats.dungeonStats.clearRate ?? 0)}`);
+    lines.push(`- 평균 소요 턴: ${num(stats.dungeonStats.avgTurns ?? 0)}`);
+    lines.push(`- 평균 받은 피해: ${num(stats.dungeonStats.avgDamageTaken ?? 0)}`);
+
+    const rewardCards = stats.dungeonStats.rewards?.cards ?? [];
+    const rewardRelics = stats.dungeonStats.rewards?.relics ?? [];
+    if (rewardCards.length > 0) {
+      lines.push(`- 획득 카드: ${rewardCards.length}장 (${rewardCards.map((id: string) => getCardName(id)).join(', ')})`);
+    }
+    if (rewardRelics.length > 0) {
+      lines.push(`- 획득 상징: ${rewardRelics.length}개 (${rewardRelics.map((id: string) => getRelicNameLocal(id)).join(', ')})`);
+    }
+    lines.push('');
+  }
+
+  // ==================== 8. 이벤트 통계 ====================
+  if (stats.eventStats && stats.eventStats.size > 0) {
+    lines.push('### 8. 이벤트 통계');
+    lines.push('| 이벤트 | 발생 | 성공 | 골드변화 | 재료변화 |');
+    lines.push('|--------|------|------|----------|----------|');
+    Array.from(stats.eventStats.entries())
+      .sort((a, b) => (b[1].occurrences ?? 0) - (a[1].occurrences ?? 0))
+      .forEach(([id, e]: [string, { occurrences?: number; successes?: number; totalGoldChange?: number; totalMaterialChange?: number }]) => {
+        lines.push(`| ${getEventNameLocal(id)} | ${e.occurrences ?? 0} | ${e.successes ?? 0} | ${e.totalGoldChange ?? 0}G | ${e.totalMaterialChange ?? 0} |`);
+      });
+    lines.push('');
+
+    // 이벤트 선택 상세
+    if (stats.eventChoiceStats && stats.eventChoiceStats.size > 0) {
+      lines.push('#### 이벤트 선택 상세');
+      Array.from(stats.eventChoiceStats.entries()).forEach(([eventId, choiceStats]: [string, { occurrences?: number; timesSkipped?: number; choiceOutcomes?: Record<string, { timesChosen?: number; avgHpChange?: number; avgGoldChange?: number; successRate?: number }> }]) => {
+        lines.push(`- **${getEventNameLocal(eventId)}**: 발생 ${choiceStats.occurrences ?? 0}회, 스킵 ${choiceStats.timesSkipped ?? 0}회`);
+        if (choiceStats.choiceOutcomes) {
+          Object.entries(choiceStats.choiceOutcomes).forEach(([choiceId, outcome]) => {
+            lines.push(`  - 선택 "${choiceId}": ${outcome.timesChosen ?? 0}회, HP ${(outcome.avgHpChange ?? 0).toFixed(1)}, 골드 ${(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 ${pct(outcome.successRate ?? 0)}`);
+          });
+        }
+      });
+      lines.push('');
+    }
+  }
+
+  // ==================== 9. 사망 분석 ====================
   if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
-    lines.push('### 6. 사망 분석');
+    lines.push('### 9. 사망 분석');
     lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
     lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
 
