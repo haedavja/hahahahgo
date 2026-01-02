@@ -204,9 +204,12 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
       lines.push('| 상징 | 평균획득층 | 획득횟수 | 도달층기여 |');
       lines.push('|------|------------|----------|------------|');
       earlyRelics.forEach(([, s]) => {
-        const floorContrib = s.avgFloorReachedWith - (stats.runStats.avgLayerReached || 0);
+        const avgFloorWith = Number.isFinite(s.avgFloorReachedWith) ? s.avgFloorReachedWith : 0;
+        const avgLayer = Number.isFinite(stats.runStats.avgLayerReached) ? stats.runStats.avgLayerReached : 0;
+        const floorContrib = avgFloorWith - avgLayer;
         const sign = floorContrib > 0 ? '+' : '';
-        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${sign}${floorContrib.toFixed(1)} |`);
+        const floorContribStr = Number.isFinite(floorContrib) ? floorContrib.toFixed(1) : '0.0';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${sign}${floorContribStr} |`);
       });
       lines.push('');
     }

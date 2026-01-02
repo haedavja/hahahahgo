@@ -77,6 +77,16 @@ import type {
   RunProgressionStats,
   CardChoiceContext,
   FloorProgressionData,
+  // 신규 타입
+  PokerComboStats,
+  ComboDetailStats,
+  TokenStats,
+  FloorProgressionAnalysis,
+  FloorDetailedStats,
+  EventImpactAnalysis,
+  RelicSynergyImpactAnalysis,
+  GrowthDecisionAnalysis,
+  CardSelectionReasoningAnalysis,
 } from './detailed-stats-types';
 
 // ==================== 통계 수집기 ====================
@@ -1223,6 +1233,9 @@ export class StatsCollector {
     const recordStats = this.calculateRecordStats();
 
     const difficultyStats = this.calculateDifficultyStats();
+    const pokerComboStats = this.calculatePokerComboStats();
+    const tokenStats = this.calculateTokenStats();
+    const floorProgressionAnalysis = this.calculateFloorProgressionAnalysis();
 
     return {
       startTime: this.startTime,
@@ -1250,6 +1263,15 @@ export class StatsCollector {
       difficultyStats,
       recentRunProgressions: [...this.recentRunProgressions],
       allCardChoices: [...this.allCardChoices],
+      // 신규 통계
+      tokenStats,
+      pokerComboStats,
+      floorProgressionAnalysis,
+      // 영향력 분석 (기본값)
+      eventImpactAnalysis: this.buildEventImpactAnalysis(),
+      relicSynergyImpactAnalysis: this.buildRelicSynergyImpactAnalysis(),
+      growthDecisionAnalysis: this.buildGrowthDecisionAnalysis(),
+      cardSelectionReasoningAnalysis: this.buildCardSelectionReasoningAnalysis(),
     };
   }
 
@@ -1893,6 +1915,192 @@ export class StatsCollector {
     this.relicEffectTriggers = {};
     this.relicRunResults = [];
     this.startTime = new Date();
+  }
+
+  // ==================== 신규 통계 계산 메서드 ====================
+
+  /** 포커 콤보 통계 계산 */
+  private calculatePokerComboStats(): PokerComboStats {
+    const comboFrequency: Record<string, number> = { ...this.comboTypeUsage };
+    const etherByCombo: Record<string, number> = {};
+    const avgEtherByCombo: Record<string, number> = {};
+    const winRateByCombo: Record<string, number> = {};
+    const comboDetails = new Map<ComboDetailStats['comboType'], ComboDetailStats>();
+
+    // 배틀 기록에서 콤보 통계 추출
+    for (const comboType of Object.keys(this.comboTypeUsage)) {
+      const frequency = this.comboTypeUsage[comboType] || 0;
+
+      // 기본 에테르 값 (실제 수집 로직 필요)
+      etherByCombo[comboType] = 0;
+      avgEtherByCombo[comboType] = 0;
+
+      // 콤보 발생 전투에서의 승률 (추후 상세 수집 필요)
+      winRateByCombo[comboType] = 0;
+
+      comboDetails.set(comboType, {
+        comboType,
+        totalOccurrences: frequency,
+        inWins: 0,
+        inLosses: 0,
+        totalEtherGained: 0,
+        avgEtherGained: 0,
+        winRateAfterCombo: 0,
+        contextStats: {
+          byFloorRange: {},
+          byEnemyType: {},
+          byTurn: new Map(),
+        },
+        cardCombinations: [],
+      });
+    }
+
+    return {
+      comboFrequency,
+      etherByCombo,
+      avgEtherByCombo,
+      winRateByCombo,
+      comboDetails,
+    };
+  }
+
+  /** 토큰 통계 계산 */
+  private calculateTokenStats(): Map<string, TokenStats> {
+    // 토큰 수집 로직이 아직 구현되지 않았으므로 빈 Map 반환
+    return new Map();
+  }
+
+  /** 층 진행 분석 계산 */
+  private calculateFloorProgressionAnalysis(): FloorProgressionAnalysis {
+    const floorStats = new Map<number, FloorDetailedStats>();
+    const difficultySpikes: FloorProgressionAnalysis['difficultySpikes'] = [];
+    const hpCurve: FloorProgressionAnalysis['resourceCurves']['hpCurve'] = [];
+    const goldCurve: FloorProgressionAnalysis['resourceCurves']['goldCurve'] = [];
+    const deckSizeCurve: FloorProgressionAnalysis['resourceCurves']['deckSizeCurve'] = [];
+
+    // recentRunProgressions에서 층별 데이터 집계
+    const floorData: Record<number, {
+      hpSum: number;
+      hpRatioSum: number;
+      goldSum: number;
+      deckSizeSum: number;
+      count: number;
+    }> = {};
+
+    for (const run of this.recentRunProgressions) {
+      for (const floor of run.floorProgression) {
+        if (!floorData[floor.floor]) {
+          floorData[floor.floor] = { hpSum: 0, hpRatioSum: 0, goldSum: 0, deckSizeSum: 0, count: 0 };
+        }
+        floorData[floor.floor].hpSum += floor.hp;
+        floorData[floor.floor].hpRatioSum += floor.maxHp > 0 ? floor.hp / floor.maxHp : 0;
+        floorData[floor.floor].goldSum += floor.gold;
+        floorData[floor.floor].deckSizeSum += floor.deckSize;
+        floorData[floor.floor].count++;
+      }
+    }
+
+    // 자원 커브 생성
+    for (const [floorNum, data] of Object.entries(floorData)) {
+      const floor = Number(floorNum);
+      const count = data.count || 1;
+
+      hpCurve.push({
+        floor,
+        avgHp: data.hpSum / count,
+        avgHpRatio: data.hpRatioSum / count,
+      });
+      goldCurve.push({ floor, avgGold: data.goldSum / count });
+      deckSizeCurve.push({ floor, avgSize: data.deckSizeSum / count });
+    }
+
+    // 정렬
+    hpCurve.sort((a, b) => a.floor - b.floor);
+    goldCurve.sort((a, b) => a.floor - b.floor);
+    deckSizeCurve.sort((a, b) => a.floor - b.floor);
+
+    return {
+      floorStats,
+      difficultySpikes,
+      resourceCurves: {
+        hpCurve,
+        goldCurve,
+        deckSizeCurve,
+      },
+      optimalPathAnalysis: {
+        highWinRatePaths: [],
+        lowWinRatePaths: [],
+      },
+      bottleneckAnalysis: {
+        highFailureFloors: [],
+        resourceDepletionZones: [],
+      },
+    };
+  }
+
+  // ==================== 영향력 분석 빌더 메서드 ====================
+
+  /** 이벤트 영향력 분석 빌드 */
+  private buildEventImpactAnalysis(): EventImpactAnalysis {
+    return {
+      eventImpacts: new Map(),
+      mostBeneficialEvents: [],
+      mostDetrimentalEvents: [],
+      overallEventInfluence: {
+        winContribution: 0,
+        lossContribution: 0,
+        mostFatalChoice: null,
+      },
+    };
+  }
+
+  /** 상징 시너지 영향력 분석 빌드 */
+  private buildRelicSynergyImpactAnalysis(): RelicSynergyImpactAnalysis {
+    return {
+      synergyCombinations: new Map(),
+      topSynergies: [],
+      antiSynergies: [],
+      relicCountImpact: [],
+      coreRelics: [],
+      contextualRelicValues: new Map(),
+    };
+  }
+
+  /** 성장 결정 분석 빌드 */
+  private buildGrowthDecisionAnalysis(): GrowthDecisionAnalysis {
+    return {
+      decisions: [],
+      reasonsByType: {},
+      contextualPatterns: [],
+      decisionAccuracy: {
+        correctChoiceRate: 0,
+        commonMistakes: [],
+        accuracyByContext: {},
+      },
+      optimalPaths: [],
+    };
+  }
+
+  /** 카드 선택 이유 분석 빌드 */
+  private buildCardSelectionReasoningAnalysis(): CardSelectionReasoningAnalysis {
+    return {
+      decisions: [],
+      reasonsByCard: new Map(),
+      skipReasonAnalysis: {
+        totalSkips: 0,
+        reasonDistribution: {},
+        winRateAfterSkip: 0,
+        shouldHaveSkipped: [],
+        shouldNotHaveSkipped: [],
+      },
+      selectionAccuracy: {
+        correctRate: 0,
+        commonMistakes: [],
+        accuracyByContext: {},
+      },
+      cardValueAssessment: new Map(),
+      optimalPickGuide: [],
+    };
   }
 }
 
