@@ -12,6 +12,7 @@ import type {
 } from '../core/types';
 import { loadCards, type CardData } from '../data/loader';
 import type { SimulatorInterface } from './balance';
+import { deepClone } from './base-analyzer';
 
 // ==================== A/B 테스트 관리자 ====================
 
@@ -323,11 +324,15 @@ export class ABTestManager {
 
   // ==================== 패치 적용 ====================
 
+  /**
+   * 패치 적용
+   * @see deepClone from base-analyzer.ts
+   */
   private applyPatch(
     cards: Record<string, CardData>,
     changes: CardPatchChange[]
   ): Record<string, CardData> {
-    const patched = JSON.parse(JSON.stringify(cards));
+    const patched = deepClone(cards);
 
     for (const change of changes) {
       if (patched[change.cardId]) {
