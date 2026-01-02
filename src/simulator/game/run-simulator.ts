@@ -979,20 +979,21 @@ export class RunSimulator {
 
     const hpRatio = player.hp / player.maxHp;
 
-    // 아이템 사용 조건: HP가 낮거나 어려운 전투
-    // - 일반 전투: HP < 40%
-    // - 어려운 전투(정예/보스): 항상 아이템 사용 고려
-    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
+    // 아이템 사용 조건 완화: 더 적극적으로 사용
+    // - 일반 전투: HP < 60% 또는 아이템 3개 이상 보유
+    // - 어려운 전투(정예/보스): 항상 사용
+    const hasExcessItems = player.items.length >= 3;
+    const shouldUseItems = hpRatio < 0.6 || isDifficultBattle || hasExcessItems;
     if (!shouldUseItems) return;
 
     // 사용할 아이템 선택
     const itemsToUse: { itemId: string; hpHealed?: number; specialEffect?: string }[] = [];
 
     // 어려운 전투에서는 더 많은 아이템 사용 허용
-    const maxItems = isDifficultBattle ? 3 : 2;
+    const maxItems = isDifficultBattle ? 4 : 2;
 
-    // 힐 아이템 임계값: 보스전에서는 HP 80% 미만이면 사용
-    const healThreshold = isDifficultBattle ? 0.8 : 0.5;
+    // 힐 아이템 임계값: 보스전에서는 HP 90% 미만이면 사용
+    const healThreshold = isDifficultBattle ? 0.9 : 0.6;
 
     for (const itemId of player.items) {
       const item = this.itemLibrary[itemId];
@@ -1005,23 +1006,50 @@ export class RunSimulator {
         itemsToUse.push({ itemId, hpHealed: healAmount });
       }
 
-      // 방어 아이템: 어려운 전투 전 사용
-      if (item.effect.type === 'defense' && isDifficultBattle) {
+      // 방어 아이템: HP 70% 이하 또는 어려운 전투
+      if (item.effect.type === 'defense' && (hpRatio < 0.7 || isDifficultBattle)) {
         itemsToUse.push({ itemId, specialEffect: 'defense' });
       }
 
-      // 공격 강화: 어려운 전투 전 사용
-      if (item.effect.type === 'grantTokens' && isDifficultBattle) {
+      // 공격 강화(토큰): 어려운 전투 또는 공격 전략
+      if (item.effect.type === 'grantTokens' && (isDifficultBattle || strategy === 'aggressive')) {
         itemsToUse.push({ itemId, specialEffect: 'grantTokens' });
       }
 
-      // 스탯 강화제: 어려운 전투 전 사용
+      // 스탯 강화제: 어려운 전투 전 사용 (insight 포함)
       if (item.effect.type === 'statBoost' && isDifficultBattle) {
         const statEffect = item.effect as { type: 'statBoost'; stat: 'strength' | 'agility' | 'insight'; value: number };
-        // 전투에 영향을 주는 스탯만 사용 (strength, agility)
-        if (statEffect.stat === 'strength' || statEffect.stat === 'agility') {
-          itemsToUse.push({ itemId, specialEffect: `statBoost:${statEffect.stat}:${statEffect.value}` });
-        }
+        itemsToUse.push({ itemId, specialEffect: `statBoost:${statEffect.stat}:${statEffect.value}` });
+      }
+
+      // 에테르 증폭제: 보스전에서 사용
+      if (item.effect.type === 'etherMultiplier' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'etherMultiplier' });
+      }
+
+      // 에테르 흡수기: 보스전에서 사용
+      if (item.effect.type === 'etherSteal' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'etherSteal' });
+      }
+
+      // 에너지 충전기: 어려운 전투에서 버스트 턴 준비
+      if (item.effect.type === 'turnEnergy' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'turnEnergy' });
+      }
+
+      // 에너지 확장기: 보스전에서 사용
+      if (item.effect.type === 'maxEnergy' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'maxEnergy' });
+      }
+
+      // 폭발물(데미지): HP 50% 이하에서 적극 사용
+      if (item.effect.type === 'damage' && (hpRatio < 0.5 || isDifficultBattle)) {
+        itemsToUse.push({ itemId, specialEffect: 'damage' });
+      }
+
+      // 빙결 장치: 보스전에서 카드 무력화
+      if (item.effect.type === 'cardFreeze' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'cardFreeze' });
       }
 
       // 최대 아이템 수 제한

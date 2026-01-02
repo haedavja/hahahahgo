@@ -58,8 +58,8 @@
     "slaughterer": {
       "id": "slaughterer",
       "name": "살육자",
-      "hp": 150,
-      "maxHp": 150,
+      "hp": 120,
+      "maxHp": 120,
       "ether": 300,
       "maxSpeed": 25,
       "deck": [
@@ -71,9 +71,7 @@
       "cardsPerTurn": 2,
       "tier": 3,
       "isBoss": true,
-      "passives": {
-        "strengthPerTurn": 1
-      }
+      "passives": {}
     },
     "slurthim": {
       "id": "slurthim",

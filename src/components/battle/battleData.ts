@@ -1024,8 +1024,7 @@ export const ENEMY_CARDS = [
   { id: "deserter_fortify", name: "경계태세", type: "general", block: 5, speedCost: 3, actionCost: 1, iconKey: "shield" },
 
   // === 살육자 카드 ===
-  { id: "slaughterer_heavy", name: "처형", type: "attack", damage: 15, speedCost: 8, actionCost: 1, iconKey: "flame",
-    special: "piercing" },  // 방어력 무시
+  { id: "slaughterer_heavy", name: "처형", type: "attack", damage: 12, speedCost: 8, actionCost: 1, iconKey: "flame" },  // 15→12 피해, 방어관통 제거
   { id: "slaughterer_blur_block", name: "연막", type: "general", block: 7, speedCost: 4, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'blur', target: 'self' }] },
   { id: "slaughterer_quick", name: "난도질", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
@@ -1133,7 +1132,7 @@ export const ENEMIES: EnemyDefinition[] = [
   {
     id: "slaughterer",
     name: "살육자",
-    hp: 150,
+    hp: 120,  // 150→120 너프
     ether: 300,
     speed: 25,
     maxSpeed: 25,
@@ -1144,7 +1143,7 @@ export const ENEMIES: EnemyDefinition[] = [
     description: "혼자 다니는 준보스급 적.",
     isBoss: true,
     passives: {
-      strengthPerTurn: 1      // 매턴 힘 1 증가
+      // strengthPerTurn 제거 - 무한 스케일링 문제 해결
     }
   },
   {
