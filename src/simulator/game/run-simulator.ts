@@ -333,6 +333,11 @@ export class RunSimulator {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
 
+    // 통계 수집기 런 시작 초기화
+    if (this.statsCollector) {
+      this.statsCollector.startNewRun();
+    }
+
     // 피라미드 성장 시스템 초기화
     const growthSystem = createGrowthSystem(player.growth);
 
@@ -497,12 +502,36 @@ export class RunSimulator {
         finalRelics: player.relics,
       });
 
+      // 상징 런 통계 기록
+      this.statsCollector.recordRelicRunEnd({
+        relics: player.relics,
+        success: result.success,
+        floorReached: result.layerReached,
+      });
+
       // 난이도별 통계 기록 (Hades Heat 스타일)
       this.statsCollector.recordDifficultyRun(
         config.difficulty,
         result.success,
-        result.finalLayer
+        result.layerReached
       );
+
+      // 성장 통계 기록
+      const growthState = player.growth as GrowthState | undefined;
+      if (growthState) {
+        this.statsCollector.recordGrowthRunEnd({
+          success: result.success,
+          finalStats: {
+            strength: player.strength || 0,
+            agility: player.agility || 0,
+            insight: player.insight || 0,
+          },
+          finalLevel: growthState.pyramidLevel || 0,
+        });
+      }
+
+      // 카드 사용 통계 마무리
+      this.statsCollector.finalizeRunCardStats(player.deck);
     }
 
     return result;
@@ -556,6 +585,19 @@ export class RunSimulator {
 
     result.hpChange = player.hp - startHp;
     result.goldChange = player.gold - startGold;
+
+    // 층별 스냅샷 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordFloorSnapshot({
+        floor: node.layer,
+        nodeType: node.type,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        gold: player.gold,
+        deckSize: player.deck.length,
+        relicCount: player.relics.length,
+      });
+    }
 
     return result;
   }
@@ -859,11 +901,41 @@ export class RunSimulator {
           const newRelic = getGlobalRandom().pick(availableRelics);
           player.relics.push(newRelic);
           result.relicsGained.push(newRelic);
+
+          // 상징 획득 통계 기록
+          if (this.statsCollector) {
+            this.statsCollector.recordRelicAcquired({
+              relicId: newRelic,
+              floor: node.layer,
+              source: isBoss ? 'boss' : 'battle',
+            });
+          }
         }
       }
+
+      // 전투 승리 후 전장 밖 힐링 아이템 사용
+      this.useHealingItemsOutOfBattle(player);
     } else {
       result.success = false;
       result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
+
+      // 사망 분석 기록
+      if (this.statsCollector && totalBattleResult) {
+        const lastEnemy = enemies[enemies.length - 1] || { id: 'unknown', name: '알 수 없음' };
+        this.statsCollector.recordDeath({
+          floor: node.layer,
+          enemyId: lastEnemy.id,
+          enemyName: lastEnemy.name,
+          finalHp: 0,
+          overkillDamage: Math.abs(player.hp), // 초과 피해량
+          turnsBeforeDeath: totalBattleResult.turns,
+          lastHandCards: [], // 시뮬레이터에서는 핸드 정보 없음
+          deck: player.deck,
+          relics: player.relics,
+          hpHistory: [], // 시뮬레이터에서는 HP 히스토리 없음
+        });
+      }
+
       player.hp = 0;
     }
 
@@ -905,21 +977,29 @@ export class RunSimulator {
   ): void {
     if (player.items.length === 0) return;
 
-    // HP가 40% 이하이거나 어려운 전투일 때 아이템 사용 고려
     const hpRatio = player.hp / player.maxHp;
-    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
 
+    // 아이템 사용 조건: HP가 낮거나 어려운 전투
+    // - 일반 전투: HP < 40%
+    // - 어려운 전투(정예/보스): 항상 아이템 사용 고려
+    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
     if (!shouldUseItems) return;
 
     // 사용할 아이템 선택
     const itemsToUse: { itemId: string; hpHealed?: number; specialEffect?: string }[] = [];
 
+    // 어려운 전투에서는 더 많은 아이템 사용 허용
+    const maxItems = isDifficultBattle ? 3 : 2;
+
+    // 힐 아이템 임계값: 보스전에서는 HP 80% 미만이면 사용
+    const healThreshold = isDifficultBattle ? 0.8 : 0.5;
+
     for (const itemId of player.items) {
       const item = this.itemLibrary[itemId];
       if (!item) continue;
 
-      // 힐 아이템: HP가 낮을 때 사용
-      if (item.effect.type === 'healPercent' && hpRatio < 0.5) {
+      // 힐 아이템: HP가 임계값 미만일 때 사용
+      if (item.effect.type === 'healPercent' && hpRatio < healThreshold) {
         const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         itemsToUse.push({ itemId, hpHealed: healAmount });
@@ -935,8 +1015,17 @@ export class RunSimulator {
         itemsToUse.push({ itemId, specialEffect: 'grantTokens' });
       }
 
-      // 최대 2개 아이템 사용
-      if (itemsToUse.length >= 2) break;
+      // 스탯 강화제: 어려운 전투 전 사용
+      if (item.effect.type === 'statBoost' && isDifficultBattle) {
+        const statEffect = item.effect as { type: 'statBoost'; stat: 'strength' | 'agility' | 'insight'; value: number };
+        // 전투에 영향을 주는 스탯만 사용 (strength, agility)
+        if (statEffect.stat === 'strength' || statEffect.stat === 'agility') {
+          itemsToUse.push({ itemId, specialEffect: `statBoost:${statEffect.stat}:${statEffect.value}` });
+        }
+      }
+
+      // 최대 아이템 수 제한
+      if (itemsToUse.length >= maxItems) break;
     }
 
     // 사용한 아이템 제거 및 통계 기록
@@ -954,6 +1043,49 @@ export class RunSimulator {
           hpHealed: usedItem.hpHealed,
           specialEffect: usedItem.specialEffect,
         });
+      }
+    }
+  }
+
+  /**
+   * 전투 후 또는 맵 이동 중 힐링 아이템 사용
+   * - HP가 50% 미만이면 힐링 아이템 사용
+   * - 전투 외 사용 가능한(usableIn: 'any') 아이템만 대상
+   */
+  private useHealingItemsOutOfBattle(player: PlayerRunState): void {
+    if (player.items.length === 0) return;
+
+    const hpRatio = player.hp / player.maxHp;
+
+    // HP가 50% 이상이면 사용 안 함
+    if (hpRatio >= 0.5) return;
+
+    // 힐링 아이템 찾기 (usableIn: 'any'인 healPercent 아이템)
+    for (let i = player.items.length - 1; i >= 0; i--) {
+      const itemId = player.items[i];
+      const item = this.itemLibrary[itemId];
+      if (!item) continue;
+
+      // 힐링 아이템이고 전투 외 사용 가능한 경우
+      if (item.effect.type === 'healPercent' && item.usableIn === 'any') {
+        const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+
+        // 아이템 제거
+        player.items.splice(i, 1);
+
+        // 통계 기록
+        if (this.statsCollector) {
+          this.statsCollector.recordItemUsed({
+            itemId,
+            inBattle: false,
+            hpHealed: healAmount,
+          });
+        }
+
+        // 1개만 사용 후 재평가
+        const newHpRatio = player.hp / player.maxHp;
+        if (newHpRatio >= 0.7) break; // HP 70% 이상 회복되면 중단
       }
     }
   }
@@ -1081,6 +1213,15 @@ export class RunSimulator {
         if (relicId && !player.relics.includes(relicId)) {
           player.relics.push(relicId);
           result.relicsGained.push(relicId);
+
+          // 상징 획득 통계 기록
+          if (this.statsCollector) {
+            this.statsCollector.recordRelicAcquired({
+              relicId,
+              floor: node.layer,
+              source: 'event',
+            });
+          }
         }
       }
 
@@ -1206,6 +1347,15 @@ export class RunSimulator {
       // 아이템 획득 기록
       for (const itemId of itemsPurchased) {
         this.statsCollector.recordItemAcquired(itemId);
+      }
+
+      // 상징 획득 기록
+      for (const relicId of result.relicsGained) {
+        this.statsCollector.recordRelicAcquired({
+          relicId,
+          floor: node.layer,
+          source: 'shop',
+        });
       }
 
       // 상점 서비스 상세 기록
@@ -1866,10 +2016,20 @@ export class RunSimulator {
     const traits = traitsByStrategy[strategy] || ['용맹함', '굳건함'];
     for (const trait of traits) {
       growthSystem.addTrait(trait);
+      // 성장 투자 기록 (개성)
+      if (this.statsCollector) {
+        this.statsCollector.recordGrowthInvestment(trait, 'trait');
+      }
     }
 
     // 자동 성장 (전략에 맞게)
-    growthSystem.autoGrow(strategy);
+    const selections = growthSystem.autoGrow(strategy);
+    // 자동 성장 선택 기록 (에토스/파토스/로고스)
+    if (this.statsCollector && selections) {
+      for (const selection of selections) {
+        this.statsCollector.recordGrowthInvestment(selection.id, selection.type);
+      }
+    }
   }
 
   /**
@@ -1906,6 +2066,11 @@ export class RunSimulator {
       if (availableTraits.length > 0) {
         const newTrait = rng.pick(availableTraits);
         growthSystem.addTrait(newTrait);
+
+        // 성장 투자 기록 (개성)
+        if (this.statsCollector) {
+          this.statsCollector.recordGrowthInvestment(newTrait, 'trait');
+        }
 
         // 성장 상태 업데이트
         player.growth = growthSystem.getState();

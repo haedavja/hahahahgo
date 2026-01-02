@@ -162,7 +162,7 @@ export const ENEMY_PATTERNS = {
 
   // 탈영병 대장 - HP 페이즈 시스템 보스
   // Phase 1 (100-60%): 일반 공격
-  // Phase 2 (60-30%): 지휘로 버프, 소환
+  // Phase 2 (60-30%): 지휘로 버프, 방어 강화
   // Phase 3 (30% 이하): 군법처형 연발
   'captain': {
     type: 'phase',
@@ -175,7 +175,7 @@ export const ENEMY_PATTERNS = {
       {
         hpThreshold: 60,
         pattern: ['command', 'attack', 'rally', 'defense'],
-        description: '지휘 및 소환'
+        description: '지휘 및 방어 강화'
       },
       {
         hpThreshold: 30,
@@ -191,7 +191,7 @@ export const ENEMY_PATTERNS = {
       },
       'rally': {
         mode: 'turtle',
-        showIntent: '🎺 집결!',
+        showIntent: '🛡️ 집결!',
         useCard: 'captain_rally'
       },
       'execution': {

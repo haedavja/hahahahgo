@@ -1077,10 +1077,10 @@ export const ENEMY_CARDS = [
   { id: "captain_command", name: "지휘", type: "general", block: 8, speedCost: 4, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'offense', target: 'self' }],
     special: "buffAllies" },  // 아군 강화
-  { id: "captain_rally", name: "집결", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "flame",
-    special: "summonDeserter" },  // 탈영병 소환
-  { id: "captain_execution", name: "군법처형", type: "attack", damage: 18, speedCost: 8, actionCost: 1, iconKey: "flame",
-    special: "piercing" },  // 방어력 무시
+  { id: "captain_rally", name: "집결", type: "general", block: 10, speedCost: 3, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'defense', target: 'self' }] },  // 방어 강화 (소환 제거)
+  { id: "captain_execution", name: "군법처형", type: "attack", damage: 14, speedCost: 8, actionCost: 1, iconKey: "flame",
+    special: "piercing" },  // 방어력 무시 (18→14 너프)
   { id: "captain_fortify", name: "방어태세", type: "general", block: 15, speedCost: 5, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'blur', target: 'self' }] },
 ];
@@ -1235,12 +1235,11 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 3,
     emoji: "⚔️",
     tier: 3,
-    description: "탈영병들을 이끄는 전직 장교. 부하를 소환하고 강력한 공격을 가한다.",
+    description: "탈영병들을 이끄는 전직 장교. 강력한 방어와 치명적인 공격을 가한다.",
     isBoss: true,
     passives: {
       veilAtStart: true,     // 전투 시작 시 장막
-      healPerTurn: 5,        // 매턴 체력 5 회복
-      summonOnHalfHp: true   // 50% HP에서 탈영병 소환
+      healPerTurn: 3         // 매턴 체력 3 회복 (5→3 너프)
     }
   },
 ];
