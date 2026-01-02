@@ -161,10 +161,17 @@ const StatTooltip: FC<StatTooltipProps> = memo(({ stat, children }) => {
       style={TOOLTIP_TRIGGER_STYLE}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      role="listitem"
+      aria-describedby={isHovered ? `tooltip-${stat.name}` : undefined}
     >
       {children}
       {isHovered && (
-        <div style={tooltipStyle}>
+        <div
+          id={`tooltip-${stat.name}`}
+          role="tooltip"
+          style={tooltipStyle}
+          aria-label={`${stat.name}: ${stat.description}`}
+        >
           <div style={{
             fontSize: '1rem',
             fontWeight: 'bold',
@@ -263,24 +270,50 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = memo(({
   }), [player.etherOverflow]);
 
   return (
-    <div style={CONTAINER_STYLE} data-testid="player-hp-bar-container">
+    <div
+      style={CONTAINER_STYLE}
+      data-testid="player-hp-bar-container"
+      role="region"
+      aria-label="플레이어 상태"
+    >
       <div style={INNER_STYLE}>
         <div style={HP_AREA_STYLE} data-testid="player-hp-area">
           <div style={HP_ROW_STYLE}>
-            <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={CHARACTER_STYLE} data-testid="player-character-display">🧙‍♂️</div>
+            <div
+              className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`}
+              style={CHARACTER_STYLE}
+              data-testid="player-character-display"
+              role="img"
+              aria-label="플레이어 캐릭터"
+            >🧙‍♂️</div>
             <div></div>
             <div style={{ position: 'relative' }}>
-              <div className={playerHit ? 'hit-animation' : ''} style={HP_TEXT_STYLE} data-testid="player-hp-text">
+              <div
+                className={playerHit ? 'hit-animation' : ''}
+                style={HP_TEXT_STYLE}
+                data-testid="player-hp-text"
+                role="status"
+                aria-live="polite"
+                aria-label={`체력 ${player.hp}/${player.maxHp ?? player.hp}${(player.block ?? 0) > 0 ? `, 방어력 ${player.block}` : ''}`}
+              >
                 ❤️ {player.hp}/{player.maxHp ?? player.hp}
                 {(player.block ?? 0) > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
               </div>
-              <div className="hp-bar-enhanced mb-1" style={HP_BAR_STYLE}>
+              <div
+                className="hp-bar-enhanced mb-1"
+                style={HP_BAR_STYLE}
+                role="progressbar"
+                aria-valuenow={player.hp}
+                aria-valuemin={0}
+                aria-valuemax={player.maxHp ?? player.hp}
+                aria-label="플레이어 체력 바"
+              >
                 <div className="hp-fill" style={{ width: `${(player.hp / (player.maxHp ?? player.hp ?? 1)) * 100}%` }}></div>
                 {(player.block ?? 0) > 0 && (
                   <div style={blockOverlayStyle}></div>
                 )}
               </div>
-              <div style={STATS_ROW_STYLE}>
+              <div style={STATS_ROW_STYLE} role="list" aria-label="플레이어 스탯">
                 {(player.strength || 0) !== 0 && (
                   <StatTooltip stat={strengthStat}>
                     <span style={{ color: '#fbbf24' }}>💪 힘 {player.strength || 0}</span>
