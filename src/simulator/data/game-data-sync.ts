@@ -178,7 +178,7 @@ export function syncAllTokens(forceReload = false): Record<string, GameToken> {
   const tokens: Record<string, GameToken> = {};
 
   for (const [id, token] of Object.entries(GAME_TOKENS)) {
-    const t = token as Record<string, unknown>;
+    const t = token as unknown as Record<string, unknown>;
     tokens[id] = {
       id,
       name: t.name as string,

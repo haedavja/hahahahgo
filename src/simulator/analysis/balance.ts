@@ -418,7 +418,7 @@ export class SimpleBalanceSimulator implements SimulatorInterface {
         }
       }
 
-      const winner = enemyHp <= 0 ? 'player' : playerHp <= 0 ? 'enemy' : 'draw';
+      const winner: 'player' | 'enemy' | 'draw' = enemyHp <= 0 ? 'player' : playerHp <= 0 ? 'enemy' : 'draw';
       if (winner === 'player') wins++;
       totalTurns += turn;
       totalPlayerDamage += playerDamageDealt;
@@ -430,9 +430,14 @@ export class SimpleBalanceSimulator implements SimulatorInterface {
         enemyDamageDealt: 100 - Math.max(0, playerHp),
         playerFinalHp: Math.max(0, playerHp),
         enemyFinalHp: Math.max(0, enemyHp),
+        etherGained: 0,
+        goldChange: 0,
         battleLog: [],
+        events: [],
         cardUsage: {},
         comboStats: {},
+        tokenStats: {},
+        timeline: [],
       });
     }
 

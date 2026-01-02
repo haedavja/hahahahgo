@@ -101,7 +101,7 @@ export interface MultiEnemyBattleState {
 }
 
 /** 타겟팅 모드 */
-export type TargetingMode = 'single' | 'all' | 'random' | 'lowest_hp' | 'highest_hp';
+export type TargetingMode = 'single' | 'all' | 'random' | 'lowest_hp' | 'highest_hp' | 'smart';
 
 /** 다중 적 전투 결과 */
 export interface MultiEnemyBattleResult extends BattleResult {
@@ -734,9 +734,10 @@ export class MultiEnemyBattleEngine {
       score += (10 - (card.speedCost || 5)) * 0.8;
 
       // 7. 희귀도 보너스
-      if (card.rarity === 'rare') score += 3;
-      if (card.rarity === 'epic') score += 5;
-      if (card.rarity === 'legendary') score += 8;
+      const rarity = (card as { rarity?: string }).rarity;
+      if (rarity === 'rare') score += 3;
+      if (rarity === 'epic') score += 5;
+      if (rarity === 'legendary') score += 8;
 
       return { card, score };
     });
@@ -759,7 +760,7 @@ export class MultiEnemyBattleEngine {
     for (const { enemyIndex, cards } of allEnemyCards) {
       const enemy = state.enemies[enemyIndex];
       for (const card of cards) {
-        const position = this.calculateCardPosition(card, enemy.tokens);
+        const position = this.calculateCardPosition(card, enemy.tokens as TokenState);
         state.timeline.push({
           cardId: card.id,
           owner: 'enemy',
@@ -773,7 +774,7 @@ export class MultiEnemyBattleEngine {
 
     // 플레이어 카드 배치
     for (const card of playerCards) {
-      const position = this.calculateCardPosition(card, state.player.tokens);
+      const position = this.calculateCardPosition(card, state.player.tokens as TokenState);
       state.timeline.push({
         cardId: card.id,
         owner: 'player',
@@ -810,7 +811,7 @@ export class MultiEnemyBattleEngine {
   /**
    * 카드 위치 계산
    */
-  private calculateCardPosition(card: GameCard, tokens: TokenState[]): number {
+  private calculateCardPosition(card: GameCard, tokens: TokenState): number {
     let position = card.speedCost || 5;
     const speedMod = calculateSpeedModifier(tokens);
     position += speedMod;
@@ -923,7 +924,7 @@ export class MultiEnemyBattleEngine {
       cardsPlayedThisTurn: state.cardsPlayedThisTurn,
       chainActive: state.chainActive,
       chainLength: state.chainLength,
-      crossed: tc.crossed,
+      crossed: tc.crossed ?? false,
       comboRank: 0,
       hpRatio: state.player.hp / state.player.maxHp,
       enemyHpRatio: targets.length > 0
@@ -1165,7 +1166,7 @@ export class MultiEnemyBattleEngine {
           const selectedCard = breachCards[Math.floor(Math.random() * breachCards.length)];
           const breachCardData = this.cards[selectedCard];
           if (breachCardData) {
-            const position = (breachCardData.speedCost || 5) + (card.breachSpOffset || 3);
+            const position = (breachCardData.speedCost || 5) + ((card as { breachSpOffset?: number }).breachSpOffset || 3);
             state.timeline.push({
               cardId: selectedCard,
               owner: 'player',

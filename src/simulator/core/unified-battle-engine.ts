@@ -161,13 +161,11 @@ export class UnifiedBattleEngine {
       deck: [...enemy.deck],
       cardsPerTurn: enemy.cardsPerTurn || 1,
       emoji: enemy.emoji,
-      tier: enemy.tier,
-      description: enemy.description,
       isBoss: enemy.isBoss,
       passives: enemy.passives,
       block: 0,
       tokens: {},
-    };
+    } as EnemyState;
 
     this.skillAI.resetStats();
     const result = this.singleEngine.runBattle(

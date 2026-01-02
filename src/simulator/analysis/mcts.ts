@@ -762,7 +762,8 @@ export class MCTSPlayer {
         this.shuffle(newState.player.deck);
       }
       if (newState.player.deck.length > 0) {
-        newState.player.hand.push(newState.player.deck.pop());
+        const card = newState.player.deck.pop();
+        if (card) newState.player.hand.push(card);
       }
     }
 

@@ -546,11 +546,11 @@ export function placeAllEnemyCardsOnTimeline(
       newTimeline.push({
         cardId,
         owner: 'enemy',
-        ownerUnitId: unitId,
         position,
         executed: false,
         crossed: false,
-      });
+        unitId,
+      } as TimelineCard);
     }
   }
 
@@ -606,6 +606,7 @@ export function toSingleEnemyState(state: MultiEnemyState): EnemyState {
     name: mainUnit?.name || 'Unknown',
     hp: state.totalHp,
     maxHp: state.totalMaxHp,
+    maxSpeed: 30,
     block: mainUnit?.block || 0,
     tokens: mainUnit?.tokens || {},
     deck: mainUnit?.deck || [],

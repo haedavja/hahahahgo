@@ -362,7 +362,7 @@ export class Logger {
   }
 
   progressEnd(label?: string): void {
-    if (typeof process !== 'undefined' && process.stdout?.clearLine) {
+    if (typeof process !== 'undefined' && typeof process.stdout?.clearLine === 'function') {
       process.stdout.write('\n');
     }
     if (label) {

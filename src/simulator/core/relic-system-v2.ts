@@ -142,7 +142,7 @@ export class RelicSystemV2 {
       const relic = definitions[relicId];
       if (!relic || relic.effects.type !== 'PASSIVE') continue;
 
-      const effects = relic.effects as Record<string, unknown>;
+      const effects = relic.effects as unknown as Record<string, unknown>;
 
       if (effects.maxEnergy) result.maxEnergy += effects.maxEnergy as number;
       if (effects.maxHp) result.maxHp += effects.maxHp as number;
@@ -559,7 +559,7 @@ export class RelicSystemV2 {
       const relic = definitions[relicId];
       if (!relic) continue;
 
-      const effects = relic.effects as Record<string, unknown>;
+      const effects = relic.effects as unknown as Record<string, unknown>;
       if (effects.type !== 'ON_TOKEN_GAIN') continue;
 
       const result: RelicEffectResult = {
@@ -658,8 +658,8 @@ export class RelicSystemV2 {
     const definitions = getRelicDefinitions();
     if (this.activeRelics.has('devilDice') && cardsPlayed >= 5) {
       const relic = definitions['devilDice'];
-      if (relic && (relic.effects as Record<string, unknown>).etherFiveCardBonus) {
-        multiplier *= (relic.effects as Record<string, unknown>).etherFiveCardBonus as number;
+      if (relic && (relic.effects as unknown as Record<string, unknown>).etherFiveCardBonus) {
+        multiplier *= (relic.effects as unknown as Record<string, unknown>).etherFiveCardBonus as number;
       }
     }
 

@@ -108,8 +108,8 @@ export interface ComboAnalysis {
  */
 export function getCardValue(card: GameCard): string | null {
   // 카드의 value 속성이 있으면 사용
-  if ((card as Record<string, unknown>).value) {
-    return String((card as Record<string, unknown>).value);
+  if ((card as unknown as Record<string, unknown>).value) {
+    return String((card as unknown as Record<string, unknown>).value);
   }
 
   // 카드 이름에서 값 추출 (예: "Strike 5" → "5")
@@ -155,7 +155,7 @@ export function analyzePokerCombos(cards: GameCard[]): ComboAnalysis {
       values.push(parseInt(cardValue) || cardValueToNumber(cardValue));
     }
 
-    const suit = (card as Record<string, unknown>).suit as string || 'none';
+    const suit = (card as unknown as Record<string, unknown>).suit as string || 'none';
     suitCount[suit] = (suitCount[suit] || 0) + 1;
   }
 

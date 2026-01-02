@@ -58,7 +58,7 @@ export interface GameCard {
   description: string;
   traits?: string[];
   cardCategory?: CardCategory;
-  special?: string;
+  special?: string | string[];
   advanceAmount?: number;
   pushAmount?: number;
   appliedTokens?: AppliedToken[];

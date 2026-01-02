@@ -1147,12 +1147,20 @@ export class BattleEngine {
     return {
       hp: sim.hp,
       maxHp: sim.maxHp,
+      maxSpeed: 30,
       block: sim.block,
       energy: sim.energy,
       maxEnergy: sim.maxEnergy,
       etherPts: sim.etherPts,
       tokens: { ...sim.tokens },
       strength: sim.strength || 0,
+      agility: 0,
+      ether: 0,
+      gold: 0,
+      hand: [],
+      deck: [],
+      discard: [],
+      relics: [],
       insight: 0,
     };
   }
@@ -1163,10 +1171,13 @@ export class BattleEngine {
       name: sim.name,
       hp: sim.hp,
       maxHp: sim.maxHp,
+      maxSpeed: 30,
       block: sim.block,
       etherPts: sim.etherPts,
       tokens: { ...sim.tokens },
       strength: sim.strength || 0,
+      cardsPerTurn: 2,
+      deck: [],
     };
   }
 

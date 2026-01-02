@@ -401,7 +401,7 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   // ==================== 타임라인 반복 ====================
 
-  repeatTimeline: (state, _card, actor) => {
+  repeatTimeline: (state, _card, actor, _timelineCard) => {
     // 내 타임라인 반복 (르 송쥬 뒤 비에야르)
     const target = actor === 'player' ? state.player : state.enemy;
     target.repeatTimelineNext = true;
@@ -676,7 +676,7 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
       // 랜덤 1장 선택 (실제 게임에서는 플레이어가 선택하지만, 시뮬레이터에서는 랜덤)
       const idx = Math.floor(Math.random() * target.deck.length);
       const recalled = target.deck.splice(idx, 1)[0];
-      target.hand.push(recalled);
+      (target.hand ?? []).push(recalled);
       return {
         success: true,
         effects: [`함성: ${recalled} 손패로 회수`],
@@ -726,7 +726,7 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     if (actor === 'enemy' && state.enemy.units) {
       for (const unit of state.enemy.units) {
         if (unit.hp > 0) {
-          unit.tokens = addToken(unit.tokens, 'offense', 1);
+          unit.tokens = addToken(unit.tokens ?? {}, 'offense', 1);
         }
       }
       return {

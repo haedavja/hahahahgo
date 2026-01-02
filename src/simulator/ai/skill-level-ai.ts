@@ -376,7 +376,7 @@ export class SkillLevelAI {
       if (!card) continue;
 
       const speedCost = card.speedCost || 5;
-      let targetPos = state.player.speed + speedCost;
+      let targetPos = (state.player.speed ?? 0) + speedCost;
 
       // 교차 기회 활용 (스킬 레벨에 따라)
       if (Math.random() < this.config.crossUsage) {

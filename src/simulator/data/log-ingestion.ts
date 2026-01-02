@@ -380,7 +380,7 @@ export class LogAnalyzer {
       .filter(e => !filter || this.matchesFilter(e, filter));
 
     const totalBattles = battleEnds.length;
-    const wins = battleEnds.filter(e => (e.payload as BattleEndPayload).winner === 'player');
+    const wins = battleEnds.filter(e => (e.payload as unknown as BattleEndPayload).winner === 'player');
     const totalWins = wins.length;
 
     // 카드 사용 통계
@@ -397,11 +397,11 @@ export class LogAnalyzer {
 
     // 평균 값들
     const avgTurns = battleEnds.length > 0
-      ? battleEnds.reduce((sum, e) => sum + ((e.payload as BattleEndPayload).turns || 0), 0) / battleEnds.length
+      ? battleEnds.reduce((sum, e) => sum + ((e.payload as unknown as BattleEndPayload).turns || 0), 0) / battleEnds.length
       : 0;
 
     const avgDuration = battleEnds.length > 0
-      ? battleEnds.reduce((sum, e) => sum + ((e.payload as BattleEndPayload).duration || 0), 0) / battleEnds.length
+      ? battleEnds.reduce((sum, e) => sum + ((e.payload as unknown as BattleEndPayload).duration || 0), 0) / battleEnds.length
       : 0;
 
     return {

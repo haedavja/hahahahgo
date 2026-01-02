@@ -148,7 +148,7 @@ export class GameAdapter {
         tokens: { ...simState.enemy.tokens },
       },
       turn: simState.turn,
-      phase: simState.phase,
+      phase: simState.phase as 'select' | 'respond' | 'resolve',
       timeline: simState.timeline.map(card => ({
         cardId: card.cardId,
         owner: card.owner,
@@ -241,10 +241,10 @@ export class GameAdapter {
       winRateText: `${(summary.winRate * 100).toFixed(1)}%`,
       avgTurns: summary.avgTurns,
       riskLevel: this.calculateRiskLevel(summary.winRate),
-      topCards: summary.topCards.slice(0, 5).map(card => ({
-        cardId: card.cardId,
-        usagePercent: card.usagePercent,
-        contribution: card.winContribution,
+      topCards: (summary.topCards ?? []).slice(0, 5).map(card => ({
+        cardId: card.cardId ?? card.id,
+        usagePercent: (card as { usagePercent?: number }).usagePercent ?? (card.uses / 100),
+        contribution: (card as { winContribution?: number }).winContribution ?? 0,
       })),
       recommendation: this.getOverallRecommendation(summary.winRate),
     };

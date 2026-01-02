@@ -181,6 +181,8 @@ class AdvancedAIWrapper implements AIStrategy {
         type: card.type as 'attack' | 'defense' | 'skill' | 'reaction',
         speedCost: 3, // 기본값
         energyCost: card.cost,
+        actionCost: card.cost,
+        description: (card as { description?: string }).description || '',
         damage: card.damage,
         block: card.block,
         hits: card.hits,

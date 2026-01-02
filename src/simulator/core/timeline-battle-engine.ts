@@ -708,9 +708,9 @@ export class TimelineBattleEngine {
 
         // 보스전에서 debuff 카드 가치 상승
         if (card.appliedTokens) {
-          for (const [token, value] of Object.entries(card.appliedTokens)) {
-            if (token === 'vulnerable' || token === 'weak' || token === 'burn') {
-              score += (value as number) * 10;
+          for (const tokenEntry of card.appliedTokens) {
+            if (tokenEntry.id === 'vulnerable' || tokenEntry.id === 'weak' || tokenEntry.id === 'burn') {
+              score += (tokenEntry.stacks ?? 1) * 10;
             }
           }
         }
@@ -719,7 +719,7 @@ export class TimelineBattleEngine {
         if (needsDefense) {
           score += totalBlock * 3;
           score += totalDamage * 0.5;
-          if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
+          if (card.tags?.includes('heal') || (Array.isArray(card.effects) && card.effects.some((e: { type?: string }) => e.type === 'heal'))) {
             score += 50;
           }
         } else if (canKillEnemy) {
@@ -1440,7 +1440,7 @@ export class TimelineBattleEngine {
     }
 
     // 특성 처리
-    const traitMods = this.processTraits(card, state.player, timelineCard.crossed, state, 'player');
+    const traitMods = this.processTraits(card, state.player, timelineCard.crossed ?? false, state, 'player');
 
     // 교차 보너스 처리
     const crossResult = processCrossBonus(state, card, 'player', timelineCard);
@@ -1461,7 +1461,7 @@ export class TimelineBattleEngine {
       const ignoreBlock = hasSpecialEffect(card, 'ignoreBlock') || hasSpecialEffect(card, 'piercing');
       const guaranteedCrit = hasSpecialEffect(card, 'guaranteedCrit') || crossResult.guaranteedCrit;
 
-      this.processAttack(state, 'player', card, traitMods, timelineCard.crossed, {
+      this.processAttack(state, 'player', card, traitMods, timelineCard.crossed ?? false, {
         ignoreBlock,
         guaranteedCrit,
         damageMultiplier: crossResult.damageMultiplier,
@@ -1547,7 +1547,7 @@ export class TimelineBattleEngine {
   private executeEnemyCard(state: GameBattleState, card: GameCard, timelineCard: TimelineCard): void {
     this.emitEvent('card_execute', state.turn, { cardId: card.id, actor: 'enemy' });
 
-    const traitMods = this.processTraits(card, state.enemy, timelineCard.crossed, state, 'enemy');
+    const traitMods = this.processTraits(card, state.enemy, timelineCard.crossed ?? false, state, 'enemy');
 
     // 특수 효과 실행
     const specialResults = executeSpecialEffects(state, card, 'enemy', timelineCard);
@@ -1562,7 +1562,7 @@ export class TimelineBattleEngine {
       const ignoreBlock = hasSpecialEffect(card, 'ignoreBlock') || hasSpecialEffect(card, 'piercing');
       const guaranteedCrit = hasSpecialEffect(card, 'guaranteedCrit');
 
-      this.processAttack(state, 'enemy', card, traitMods, timelineCard.crossed, {
+      this.processAttack(state, 'enemy', card, traitMods, timelineCard.crossed ?? false, {
         ignoreBlock,
         guaranteedCrit,
         extraHits: specialResults.reduce((acc, r) => acc + (r.stateChanges.extraHits || 0), 0),
@@ -2059,7 +2059,7 @@ export class TimelineBattleEngine {
           actorState.tokens = addToken(actorState.tokens, 'chain_ready', 1);
           // 연계 중첩 시 추가 속도 보너스 (연계 길이 추적)
           actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
-          mods.speedBonus -= card.chainSpeedReduction || 3;  // 다음 카드 속도 감소 효과
+          mods.speedBonus = (mods.speedBonus ?? 0) - (card.chainSpeedReduction || 3);  // 다음 카드 속도 감소 효과
           mods.effects.push(`연계 준비 (속도 -${card.chainSpeedReduction || 3})`);
           break;
 
@@ -2077,7 +2077,7 @@ export class TimelineBattleEngine {
             mods.damageMultiplier *= (1.5 + chainBonus);
             mods.blockMultiplier *= (1.5 + chainBonus);
             // 연계 속도 보너스 (후속 카드 앞당김)
-            mods.speedBonus -= 2;
+            mods.speedBonus = (mods.speedBonus ?? 0) - 2;
             // 연계 토큰 소모하지 않고 유지 (연속 후속 가능)
             // 연계 길이 증가
             actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
@@ -2539,9 +2539,9 @@ export function distributeUnitDamage(
   }
 
   // 방어력 처리
-  const blocked = Math.min(targetUnit.block, damage);
+  const blocked = Math.min(targetUnit.block ?? 0, damage);
   const actualDamage = damage - blocked;
-  targetUnit.block -= blocked;
+  targetUnit.block = (targetUnit.block ?? 0) - blocked;
   targetUnit.hp -= actualDamage;
 
   return {
@@ -2636,9 +2636,9 @@ export function distributeAoeDamage(
   for (const unit of enemy.units) {
     if (unit.hp <= 0) continue;
 
-    const blocked = Math.min(unit.block, damage);
+    const blocked = Math.min(unit.block ?? 0, damage);
     const actualDamage = damage - blocked;
-    unit.block -= blocked;
+    unit.block = (unit.block ?? 0) - blocked;
     unit.hp -= actualDamage;
     totalDamage += actualDamage;
     unitsHit++;
