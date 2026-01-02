@@ -8,7 +8,7 @@
  * </ErrorBoundary>
  */
 
-import React, { Component, type ReactNode, type ErrorInfo } from 'react';
+import React, { Component, type ReactNode, type ErrorInfo, type JSX } from 'react';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZE } from '../../styles/theme';
 
 interface ErrorBoundaryProps {

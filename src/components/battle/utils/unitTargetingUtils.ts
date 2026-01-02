@@ -130,7 +130,7 @@ export function applyDefenseToUnit(params: UpdateUnitBlockParams): UpdateUnitBlo
   const E = { ...enemyState };
   let updated = false;
 
-  if (actor === 'enemy' && (card.type === 'defense' || card.type === 'general') && E.block > 0) {
+  if (actor === 'enemy' && (card.type === 'defense' || card.type === 'general') && (E.block ?? 0) > 0) {
     const extCard = card as Card & { __sourceUnitId?: number };
     const sourceUnitId = extCard.__sourceUnitId;
 

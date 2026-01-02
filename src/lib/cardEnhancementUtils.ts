@@ -843,8 +843,9 @@ export function generateEnhancedDescription(
     // 흐릿함: "흐릿함 X회"
     const extraBlur = enhancedStats.specialEffects.find(e => e.type === 'extraBlur');
     if (extraBlur && typeof extraBlur.value === 'number') {
+      const blurValue = extraBlur.value;
       description = description.replace(/흐릿함\s*(\d+)회?/g, (match, num) => {
-        const newNum = parseInt(num) + extraBlur.value;
+        const newNum = parseInt(num) + blurValue;
         return match.endsWith('회') ? `흐릿함 ${newNum}회` : `흐릿함 ${newNum}`;
       });
     }

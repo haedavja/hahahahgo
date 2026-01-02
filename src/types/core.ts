@@ -15,7 +15,7 @@ export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
 export type CardType = 'attack' | 'defense' | 'general' | 'support' | 'move' | 'reaction';
 
 /** 카드 카테고리 */
-export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
+export type CardCategory = 'fencing' | 'sword' | 'pistol' | 'guard' | 'misc' | 'gun';
 
 /** 카드 특성 ID */
 export type CardTrait =
