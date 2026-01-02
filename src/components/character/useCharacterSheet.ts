@@ -12,7 +12,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
-import { getReflectionsByEgos, getTraitCountBonus } from "../../data/reflections";
 import { getExtraMainSlots, getExtraSubSlots } from "../../lib/logosEffects";
 import type { Card } from "../../types/core";
 import type { PlayerEgo } from "../../state/slices/types";
@@ -72,18 +71,9 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
     return calculatePassiveEffects(relics || []);
   }, [relics]);
 
-  // 활성화된 성찰 및 확률 계산 (획득한 자아 기준)
-  const activeReflectionsInfo = useMemo(() => {
-    if (!playerEgos || playerEgos.length === 0) return [];
-    const egoNames = playerEgos.map(e => e.name);
-    const activeReflections = getReflectionsByEgos(egoNames);
-    const probabilityBonus = getTraitCountBonus(playerTraits.length);
-
-    return activeReflections.map(r => ({
-      ...r,
-      finalProbability: Math.min(1, (r.probability ?? 0) + probabilityBonus)
-    }));
-  }, [playerTraits, playerEgos]);
+  // 활성화된 성찰 (레거시 시스템 - 현재 비활성화)
+  // 새 피라미드 성장 시스템으로 대체됨
+  const activeReflectionsInfo: ReflectionInfo[] = [];
 
   // 현재 스탯
   const currentHp = playerHp;

@@ -8,6 +8,8 @@
 import { useState, FC, ReactNode, memo, useMemo, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { TokenDisplay } from './TokenDisplay';
+import { useBlockOverlay } from '../hooks/useBlockOverlay';
+import { HP_BAR_DIMENSIONS, HP_TEXT_COLOR } from './constants/colors';
 import type { TokenState, TokenEntity, HpBarPlayer as Player, StatInfo } from '../../../types';
 
 // =====================
@@ -45,7 +47,7 @@ const CHARACTER_STYLE: CSSProperties = {
 };
 
 const HP_TEXT_STYLE: CSSProperties = {
-  color: '#f87171',
+  color: HP_TEXT_COLOR,
   fontSize: '1.25rem',
   fontWeight: 'bold',
   position: 'absolute',
@@ -54,8 +56,7 @@ const HP_TEXT_STYLE: CSSProperties = {
 };
 
 const HP_BAR_STYLE: CSSProperties = {
-  width: '200px',
-  height: '12px',
+  ...HP_BAR_DIMENSIONS,
   position: 'relative',
   overflow: 'hidden'
 };
@@ -217,20 +218,12 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = memo(({
   dulledLevel,
   insightLevel
 }) => {
-  // 블록 오버레이 스타일 메모이제이션
-  const blockOverlayStyle = useMemo((): CSSProperties => {
-    const effectiveBlock = player.block ?? 0;
-    const effectiveMaxHp = player.maxHp ?? player.hp ?? 1;
-    return {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      height: '100%',
-      width: `${Math.min((effectiveBlock / effectiveMaxHp) * 100, 100)}%`,
-      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-      borderRight: '2px solid #60a5fa'
-    };
-  }, [player.block, player.maxHp, player.hp]);
+  // 블록 오버레이 스타일 (공유 hook 사용)
+  const blockOverlayStyle = useBlockOverlay({
+    block: player.block,
+    maxHp: player.maxHp,
+    hp: player.hp
+  });
 
   // 통찰 레벨 정보 메모이제이션
   const insightInfo = useMemo(() => {

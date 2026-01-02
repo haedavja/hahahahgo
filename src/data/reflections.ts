@@ -104,28 +104,3 @@ export function getPyramidLevelFromTraits(traitCount: number): number {
   return Math.floor(traitCount / 2);
 }
 
-// === 레거시 호환성 함수 (새 피라미드 시스템으로 대체됨) ===
-
-interface Reflection {
-  id: string;
-  name: string;
-  emoji?: string;
-  description: string;
-  probability: number;
-}
-
-/**
- * @deprecated 새 피라미드 성장 시스템으로 대체됨
- * 자아별 성찰 반환 (레거시 - 빈 배열 반환)
- */
-export function getReflectionsByEgos(_playerEgos: string[]): Reflection[] {
-  return [];
-}
-
-/**
- * @deprecated 새 피라미드 성장 시스템으로 대체됨
- * 개성 수에 따른 확률 보너스 (레거시 - 0 반환)
- */
-export function getTraitCountBonus(_traitCount: number): number {
-  return 0;
-}

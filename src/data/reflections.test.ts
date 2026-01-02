@@ -11,8 +11,6 @@ import {
   PERSONALITY_TRAITS,
   TRAIT_EFFECT_DESC,
   getPyramidLevelFromTraits,
-  getReflectionsByEgos,
-  getTraitCountBonus,
 } from './reflections';
 
 describe('reflections', () => {
@@ -152,18 +150,4 @@ describe('reflections', () => {
     });
   });
 
-  describe('getReflectionsByEgos (deprecated)', () => {
-    it('항상 빈 배열 반환', () => {
-      expect(getReflectionsByEgos(['ego1', 'ego2'])).toEqual([]);
-      expect(getReflectionsByEgos([])).toEqual([]);
-    });
-  });
-
-  describe('getTraitCountBonus (deprecated)', () => {
-    it('항상 0 반환', () => {
-      expect(getTraitCountBonus(0)).toBe(0);
-      expect(getTraitCountBonus(5)).toBe(0);
-      expect(getTraitCountBonus(10)).toBe(0);
-    });
-  });
 });

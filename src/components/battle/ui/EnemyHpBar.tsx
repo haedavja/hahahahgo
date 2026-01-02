@@ -8,6 +8,8 @@
 import { FC, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { TokenDisplay } from './TokenDisplay';
+import { useBlockOverlay } from '../hooks/useBlockOverlay';
+import { HP_BAR_DIMENSIONS, HP_TEXT_COLOR } from './constants/colors';
 import { calculateGraceSlots, PRAYERS } from '../../../data/monsterEther';
 import type { MonsterGraceState } from '../../../data/monsterEther';
 import type {
@@ -78,7 +80,7 @@ const HP_TEXT_BASE: CSSProperties = {
   position: 'absolute',
   top: '-30px',
   right: '0',
-  color: '#f87171',
+  color: HP_TEXT_COLOR,
   fontSize: '1.25rem',
   fontWeight: 'bold',
   textAlign: 'right',
@@ -93,13 +95,12 @@ const HP_BAR_CONTAINER_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '6px',
-  width: '200px',
+  width: HP_BAR_DIMENSIONS.width,
   paddingTop: '4px'
 };
 
 const HP_BAR_STYLE: CSSProperties = {
-  width: '200px',
-  height: '12px',
+  ...HP_BAR_DIMENSIONS,
   position: 'relative',
   overflow: 'hidden'
 };
@@ -311,20 +312,12 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
     transform: soulShatter ? 'scale(0.9)' : 'scale(1)'
   }), [soulShatter]);
 
-  // 블록 오버레이 스타일
-  const blockOverlayStyle = useMemo((): CSSProperties => {
-    const effectiveBlock = enemy.block ?? 0;
-    const effectiveMaxHp = enemy.maxHp ?? enemy.hp ?? 1;
-    return {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      height: '100%',
-      width: `${Math.min((effectiveBlock / effectiveMaxHp) * 100, 100)}%`,
-      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-      borderRight: '2px solid #60a5fa'
-    };
-  }, [enemy.block, enemy.maxHp, enemy.hp]);
+  // 블록 오버레이 스타일 (공유 hook 사용)
+  const blockOverlayStyle = useBlockOverlay({
+    block: enemy.block,
+    maxHp: enemy.maxHp,
+    hp: enemy.hp
+  });
 
   const soulOrbTitle = useMemo(() => {
     return dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`;

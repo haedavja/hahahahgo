@@ -41,6 +41,15 @@ export const PLAYER_SLOT_COLORS = [
   'linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)'  // x10 - 연보라 (민트와 대비)
 ];
 
+// HP 바 공통 스타일
+export const HP_BAR_DIMENSIONS = {
+  width: '200px',
+  height: '12px',
+} as const;
+
+// HP 텍스트 색상
+export const HP_TEXT_COLOR = '#f87171';
+
 // 에테르 바 슬롯 색상 (적)
 export const ENEMY_SLOT_COLORS = [
   'linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%)', // x1 - 다크 레드
