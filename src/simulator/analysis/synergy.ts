@@ -691,7 +691,7 @@ export class SynergyAnalyzer {
   }
 
   private inferArchetype(deck: string[]): string {
-    const types = { attack: 0, defense: 0, skill: 0 };
+    const types: Record<string, number> = { attack: 0, defense: 0, skill: 0, general: 0, support: 0, move: 0, reaction: 0 };
     let chainCount = 0;
 
     for (const cardId of deck) {

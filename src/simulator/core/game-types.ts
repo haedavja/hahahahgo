@@ -336,6 +336,8 @@ export interface EnemyState extends CombatantState {
   blockPerCardExecution?: number;
   /** 손패 (적 AI용) */
   hand?: string[];
+  /** 티어 */
+  tier?: number;
 }
 
 export interface GameBattleState {
