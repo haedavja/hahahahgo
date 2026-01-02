@@ -324,6 +324,8 @@ export interface EnemyState extends CombatantState {
   strength?: number;
   /** 에테르 (호환) */
   ether?: number;
+  /** 속도 (호환) */
+  speed?: number;
 }
 
 export interface GameBattleState {

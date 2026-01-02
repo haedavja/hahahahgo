@@ -103,7 +103,7 @@ export interface SimulationSummary {
   avgPlayerDamage: number;
   avgEnemyDamage: number;
   cardEfficiency: Record<string, { uses: number; avgDamage: number }>;
-  topCards?: Array<{ id: string; uses: number; avgDamage: number }>;
+  topCards?: Array<{ id: string; cardId?: string; uses: number; count?: number; avgDamage: number }>;
   avgEtherGained?: number;
   tokenUsage?: Record<string, number>;
 }
