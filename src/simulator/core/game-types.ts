@@ -85,11 +85,7 @@ export interface GameCard {
   parryPushAmount?: number;
   doubleEdgeSelfDamage?: number;
   doubleEdgeBonusDamage?: number;
-  creationEffect?: {
-    type: string;
-    value?: number;
-    target?: string;
-  };
+  creationEffect?: string;
   effects?: {
     lifesteal?: number;
     [key: string]: unknown;
@@ -287,7 +283,7 @@ export interface PlayerState extends CombatantState {
   repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
   // 호환성 필드
   etherPts?: number;              // 에테르 포인트 (리듀서 호환)
-  cardEnhancements?: Record<string, unknown>; // 카드 강화 정보
+  cardEnhancements?: Record<string, number>; // 카드 강화 정보
   speed?: number;                 // 현재 스피드 (시뮬레이터 호환)
 }
 
@@ -364,7 +360,7 @@ export interface GameBattleState {
   currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
   currentComboRank?: number;                  // 현재 턴 콤보 등급 (0=하이카드)
   // 연계 시스템
-  ghostCards?: GameCard[];                     // 고스트 카드 (연계용)
+  ghostCards?: string[];                       // 고스트 카드 ID (연계용)
   // 성장 시스템 보너스
   growthBonuses?: {
     crossRangeBonus?: number;
