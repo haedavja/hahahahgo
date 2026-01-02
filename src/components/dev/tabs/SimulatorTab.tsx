@@ -11,8 +11,20 @@ import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 
-// AI 공유용 포맷 함수 (전체 통계 포함)
-function formatStatsForAI(stats: DetailedStats, config: { runCount: number; difficulty: number; strategy: string }): string {
+// 전략 타입 및 레이블
+type StrategyType = 'balanced' | 'aggressive' | 'defensive';
+const STRATEGY_LABELS: Record<StrategyType, string> = {
+  balanced: '균형',
+  aggressive: '공격적',
+  defensive: '방어적',
+};
+const ALL_STRATEGIES: StrategyType[] = ['balanced', 'aggressive', 'defensive'];
+
+// 전략별 통계 타입
+type StatsByStrategy = Record<StrategyType, DetailedStats | null>;
+
+// 단일 전략 통계 포맷 함수
+function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string): string[] {
   const lines: string[] = [];
   const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
   const num = (v: number) => v.toFixed(1);
@@ -22,12 +34,11 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
   const getItemNameLocal = (id: string) => ITEMS[id]?.name || id;
   const getEventNameLocal = (id: string) => NEW_EVENT_LIBRARY[id]?.title || id;
 
-  lines.push('# 시뮬레이션 결과');
-  lines.push(`설정: ${config.runCount}런, 난이도 ${config.difficulty}, 전략: ${config.strategy}`);
+  lines.push(`## 📊 ${strategyLabel} 전략 결과`);
   lines.push('');
 
   // ==================== 1. 런 통계 ====================
-  lines.push('## 1. 런 통계');
+  lines.push('### 1. 런 통계');
   lines.push(`- 총 런: ${stats.runStats.totalRuns}회`);
   lines.push(`- 성공: ${stats.runStats.successfulRuns}회 (${pct(stats.runStats.successRate)})`);
   lines.push(`- 평균 도달 층: ${num(stats.runStats.avgLayerReached)}`);
@@ -38,7 +49,7 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
 
   // 사망 원인
   if (stats.runStats.deathCauses && Object.keys(stats.runStats.deathCauses).length > 0) {
-    lines.push('### 사망 원인');
+    lines.push('#### 사망 원인');
     Object.entries(stats.runStats.deathCauses)
       .sort((a, b) => b[1] - a[1])
       .forEach(([cause, count]) => {
@@ -47,567 +58,119 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     lines.push('');
   }
 
-  // 층별 사망 분포
-  if (stats.runStats.deathByLayer && Object.keys(stats.runStats.deathByLayer).length > 0) {
-    lines.push('### 층별 사망');
-    Object.entries(stats.runStats.deathByLayer)
-      .sort((a, b) => Number(a[0]) - Number(b[0]))
-      .forEach(([layer, count]) => {
-        lines.push(`- ${layer}층: ${count}회`);
-      });
-    lines.push('');
-  }
-
-  // 전략별 승률
-  if (stats.runStats.strategyWinRates && Object.keys(stats.runStats.strategyWinRates).length > 0) {
-    lines.push('### 전략별 승률');
-    Object.entries(stats.runStats.strategyWinRates).forEach(([strat, rate]) => {
-      lines.push(`- ${strat}: ${pct(rate)}`);
-    });
-    lines.push('');
-  }
-
   // ==================== 2. 몬스터 통계 ====================
   if (stats.monsterStats.size > 0) {
-    lines.push('## 2. 몬스터 전투');
-    lines.push('| 몬스터 | 전투 | 승리 | 패배 | 승률 | 평균턴 | 준피해 | 받은피해 |');
-    lines.push('|--------|------|------|------|------|--------|--------|----------|');
+    lines.push('### 2. 몬스터 전투');
+    lines.push('| 몬스터 | 전투 | 승률 | 평균턴 |');
+    lines.push('|--------|------|------|--------|');
     Array.from(stats.monsterStats.entries())
       .sort((a, b) => b[1].battles - a[1].battles)
-      .slice(0, 15)
+      .slice(0, 10)
       .forEach(([id, m]) => {
-        lines.push(`| ${getMonsterName(id)} | ${m.battles} | ${m.wins} | ${m.losses} | ${pct(m.winRate)} | ${num(m.avgTurns)} | ${num(m.avgDamageDealt)} | ${num(m.avgDamageTaken)} |`);
+        lines.push(`| ${getMonsterName(id)} | ${m.battles} | ${pct(m.winRate)} | ${num(m.avgTurns)} |`);
       });
     lines.push('');
   }
 
-  // ==================== 3. 카드 사용 통계 ====================
-  if (stats.cardStats.size > 0) {
-    lines.push('## 3. 카드 사용');
-    lines.push('| 카드 | 사용 | 승리시 | 패배시 | 총피해 | 총방어 | 교차 |');
-    lines.push('|------|------|--------|--------|--------|--------|------|');
-    Array.from(stats.cardStats.entries())
-      .sort((a, b) => b[1].totalUses - a[1].totalUses)
-      .slice(0, 20)
-      .forEach(([id, c]) => {
-        lines.push(`| ${getCardName(id)} | ${c.totalUses} | ${c.usesInWins} | ${c.usesInLosses} | ${c.totalDamage} | ${c.totalBlock} | ${c.crossTriggers} |`);
-      });
-    lines.push('');
-  }
-
-  // ==================== 4. 카드 픽률 ====================
+  // ==================== 3. 카드 픽률 ====================
   if (stats.cardPickStats && Object.keys(stats.cardPickStats.timesOffered || {}).length > 0) {
-    lines.push('## 4. 카드 픽률');
-    lines.push('| 카드 | 제시 | 선택 | 스킵 | 픽률 |');
-    lines.push('|------|------|------|------|------|');
+    lines.push('### 3. 카드 픽률 (상위 10개)');
+    lines.push('| 카드 | 제시 | 픽률 |');
+    lines.push('|------|------|------|');
     Object.entries(stats.cardPickStats.timesOffered || {})
       .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
-      .slice(0, 15)
+      .slice(0, 10)
       .forEach(([id, offered]) => {
-        const picked = stats.cardPickStats.timesPicked[id] || 0;
-        const skipped = stats.cardPickStats.timesSkipped[id] || 0;
         const pickRate = stats.cardPickStats.pickRate[id] || 0;
-        lines.push(`| ${getCardName(id)} | ${offered} | ${picked} | ${skipped} | ${pct(pickRate)} |`);
+        lines.push(`| ${getCardName(id)} | ${offered} | ${pct(pickRate)} |`);
       });
     lines.push('');
   }
 
-  // ==================== 5. 카드 기여도 ====================
+  // ==================== 4. 카드 기여도 ====================
   if (stats.cardContributionStats && Object.keys(stats.cardContributionStats.contribution || {}).length > 0) {
-    lines.push('## 5. 카드 기여도');
-    lines.push('| 카드 | 등장 | 보유시 승률 | 미보유시 승률 | 기여도 |');
-    lines.push('|------|------|-------------|---------------|--------|');
+    lines.push('### 4. 카드 기여도 (상위 10개)');
+    lines.push('| 카드 | 보유시 승률 | 기여도 |');
+    lines.push('|------|-------------|--------|');
     Object.entries(stats.cardContributionStats.contribution || {})
       .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
       .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, 15)
+      .slice(0, 10)
       .forEach(([id, contrib]) => {
-        const runs = stats.cardContributionStats.runsWithCard[id] || 0;
         const winWith = stats.cardContributionStats.winRateWithCard[id] || 0;
-        const winWithout = stats.cardContributionStats.winRateWithoutCard[id] || 0;
         const sign = (contrib as number) > 0 ? '+' : '';
-        lines.push(`| ${getCardName(id)} | ${runs} | ${pct(winWith)} | ${pct(winWithout)} | ${sign}${pct(contrib as number)} |`);
+        lines.push(`| ${getCardName(id)} | ${pct(winWith)} | ${sign}${pct(contrib as number)} |`);
       });
     lines.push('');
   }
 
-  // ==================== 6. 카드 시너지 ====================
-  if (stats.cardSynergyStats?.topSynergies && stats.cardSynergyStats.topSynergies.length > 0) {
-    lines.push('## 6. 카드 시너지 조합');
-    lines.push('| 조합 | 등장 | 승률 |');
-    lines.push('|------|------|------|');
-    stats.cardSynergyStats.topSynergies.slice(0, 10).forEach(syn => {
-      const [c1, c2] = syn.pair.split('+');
-      lines.push(`| ${getCardName(c1)} + ${getCardName(c2)} | ${syn.frequency} | ${pct(syn.winRate)} |`);
-    });
-    lines.push('');
-  }
-
-  // ==================== 7. 상점 통계 ====================
-  if (stats.shopStats && stats.shopStats.totalVisits > 0) {
-    lines.push('## 7. 상점 통계');
-    lines.push(`- 방문: ${stats.shopStats.totalVisits}회`);
-    lines.push(`- 총 지출: ${stats.shopStats.totalSpent}G`);
-    lines.push(`- 평균 지출: ${num(stats.shopStats.avgSpentPerVisit)}G/회`);
-    lines.push(`- 카드 제거: ${stats.shopStats.cardsRemoved}회`);
-    lines.push(`- 카드 승급: ${stats.shopStats.cardsUpgraded}회`);
-
-    // 구매한 상징
-    const relicEntries = Object.entries(stats.shopStats.relicsPurchased || {});
-    if (relicEntries.length > 0) {
-      lines.push('### 구매한 상징');
-      relicEntries.forEach(([id, count]) => {
-        lines.push(`- ${getRelicNameLocal(id)}: ${count}회`);
-      });
-    }
-
-    // 구매한 카드
-    const cardEntries = Object.entries(stats.shopStats.cardsPurchased || {});
-    if (cardEntries.length > 0) {
-      lines.push('### 구매한 카드');
-      cardEntries.slice(0, 10).forEach(([id, count]) => {
-        lines.push(`- ${getCardName(id)}: ${count}회`);
-      });
-    }
-    lines.push('');
-  }
-
-  // ==================== 8. 던전 통계 ====================
-  if (stats.dungeonStats && stats.dungeonStats.totalAttempts > 0) {
-    lines.push('## 8. 던전 통계');
-    lines.push(`- 진입: ${stats.dungeonStats.totalAttempts}회`);
-    lines.push(`- 클리어: ${stats.dungeonStats.clears}회 (${pct(stats.dungeonStats.clearRate)})`);
-    lines.push(`- 평균 턴: ${num(stats.dungeonStats.avgTurns)}`);
-    lines.push(`- 평균 받은 피해: ${num(stats.dungeonStats.avgDamageTaken)}`);
-    lines.push('');
-  }
-
-  // ==================== 9. 이벤트 통계 ====================
-  if (stats.eventStats.size > 0) {
-    lines.push('## 9. 이벤트 통계');
-    lines.push('| 이벤트 | 발생 | 성공 | 성공률 | 골드변화 |');
-    lines.push('|--------|------|------|--------|----------|');
-    Array.from(stats.eventStats.entries())
-      .sort((a, b) => b[1].occurrences - a[1].occurrences)
-      .forEach(([id, e]) => {
-        lines.push(`| ${getEventNameLocal(id)} | ${e.occurrences} | ${e.successes} | ${pct(e.successRate)} | ${e.totalGoldChange} |`);
-      });
-    lines.push('');
-
-    // 이벤트 선택 상세
-    if (stats.eventChoiceStats && stats.eventChoiceStats.size > 0) {
-      lines.push('### 이벤트 선택 상세');
-      Array.from(stats.eventChoiceStats.entries()).forEach(([eventId, choiceStats]) => {
-        const eventName = getEventNameLocal(eventId);
-        lines.push(`#### ${eventName}`);
-        lines.push(`- 발생: ${choiceStats.occurrences ?? 0}회, 스킵: ${choiceStats.timesSkipped ?? 0}회`);
-        if (choiceStats.choiceOutcomes) {
-          Object.entries(choiceStats.choiceOutcomes).forEach(([choiceId, outcome]) => {
-            lines.push(`  - 선택 "${choiceId}": ${outcome.timesChosen ?? 0}회, HP변화 ${(outcome.avgHpChange ?? 0).toFixed(1)}, 골드변화 ${(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 ${pct(outcome.successRate ?? 0)}`);
-          });
-        }
-      });
-      lines.push('');
-    }
-  }
-
-  // ==================== 10. 아이템 통계 ====================
-  const itemAcquired = Object.entries(stats.itemUsageStats?.itemsAcquired || {});
-  if (itemAcquired.length > 0) {
-    lines.push('## 10. 아이템 통계');
-    lines.push('| 아이템 | 획득 | 사용 |');
-    lines.push('|--------|------|------|');
-    itemAcquired.slice(0, 10).forEach(([id, acquired]) => {
-      const used = stats.itemUsageStats.itemsUsed[id] || 0;
-      lines.push(`| ${getItemNameLocal(id)} | ${acquired} | ${used} |`);
-    });
-    lines.push('');
-  }
-
-  // ==================== 11. 카드 승급 통계 ====================
-  if (stats.upgradeStats && stats.upgradeStats.totalUpgrades > 0) {
-    lines.push('## 11. 카드 승급');
-    lines.push(`- 총 승급: ${stats.upgradeStats.totalUpgrades}회`);
-    lines.push(`- 런당 평균: ${num(stats.upgradeStats.avgUpgradesPerRun)}회`);
-
-    const upgradeEntries = Object.entries(stats.upgradeStats.upgradesByCard || {});
-    if (upgradeEntries.length > 0) {
-      lines.push('### 승급된 카드');
-      upgradeEntries.sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([id, count]) => {
-        lines.push(`- ${getCardName(id)}: ${count}회`);
-      });
-    }
-    lines.push('');
-  }
-
-  // ==================== 12. 성장 통계 ====================
-  if (stats.growthStats && stats.growthStats.totalInvestments > 0) {
-    lines.push('## 12. 성장 통계');
-    lines.push(`- 총 투자: ${stats.growthStats.totalInvestments}회`);
-    lines.push(`- 런당 평균: ${num(stats.growthStats.avgInvestmentsPerRun)}회`);
-
-    // 개성(trait) 투자
-    const traitEntries = Object.entries(stats.growthStats.statInvestments || {});
-    if (traitEntries.length > 0) {
-      lines.push('### 개성 투자');
-      traitEntries.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
-        lines.push(`- ${stat}: ${count}회`);
-      });
-    }
-
-    // 에토스 투자
-    const ethosEntries = Object.entries(stats.growthStats.ethosInvestments || {});
-    if (ethosEntries.length > 0) {
-      lines.push('### 에토스 투자');
-      lines.push('| 에토스 | 횟수 |');
-      lines.push('|--------|------|');
-      ethosEntries.sort((a, b) => b[1] - a[1]).forEach(([ethos, count]) => {
-        lines.push(`| ${ethos} | ${count} |`);
-      });
-    }
-
-    // 파토스 투자
-    const pathosEntries = Object.entries(stats.growthStats.pathosInvestments || {});
-    if (pathosEntries.length > 0) {
-      lines.push('### 파토스 투자');
-      lines.push('| 파토스 | 횟수 |');
-      lines.push('|--------|------|');
-      pathosEntries.sort((a, b) => b[1] - a[1]).forEach(([pathos, count]) => {
-        lines.push(`| ${pathos} | ${count} |`);
-      });
-    }
-
-    // 로고스 투자
-    const logosInvEntries = Object.entries(stats.growthStats.logosInvestments || {});
-    if (logosInvEntries.length > 0) {
-      lines.push('### 로고스 해금');
-      lines.push('| 로고스 | 횟수 |');
-      lines.push('|--------|------|');
-      logosInvEntries.sort((a, b) => b[1] - a[1]).forEach(([logos, count]) => {
-        lines.push(`| ${logos} | ${count} |`);
-      });
-    }
-
-    // 스탯별 승률 상관관계
-    const corrEntries = Object.entries(stats.growthStats.statWinCorrelation || {});
-    if (corrEntries.length > 0) {
-      lines.push('### 스탯별 승률 기여도');
-      lines.push('| 스탯 | 기여도 |');
-      lines.push('|------|--------|');
-      corrEntries.sort((a, b) => (b[1] as number) - (a[1] as number)).forEach(([stat, corr]) => {
-        const sign = (corr as number) > 0 ? '+' : '';
-        lines.push(`| ${stat} | ${sign}${pct(corr as number)} |`);
-      });
-    }
-
-    // 성장 경로별 통계
-    if (stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0) {
-      lines.push('### 성장 경로별 승률');
-      lines.push('| 경로 | 횟수 | 승률 | 평균레벨 |');
-      lines.push('|------|------|------|----------|');
-      stats.growthStats.growthPathStats.slice(0, 5).forEach(path => {
-        lines.push(`| ${path.path} | ${path.count} | ${pct(path.winRate)} | ${num(path.avgFinalLevel)} |`);
-      });
-    }
-
-    // 최종 스탯 분포
-    const finalStatEntries = Object.entries(stats.growthStats.finalStatDistribution || {});
-    if (finalStatEntries.length > 0) {
-      lines.push('### 최종 스탯 분포');
-      lines.push('| 스탯 | 평균 | 최대 |');
-      lines.push('|------|------|------|');
-      finalStatEntries.forEach(([stat, data]) => {
-        lines.push(`| ${stat} | ${num(data.avg)} | ${data.max} |`);
-      });
-    }
-
-    // 로고스 효과 발동
-    const logosActEntries = Object.entries(stats.growthStats.logosActivations || {});
-    if (logosActEntries.length > 0) {
-      lines.push('### 로고스 효과 발동');
-      logosActEntries.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
-        lines.push(`- ${effect}: ${count}회`);
-      });
-    }
-    lines.push('');
-  }
-
-  // ==================== 13. AI 전략 통계 ====================
-  if (stats.aiStrategyStats) {
-    const stratUsage = Object.entries(stats.aiStrategyStats.strategyUsage || {});
-    if (stratUsage.length > 0) {
-      lines.push('## 13. AI 전략');
-      lines.push('| 전략 | 사용 | 승률 | 평균턴 |');
-      lines.push('|------|------|------|--------|');
-      stratUsage.forEach(([strat, usage]) => {
-        const winRate = stats.aiStrategyStats.strategyWinRate[strat] || 0;
-        const avgTurns = stats.aiStrategyStats.strategyAvgTurns[strat] || 0;
-        lines.push(`| ${strat} | ${usage} | ${pct(winRate)} | ${num(avgTurns)} |`);
-      });
-      lines.push('');
-    }
-
-    // 콤보 사용
-    const comboUsage = Object.entries(stats.aiStrategyStats.comboTypeUsage || {});
-    if (comboUsage.length > 0) {
-      lines.push('### 콤보 발동');
-      comboUsage.sort((a, b) => b[1] - a[1]).forEach(([combo, count]) => {
-        lines.push(`- ${combo}: ${count}회`);
-      });
-      lines.push('');
-    }
-  }
-
-  // ==================== 14. 사망 분석 ====================
-  if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
-    lines.push('## 14. 사망 분석');
-    lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
-    lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
-    lines.push('');
-
-    // 층별 사망 분포
-    const floorDeaths = Object.entries(stats.deathStats.deathsByFloor).sort((a, b) => Number(a[0]) - Number(b[0]));
-    if (floorDeaths.length > 0) {
-      lines.push('### 층별 사망 분포');
-      lines.push('| 층 | 사망 수 | 비율 |');
-      lines.push('|----|--------|------|');
-      floorDeaths.forEach(([floor, deaths]) => {
-        const rate = stats.deathStats.totalDeaths > 0 ? deaths / stats.deathStats.totalDeaths : 0;
-        lines.push(`| ${floor} | ${deaths} | ${pct(rate)} |`);
-      });
-      lines.push('');
-    }
-
-    // 가장 위험한 적
-    if (stats.deathStats.deadliestEnemies && stats.deathStats.deadliestEnemies.length > 0) {
-      lines.push('### 가장 위험한 적');
-      lines.push('| 적 | 사망 수 | 사망률 |');
-      lines.push('|----|--------|--------|');
-      stats.deathStats.deadliestEnemies.forEach(enemy => {
-        lines.push(`| ${enemy.enemyName} | ${enemy.deaths} | ${pct(enemy.encounterRate)} |`);
-      });
-      lines.push('');
-    }
-
-    // 사망 원인별 분포
-    const causeDeaths = Object.entries(stats.deathStats.deathsByCause);
-    if (causeDeaths.length > 0) {
-      lines.push('### 사망 원인');
-      const causeNames: Record<string, string> = {
-        burst: '버스트 피해',
-        attrition: '지속 피해',
-        bad_hand: '나쁜 핸드',
-        resource_exhaustion: '자원 고갈',
-      };
-      causeDeaths.sort((a, b) => b[1] - a[1]).forEach(([cause, count]) => {
-        lines.push(`- ${causeNames[cause] || cause}: ${count}회`);
-      });
-      lines.push('');
-    }
-  }
-
-  // ==================== 15. 카드 심층 분석 ====================
-  if (stats.cardDeepStats && stats.cardDeepStats.size > 0) {
-    lines.push('## 15. 카드 심층 분석');
-
-    // 가장 많이 사용된 카드 (timesPlayed 기준)
-    const topPlayed = Array.from(stats.cardDeepStats.entries())
-      .filter(([, s]) => s.timesPlayed > 0)
-      .sort((a, b) => b[1].timesPlayed - a[1].timesPlayed)
-      .slice(0, 10);
-
-    if (topPlayed.length > 0) {
-      lines.push('### 가장 많이 사용된 카드');
-      lines.push('| 카드 | 사용 | 전투당 평균 | 피해 | 방어 |');
-      lines.push('|------|------|------------|------|------|');
-      topPlayed.forEach(([cardId, s]) => {
-        lines.push(`| ${getCardName(cardId)} | ${s.timesPlayed} | ${num(s.avgPlaysPerBattle)} | ${num(s.avgDamageDealt)} | ${num(s.avgBlockGained)} |`);
-      });
-      lines.push('');
-    }
-
-    // 픽했지만 사용하지 않은 카드
-    const neverUsed = Array.from(stats.cardDeepStats.entries())
-      .filter(([, s]) => s.timesPicked >= 5 && s.neverPlayedRuns > 0)
-      .sort((a, b) => b[1].neverPlayedRuns - a[1].neverPlayedRuns)
-      .slice(0, 5);
-
-    if (neverUsed.length > 0) {
-      lines.push('### 픽했지만 사용 안 한 카드');
-      neverUsed.forEach(([cardId, s]) => {
-        lines.push(`- ${getCardName(cardId)}: ${s.neverPlayedRuns}런에서 미사용`);
-      });
-      lines.push('');
-    }
-  }
-
-  // ==================== 16. 기록 통계 ====================
-  if (stats.recordStats) {
-    lines.push('## 16. 기록');
-    lines.push(`- 최장 연승: ${stats.recordStats.longestWinStreak}연승`);
-    lines.push(`- 현재 연승: ${stats.recordStats.currentWinStreak}연승`);
-    lines.push(`- 무피해 전투 승리: ${stats.recordStats.flawlessVictories}회`);
-    lines.push(`- 보스 무피해 클리어: ${stats.recordStats.bossFlawlessCount}회`);
-    lines.push(`- 단일 턴 최대 피해: ${stats.recordStats.maxSingleTurnDamage}`);
-    if (stats.recordStats.maxDamageRecord) {
-      lines.push(`  - ${getCardName(stats.recordStats.maxDamageRecord.cardId)}로 ${stats.recordStats.maxDamageRecord.monster} 상대`);
-    }
-    lines.push(`- 최다 골드 보유: ${stats.recordStats.maxGoldHeld}G`);
-    if (stats.recordStats.fastestClear > 0) {
-      lines.push(`- 가장 빠른 클리어: ${stats.recordStats.fastestClear}전투`);
-    }
-    if (stats.recordStats.smallestDeckClear > 0) {
-      lines.push(`- 가장 작은 덱 클리어: ${stats.recordStats.smallestDeckClear}장`);
-    }
-    if (stats.recordStats.largestDeckClear > 0) {
-      lines.push(`- 가장 큰 덱 클리어: ${stats.recordStats.largestDeckClear}장`);
-    }
-  }
-  lines.push('');
-
-  // ==================== 16a. 상징 통계 ====================
+  // ==================== 5. 상징 통계 ====================
   if (stats.relicStats && stats.relicStats.size > 0) {
-    lines.push('## 16a. 상징 통계');
-
-    // 가장 유용한 상징 (기여도 순)
     const topRelics = Array.from(stats.relicStats.entries())
       .filter(([, s]) => s.timesAcquired >= 2)
       .sort((a, b) => b[1].contribution - a[1].contribution)
-      .slice(0, 10);
-
-    if (topRelics.length > 0) {
-      lines.push('### 상징별 기여도');
-      lines.push('| 상징 | 획득 | 보유시 승률 | 미보유시 승률 | 기여도 | 효과발동 |');
-      lines.push('|------|------|------------|--------------|--------|----------|');
-      topRelics.forEach(([, s]) => {
-        const sign = s.contribution > 0 ? '+' : '';
-        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${pct(s.winRateWith)} | ${pct(s.winRateWithout)} | ${sign}${pct(s.contribution)} | ${s.effectTriggers} |`);
-      });
-      lines.push('');
-    }
-
-    // 가장 무용한 상징 (기여도 낮은 순)
-    const worstRelics = Array.from(stats.relicStats.entries())
-      .filter(([, s]) => s.timesAcquired >= 2 && s.contribution < 0)
-      .sort((a, b) => a[1].contribution - b[1].contribution)
       .slice(0, 5);
 
-    if (worstRelics.length > 0) {
-      lines.push('### 승률에 부정적인 상징');
-      worstRelics.forEach(([, s]) => {
-        lines.push(`- ${getRelicNameLocal(s.relicId)}: 기여도 ${pct(s.contribution)}`);
+    if (topRelics.length > 0) {
+      lines.push('### 5. 상징 기여도 (상위 5개)');
+      lines.push('| 상징 | 획득 | 기여도 |');
+      lines.push('|------|------|--------|');
+      topRelics.forEach(([, s]) => {
+        const sign = s.contribution > 0 ? '+' : '';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${sign}${pct(s.contribution)} |`);
       });
-      lines.push('');
-    }
-
-    // 획득 출처별 통계
-    const sourceStats: Record<string, number> = {};
-    for (const [, s] of stats.relicStats) {
-      for (const [source, count] of Object.entries(s.acquiredFrom)) {
-        sourceStats[source] = (sourceStats[source] || 0) + count;
-      }
-    }
-    if (Object.keys(sourceStats).length > 0) {
-      const sourceNames: Record<string, string> = {
-        battle: '전투 보상',
-        shop: '상점 구매',
-        event: '이벤트',
-        dungeon: '던전',
-        boss: '보스',
-        starting: '시작 상징',
-      };
-      lines.push('### 상징 획득 출처');
-      Object.entries(sourceStats)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([source, count]) => {
-          lines.push(`- ${sourceNames[source] || source}: ${count}회`);
-        });
       lines.push('');
     }
   }
 
-  // ==================== 17. 난이도별 통계 (Hades Heat 스타일) ====================
-  if (stats.difficultyStats && stats.difficultyStats.size > 0) {
-    lines.push('## 17. 난이도별 통계');
-    lines.push('| 난이도 | 런 | 승리 | 승률 | 평균층 | 연승 |');
-    lines.push('|--------|-----|------|------|--------|------|');
-    Array.from(stats.difficultyStats.entries())
-      .sort((a, b) => a[0] - b[0])
-      .forEach(([diff, d]) => {
-        lines.push(`| ${diff} | ${d.runs} | ${d.wins} | ${pct(d.winRate)} | ${num(d.avgFloorReached)} | ${d.winStreak} |`);
+  // ==================== 6. 사망 분석 ====================
+  if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
+    lines.push('### 6. 사망 분석');
+    lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
+    lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
+
+    if (stats.deathStats.deadliestEnemies && stats.deathStats.deadliestEnemies.length > 0) {
+      lines.push('#### 가장 위험한 적');
+      stats.deathStats.deadliestEnemies.slice(0, 3).forEach(enemy => {
+        lines.push(`- ${enemy.enemyName}: ${enemy.deaths}회`);
       });
+    }
     lines.push('');
   }
 
-  // ==================== 18. 카드 선택 컨텍스트 (Slay the Spire 스타일) ====================
-  if (stats.allCardChoices && stats.allCardChoices.length > 0) {
-    lines.push('## 18. 카드 선택 분석');
+  return lines;
+}
 
-    // 카드별로 경쟁 상황 분석
-    const cardWinContext: Record<string, { picked: number; total: number; competitors: Record<string, number> }> = {};
+// AI 공유용 포맷 함수 (3개 전략 통합)
+function formatStatsForAI(statsByStrategy: StatsByStrategy, config: { runCount: number; difficulty: number }): string {
+  const lines: string[] = [];
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
-    stats.allCardChoices.forEach(choice => {
-      if (choice.pickedCardId) {
-        if (!cardWinContext[choice.pickedCardId]) {
-          cardWinContext[choice.pickedCardId] = { picked: 0, total: 0, competitors: {} };
-        }
-        cardWinContext[choice.pickedCardId].picked++;
-        cardWinContext[choice.pickedCardId].total++;
+  lines.push('# 시뮬레이션 결과 (3가지 전략 비교)');
+  lines.push(`설정: 전략당 ${config.runCount}런, 난이도 ${config.difficulty}`);
+  lines.push(`총 시뮬레이션: ${config.runCount * 3}런`);
+  lines.push('');
 
-        // 경쟁 카드 기록
-        choice.notPickedCardIds.forEach(notPicked => {
-          cardWinContext[choice.pickedCardId].competitors[notPicked] =
-            (cardWinContext[choice.pickedCardId].competitors[notPicked] || 0) + 1;
-        });
-      }
+  // 전략별 요약 비교 테이블
+  lines.push('## 전략 비교 요약');
+  lines.push('| 전략 | 승률 | 평균 도달 층 | 평균 덱 크기 | 평균 골드 |');
+  lines.push('|------|------|--------------|--------------|-----------|');
+  ALL_STRATEGIES.forEach(strategy => {
+    const stats = statsByStrategy[strategy];
+    if (stats) {
+      lines.push(`| ${STRATEGY_LABELS[strategy]} | ${pct(stats.runStats.successRate)} | ${stats.runStats.avgLayerReached.toFixed(1)} | ${stats.runStats.avgFinalDeckSize.toFixed(1)} | ${stats.runStats.avgGoldEarned.toFixed(0)} |`);
+    }
+  });
+  lines.push('');
 
-      // 선택되지 않은 카드들도 total 증가
-      choice.notPickedCardIds.forEach(notPicked => {
-        if (!cardWinContext[notPicked]) {
-          cardWinContext[notPicked] = { picked: 0, total: 0, competitors: {} };
-        }
-        cardWinContext[notPicked].total++;
-      });
-    });
-
-    lines.push('### 카드별 선택 경쟁률');
-    lines.push('| 카드 | 제시 | 선택 | 선택률 | 주요 경쟁카드 |');
-    lines.push('|------|------|------|--------|--------------|');
-    Object.entries(cardWinContext)
-      .filter(([, data]) => data.total >= 3)
-      .sort((a, b) => (b[1].picked / b[1].total) - (a[1].picked / a[1].total))
-      .slice(0, 15)
-      .forEach(([cardId, data]) => {
-        const topCompetitor = Object.entries(data.competitors)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 2)
-          .map(([id]) => getCardName(id))
-          .join(', ') || '-';
-        lines.push(`| ${getCardName(cardId)} | ${data.total} | ${data.picked} | ${pct(data.picked / data.total)} | ${topCompetitor} |`);
-      });
-    lines.push('');
-  }
-
-  // ==================== 17. 최근 런 진행 요약 ====================
-  if (stats.recentRunProgressions && stats.recentRunProgressions.length > 0) {
-    lines.push('## 17. 최근 런 진행 요약');
-    stats.recentRunProgressions.slice(0, 3).forEach((run, i) => {
-      lines.push(`### 런 ${i + 1}`);
-      lines.push(`- 경로: ${run.pathTaken.join(' → ')}`);
-      lines.push(`- 최종 덱(${run.finalDeck.length}장): ${run.finalDeck.map(getCardName).join(', ')}`);
-      if (run.finalRelics.length > 0) {
-        lines.push(`- 최종 상징: ${run.finalRelics.map(getRelicNameLocal).join(', ')}`);
-      }
-
-      // 전투별 피해 요약
-      if (run.damagePerBattle.length > 0) {
-        const totalDamage = run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0);
-        const avgDamage = totalDamage / run.damagePerBattle.length;
-        lines.push(`- 전투 피해: 총 ${totalDamage}, 평균 ${num(avgDamage)}/전투`);
-      }
-      lines.push('');
-    });
-  }
+  // 각 전략별 상세 통계
+  ALL_STRATEGIES.forEach(strategy => {
+    const stats = statsByStrategy[strategy];
+    if (stats) {
+      lines.push('---');
+      lines.push(...formatSingleStrategyStats(stats, STRATEGY_LABELS[strategy]));
+    }
+  });
 
   return lines.join('\n');
 }
@@ -674,19 +237,28 @@ type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
   const [difficulty, setDifficulty] = useState(1);
-  const [strategy, setStrategy] = useState<'balanced' | 'aggressive' | 'defensive'>('balanced');
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [stats, setStats] = useState<DetailedStats | null>(null);
+  const [currentStrategy, setCurrentStrategy] = useState<StrategyType | null>(null);
+  const [statsByStrategy, setStatsByStrategy] = useState<StatsByStrategy>({
+    balanced: null,
+    aggressive: null,
+    defensive: null,
+  });
   const [activeStatTab, setActiveStatTab] = useState<StatTab>('run');
+  const [activeStrategyTab, setActiveStrategyTab] = useState<StrategyType>('balanced');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  // 현재 선택된 전략의 통계
+  const stats = statsByStrategy[activeStrategyTab];
+  const hasAnyStats = statsByStrategy.balanced !== null || statsByStrategy.aggressive !== null || statsByStrategy.defensive !== null;
 
   // AI 공유용 복사 함수
   const copyForAI = useCallback(async () => {
-    if (!stats) return;
+    if (!hasAnyStats) return;
 
     try {
-      const text = formatStatsForAI(stats, { runCount, difficulty, strategy });
+      const text = formatStatsForAI(statsByStrategy, { runCount, difficulty });
       await navigator.clipboard.writeText(text);
       setCopyStatus('copied');
       setTimeout(() => setCopyStatus('idle'), 2000);
@@ -695,12 +267,13 @@ const SimulatorTab = memo(function SimulatorTab() {
       setCopyStatus('error');
       setTimeout(() => setCopyStatus('idle'), 2000);
     }
-  }, [stats, runCount, difficulty, strategy]);
+  }, [statsByStrategy, hasAnyStats, runCount, difficulty]);
 
   const runSimulation = useCallback(async () => {
     setIsRunning(true);
     setProgress(0);
-    setStats(null);
+    setStatsByStrategy({ balanced: null, aggressive: null, defensive: null });
+    setCurrentStrategy(null);
 
     try {
       const { RunSimulator } = await import('../../../simulator/game/run-simulator');
@@ -709,35 +282,53 @@ const SimulatorTab = memo(function SimulatorTab() {
 
       setLogLevel(LogLevel.SILENT);
 
-      const collector = new StatsCollector();
-      const simulator = new RunSimulator();
-      simulator.setStatsCollector(collector);
+      const totalRuns = runCount * 3; // 3개 전략 × runCount
+      let completedRuns = 0;
 
-      await simulator.loadGameData();
+      const results: StatsByStrategy = {
+        balanced: null,
+        aggressive: null,
+        defensive: null,
+      };
 
-      for (let i = 0; i < runCount; i++) {
-        simulator.simulateRun({
-          initialPlayer: {
-            hp: 80, maxHp: 80, gold: 150, intel: 0, material: 0, loot: 0, grace: 0,
-            strength: 0, agility: 0, insight: 0,
-            deck: ['shoot', 'shoot', 'strike', 'strike', 'strike', 'reload', 'quarte', 'octave', 'breach', 'deflect'],
-            relics: [], items: [], upgradedCards: []
-          },
-          difficulty,
-          strategy
-        });
+      // 3개 전략 모두 실행
+      for (const strategy of ALL_STRATEGIES) {
+        setCurrentStrategy(strategy);
 
-        setProgress(Math.round(((i + 1) / runCount) * 100));
-        if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+        const collector = new StatsCollector();
+        const simulator = new RunSimulator();
+        simulator.setStatsCollector(collector);
+
+        await simulator.loadGameData();
+
+        for (let i = 0; i < runCount; i++) {
+          simulator.simulateRun({
+            initialPlayer: {
+              hp: 80, maxHp: 80, gold: 150, intel: 0, material: 0, loot: 0, grace: 0,
+              strength: 0, agility: 0, insight: 0,
+              deck: ['shoot', 'shoot', 'strike', 'strike', 'strike', 'reload', 'quarte', 'octave', 'breach', 'deflect'],
+              relics: [], items: [], upgradedCards: []
+            },
+            difficulty,
+            strategy
+          });
+
+          completedRuns++;
+          setProgress(Math.round((completedRuns / totalRuns) * 100));
+          if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        results[strategy] = collector.finalize();
       }
 
-      setStats(collector.finalize());
+      setStatsByStrategy(results);
+      setCurrentStrategy(null);
     } catch (err) {
       console.error('Simulation error:', err);
     } finally {
       setIsRunning(false);
     }
-  }, [runCount, difficulty, strategy]);
+  }, [runCount, difficulty]);
 
   const statTabs: { id: StatTab; label: string }[] = [
     { id: 'run', label: '런' },
@@ -761,7 +352,7 @@ const SimulatorTab = memo(function SimulatorTab() {
       <div style={STYLES.sectionBox}>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
           <div>
-            <label style={STYLES.label}>런 횟수</label>
+            <label style={STYLES.label}>전략당 런 횟수</label>
             <input type="number" min={1} max={100} value={runCount}
               onChange={e => setRunCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
               style={STYLES.input} disabled={isRunning} />
@@ -772,26 +363,73 @@ const SimulatorTab = memo(function SimulatorTab() {
               onChange={e => setDifficulty(Math.min(5, Math.max(1, parseInt(e.target.value) || 1)))}
               style={STYLES.input} disabled={isRunning} />
           </div>
-          <div>
-            <label style={STYLES.label}>전략</label>
-            <select value={strategy} onChange={e => setStrategy(e.target.value as typeof strategy)}
-              style={STYLES.select} disabled={isRunning}>
-              <option value="balanced">균형</option>
-              <option value="aggressive">공격적</option>
-              <option value="defensive">방어적</option>
-            </select>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              총 {runCount * 3}런 (3전략 × {runCount}런)
+            </span>
           </div>
         </div>
         <button onClick={runSimulation} style={isRunning ? STYLES.buttonRunning : STYLES.button} disabled={isRunning}>
-          {isRunning ? `시뮬레이션 중... ${progress}%` : '시뮬레이션 실행'}
+          {isRunning
+            ? `${currentStrategy ? STRATEGY_LABELS[currentStrategy] : ''} 전략 시뮬레이션 중... ${progress}%`
+            : '시뮬레이션 실행 (3가지 전략)'}
         </button>
         {isRunning && <div style={STYLES.progressBar}><div style={{ ...STYLES.progressFill, width: `${progress}%` }} /></div>}
       </div>
 
       {/* 결과 통계 */}
-      {stats && (
+      {hasAnyStats && (
         <>
-          {/* 탭 네비게이션 + AI 공유 버튼 */}
+          {/* 전략 탭 */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            {ALL_STRATEGIES.map(strategy => {
+              const strategyStats = statsByStrategy[strategy];
+              const isActive = activeStrategyTab === strategy;
+              const winRate = strategyStats ? (strategyStats.runStats.successRate * 100).toFixed(1) : '-';
+              return (
+                <button
+                  key={strategy}
+                  onClick={() => setActiveStrategyTab(strategy)}
+                  style={{
+                    padding: '8px 16px',
+                    background: isActive ? '#3b82f6' : '#1e293b',
+                    border: isActive ? '2px solid #60a5fa' : '1px solid #334155',
+                    borderRadius: '8px',
+                    color: isActive ? '#fff' : '#cbd5e1',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div>{STRATEGY_LABELS[strategy]}</div>
+                  <div style={{ fontSize: '0.7rem', color: isActive ? '#bfdbfe' : '#64748b' }}>
+                    승률: {winRate}%
+                  </div>
+                </button>
+              );
+            })}
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={copyForAI}
+              style={{
+                padding: '8px 16px',
+                background: copyStatus === 'copied' ? '#22c55e' : copyStatus === 'error' ? '#ef4444' : '#8b5cf6',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                alignSelf: 'center',
+              }}
+            >
+              {copyStatus === 'copied' ? '✓ 복사됨!' : copyStatus === 'error' ? '✗ 실패' : '📋 AI 공유용 복사 (3전략)'}
+            </button>
+          </div>
+
+          {/* 통계 탭 네비게이션 */}
           <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             {statTabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveStatTab(tab.id)}
@@ -799,30 +437,14 @@ const SimulatorTab = memo(function SimulatorTab() {
                 {tab.label}
               </button>
             ))}
-            <div style={{ flex: 1 }} />
-            <button
-              onClick={copyForAI}
-              style={{
-                padding: '6px 12px',
-                background: copyStatus === 'copied' ? '#22c55e' : copyStatus === 'error' ? '#ef4444' : '#8b5cf6',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '0.8rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-            >
-              {copyStatus === 'copied' ? '✓ 복사됨!' : copyStatus === 'error' ? '✗ 실패' : '📋 AI 공유용 복사'}
-            </button>
           </div>
 
+          {stats ? (
           <div style={STYLES.sectionBox}>
             {/* 런 통계 */}
             {activeStatTab === 'run' && (
               <>
-                <h4 style={{ margin: '0 0 12px 0', color: '#22c55e' }}>📊 런 통계</h4>
+                <h4 style={{ margin: '0 0 12px 0', color: '#22c55e' }}>📊 {STRATEGY_LABELS[activeStrategyTab]} 전략 런 통계</h4>
                 <div style={STYLES.statsGrid}>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>총 런</div><div style={STYLES.statValue}>{stats.runStats.totalRuns ?? 0}회</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>성공률</div><div style={STYLES.statValue}>{((stats.runStats.successRate ?? 0) * 100).toFixed(1)}%</div></div>
@@ -1202,6 +824,11 @@ const SimulatorTab = memo(function SimulatorTab() {
               </>
             )}
           </div>
+          ) : (
+            <div style={{ ...STYLES.sectionBox, textAlign: 'center', color: '#94a3b8' }}>
+              이 전략의 통계가 아직 없습니다.
+            </div>
+          )}
         </>
       )}
     </div>
