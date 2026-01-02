@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../core/logger';
+import { getGlobalRandom } from '../core/seeded-random';
 
 const log = getLogger('MapSimulator');
 
@@ -137,7 +138,7 @@ export class MapSimulator {
       const isLastLayer = layer === cfg.layers;
       const nodeCount = isLastLayer
         ? 1 // 보스 레이어는 1개
-        : Math.floor(Math.random() * (cfg.nodesPerLayer.max - cfg.nodesPerLayer.min + 1)) + cfg.nodesPerLayer.min;
+        : getGlobalRandom().nextInt(cfg.nodesPerLayer.min, cfg.nodesPerLayer.max);
 
       const currentLayerNodes: MapNode[] = [];
 
@@ -179,17 +180,19 @@ export class MapSimulator {
    * 노드 타입 선택
    */
   private selectNodeType(layer: number, config: MapGenerationConfig): MapNodeType {
+    const rng = getGlobalRandom();
+
     // 강제 노드 타입 체크
-    if (layer % config.eliteFrequency === 0 && Math.random() < 0.5) {
+    if (layer % config.eliteFrequency === 0 && rng.chance(0.5)) {
       return 'elite';
     }
-    if (layer % config.shopFrequency === 0 && Math.random() < 0.3) {
+    if (layer % config.shopFrequency === 0 && rng.chance(0.3)) {
       return 'shop';
     }
-    if (layer % config.restFrequency === 0 && Math.random() < 0.4) {
+    if (layer % config.restFrequency === 0 && rng.chance(0.4)) {
       return 'rest';
     }
-    if (layer % config.dungeonFrequency === 0 && Math.random() < 0.2) {
+    if (layer % config.dungeonFrequency === 0 && rng.chance(0.2)) {
       return 'dungeon';
     }
 
@@ -198,7 +201,7 @@ export class MapSimulator {
     delete weights.boss; // 보스는 제외
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-    let random = Math.random() * totalWeight;
+    let random = rng.next() * totalWeight;
 
     for (const [type, weight] of Object.entries(weights)) {
       random -= weight;
@@ -214,16 +217,18 @@ export class MapSimulator {
    * 레이어 간 연결
    */
   private connectLayers(prevLayer: MapNode[], currentLayer: MapNode[]): void {
+    const rng = getGlobalRandom();
+
     // 각 현재 레이어 노드에 최소 1개 연결 보장
     for (const node of currentLayer) {
-      const randomPrev = prevLayer[Math.floor(Math.random() * prevLayer.length)];
+      const randomPrev = rng.pick(prevLayer);
       randomPrev.connections.push(node.id);
     }
 
     // 추가 연결 생성 (크로스 연결)
     for (const prevNode of prevLayer) {
       for (const currNode of currentLayer) {
-        if (!prevNode.connections.includes(currNode.id) && Math.random() < 0.3) {
+        if (!prevNode.connections.includes(currNode.id) && rng.chance(0.3)) {
           prevNode.connections.push(currNode.id);
         }
       }
@@ -377,7 +382,7 @@ export class MapSimulator {
     }
 
     // 기본: 랜덤 선택
-    return availableNodes[Math.floor(Math.random() * availableNodes.length)].id;
+    return getGlobalRandom().pick(availableNodes).id;
   }
 
   // ==================== 분석 ====================

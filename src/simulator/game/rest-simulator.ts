@@ -9,6 +9,7 @@
  */
 
 import { getLogger } from '../core/logger';
+import { getGlobalRandom } from '../core/seeded-random';
 
 const log = getLogger('RestSimulator');
 
@@ -264,7 +265,7 @@ export class RestSimulator {
       case 'upgrade':
         if (player.deck.length > 0) {
           // 랜덤 카드 업그레이드 (시뮬레이션용)
-          const cardIndex = Math.floor(Math.random() * player.deck.length);
+          const cardIndex = getGlobalRandom().nextInt(0, player.deck.length - 1);
           const cardId = player.deck[cardIndex];
           // 업그레이드된 카드 ID로 변경 (실제로는 + 접미사 등)
           player.deck[cardIndex] = cardId.endsWith('+') ? cardId : cardId + '+';
@@ -276,7 +277,7 @@ export class RestSimulator {
       case 'remove':
         if (player.deck.length > 5 && player.gold >= 50) {
           player.gold -= 50;
-          const cardIndex = Math.floor(Math.random() * player.deck.length);
+          const cardIndex = getGlobalRandom().nextInt(0, player.deck.length - 1);
           const removedCard = player.deck.splice(cardIndex, 1)[0];
           result.cardRemoved = removedCard;
           result.reason = `카드 '${removedCard}' 제거`;
@@ -293,7 +294,7 @@ export class RestSimulator {
       case 'meditate':
         // 랜덤 스탯 +1
         const stats: ('strength' | 'agility' | 'insight')[] = ['strength', 'agility', 'insight'];
-        const randomStat = stats[Math.floor(Math.random() * stats.length)];
+        const randomStat = getGlobalRandom().pick(stats);
         player[randomStat] += 1;
         result.statChanges = { [randomStat]: 1 };
         result.reason = `${randomStat} +1`;
@@ -379,7 +380,8 @@ export class RestSimulator {
     for (let i = 0; i < count; i++) {
       const player = { ...initialPlayer };
       // 랜덤 체력 상태로 시작
-      player.hp = Math.floor(player.maxHp * (0.3 + Math.random() * 0.7));
+      const rng = getGlobalRandom();
+      player.hp = Math.floor(player.maxHp * (0.3 + rng.next() * 0.7));
 
       const result = this.simulateRest({
         player,
