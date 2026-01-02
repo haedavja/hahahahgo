@@ -390,6 +390,146 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
     lines.push('');
   }
 
+  // ==================== 13. 포커 콤보 통계 ====================
+  if (stats.pokerComboStats && Object.keys(stats.pokerComboStats.comboFrequency || {}).length > 0) {
+    lines.push('### 13. 포커 콤보 통계');
+    lines.push('| 콤보 | 발동 | 평균에테르 | 승률 |');
+    lines.push('|------|------|------------|------|');
+
+    const comboEntries = Object.entries(stats.pokerComboStats.comboFrequency || {})
+      .sort((a, b) => b[1] - a[1]);
+
+    comboEntries.forEach(([combo, freq]) => {
+      const avgEther = stats.pokerComboStats.avgEtherByCombo?.[combo] || 0;
+      const winRate = stats.pokerComboStats.winRateByCombo?.[combo] || 0;
+      lines.push(`| ${combo} | ${freq}회 | ${avgEther.toFixed(1)} | ${pct(winRate)} |`);
+    });
+    lines.push('');
+  }
+
+  // ==================== 14. 카드 시너지 통계 ====================
+  if (stats.cardSynergyStats && stats.cardSynergyStats.topSynergies && stats.cardSynergyStats.topSynergies.length > 0) {
+    lines.push('### 14. 카드 시너지 (TOP 10)');
+    lines.push('| 카드 조합 | 빈도 | 조합승률 |');
+    lines.push('|-----------|------|----------|');
+
+    stats.cardSynergyStats.topSynergies.slice(0, 10).forEach(syn => {
+      const pairNames = syn.pair.split('+').map(id => getCardName(id.trim())).join(' + ');
+      lines.push(`| ${pairNames} | ${syn.frequency}회 | ${pct(syn.winRate)} |`);
+    });
+    lines.push('');
+  }
+
+  // ==================== 15. 카드 심층 분석 ====================
+  if (stats.cardDeepStats && stats.cardDeepStats.size > 0) {
+    lines.push('### 15. 카드 심층 분석 (상위 10개)');
+    lines.push('| 카드 | 전투당사용 | 미사용런 | 보유승률 | 미보유승률 |');
+    lines.push('|------|------------|----------|----------|------------|');
+
+    Array.from(stats.cardDeepStats.entries())
+      .filter(([, s]) => s.timesPicked >= 3)
+      .sort((a, b) => (b[1].winRateWith - b[1].winRateWithout) - (a[1].winRateWith - a[1].winRateWithout))
+      .slice(0, 10)
+      .forEach(([, s]) => {
+        lines.push(`| ${getCardName(s.cardId)} | ${s.avgPlaysPerBattle.toFixed(1)} | ${s.neverPlayedRuns} | ${pct(s.winRateWith)} | ${pct(s.winRateWithout)} |`);
+      });
+
+    // 베스트/워스트 파트너
+    const topCard = Array.from(stats.cardDeepStats.entries())
+      .filter(([, s]) => s.bestPartners && s.bestPartners.length > 0)
+      .sort((a, b) => b[1].timesPicked - a[1].timesPicked)[0];
+
+    if (topCard && topCard[1].bestPartners && topCard[1].bestPartners.length > 0) {
+      lines.push('');
+      lines.push(`#### ${getCardName(topCard[0])} 시너지 파트너`);
+      lines.push('- 베스트: ' + topCard[1].bestPartners.slice(0, 3).map(p =>
+        `${getCardName(p.cardId)} (${pct(p.winRate)})`
+      ).join(', '));
+      if (topCard[1].worstPartners && topCard[1].worstPartners.length > 0) {
+        lines.push('- 워스트: ' + topCard[1].worstPartners.slice(0, 3).map(p =>
+          `${getCardName(p.cardId)} (${pct(p.winRate)})`
+        ).join(', '));
+      }
+    }
+    lines.push('');
+  }
+
+  // ==================== 16. 층 진행 분석 ====================
+  if (stats.floorProgressionAnalysis) {
+    const fpa = stats.floorProgressionAnalysis;
+    lines.push('### 16. 층 진행 분석');
+
+    // 난이도 스파이크
+    if (fpa.difficultySpikes && fpa.difficultySpikes.length > 0) {
+      lines.push('#### 난이도 스파이크 (승률 급락 지점)');
+      fpa.difficultySpikes.slice(0, 5).forEach(spike => {
+        lines.push(`- ${spike.floor}층: ${pct(spike.winRateDrop)} 급락 (${spike.reason})`);
+      });
+      lines.push('');
+    }
+
+    // 병목 구간
+    if (fpa.bottleneckAnalysis?.highFailureFloors && fpa.bottleneckAnalysis.highFailureFloors.length > 0) {
+      lines.push('#### 병목 구간 (실패 집중 층)');
+      fpa.bottleneckAnalysis.highFailureFloors.slice(0, 3).forEach(floor => {
+        lines.push(`- ${floor.floor}층: 실패율 ${pct(floor.failureRate)} (${floor.mainCause})`);
+      });
+      lines.push('');
+    }
+
+    // 자원 커브 요약
+    if (fpa.resourceCurves?.hpCurve && fpa.resourceCurves.hpCurve.length > 0) {
+      const lastHp = fpa.resourceCurves.hpCurve[fpa.resourceCurves.hpCurve.length - 1];
+      const midHp = fpa.resourceCurves.hpCurve[Math.floor(fpa.resourceCurves.hpCurve.length / 2)];
+      lines.push('#### 자원 커브 요약');
+      lines.push(`- 중반(${midHp?.floor || '?'}층) 평균 HP: ${pct(midHp?.avgHpRatio || 0)}`);
+      lines.push(`- 최종(${lastHp?.floor || '?'}층) 평균 HP: ${pct(lastHp?.avgHpRatio || 0)}`);
+      lines.push('');
+    }
+  }
+
+  // ==================== 17. 기록 통계 ====================
+  if (stats.recordStats) {
+    const rs = stats.recordStats;
+    const hasRecords = rs.longestWinStreak > 0 || rs.flawlessVictories > 0 || rs.maxSingleTurnDamage > 0;
+
+    if (hasRecords) {
+      lines.push('### 17. 기록 통계');
+      if (rs.longestWinStreak > 0) lines.push(`- 최장 연승: ${rs.longestWinStreak}연승`);
+      if (rs.currentWinStreak > 0) lines.push(`- 현재 연승: ${rs.currentWinStreak}연승`);
+      if (rs.flawlessVictories > 0) lines.push(`- 무피해 클리어: ${rs.flawlessVictories}회`);
+      if (rs.bossFlawlessCount > 0) lines.push(`- 보스 무피해: ${rs.bossFlawlessCount}회`);
+      if (rs.maxSingleTurnDamage > 0) {
+        lines.push(`- 단일 턴 최대 피해: ${rs.maxSingleTurnDamage}`);
+        if (rs.maxDamageRecord) {
+          lines.push(`  └ ${getCardName(rs.maxDamageRecord.cardId)} vs ${rs.maxDamageRecord.monster}`);
+        }
+      }
+      if (rs.fastestClear > 0) {
+        lines.push(`- 최소 전투 클리어: ${rs.fastestClear}전`);
+      }
+      if (rs.smallestDeckClear > 0) lines.push(`- 최소 덱 클리어: ${rs.smallestDeckClear}장`);
+      if (rs.largestDeckClear > 0) lines.push(`- 최대 덱 클리어: ${rs.largestDeckClear}장`);
+      if (rs.maxGoldHeld > 0) lines.push(`- 최다 골드 보유: ${rs.maxGoldHeld}G`);
+      lines.push('');
+    }
+  }
+
+  // ==================== 18. 토큰 상세 통계 ====================
+  if (stats.tokenStats && stats.tokenStats.size > 0) {
+    lines.push('### 18. 토큰 통계');
+    lines.push('| 토큰 | 획득 | 사용률 | 평균효과 |');
+    lines.push('|------|------|--------|----------|');
+
+    Array.from(stats.tokenStats.entries())
+      .sort((a, b) => b[1].timesAcquired - a[1].timesAcquired)
+      .slice(0, 10)
+      .forEach(([, t]) => {
+        lines.push(`| ${t.tokenName} | ${t.timesAcquired} | ${pct(t.usageRate)} | ${t.effectStats?.avgValuePerUse?.toFixed(1) || '0'} |`);
+      });
+    lines.push('');
+  }
+
   return lines;
 }
 
