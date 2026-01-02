@@ -60,13 +60,15 @@ const getActionRevealInfo = (
   // Card를 직접 받는 경우와 InsightEnemyAction을 받는 경우 모두 처리
   const card = 'card' in action && action.card ? action.card : action as Card;
   const speed = 'speed' in action ? action.speed : undefined;
+  // sourceUnitId는 런타임에 추가되는 속성
+  const sourceUnitId = (card as Card & { __sourceUnitId?: number })?.__sourceUnitId;
 
   if (insightForAction <= 0) {
     // 레벨 0: 정보 없음 (카드 존재는 알지만 내용 비공개)
     return {
       index: idx,
       hidden: true,
-      sourceUnitId: card?.__sourceUnitId,
+      sourceUnitId,
     };
   }
 
@@ -78,7 +80,7 @@ const getActionRevealInfo = (
       isLast: idx === totalActions - 1,
       hidden: false,
       revealLevel: 1,
-      sourceUnitId: card?.__sourceUnitId,
+      sourceUnitId,
     };
   }
 
@@ -90,7 +92,7 @@ const getActionRevealInfo = (
       speed: speed,
       hidden: false,
       revealLevel: 2,
-      sourceUnitId: card?.__sourceUnitId,
+      sourceUnitId,
     };
   }
 
@@ -103,7 +105,7 @@ const getActionRevealInfo = (
     traits: card?.traits,
     hidden: false,
     revealLevel: 3,
-    sourceUnitId: card?.__sourceUnitId,
+    sourceUnitId,
   };
 };
 

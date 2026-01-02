@@ -17,7 +17,7 @@ interface AnomalyPlayerState {
 }
 
 /** 카드 성장 맵 타입 - 유연한 타입으로 호환성 확보 */
-type CardGrowthMap = Record<string, { traits?: string[]; [key: string]: unknown } | unknown>;
+type CardGrowthMap = Record<string, { traits?: string[]; [key: string]: unknown } | undefined>;
 
 /**
  * 카드가 특정 특성을 가지고 있는지 확인 (card.traits + cardGrowth 둘 다 확인)

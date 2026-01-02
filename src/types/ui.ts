@@ -513,9 +513,9 @@ export interface BreachCardInfo {
 
 /** 브리치 선택 상태 */
 export interface BreachSelection {
-  cards: Array<BreachCard | unknown>;
+  cards: BreachCard[];
   breachSp?: number;
-  breachCard?: BreachCardInfo | unknown;
+  breachCard?: BreachCardInfo;
   sourceCardName?: string | null;
   isLastChain?: boolean;
   isCreationSelection?: boolean;
@@ -861,12 +861,14 @@ export interface ContextFormatters {
 
 /** 스탯 사이드바 카드 */
 export interface SidebarCard {
+  id?: string;
   damage?: number | null;
   block?: number | null;
   counter?: number;
   speedCost: number;
   hits?: number;
   cardCategory?: string;
+  [key: string]: unknown;
 }
 
 // ==================== 확장 카드 UI 타입 ====================

@@ -19,6 +19,8 @@ interface BattleControlButtonsProps {
 
 const SORT_TYPE_LABELS: Record<SortType, string> = {
   speed: '시간',
+  cost: '비용',
+  order: '순서',
   energy: '행동력',
   value: '밸류',
   type: '종류',

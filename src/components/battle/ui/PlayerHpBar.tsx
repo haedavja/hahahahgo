@@ -218,15 +218,19 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = memo(({
   insightLevel
 }) => {
   // 블록 오버레이 스타일 메모이제이션
-  const blockOverlayStyle = useMemo((): CSSProperties => ({
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: `${Math.min((player.block / player.maxHp) * 100, 100)}%`,
-    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-    borderRight: '2px solid #60a5fa'
-  }), [player.block, player.maxHp]);
+  const blockOverlayStyle = useMemo((): CSSProperties => {
+    const effectiveBlock = player.block ?? 0;
+    const effectiveMaxHp = player.maxHp ?? player.hp ?? 1;
+    return {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      width: `${Math.min((effectiveBlock / effectiveMaxHp) * 100, 100)}%`,
+      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+      borderRight: '2px solid #60a5fa'
+    };
+  }, [player.block, player.maxHp, player.hp]);
 
   // 통찰 레벨 정보 메모이제이션
   const insightInfo = useMemo(() => {
@@ -274,12 +278,12 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = memo(({
             <div></div>
             <div style={{ position: 'relative' }}>
               <div className={playerHit ? 'hit-animation' : ''} style={HP_TEXT_STYLE} data-testid="player-hp-text">
-                ❤️ {player.hp}/{player.maxHp}
-                {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
+                ❤️ {player.hp}/{player.maxHp ?? player.hp}
+                {(player.block ?? 0) > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
               </div>
               <div className="hp-bar-enhanced mb-1" style={HP_BAR_STYLE}>
-                <div className="hp-fill" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
-                {player.block > 0 && (
+                <div className="hp-fill" style={{ width: `${(player.hp / (player.maxHp ?? player.hp ?? 1)) * 100}%` }}></div>
+                {(player.block ?? 0) > 0 && (
                   <div style={blockOverlayStyle}></div>
                 )}
               </div>

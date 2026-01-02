@@ -21,7 +21,7 @@ import { generateHandUid } from "../../../lib/randomUtils";
 import { getEnhancedCard } from "../../../lib/cardEnhancementUtils";
 
 /** 카드 성장 상태 맵 타입 */
-type CardGrowthMap = Record<string, CardGrowthState | unknown>;
+type CardGrowthMap = Record<string, CardGrowthState | undefined>;
 
 /**
  * Fisher-Yates 셔플 알고리즘

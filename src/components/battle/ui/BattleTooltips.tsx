@@ -153,10 +153,10 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
 }) => {
   // 툴팁 표시 여부 계산 메모이제이션
   const showTraitTooltip = useMemo(() => {
-    if (!tooltipVisible || !hoveredCard) return false;
+    if (!tooltipVisible || !hoveredCard || !hoveredCard.card) return false;
     const card = hoveredCard.card as Card & { enhancementLevel?: number };
-    return (hoveredCard.card.traits && hoveredCard.card.traits.length > 0) ||
-           (hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0) ||
+    return (card.traits && card.traits.length > 0) ||
+           (card.appliedTokens && card.appliedTokens.length > 0) ||
            card.enhancementLevel;
   }, [tooltipVisible, hoveredCard]);
 
@@ -182,10 +182,10 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
 
   // 툴팁 제목 계산 메모이제이션
   const tooltipTitle = useMemo(() => {
-    if (!hoveredCard) return '';
+    if (!hoveredCard || !hoveredCard.card) return '';
     const card = hoveredCard.card as Card & { enhancementLevel?: number };
     if (card.enhancementLevel) return '강화 정보';
-    if (hoveredCard.card.traits && hoveredCard.card.traits.length > 0) return '특성 정보';
+    if (card.traits && card.traits.length > 0) return '특성 정보';
     return '토큰 효과';
   }, [hoveredCard]);
 
@@ -284,8 +284,10 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
             );
           })()}
           {(() => {
-            const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
-            const enhancedCard = applyTraitModifiers((baseCard || hoveredCard.card) as FullCard, { usageCount: 0, isInCombo: false });
+            if (!hoveredCard.card) return null;
+            const hCard = hoveredCard.card;
+            const baseCard = CARDS.find(c => c.id === hCard.id);
+            const enhancedCard = applyTraitModifiers((baseCard || hCard) as FullCard, { usageCount: 0, isInCombo: false });
             const parts: string[] = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
               const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
@@ -302,7 +304,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
             ) : null;
           })()}
           {/* 특성 섹션 */}
-          {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && hoveredCard.card.traits.map((traitId: string) => {
+          {hoveredCard.card?.traits && hoveredCard.card.traits.length > 0 && hoveredCard.card.traits.map((traitId: string) => {
             const trait = TRAITS[traitId as keyof typeof TRAITS];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
@@ -328,16 +330,16 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
             );
           })}
           {/* 적용 토큰 섹션 */}
-          {hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0 && (
+          {hoveredCard.card?.appliedTokens && hoveredCard.card.appliedTokens.length > 0 && (
             <>
-              {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+              {hoveredCard.card?.traits && hoveredCard.card.traits.length > 0 && (
                 <div style={TOKEN_SECTION_STYLE}>
                   <div style={TOKEN_TITLE_STYLE}>
                     부여 토큰
                   </div>
                 </div>
               )}
-              {hoveredCard.card.appliedTokens.map((tokenInfo: { id: string; target: 'player' | 'enemy' }, idx: number) => {
+              {hoveredCard.card?.appliedTokens?.map((tokenInfo: { id: string; target: 'player' | 'enemy' }, idx: number) => {
                 const token = TOKENS[tokenInfo.id];
                 if (!token) return null;
                 const isPositive = token.category === TOKEN_CATEGORIES.POSITIVE;

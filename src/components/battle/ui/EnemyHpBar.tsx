@@ -293,10 +293,12 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   // HP 텍스트 계산 메모이제이션
   const { hpText, blockText, showDamage, hideEnemyVitals } = useMemo(() => {
     const hide = dulledLevel >= 3;
+    const effectiveBlock = enemy.block ?? 0;
+    const effectiveMaxHp = enemy.maxHp ?? enemy.hp;
     return {
       hideEnemyVitals: hide,
-      hpText: hide ? '??' : `${enemy.hp}/${enemy.maxHp}`,
-      blockText: hide ? '??' : (enemy.block > 0 ? `${enemy.block}` : null),
+      hpText: hide ? '??' : `${enemy.hp}/${effectiveMaxHp}`,
+      blockText: hide ? '??' : (effectiveBlock > 0 ? `${effectiveBlock}` : null),
       showDamage: (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0
     };
   }, [dulledLevel, enemy.hp, enemy.maxHp, enemy.block, battle.phase, previewDamage.value]);
@@ -310,15 +312,19 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   }), [soulShatter]);
 
   // 블록 오버레이 스타일
-  const blockOverlayStyle = useMemo((): CSSProperties => ({
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-    borderRight: '2px solid #60a5fa'
-  }), [enemy.block, enemy.maxHp]);
+  const blockOverlayStyle = useMemo((): CSSProperties => {
+    const effectiveBlock = enemy.block ?? 0;
+    const effectiveMaxHp = enemy.maxHp ?? enemy.hp ?? 1;
+    return {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      width: `${Math.min((effectiveBlock / effectiveMaxHp) * 100, 100)}%`,
+      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+      borderRight: '2px solid #60a5fa'
+    };
+  }, [enemy.block, enemy.maxHp, enemy.hp]);
 
   const soulOrbTitle = useMemo(() => {
     return dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`;
@@ -342,8 +348,8 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
               </div>
               <div style={HP_BAR_CONTAINER_STYLE}>
                 <div className="hp-bar-enhanced mb-1" style={HP_BAR_STYLE}>
-                  <div className="hp-fill" style={{ width: `${hideEnemyVitals ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                  {enemy.block > 0 && !hideEnemyVitals && (
+                  <div className="hp-fill" style={{ width: `${hideEnemyVitals ? 0 : (enemy.hp / (enemy.maxHp ?? enemy.hp ?? 1)) * 100}%` }}></div>
+                  {(enemy.block ?? 0) > 0 && !hideEnemyVitals && (
                     <div style={blockOverlayStyle}></div>
                   )}
                 </div>
