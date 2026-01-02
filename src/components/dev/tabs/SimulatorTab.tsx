@@ -204,12 +204,16 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
       lines.push('| 상징 | 평균획득층 | 획득횟수 | 도달층기여 |');
       lines.push('|------|------------|----------|------------|');
       earlyRelics.forEach(([, s]) => {
-        const avgFloorWith = Number.isFinite(s.avgFloorReachedWith) ? s.avgFloorReachedWith : 0;
-        const avgLayer = Number.isFinite(stats.runStats.avgLayerReached) ? stats.runStats.avgLayerReached : 0;
-        const floorContrib = avgFloorWith - avgLayer;
-        const sign = floorContrib > 0 ? '+' : '';
-        const floorContribStr = Number.isFinite(floorContrib) ? floorContrib.toFixed(1) : '0.0';
-        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${sign}${floorContribStr} |`);
+        // avgFloorReachedWith가 0보다 클 때만 유효한 데이터로 처리
+        const hasValidData = Number.isFinite(s.avgFloorReachedWith) && s.avgFloorReachedWith > 0;
+        let floorContribStr = '-';
+        if (hasValidData) {
+          const avgLayer = Number.isFinite(stats.runStats.avgLayerReached) ? stats.runStats.avgLayerReached : 0;
+          const floorContrib = s.avgFloorReachedWith - avgLayer;
+          const sign = floorContrib > 0 ? '+' : '';
+          floorContribStr = `${sign}${floorContrib.toFixed(1)}`;
+        }
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${floorContribStr} |`);
       });
       lines.push('');
     }
