@@ -189,11 +189,26 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     lines.push('|--------|------|------|--------|----------|');
     Array.from(stats.eventStats.entries())
       .sort((a, b) => b[1].occurrences - a[1].occurrences)
-      .slice(0, 10)
       .forEach(([id, e]) => {
         lines.push(`| ${getEventNameLocal(id)} | ${e.occurrences} | ${e.successes} | ${pct(e.successRate)} | ${e.totalGoldChange} |`);
       });
     lines.push('');
+
+    // 이벤트 선택 상세
+    if (stats.eventChoiceStats && stats.eventChoiceStats.size > 0) {
+      lines.push('### 이벤트 선택 상세');
+      Array.from(stats.eventChoiceStats.entries()).forEach(([eventId, choiceStats]) => {
+        const eventName = getEventNameLocal(eventId);
+        lines.push(`#### ${eventName}`);
+        lines.push(`- 발생: ${choiceStats.occurrences ?? 0}회, 스킵: ${choiceStats.timesSkipped ?? 0}회`);
+        if (choiceStats.choiceOutcomes) {
+          Object.entries(choiceStats.choiceOutcomes).forEach(([choiceId, outcome]) => {
+            lines.push(`  - 선택 "${choiceId}": ${outcome.timesChosen ?? 0}회, HP변화 ${(outcome.avgHpChange ?? 0).toFixed(1)}, 골드변화 ${(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 ${pct(outcome.successRate ?? 0)}`);
+          });
+        }
+      });
+      lines.push('');
+    }
   }
 
   // ==================== 10. 아이템 통계 ====================
