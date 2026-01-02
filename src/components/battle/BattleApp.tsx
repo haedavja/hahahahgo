@@ -440,10 +440,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 플레이어/적 상태 업데이트
     if (result.updatedPlayer) {
-      actions.setPlayer(result.updatedPlayer as unknown as PlayerState);
+      actions.setPlayer(result.updatedPlayer as PlayerState);
     }
     if (result.updatedEnemy) {
-      actions.setEnemy(result.updatedEnemy as unknown as EnemyState);
+      actions.setEnemy(result.updatedEnemy as EnemyState);
     }
 
     // 로그 추가
@@ -537,7 +537,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 상징 드래그 앤 드롭 (커스텀 훅으로 분리)
   const { handleRelicDragStart, handleRelicDragOver, handleRelicDrop } = useRelicDrag({
     orderedRelicList,
-    actions: actions as unknown as { setRelicActivated: (relicId: string | null) => void; setOrderedRelics: (relics: string[]) => void }
+    actions: actions as { setRelicActivated: (relicId: string | null) => void; setOrderedRelics: (relics: string[]) => void }
   });
 
   // 통찰 시스템 (커스텀 훅으로 분리)
@@ -567,7 +567,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const { showCardTraitTooltip, hideCardTraitTooltip } = useCardTooltip({
     hoveredCard,
     battlePhase: battle.phase,
-    actions: actions as unknown as { setHoveredCard: (card: unknown) => void; setTooltipVisible: (visible: boolean) => void }
+    actions: actions as { setHoveredCard: (card: unknown) => void; setTooltipVisible: (visible: boolean) => void }
   });
 
   useEffect(() => {
@@ -582,7 +582,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     startingStrength: startingStrength ?? 0,
     startingInsight: startingInsight ?? 0,
     battle: { insightAnimPulseKey: battle.insightAnimPulseKey, insightBadge: battle.insightBadge, vanishedCards: battle.vanishedCards },
-    allCards: CARDS as unknown as Card[],
+    allCards: CARDS as Card[],
     initialEtherRef: initialEtherRef as MutableRefObject<number>,
     resultSentRef,
     turnStartProcessedRef,
@@ -708,12 +708,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playerTraits,
     enemyCount,
     battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
-    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
     turnStartProcessedRef,
     etherSlots,
     playSound,
     addLog,
-    actions: actions as unknown as never
+    actions: actions as never
   });
 
   // 실행 큐 자동 복구 (커스텀 훅으로 분리)
@@ -753,7 +753,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     explainComboMultiplier: explainComboMultiplier as unknown as (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] },
     orderedRelicList,
     selected,
-    actions: actions as unknown as { setCurrentDeflation: (deflation: { multiplier: number; usageCount: number } | null) => void; setMultiplierPulse: (pulse: boolean) => void }
+    actions: actions as { setCurrentDeflation: (deflation: { multiplier: number; usageCount: number } | null) => void; setMultiplierPulse: (pulse: boolean) => void }
   });
 
   // 다중 타겟 선택 시스템 (커스텀 훅으로 분리) - useCardSelection보다 먼저 정의
@@ -794,10 +794,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleVanishedCards: battle.vanishedCards,
     sortType: sortType as "type" | "speed" | "energy" | "value",
     hand,
-    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
     addLog,
     playSound,
-    actions: actions as unknown as { setDeck: (deck: Card[]) => void; setDiscardPile: (pile: Card[]) => void; setHand: (hand: Card[]) => void; setSelected: (selected: Card[]) => void; setCanRedraw: (canRedraw: boolean) => void; setSortType: (sortType: string) => void }
+    actions: actions as { setDeck: (deck: Card[]) => void; setDiscardPile: (pile: Card[]) => void; setHand: (hand: Card[]) => void; setSelected: (selected: Card[]) => void; setCanRedraw: (canRedraw: boolean) => void; setSortType: (sortType: string) => void }
   });
 
   // 페이즈 전환 (커스텀 훅으로 분리)
@@ -815,12 +815,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     willOverdrive,
     turnNumber,
     rewindUsed,
-    respondSnapshot: respondSnapshot as unknown as { selectedSnapshot: Card[]; enemyActions: Card[] } | null,
+    respondSnapshot: respondSnapshot as { selectedSnapshot: Card[]; enemyActions: Card[] } | null,
     devilDiceTriggeredRef,
     etherSlots,
     playSound,
     addLog,
-    actions: actions as unknown as never,
+    actions: actions as never,
     pathosNextCardEffects,
     consumeNextCardEffects
   });
@@ -837,7 +837,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     enemyTurnEtherAccumulated,
     battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
     playSound,
-    actions: actions as unknown as never
+    actions: actions as never
   });
 
   // 보상 및 함성 선택 (커스텀 훅으로 분리) - useResolveExecution보다 먼저 정의
@@ -858,7 +858,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
     battleNextTurnEffects: battle.nextTurnEffects,
     addLog,
-    actions: actions as unknown as { setPostCombatOptions: (options: unknown) => void; setPhase: (phase: string) => void; setNextTurnEffects: (effects: unknown) => void }
+    actions: actions as { setPostCombatOptions: (options: unknown) => void; setPhase: (phase: string) => void; setNextTurnEffects: (effects: unknown) => void }
   });
 
   // 진행 단계 실행 (커스텀 훅으로 분리)
@@ -879,13 +879,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleRef: battleRef as unknown as MutableRefObject<BattleRef | null>,
     parryReadyStatesRef,
     setParryReadyStates,
-    growingDefenseRef: growingDefenseRef as unknown as MutableRefObject<number | null>,
-    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
-    escapeUsedThisTurnRef: escapeUsedThisTurnRef as unknown as MutableRefObject<Set<string>>,
-    calculateEtherTransfer: calculateEtherTransfer as unknown as (playerAppliedEther: number, enemyAppliedEther: number, curPlayerPts: number, curEnemyPts: number, enemyHp: number) => { nextPlayerPts: number; nextEnemyPts: number; movedPts: number },
-    checkVictoryCondition: checkVictoryCondition as unknown as (enemy: import("../../types").VictoryEnemy, pts: number) => import("../../types").VictoryCheckResult,
+    growingDefenseRef: growingDefenseRef as MutableRefObject<number | null>,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
+    escapeUsedThisTurnRef: escapeUsedThisTurnRef as MutableRefObject<Set<string>>,
+    calculateEtherTransfer: calculateEtherTransfer as (playerAppliedEther: number, enemyAppliedEther: number, curPlayerPts: number, curEnemyPts: number, enemyHp: number) => { nextPlayerPts: number; nextEnemyPts: number; movedPts: number },
+    checkVictoryCondition: checkVictoryCondition as (enemy: import("../../types").VictoryEnemy, pts: number) => import("../../types").VictoryCheckResult,
     showCardRewardModal,
-    startEtherCalculationAnimation: startEtherCalculationAnimation as unknown as () => void,
+    startEtherCalculationAnimation: startEtherCalculationAnimation as () => void,
     addLog,
     playSound,
     actions
@@ -998,7 +998,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 카드 소멸 이펙트는 플레이어만 적용
       if (a.actor === 'player') {
-        if (hasTrait(a.card, 'escape' as unknown as import("../../types/core").CardTrait)) {
+        if (hasTrait(a.card, 'escape' as import("../../types/core").CardTrait)) {
           escapeUsedThisTurnRef.current.add(a.card.id);
         }
         setTimeout(() => {
@@ -1118,7 +1118,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         card,
         turnEtherAccumulated,
         orderedRelicList,
-        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
+        cardUpgrades: cardUpgrades as Record<string, unknown>,
         resolvedPlayerCards,
         playerTimeline: playerTimeline as unknown as Card[],
         relics: orderedRelicList as unknown as Relic[],
@@ -1127,8 +1127,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           devilDiceTriggered: devilDiceTriggeredRef
         },
         calculatePassiveEffects,
-        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
-        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
+        getCardEtherGain: getCardEtherGain as (card: Card | Partial<Card>) => number,
+        collectTriggeredRelics: collectTriggeredRelics as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
         playRelicActivationSequence,
         flashRelic,
         actions

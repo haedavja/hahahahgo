@@ -89,6 +89,37 @@ export interface EventAnalysis {
   riskLevel: 'low' | 'medium' | 'high';
 }
 
+// ==================== 타입 안전 헬퍼 함수 ====================
+
+/**
+ * 리소스 값을 타입 안전하게 가져옴
+ */
+function getResourceValue(resources: PlayerResources, key: string): number {
+  if (key in resources) {
+    return resources[key as keyof PlayerResources];
+  }
+  return 0;
+}
+
+/**
+ * 리소스 값을 타입 안전하게 설정
+ */
+function setResourceValue(resources: PlayerResources, key: string, value: number): void {
+  if (key in resources) {
+    (resources as Record<keyof PlayerResources, number>)[key as keyof PlayerResources] = value;
+  }
+}
+
+/**
+ * 스탯 값을 타입 안전하게 가져옴
+ */
+function getStatValue(stats: PlayerStats, key: string): number {
+  if (key in stats) {
+    return stats[key as keyof PlayerStats];
+  }
+  return 0;
+}
+
 // ==================== 이벤트 시뮬레이터 ====================
 
 export class EventSimulator {
@@ -131,7 +162,7 @@ export class EventSimulator {
     // 비용 체크
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
-        const current = (resources as unknown as Record<string, number>)[resource] || 0;
+        const current = getResourceValue(resources, resource);
         if (current < amount) {
           return { canSelect: false, reason: `${resource} 부족 (필요: ${amount}, 보유: ${current})` };
         }
@@ -141,7 +172,7 @@ export class EventSimulator {
     // 스탯 요구사항 체크
     if (choice.statRequirement) {
       for (const [stat, required] of Object.entries(choice.statRequirement)) {
-        const current = (stats as unknown as Record<string, number>)[stat] || 0;
+        const current = getStatValue(stats, stat);
         if (current < required) {
           return { canSelect: false, reason: `${stat} 부족 (필요: ${required}, 보유: ${current})` };
         }
@@ -329,7 +360,8 @@ export class EventSimulator {
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
         resourceChanges[resource] = -(amount as number);
-        (finalResources as Record<string, number>)[resource] -= amount as number;
+        const currentValue = getResourceValue(finalResources, resource);
+        setResourceValue(finalResources, resource, currentValue - (amount as number));
       }
     }
 
@@ -338,8 +370,8 @@ export class EventSimulator {
       for (const [resource, amount] of Object.entries(choice.rewards)) {
         if (resource === 'card' || resource === 'relic') continue; // 별도 처리
         resourceChanges[resource] = (resourceChanges[resource] || 0) + (amount as number);
-        (finalResources as Record<string, number>)[resource] =
-          ((finalResources as Record<string, number>)[resource] || 0) + (amount as number);
+        const currentValue = getResourceValue(finalResources, resource);
+        setResourceValue(finalResources, resource, currentValue + (amount as number));
       }
     }
 
@@ -349,8 +381,8 @@ export class EventSimulator {
       for (const [resource, amount] of Object.entries(penalties)) {
         if (resource === 'card') continue; // 저주 카드 등 별도 처리
         resourceChanges[resource] = (resourceChanges[resource] || 0) - (amount as number);
-        (finalResources as Record<string, number>)[resource] =
-          ((finalResources as Record<string, number>)[resource] || 0) - (amount as number);
+        const currentValue = getResourceValue(finalResources, resource);
+        setResourceValue(finalResources, resource, currentValue - (amount as number));
       }
     }
 
@@ -409,7 +441,8 @@ export class EventSimulator {
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
         resourceChanges[resource] = -(amount as number);
-        (finalResources as Record<string, number>)[resource] -= amount as number;
+        const currentValue = getResourceValue(finalResources, resource);
+        setResourceValue(finalResources, resource, currentValue - (amount as number));
       }
     }
 
@@ -417,8 +450,8 @@ export class EventSimulator {
     if (choice.rewards) {
       for (const [resource, amount] of Object.entries(choice.rewards)) {
         resourceChanges[resource] = (resourceChanges[resource] || 0) + (amount as number);
-        (finalResources as Record<string, number>)[resource] =
-          ((finalResources as Record<string, number>)[resource] || 0) + (amount as number);
+        const currentValue = getResourceValue(finalResources, resource);
+        setResourceValue(finalResources, resource, currentValue + (amount as number));
       }
     }
 
@@ -555,13 +588,44 @@ export class EventSimulator {
 // ==================== 헬퍼 함수 ====================
 
 /**
+ * NewEventDefinition을 EventDefinition으로 변환
+ */
+function convertToEventDefinition(newEvent: unknown): EventDefinition {
+  const event = newEvent as {
+    id: string;
+    title?: string;
+    description?: string;
+    difficulty?: string;
+    isInitial?: boolean;
+    choices?: EventChoice[];
+    stages?: Record<string, EventStage>;
+  };
+
+  return {
+    id: event.id,
+    title: event.title || event.id, // title이 없으면 id 사용
+    description: event.description,
+    difficulty: event.difficulty as 'easy' | 'medium' | 'hard' | undefined,
+    isInitial: event.isInitial,
+    choices: event.choices,
+    stages: event.stages,
+  };
+}
+
+/**
  * 이벤트 시뮬레이터 생성 헬퍼
  */
 export async function createEventSimulator(): Promise<EventSimulator> {
   // 동적 임포트로 이벤트 라이브러리 로드
   try {
     const { NEW_EVENT_LIBRARY } = await import('../../data/newEvents');
-    return new EventSimulator(NEW_EVENT_LIBRARY as unknown as Record<string, EventDefinition>);
+    const convertedLibrary: Record<string, EventDefinition> = {};
+
+    for (const [key, value] of Object.entries(NEW_EVENT_LIBRARY)) {
+      convertedLibrary[key] = convertToEventDefinition(value);
+    }
+
+    return new EventSimulator(convertedLibrary);
   } catch (error) {
     log.warn('Failed to load event library, using empty');
     return new EventSimulator({});

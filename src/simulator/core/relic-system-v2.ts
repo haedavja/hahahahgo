@@ -12,12 +12,63 @@
  * - ON_DAMAGE_TAKEN: 피해 받을 때
  */
 
-import type { GameRelic, RelicEffects, PlayerState, EnemyState } from './game-types';
+import type { GameRelic, RelicEffects, PlayerState, EnemyState, RelicEffectType } from './game-types';
 import { syncAllRelics } from '../data/game-data-sync';
 import { getLogger } from './logger';
 import { addToken } from './token-system';
 
 const log = getLogger('RelicSystem');
+
+// ==================== 확장 타입 정의 ====================
+
+/**
+ * RelicEffects의 확장 타입 - 실제 사용되는 모든 필드 포함
+ * game-types.ts의 RelicEffects를 수정하지 않고 로컬에서 확장
+ */
+interface ExtendedRelicEffects extends RelicEffects {
+  // 패시브 효과 (추가 필드)
+  positiveTraitMultiplier?: number;
+  speed?: number;
+  rewindCount?: number;
+  extraCardPlay?: number;
+  speedCostReduction?: number;
+
+  // 트리거 효과 (추가 필드)
+  healOnPositive?: number;
+  damageOnNegative?: number;
+  freezeEnemyTimeline?: boolean;
+  grantDefensiveNextTurn?: number;
+  grantOffensePlus?: number;
+  etherGain?: number;
+}
+
+/**
+ * 확장된 효과 타입 (ON_TOKEN_GAIN, ON_COMBO, ON_RELIC_ACTIVATE 등)
+ */
+type ExtendedRelicEffectType = RelicEffectType | 'ON_TOKEN_GAIN' | 'ON_COMBO' | 'ON_RELIC_ACTIVATE';
+
+/**
+ * 확장된 GameRelic 타입
+ */
+interface ExtendedGameRelic extends Omit<GameRelic, 'effects'> {
+  effects: ExtendedRelicEffects & {
+    type: ExtendedRelicEffectType;
+  };
+}
+
+/**
+ * 타입 가드: RelicEffects를 ExtendedRelicEffects로 안전하게 변환
+ */
+function asExtendedEffects(effects: RelicEffects): ExtendedRelicEffects {
+  return effects as ExtendedRelicEffects;
+}
+
+/**
+ * 타입 가드: GameRelic을 ExtendedGameRelic로 안전하게 변환
+ */
+function asExtendedRelic(relic: GameRelic): ExtendedGameRelic {
+  return relic as ExtendedGameRelic;
+}
 
 // ==================== 상징 정의 캐시 ====================
 
@@ -142,25 +193,25 @@ export class RelicSystemV2 {
       const relic = definitions[relicId];
       if (!relic || relic.effects.type !== 'PASSIVE') continue;
 
-      const effects = relic.effects as unknown as Record<string, unknown>;
+      const effects = asExtendedEffects(relic.effects);
 
-      if (effects.maxEnergy) result.maxEnergy += effects.maxEnergy as number;
-      if (effects.maxHp) result.maxHp += effects.maxHp as number;
-      if (effects.strength) result.strength += effects.strength as number;
-      if (effects.agility) result.agility += effects.agility as number;
-      if (effects.maxSpeed) result.maxSpeed += effects.maxSpeed as number;
-      if (effects.maxSubmitCards) result.maxSubmitCards += effects.maxSubmitCards as number;
-      if (effects.subSpecialSlots) result.subSpecialSlots += effects.subSpecialSlots as number;
-      if (effects.mainSpecialSlots) result.mainSpecialSlots += effects.mainSpecialSlots as number;
-      if (effects.cardDrawBonus) result.cardDrawBonus += effects.cardDrawBonus as number;
-      if (effects.etherMultiplier) result.etherMultiplier *= effects.etherMultiplier as number;
-      if (effects.comboMultiplierPerCard) result.comboMultiplierPerCard += effects.comboMultiplierPerCard as number;
-      if (effects.negativeTraitMultiplier) result.negativeTraitMultiplier += effects.negativeTraitMultiplier as number;
+      if (effects.maxEnergy) result.maxEnergy += effects.maxEnergy;
+      if (effects.maxHp) result.maxHp += effects.maxHp;
+      if (effects.strength) result.strength += effects.strength;
+      if (effects.agility) result.agility += effects.agility;
+      if (effects.maxSpeed) result.maxSpeed += effects.maxSpeed;
+      if (effects.maxSubmitCards) result.maxSubmitCards += effects.maxSubmitCards;
+      if (effects.subSpecialSlots) result.subSpecialSlots += effects.subSpecialSlots;
+      if (effects.mainSpecialSlots) result.mainSpecialSlots += effects.mainSpecialSlots;
+      if (effects.cardDrawBonus) result.cardDrawBonus += effects.cardDrawBonus;
+      if (effects.etherMultiplier) result.etherMultiplier *= effects.etherMultiplier;
+      if (effects.comboMultiplierPerCard) result.comboMultiplierPerCard += effects.comboMultiplierPerCard;
+      if (effects.negativeTraitMultiplier) result.negativeTraitMultiplier += effects.negativeTraitMultiplier;
       // 새로 추가된 패시브 효과
-      if (effects.positiveTraitMultiplier) result.positiveTraitMultiplier += effects.positiveTraitMultiplier as number;
-      if (effects.speed) result.speed += effects.speed as number;
-      if (effects.rewindCount) result.rewindCount += effects.rewindCount as number;
-      if (effects.extraCardPlay) result.extraCardPlay += effects.extraCardPlay as number;
+      if (effects.positiveTraitMultiplier) result.positiveTraitMultiplier += effects.positiveTraitMultiplier;
+      if (effects.speed) result.speed += effects.speed;
+      if (effects.rewindCount) result.rewindCount += effects.rewindCount;
+      if (effects.extraCardPlay) result.extraCardPlay += effects.extraCardPlay;
     }
 
     return result;
@@ -559,9 +610,11 @@ export class RelicSystemV2 {
       const relic = definitions[relicId];
       if (!relic) continue;
 
-      const effects = relic.effects as unknown as Record<string, unknown>;
-      if (effects.type !== 'ON_TOKEN_GAIN') continue;
+      const extendedRelic = asExtendedRelic(relic);
+      const effectType = extendedRelic.effects.type as ExtendedRelicEffectType;
+      if (effectType !== 'ON_TOKEN_GAIN') continue;
 
+      const effects = asExtendedEffects(relic.effects);
       const result: RelicEffectResult = {
         relicId,
         relicName: relic.name,
@@ -571,10 +624,10 @@ export class RelicSystemV2 {
       // 불발탄: 긍정 토큰이면 회복, 부정 토큰이면 피해
       if (relicId === 'dud') {
         if (isPositive && effects.healOnPositive) {
-          result.effects.heal = effects.healOnPositive as number;
+          result.effects.heal = effects.healOnPositive;
           result.effects.message = `불발탄: 체력 +${effects.healOnPositive}`;
         } else if (!isPositive && effects.damageOnNegative) {
-          result.effects.damage = effects.damageOnNegative as number;
+          result.effects.damage = effects.damageOnNegative;
           result.effects.message = `불발탄: 체력 -${effects.damageOnNegative}`;
         }
       }
@@ -658,8 +711,11 @@ export class RelicSystemV2 {
     const definitions = getRelicDefinitions();
     if (this.activeRelics.has('devilDice') && cardsPlayed >= 5) {
       const relic = definitions['devilDice'];
-      if (relic && (relic.effects as unknown as Record<string, unknown>).etherFiveCardBonus) {
-        multiplier *= (relic.effects as unknown as Record<string, unknown>).etherFiveCardBonus as number;
+      if (relic) {
+        const effects = asExtendedEffects(relic.effects);
+        if (effects.etherFiveCardBonus) {
+          multiplier *= effects.etherFiveCardBonus;
+        }
       }
     }
 

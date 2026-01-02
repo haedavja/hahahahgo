@@ -13,9 +13,12 @@ const gunzipAsync = promisify(gunzip);
 
 // ==================== 이중 연결 리스트 노드 ====================
 
+// 캐시 값 타입 - 압축 여부에 따라 다른 타입 저장
+type CacheValue<V> = V | Buffer;
+
 class DoublyLinkedListNode<K, V> {
   key: K;
-  value: V;
+  value: CacheValue<V>;
   prev: DoublyLinkedListNode<K, V> | null = null;
   next: DoublyLinkedListNode<K, V> | null = null;
   size: number;
@@ -23,7 +26,7 @@ class DoublyLinkedListNode<K, V> {
   lastAccess: number = Date.now();
   expires: number | null = null;
 
-  constructor(key: K, value: V, size: number) {
+  constructor(key: K, value: CacheValue<V>, size: number) {
     this.key = key;
     this.value = value;
     this.size = size;
@@ -199,24 +202,29 @@ export class AdvancedLRUCache<V = unknown> {
 
     // 압축 해제
     if (this.compressedKeys.has(key)) {
-      return this.decompress(node.value as unknown as Buffer) as V;
+      // 압축된 경우 Buffer 타입임을 보장
+      if (Buffer.isBuffer(node.value)) {
+        const decompressed = await this.decompress(node.value);
+        return decompressed as V;
+      }
     }
 
-    return node.value;
+    // 압축되지 않은 경우 V 타입
+    return node.value as V;
   }
 
   // O(1) 삽입
   async set(key: string, value: V, ttlMs?: number): Promise<void> {
     const serialized = JSON.stringify(value);
     let size = Buffer.byteLength(serialized, 'utf8');
-    let finalValue: V | Buffer = value;
+    let finalValue: CacheValue<V> = value;
 
     // 압축 필요 여부 확인
     if (size >= this.config.compressionThreshold) {
       try {
         const compressed = await this.compress(serialized);
         if (compressed.length < size * 0.8) { // 20% 이상 절약될 때만
-          finalValue = compressed as unknown as V;
+          finalValue = compressed;
           size = compressed.length;
           this.compressedKeys.add(key);
           this.stats.compressions++;
@@ -563,7 +571,8 @@ export class CacheWarmer<V = unknown> {
   // 시뮬레이션 설정 기반 워밍
   addSimulationConfig(config: SimulationConfig, result: SimulationResult, priority: number = 0): void {
     const key = this.generateKey(config);
-    this.addWarmingItem(key, result as unknown as V, priority);
+    // V가 SimulationResult를 포함할 수 있다고 가정
+    this.addWarmingItem(key, result as V, priority);
   }
 
   private generateKey(config: SimulationConfig): string {
@@ -625,10 +634,11 @@ export class CacheWarmer<V = unknown> {
 
         const result = await simulator(config);
 
+        // V가 SimulationResult를 포함할 수 있다고 가정
         if (this.cache instanceof SegmentedCache) {
-          await this.cache.setHot(key, result as unknown as V);
+          await this.cache.setHot(key, result as V);
         } else {
-          await this.cache.set(key, result as unknown as V);
+          await this.cache.set(key, result as V);
         }
         warmed++;
       } catch {

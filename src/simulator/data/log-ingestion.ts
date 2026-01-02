@@ -74,6 +74,21 @@ export interface CardPlayedPayload {
   effectsApplied?: string[];
 }
 
+// 타입 안전한 페이로드 접근 헬퍼
+// Note: Record<string, unknown>에서 특정 페이로드 타입으로 변환하려면
+// 런타임 검증 없이 as unknown as를 사용해야 함 (타입 간 겹침 없음)
+function getBattleEndPayload(entry: GameLogEntry): BattleEndPayload {
+  return entry.payload as unknown as BattleEndPayload;
+}
+
+function getCardPlayedPayload(entry: GameLogEntry): CardPlayedPayload {
+  return entry.payload as unknown as CardPlayedPayload;
+}
+
+function getBattleStartPayload(entry: GameLogEntry): BattleStartPayload {
+  return entry.payload as unknown as BattleStartPayload;
+}
+
 export interface LogFilter {
   startDate?: Date;
   endDate?: Date;
@@ -380,7 +395,7 @@ export class LogAnalyzer {
       .filter(e => !filter || this.matchesFilter(e, filter));
 
     const totalBattles = battleEnds.length;
-    const wins = battleEnds.filter(e => (e.payload as unknown as BattleEndPayload).winner === 'player');
+    const wins = battleEnds.filter(e => getBattleEndPayload(e).winner === 'player');
     const totalWins = wins.length;
 
     // 카드 사용 통계
@@ -397,11 +412,11 @@ export class LogAnalyzer {
 
     // 평균 값들
     const avgTurns = battleEnds.length > 0
-      ? battleEnds.reduce((sum, e) => sum + ((e.payload as unknown as BattleEndPayload).turns || 0), 0) / battleEnds.length
+      ? battleEnds.reduce((sum, e) => sum + (getBattleEndPayload(e).turns || 0), 0) / battleEnds.length
       : 0;
 
     const avgDuration = battleEnds.length > 0
-      ? battleEnds.reduce((sum, e) => sum + ((e.payload as unknown as BattleEndPayload).duration || 0), 0) / battleEnds.length
+      ? battleEnds.reduce((sum, e) => sum + (getBattleEndPayload(e).duration || 0), 0) / battleEnds.length
       : 0;
 
     return {
@@ -440,13 +455,13 @@ export class LogAnalyzer {
     // 배틀별 승패 맵
     const battleWins = new Map<string, boolean>();
     for (const end of battleEnds) {
-      const payload = end.payload as unknown as BattleEndPayload;
+      const payload = getBattleEndPayload(end);
       battleWins.set(payload.battleId, payload.winner === 'player');
     }
 
     // 카드별 집계
     for (const play of cardPlays) {
-      const payload = play.payload as unknown as CardPlayedPayload;
+      const payload = getCardPlayedPayload(play);
       const cardId = payload.cardId;
       const battleId = payload.battleId;
       const won = battleWins.get(battleId) || false;
@@ -497,12 +512,12 @@ export class LogAnalyzer {
     const battleStarts = this.store.getByEventType('battle_start');
     const enemyMap = new Map<string, string>();
     for (const start of battleStarts) {
-      const payload = start.payload as unknown as BattleStartPayload;
+      const payload = getBattleStartPayload(start);
       enemyMap.set(payload.battleId, payload.enemyId);
     }
 
     for (const end of battleEnds) {
-      const payload = end.payload as unknown as BattleEndPayload;
+      const payload = getBattleEndPayload(end);
       const enemyId = enemyMap.get(payload.battleId);
       if (!enemyId) continue;
 
@@ -590,8 +605,8 @@ export class LogAnalyzer {
 
     if (!startEvent) return null;
 
-    const startPayload = startEvent.payload as unknown as BattleStartPayload;
-    const endPayload = endEvent?.payload as BattleEndPayload | undefined;
+    const startPayload = getBattleStartPayload(startEvent);
+    const endPayload = endEvent ? getBattleEndPayload(endEvent) : undefined;
 
     const turns: BattleTurn[] = [];
     let currentTurn: BattleTurn | null = null;

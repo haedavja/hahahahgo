@@ -13,7 +13,7 @@ import { useCallback } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
-import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
+import { gainGrace, createInitialGraceState, type MonsterGraceState, type PrayerType } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
@@ -174,7 +174,7 @@ export function useResolveExecution({
     escapeUsedThisTurnRef.current = new Set();
 
     // 다음 턴 효과 처리 (특성 기반)
-    const traitNextTurnEffects = processCardTraitEffects(selected as unknown as TraitEffectCard[], addLog);
+    const traitNextTurnEffects = processCardTraitEffects(selected as TraitEffectCard[], addLog);
 
     // 카드 플레이 중 설정된 효과 병합
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
@@ -284,9 +284,10 @@ export function useResolveExecution({
 
     // 현재 은총 상태 가져오기
     const rawGrace = latestEnemy.grace;
+    const enemyUnit = enemy as EnemyUnit;
     const currentGrace: MonsterGraceState = (rawGrace && typeof rawGrace === 'object' && 'gracePts' in rawGrace)
       ? rawGrace as MonsterGraceState
-      : createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+      : createInitialGraceState((enemyUnit.availablePrayers as PrayerType[] | undefined) || []);
 
     const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
       playerAppliedEther: effectivePlayerAppliedEther,
@@ -445,10 +446,10 @@ export function useResolveExecution({
       events.forEach(ev => addLog(ev.msg));
 
       if (a.actor === 'player') {
-        const gain = Math.floor(getCardEtherGain(a.card as unknown as EtherCard) * passiveRelicEffects.etherMultiplier);
+        const gain = Math.floor(getCardEtherGain(a.card as EtherCard) * passiveRelicEffects.etherMultiplier);
         localTurnEther += gain;
       } else if (a.actor === 'enemy') {
-        localEnemyTurnEther += getCardEtherGain(a.card as unknown as EtherCard);
+        localEnemyTurnEther += getCardEtherGain(a.card as EtherCard);
       }
 
       if (P.hp <= 0) {
@@ -479,7 +480,7 @@ export function useResolveExecution({
     const latestPlayerForAnim = battleRef.current?.player || player;
     startEtherCalculationAnimationSequence({
       turnEtherAccumulated: localTurnEther,
-      selected: selected as unknown as EtherAnimCard[],
+      selected: selected as EtherAnimCard[],
       player: latestPlayerForAnim,
       playSound,
       actions: {
