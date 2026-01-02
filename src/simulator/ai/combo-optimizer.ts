@@ -95,45 +95,23 @@ export class ComboOptimizer {
   }
 
   /**
-   * 손패 분석 - 가능한 모든 조합 평가
+   * 손패 분석 - 최적화된 O(n) 알고리즘
+   * 모든 조합을 탐색하지 않고 직접 최고 조합을 계산합니다.
    */
   analyzeHand(handCardIds: string[]): ComboAnalysis {
     const handCards = handCardIds
-      .map(id => this.cards[id])
-      .filter(Boolean) as GameCard[];
+      .map(id => ({ id, card: this.cards[id] }))
+      .filter(item => item.card) as Array<{ id: string; card: GameCard }>;
 
     const analysis: string[] = [];
 
     // 현재 전체 손패의 조합
-    const currentCombo = detectPokerCombo(handCards);
+    const allCards = handCards.map(h => h.card);
+    const currentCombo = detectPokerCombo(allCards);
     analysis.push(`현재 손패 조합: ${currentCombo.name} (x${currentCombo.multiplier})`);
 
-    // 가능한 모든 조합 탐색 (2-5장 조합)
-    let bestCombo = currentCombo;
-    let bestCards: string[] = handCardIds;
-    let bestEther = 0;
-
-    // 모든 부분집합 탐색 (최소 2장, 최대 5장)
-    const subsets = this.generateSubsets(handCardIds, 2, 5);
-
-    for (const subset of subsets) {
-      const cards = subset.map(id => this.cards[id]).filter(Boolean) as GameCard[];
-      const combo = detectPokerCombo(cards);
-
-      // 더 좋은 조합 발견
-      if (combo.rank > bestCombo.rank) {
-        bestCombo = combo;
-        bestCards = subset;
-      } else if (combo.rank === bestCombo.rank) {
-        // 같은 랭크면 에테르 비교
-        const etherResult = calculateTotalEther(cards);
-        if (etherResult.finalGain > bestEther) {
-          bestCombo = combo;
-          bestCards = subset;
-          bestEther = etherResult.finalGain;
-        }
-      }
-    }
+    // 최적 조합을 직접 계산 (O(n) 복잡도)
+    const { bestCards, bestCombo } = this.findBestComboDirectly(handCards);
 
     if (bestCombo.rank > currentCombo.rank) {
       analysis.push(`최적 조합 발견: ${bestCombo.name} (${bestCards.length}장)`);
@@ -155,6 +133,192 @@ export class ComboOptimizer {
       comboScore,
       analysis,
     };
+  }
+
+  /**
+   * 최적 조합을 직접 찾기 (O(n) 복잡도)
+   * 모든 조합을 탐색하지 않고 카드 그룹화를 통해 직접 계산
+   */
+  private findBestComboDirectly(
+    handCards: Array<{ id: string; card: GameCard }>
+  ): { bestCards: string[]; bestCombo: ComboResult } {
+    // actionCost별 그룹화
+    const costGroups = new Map<number, Array<{ id: string; card: GameCard }>>();
+    for (const item of handCards) {
+      const cost = item.card.actionCost || 1;
+      if (!costGroups.has(cost)) {
+        costGroups.set(cost, []);
+      }
+      costGroups.get(cost)!.push(item);
+    }
+
+    // 타입별 그룹화 (플러쉬용)
+    const typeGroups = new Map<string, Array<{ id: string; card: GameCard }>>();
+    for (const item of handCards) {
+      const type = item.card.type || 'general';
+      if (!typeGroups.has(type)) {
+        typeGroups.set(type, []);
+      }
+      typeGroups.get(type)!.push(item);
+    }
+
+    // 카테고리별 그룹화 (플러쉬용)
+    const categoryGroups = new Map<string, Array<{ id: string; card: GameCard }>>();
+    for (const item of handCards) {
+      const category = this.inferCategory(item.card);
+      if (!categoryGroups.has(category)) {
+        categoryGroups.set(category, []);
+      }
+      categoryGroups.get(category)!.push(item);
+    }
+
+    // 그룹 크기별 정렬 (높은 순)
+    const sortedCostGroups = Array.from(costGroups.entries())
+      .sort((a, b) => b[1].length - a[1].length);
+
+    // 1. 파이브카드 체크 (rank 7)
+    for (const [, group] of sortedCostGroups) {
+      if (group.length >= 5) {
+        const selected = group.slice(0, 5).map(c => c.id);
+        return {
+          bestCards: selected,
+          bestCombo: detectPokerCombo(group.slice(0, 5).map(c => c.card)),
+        };
+      }
+    }
+
+    // 2. 포카드 체크 (rank 6)
+    for (const [, group] of sortedCostGroups) {
+      if (group.length >= 4) {
+        const selected = group.slice(0, 4).map(c => c.id);
+        return {
+          bestCards: selected,
+          bestCombo: detectPokerCombo(group.slice(0, 4).map(c => c.card)),
+        };
+      }
+    }
+
+    // 3. 풀하우스 체크 (rank 5) - 트리플 + 페어
+    const tripleGroup = sortedCostGroups.find(([, g]) => g.length >= 3);
+    if (tripleGroup) {
+      const pairGroup = sortedCostGroups.find(([cost, g]) =>
+        cost !== tripleGroup[0] && g.length >= 2
+      );
+      if (pairGroup) {
+        const selected = [
+          ...tripleGroup[1].slice(0, 3).map(c => c.id),
+          ...pairGroup[1].slice(0, 2).map(c => c.id),
+        ];
+        const cards = [
+          ...tripleGroup[1].slice(0, 3).map(c => c.card),
+          ...pairGroup[1].slice(0, 2).map(c => c.card),
+        ];
+        return {
+          bestCards: selected,
+          bestCombo: detectPokerCombo(cards),
+        };
+      }
+    }
+
+    // 4. 플러쉬 체크 (rank 4) - 타입 또는 카테고리
+    // 타입 기반 플러쉬
+    for (const [, group] of typeGroups) {
+      if (group.length >= 4) {
+        const selected = group.slice(0, Math.min(5, group.length)).map(c => c.id);
+        const cards = group.slice(0, Math.min(5, group.length)).map(c => c.card);
+        return {
+          bestCards: selected,
+          bestCombo: detectPokerCombo(cards),
+        };
+      }
+    }
+    // 카테고리 기반 플러쉬
+    for (const [, group] of categoryGroups) {
+      if (group.length >= 4) {
+        const selected = group.slice(0, Math.min(5, group.length)).map(c => c.id);
+        const cards = group.slice(0, Math.min(5, group.length)).map(c => c.card);
+        return {
+          bestCards: selected,
+          bestCombo: detectPokerCombo(cards),
+        };
+      }
+    }
+
+    // 5. 트리플 체크 (rank 3)
+    if (tripleGroup) {
+      const selected = tripleGroup[1].slice(0, 3).map(c => c.id);
+      const cards = tripleGroup[1].slice(0, 3).map(c => c.card);
+      return {
+        bestCards: selected,
+        bestCombo: detectPokerCombo(cards),
+      };
+    }
+
+    // 6. 투페어 체크 (rank 2)
+    const pairGroups = sortedCostGroups.filter(([, g]) => g.length >= 2);
+    if (pairGroups.length >= 2) {
+      const selected = [
+        ...pairGroups[0][1].slice(0, 2).map(c => c.id),
+        ...pairGroups[1][1].slice(0, 2).map(c => c.id),
+      ];
+      const cards = [
+        ...pairGroups[0][1].slice(0, 2).map(c => c.card),
+        ...pairGroups[1][1].slice(0, 2).map(c => c.card),
+      ];
+      return {
+        bestCards: selected,
+        bestCombo: detectPokerCombo(cards),
+      };
+    }
+
+    // 7. 페어 체크 (rank 1)
+    if (pairGroups.length >= 1) {
+      const selected = pairGroups[0][1].slice(0, 2).map(c => c.id);
+      const cards = pairGroups[0][1].slice(0, 2).map(c => c.card);
+      return {
+        bestCards: selected,
+        bestCombo: detectPokerCombo(cards),
+      };
+    }
+
+    // 8. 하이카드 - 가장 에테르 높은 카드들
+    const sortedByEther = [...handCards].sort((a, b) => {
+      const etherA = calculateTotalEther([a.card]).finalGain;
+      const etherB = calculateTotalEther([b.card]).finalGain;
+      return etherB - etherA;
+    });
+    const selected = sortedByEther.slice(0, Math.min(2, sortedByEther.length)).map(c => c.id);
+    const cards = sortedByEther.slice(0, Math.min(2, sortedByEther.length)).map(c => c.card);
+    return {
+      bestCards: selected,
+      bestCombo: detectPokerCombo(cards),
+    };
+  }
+
+  /**
+   * 카드 카테고리 추론
+   */
+  private inferCategory(card: GameCard): string {
+    if ('cardCategory' in card && card.cardCategory) {
+      return card.cardCategory as string;
+    }
+    if ('category' in card && card.category) {
+      return card.category as string;
+    }
+    const id = (card.id ?? '').toLowerCase();
+    if (id.includes('thrust') || id.includes('slash') || id.includes('parry') ||
+        id.includes('riposte') || id.includes('fleche') || id.includes('lunge') ||
+        id.includes('fencing') || id.includes('feint')) {
+      return 'fencing';
+    }
+    if (id.includes('shoot') || id.includes('reload') || id.includes('bullet') ||
+        id.includes('gun') || id.includes('revolver') || id.includes('roulette')) {
+      return 'gun';
+    }
+    if (id.includes('special') || id.includes('hologram') || id.includes('ether')) {
+      return 'special';
+    }
+    return 'general';
   }
 
   /**
@@ -415,29 +579,6 @@ export class ComboOptimizer {
   }
 
   // ==================== 헬퍼 메서드 ====================
-
-  /**
-   * 부분집합 생성 (조합 탐색용)
-   */
-  private generateSubsets(arr: string[], minSize: number, maxSize: number): string[][] {
-    const result: string[][] = [];
-
-    const generate = (current: string[], start: number) => {
-      if (current.length >= minSize && current.length <= maxSize) {
-        result.push([...current]);
-      }
-      if (current.length >= maxSize) return;
-
-      for (let i = start; i < arr.length; i++) {
-        current.push(arr[i]);
-        generate(current, i + 1);
-        current.pop();
-      }
-    };
-
-    generate([], 0);
-    return result;
-  }
 
   /**
    * 조합 점수 계산 (0-100)
