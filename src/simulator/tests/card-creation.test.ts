@@ -15,8 +15,8 @@ import {
 import type { GameCard, GameBattleState, PlayerState, EnemyState } from '../core/game-types';
 
 describe('card-creation', () => {
-  // 테스트용 카드 데이터
-  const testCards: Record<string, GameCard> = {
+  // 테스트용 카드 데이터 (Partial 사용으로 필수 필드만 제공)
+  const testCards = {
     attack1: {
       id: 'attack1',
       name: '기본 공격',
@@ -25,7 +25,7 @@ describe('card-creation', () => {
       damage: 10,
       actionCost: 1,
       speedCost: 5,
-    } as GameCard,
+    },
     attack2: {
       id: 'attack2',
       name: '강타',
@@ -35,7 +35,7 @@ describe('card-creation', () => {
       hits: 2,
       actionCost: 2,
       speedCost: 8,
-    } as GameCard,
+    },
     defense1: {
       id: 'defense1',
       name: '방어',
@@ -44,7 +44,7 @@ describe('card-creation', () => {
       block: 8,
       actionCost: 1,
       speedCost: 3,
-    } as GameCard,
+    },
     fencing1: {
       id: 'fencing1',
       name: '펜싱 공격',
@@ -53,7 +53,7 @@ describe('card-creation', () => {
       damage: 12,
       actionCost: 1,
       speedCost: 4,
-    } as GameCard,
+    },
     gun1: {
       id: 'gun1',
       name: '사격',
@@ -63,7 +63,7 @@ describe('card-creation', () => {
       hits: 3,
       actionCost: 2,
       speedCost: 6,
-    } as GameCard,
+    },
     skill1: {
       id: 'skill1',
       name: '버프',
@@ -71,7 +71,7 @@ describe('card-creation', () => {
       cardCategory: 'general',
       actionCost: 1,
       speedCost: 2,
-    } as GameCard,
+    },
     finesse_required: {
       id: 'finesse_required',
       name: '기교 필요',
@@ -81,29 +81,31 @@ describe('card-creation', () => {
       actionCost: 1,
       speedCost: 5,
       requiredTokens: [{ id: 'finesse', stacks: 1 }],
-    } as GameCard,
+    },
     power1: {
       id: 'power1',
       name: '파워',
-      type: 'power',
+      type: 'general', // power 타입은 CardType에 없으므로 general로 변경
       cardCategory: 'general',
       actionCost: 2,
       speedCost: 0,
-    } as GameCard,
-  };
+    },
+  } as unknown as Record<string, GameCard>;
 
   // 기본 플레이어 상태
   const createPlayer = (): PlayerState => ({
     hp: 80,
     maxHp: 100,
+    maxSpeed: 30,
     block: 0,
     strength: 0,
+    agility: 0,
     energy: 6,
     maxEnergy: 6,
+    gold: 0,
     hand: [],
     deck: [],
     discard: [],
-    exhaust: [],
     tokens: {},
     ether: 0,
     insight: 0,
@@ -116,6 +118,7 @@ describe('card-creation', () => {
     name: '테스트 적',
     hp: 50,
     maxHp: 100,
+    maxSpeed: 30,
     block: 0,
     tokens: {},
     deck: [],
@@ -176,10 +179,11 @@ describe('card-creation', () => {
       expect(pool.every(c => c.id !== 'attack1' && c.id !== 'attack2')).toBe(true);
     });
 
-    it('power 타입 제외 (기본)', () => {
+    it('기본 타입만 포함 (attack, defense, general, support)', () => {
       const pool = generateCreationPool(testCards, { count: 10 });
+      const validTypes = ['attack', 'defense', 'general', 'support'];
 
-      expect(pool.every(c => c.type !== 'power')).toBe(true);
+      expect(pool.every(c => validTypes.includes(c.type))).toBe(true);
     });
 
     it('중복 ID 없음', () => {

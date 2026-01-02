@@ -23,6 +23,7 @@ describe('enemy-units', () => {
     name: '테스트 적',
     hp: 100,
     maxHp: 100,
+    maxSpeed: 30,
     block: 0,
     tokens: {},
     deck: ['enemy_slash', 'enemy_guard'],

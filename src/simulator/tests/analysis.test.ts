@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PatternLearner } from '../analysis/pattern-learning';
 import { TrendAnalyzer } from '../analysis/trends';
+import { detectPokerCombo, type ComboCard } from '../core/combo-ether-system';
 
 // ==================== PatternLearner 테스트 ====================
 
@@ -118,9 +119,8 @@ describe('PatternLearner', () => {
       expect(analysis?.topActions.length).toBeGreaterThan(0);
     });
 
-    it.skip('예측 가능성을 계산해야 함', () => {
-      // 항상 같은 패턴 = 높은 예측 가능성
-      // 스킵: 엔트로피 계산 로직 수정 필요
+    it('예측 가능성을 계산해야 함', () => {
+      // 항상 같은 패턴 = 높은 예측 가능성 (maxEntropy=0일 때 1.0 반환)
       for (let i = 0; i < 10; i++) {
         learner.recordBattle('predictable', [
           'predictable: onlySlash → 5 피해',
@@ -128,7 +128,7 @@ describe('PatternLearner', () => {
       }
 
       const analysis = learner.analyzeEnemy('predictable');
-      expect(analysis?.predictability).toBeGreaterThan(0.5);
+      expect(analysis?.predictability).toBe(1); // 단일 행동 = 완전 예측 가능
     });
   });
 });
@@ -189,20 +189,74 @@ describe('TrendAnalyzer', () => {
 });
 
 // ==================== ComboDetector 통합 테스트 ====================
-// 스킵: battle-engine 모듈 안정화 후 활성화
 
-describe.skip('ComboDetector Integration', () => {
+describe('ComboDetector Integration', () => {
+  // 테스트용 카드 생성 헬퍼
+  const createCard = (id: string, actionCost: number, type: string = 'attack', category: string = 'fencing'): ComboCard => ({
+    id,
+    actionCost,
+    type: type as 'attack' | 'defense' | 'general' | 'support',
+    category: category as 'fencing' | 'gun' | 'special' | 'general',
+  });
+
   describe('실제 게임 시나리오', () => {
     it('기본 덱에서 페어를 감지해야 함', () => {
-      expect(true).toBe(true);
+      // 같은 actionCost를 가진 카드 2장 = 페어
+      const cards = [
+        createCard('strike1', 1),
+        createCard('strike2', 1),
+        createCard('defend', 2),
+      ];
+
+      const result = detectPokerCombo(cards);
+      expect(result.name).toBe('페어');
+      expect(result.multiplier).toBeGreaterThan(1);
     });
 
-    it('고유 카드 덱에서 콤보가 없어야 함', () => {
-      expect(true).toBe(true);
+    it('고유 카드 덱에서 하이카드를 반환해야 함', () => {
+      // 모든 actionCost가 다른 카드들 = 하이카드
+      const cards = [
+        createCard('card1', 1),
+        createCard('card2', 2),
+        createCard('card3', 3),
+      ];
+
+      const result = detectPokerCombo(cards);
+      expect(result.name).toBe('하이카드');
+      expect(result.multiplier).toBe(1);
     });
 
-    it('콤보 덱에서 높은 배수를 반환해야 함', () => {
-      expect(true).toBe(true);
+    it('트리플 콤보를 감지해야 함', () => {
+      // 같은 actionCost 3장 = 트리플
+      const cards = [
+        createCard('attack1', 2),
+        createCard('attack2', 2),
+        createCard('attack3', 2),
+      ];
+
+      const result = detectPokerCombo(cards);
+      expect(result.name).toBe('트리플');
+      expect(result.multiplier).toBeGreaterThan(2);
+    });
+
+    it('풀하우스를 감지해야 함', () => {
+      // 3장 + 2장 = 풀하우스
+      const cards = [
+        createCard('a1', 1),
+        createCard('a2', 1),
+        createCard('a3', 1),
+        createCard('b1', 2),
+        createCard('b2', 2),
+      ];
+
+      const result = detectPokerCombo(cards);
+      expect(result.name).toBe('풀하우스');
+      expect(result.multiplier).toBeGreaterThan(3);
+    });
+
+    it('빈 카드 배열은 하이카드를 반환해야 함', () => {
+      const result = detectPokerCombo([]);
+      expect(result.name).toBe('하이카드');
     });
   });
 });

@@ -466,97 +466,101 @@ describe('run-simulator', () => {
     it('성공적인 런 결과를 나타낸다', () => {
       const result: RunResult = {
         success: true,
-        finalPlayer: createDefaultPlayer(),
+        finalPlayerState: createDefaultPlayer(),
+        finalLayer: 5,
         nodesVisited: 12,
-        combatsWon: 8,
-        elitesDefeated: 2,
-        bossDefeated: true,
-        goldEarned: 350,
-        cardsAdded: ['fleche', 'riposte'],
-        cardsRemoved: ['strike'],
-        relicsFound: ['relic1'],
-        itemsUsed: 3,
-        path: [
+        battlesWon: 8,
+        battlesLost: 0,
+        eventsCompleted: 3,
+        shopsVisited: 2,
+        restsUsed: 1,
+        dungeonsCleared: 1,
+        nodeResults: [
           { nodeId: 'n1', nodeType: 'combat', success: true, hpChange: -10, goldChange: 20, cardsGained: [], relicsGained: [], details: '' }
         ],
-        stats: {
-          averageTurnsPerCombat: 5.2,
-          totalDamageDealt: 450,
-          totalDamageTaken: 180,
-          healingReceived: 60,
-          cardsPlayed: 85,
-          goldSpent: 120,
-        },
+        totalTurns: 45,
+        totalGoldEarned: 350,
+        totalCardsGained: 5,
       };
 
       expect(result.success).toBe(true);
-      expect(result.bossDefeated).toBe(true);
-      expect(result.combatsWon).toBe(8);
+      expect(result.finalLayer).toBe(5);
+      expect(result.battlesWon).toBe(8);
     });
 
     it('실패한 런 결과를 나타낸다', () => {
       const result: RunResult = {
         success: false,
-        finalPlayer: { ...createDefaultPlayer(), hp: 0 },
+        deathCause: '전투 패배',
+        finalPlayerState: { ...createDefaultPlayer(), hp: 0 },
+        finalLayer: 3,
         nodesVisited: 7,
-        combatsWon: 5,
-        elitesDefeated: 1,
-        bossDefeated: false,
-        goldEarned: 150,
-        cardsAdded: ['thrust'],
-        cardsRemoved: [],
-        relicsFound: [],
-        itemsUsed: 1,
-        deathCause: 'elite_combat',
-        path: [],
-        stats: {
-          averageTurnsPerCombat: 6.0,
-          totalDamageDealt: 200,
-          totalDamageTaken: 100,
-          healingReceived: 0,
-          cardsPlayed: 40,
-          goldSpent: 50,
-        },
+        battlesWon: 5,
+        battlesLost: 1,
+        eventsCompleted: 1,
+        shopsVisited: 1,
+        restsUsed: 0,
+        dungeonsCleared: 0,
+        nodeResults: [],
+        totalTurns: 30,
+        totalGoldEarned: 150,
+        totalCardsGained: 2,
       };
 
       expect(result.success).toBe(false);
-      expect(result.deathCause).toBe('elite_combat');
-      expect(result.finalPlayer.hp).toBe(0);
+      expect(result.deathCause).toBe('전투 패배');
+      expect(result.finalPlayerState.hp).toBe(0);
     });
   });
 
   describe('RunStatistics 타입', () => {
-    it('전투 통계를 포함한다', () => {
+    it('런 통계를 포함한다', () => {
       const stats: RunStatistics = {
-        averageTurnsPerCombat: 4.5,
-        totalDamageDealt: 500,
-        totalDamageTaken: 200,
-        healingReceived: 80,
-        cardsPlayed: 100,
-        goldSpent: 200,
+        totalRuns: 100,
+        successRate: 0.65,
+        avgFinalLayer: 4.2,
+        avgBattlesWon: 7.5,
+        avgGoldEarned: 300,
+        avgCardsInDeck: 15,
+        deathCauses: { 'elite_combat': 20, 'boss_combat': 15 },
+        strategyComparison: {
+          aggressive: { successRate: 0.7, avgLayer: 4.5 },
+          defensive: { successRate: 0.6, avgLayer: 4.0 },
+          balanced: { successRate: 0.65, avgLayer: 4.2 },
+          speedrun: { successRate: 0.5, avgLayer: 3.8 },
+          treasure_hunter: { successRate: 0.55, avgLayer: 3.5 },
+        },
       };
 
-      expect(stats.averageTurnsPerCombat).toBe(4.5);
-      expect(stats.totalDamageDealt).toBe(500);
-      expect(stats.totalDamageTaken).toBe(200);
+      expect(stats.totalRuns).toBe(100);
+      expect(stats.successRate).toBe(0.65);
+      expect(stats.avgFinalLayer).toBe(4.2);
     });
 
     it('숫자 값만 포함한다', () => {
       const stats: RunStatistics = {
-        averageTurnsPerCombat: 3,
-        totalDamageDealt: 300,
-        totalDamageTaken: 150,
-        healingReceived: 50,
-        cardsPlayed: 60,
-        goldSpent: 100,
+        totalRuns: 50,
+        successRate: 0.6,
+        avgFinalLayer: 4.0,
+        avgBattlesWon: 6,
+        avgGoldEarned: 250,
+        avgCardsInDeck: 12,
+        deathCauses: {},
+        strategyComparison: {
+          aggressive: { successRate: 0.7, avgLayer: 4.5 },
+          defensive: { successRate: 0.6, avgLayer: 4.0 },
+          balanced: { successRate: 0.65, avgLayer: 4.2 },
+          speedrun: { successRate: 0.5, avgLayer: 3.8 },
+          treasure_hunter: { successRate: 0.55, avgLayer: 3.5 },
+        },
       };
 
-      expect(typeof stats.averageTurnsPerCombat).toBe('number');
-      expect(typeof stats.totalDamageDealt).toBe('number');
-      expect(typeof stats.totalDamageTaken).toBe('number');
-      expect(typeof stats.healingReceived).toBe('number');
-      expect(typeof stats.cardsPlayed).toBe('number');
-      expect(typeof stats.goldSpent).toBe('number');
+      expect(typeof stats.totalRuns).toBe('number');
+      expect(typeof stats.successRate).toBe('number');
+      expect(typeof stats.avgFinalLayer).toBe('number');
+      expect(typeof stats.avgBattlesWon).toBe('number');
+      expect(typeof stats.avgGoldEarned).toBe('number');
+      expect(typeof stats.avgCardsInDeck).toBe('number');
     });
   });
 });
