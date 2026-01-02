@@ -295,7 +295,7 @@ export interface UseEtherAnimationParams {
     setEnemyEtherCalcPhase: (phase: string) => void;
     setEtherFinalValue: (value: number) => void;
     setEnemyEtherFinalValue: (value: number) => void;
-    setPlayer: (player: BattleEntityState) => void;
+    setPlayer: (player: Partial<BattleEntityState> & { [key: string]: unknown }) => void;
     [key: string]: unknown;
   };
 }

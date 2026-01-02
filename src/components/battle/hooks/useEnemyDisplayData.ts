@@ -28,7 +28,8 @@ interface EnemyPlan {
 }
 
 interface ComboResult {
-  name?: string;
+  name: string;
+  bonusKeys?: Set<number> | null;
   [key: string]: unknown;
 }
 

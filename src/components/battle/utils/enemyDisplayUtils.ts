@@ -13,10 +13,12 @@
 // Enemy 타입은 여러 형태로 사용되므로 유연한 타입 정의
 interface EnemyLike {
   name?: string;
-  composition?: Array<{ name?: string }>;
+  composition?: Array<{ name?: string; count?: number; quantity?: number; emoji?: string }>;
   count?: number;
   quantity?: number;
   emoji?: string;
+  units?: Array<{ name?: string; emoji?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
 }
 
 /**
