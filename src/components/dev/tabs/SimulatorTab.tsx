@@ -196,9 +196,100 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
     }
   }
 
-  // ==================== 9. 사망 분석 ====================
+  // ==================== 9. 아이템 통계 ====================
+  if (stats.itemUsageStats) {
+    const itemsAcquired = Object.entries(stats.itemUsageStats.itemsAcquired || {});
+    const itemEffects = Object.entries(stats.itemUsageStats.itemEffects || {});
+
+    if (itemsAcquired.length > 0 || itemEffects.length > 0) {
+      lines.push('### 9. 아이템 통계');
+
+      if (itemsAcquired.length > 0) {
+        lines.push('#### 획득한 아이템');
+        itemsAcquired.forEach(([id, count]) => {
+          lines.push(`- ${getItemNameLocal(id)}: ${count}개`);
+        });
+      }
+
+      if (itemEffects.length > 0) {
+        lines.push('#### 아이템 사용 효과');
+        lines.push('| 아이템 | 사용 | HP회복 | 피해 |');
+        lines.push('|--------|------|--------|------|');
+        itemEffects.forEach(([id, eff]: [string, { timesUsed: number; totalHpHealed: number; totalDamage: number }]) => {
+          lines.push(`| ${getItemNameLocal(id)} | ${eff.timesUsed}회 | ${eff.totalHpHealed} | ${eff.totalDamage} |`);
+        });
+      }
+      lines.push('');
+    }
+  }
+
+  // ==================== 10. 성장 통계 ====================
+  if (stats.growthStats) {
+    lines.push('### 10. 성장 통계');
+    lines.push(`- 총 투자: ${stats.growthStats.totalInvestments ?? 0}회`);
+    lines.push(`- 런당 평균: ${(stats.growthStats.avgInvestmentsPerRun ?? 0).toFixed(1)}회`);
+
+    // 스탯별 투자
+    const statInvestments = Object.entries(stats.growthStats.statInvestments || {});
+    if (statInvestments.length > 0) {
+      lines.push('#### 스탯별 투자');
+      statInvestments.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
+        lines.push(`- ${stat}: ${count}회`);
+      });
+    }
+
+    // 스탯별 승률 상관관계
+    const statWinCorr = Object.entries(stats.growthStats.statWinCorrelation || {});
+    if (statWinCorr.length > 0) {
+      lines.push('#### 스탯별 승률 기여도');
+      lines.push('| 스탯 | 기여도 |');
+      lines.push('|------|--------|');
+      statWinCorr.sort((a, b) => (b[1] as number) - (a[1] as number)).forEach(([stat, corr]) => {
+        const sign = (corr as number) > 0 ? '+' : '';
+        lines.push(`| ${stat} | ${sign}${pct(corr as number)} |`);
+      });
+    }
+
+    // 로고스 효과 발동
+    const logosActivations = Object.entries(stats.growthStats.logosActivations || {});
+    if (logosActivations.length > 0) {
+      lines.push('#### 로고스 효과 발동');
+      logosActivations.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
+        lines.push(`- ${effect}: ${count}회`);
+      });
+    }
+
+    // 성장 경로별 승률
+    if (stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0) {
+      lines.push('#### 성장 경로별 승률 (상위 5개)');
+      lines.push('| 경로 | 횟수 | 승률 |');
+      lines.push('|------|------|------|');
+      stats.growthStats.growthPathStats.slice(0, 5).forEach(path => {
+        lines.push(`| ${path.path} | ${path.count}회 | ${pct(path.winRate)} |`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 11. 카드 승급 통계 ====================
+  if (stats.upgradeStats && stats.upgradeStats.totalUpgrades > 0) {
+    lines.push('### 11. 카드 승급 통계');
+    lines.push(`- 총 승급: ${stats.upgradeStats.totalUpgrades}회`);
+    lines.push(`- 런당 평균: ${(stats.upgradeStats.avgUpgradesPerRun ?? 0).toFixed(1)}회`);
+
+    const upgradesByCard = Object.entries(stats.upgradeStats.upgradesByCard || {});
+    if (upgradesByCard.length > 0) {
+      lines.push('#### 승급된 카드');
+      upgradesByCard.sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([id, count]) => {
+        lines.push(`- ${getCardName(id)}: ${count}회`);
+      });
+    }
+    lines.push('');
+  }
+
+  // ==================== 12. 사망 분석 ====================
   if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
-    lines.push('### 9. 사망 분석');
+    lines.push('### 12. 사망 분석');
     lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
     lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
 
