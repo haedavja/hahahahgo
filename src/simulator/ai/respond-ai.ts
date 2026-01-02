@@ -11,6 +11,7 @@
 
 import type { GameCard, GameBattleState, TimelineCard, TokenState, PlayerState, EnemyState } from '../core/game-types';
 import { calculateAttackModifiers, calculateDamageTakenModifiers } from '../core/token-system';
+import { getBossPatternForPhase, checkBossSpecialActions, BOSS_PATTERNS } from './enemy-patterns';
 
 // ==================== 타입 정의 ====================
 
@@ -57,6 +58,12 @@ export interface RespondAIConfig {
   isBossFight: boolean;
   /** 플레이어 전략 */
   strategy: 'aggressive' | 'balanced' | 'defensive';
+  /** 보스 ID (보스전일 경우) */
+  bossId?: string;
+  /** 시뮬레이션 기반 평가 사용 */
+  useSimulation: boolean;
+  /** 시뮬레이션 반복 횟수 */
+  simulationIterations: number;
 }
 
 const DEFAULT_CONFIG: RespondAIConfig = {
@@ -66,6 +73,9 @@ const DEFAULT_CONFIG: RespondAIConfig = {
   prioritizeCross: true,
   isBossFight: false,
   strategy: 'balanced',
+  bossId: undefined,
+  useSimulation: false,
+  simulationIterations: 50,
 };
 
 // ==================== 대응 단계 AI ====================
@@ -781,6 +791,348 @@ export class RespondAI {
     }
 
     return null;
+  }
+
+  // ==================== 시뮬레이션 기반 평가 ====================
+
+  /**
+   * 시뮬레이션으로 카드 조합 평가
+   * 각 카드 조합의 예상 결과를 시뮬레이션하여 최적 선택
+   */
+  evaluateWithSimulation(
+    state: GameBattleState,
+    candidateCards: GameCard[],
+    iterations: number = 50
+  ): { cardId: string; score: number; reason: string }[] {
+    const results: { cardId: string; score: number; reason: string }[] = [];
+
+    for (const card of candidateCards) {
+      let totalScore = 0;
+      let wins = 0;
+      let totalDamageDealt = 0;
+      let totalDamageTaken = 0;
+
+      for (let i = 0; i < iterations; i++) {
+        const result = this.simulateSingleOutcome(state, card);
+        totalScore += result.score;
+        if (result.win) wins++;
+        totalDamageDealt += result.damageDealt;
+        totalDamageTaken += result.damageTaken;
+      }
+
+      const avgScore = totalScore / iterations;
+      const winRate = wins / iterations;
+      const avgDamageDealt = totalDamageDealt / iterations;
+      const avgDamageTaken = totalDamageTaken / iterations;
+
+      results.push({
+        cardId: card.id,
+        score: avgScore,
+        reason: `승률: ${(winRate * 100).toFixed(0)}%, 평균피해: ${avgDamageDealt.toFixed(1)}, 평균받는피해: ${avgDamageTaken.toFixed(1)}`,
+      });
+    }
+
+    return results.sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * 단일 시뮬레이션 결과
+   */
+  private simulateSingleOutcome(
+    state: GameBattleState,
+    card: GameCard
+  ): { score: number; win: boolean; damageDealt: number; damageTaken: number } {
+    // 간단한 몬테카를로 시뮬레이션
+    let playerHp = state.player.hp;
+    let enemyHp = state.enemy.hp;
+    let playerBlock = state.player.block;
+    let enemyBlock = state.enemy.block;
+
+    // 플레이어 카드 효과 적용
+    if (card.damage) {
+      const hits = card.hits || 1;
+      let totalDamage = 0;
+
+      for (let h = 0; h < hits; h++) {
+        let damage = card.damage + (state.player.strength || 0);
+
+        // 취약 체크
+        if (state.enemy.tokens?.['vulnerable']) {
+          damage = Math.floor(damage * 1.5);
+        }
+
+        // 교차 보너스 (랜덤하게 교차 발생 가정)
+        if (card.crossBonus && Math.random() < 0.3) {
+          if (card.crossBonus.type === 'damage_mult') {
+            damage = Math.floor(damage * (card.crossBonus.value || 1.5));
+          }
+        }
+
+        const actualDamage = Math.max(0, damage - enemyBlock);
+        enemyBlock = Math.max(0, enemyBlock - damage);
+        enemyHp -= actualDamage;
+        totalDamage += actualDamage;
+      }
+    }
+
+    if (card.block) {
+      playerBlock += card.block;
+    }
+
+    // 적 반격 시뮬레이션 (타임라인 기반)
+    let damageTaken = 0;
+    const enemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
+
+    for (const tc of enemyCards) {
+      const enemyCard = this.cards[tc.cardId];
+      if (!enemyCard?.damage) continue;
+
+      let damage = enemyCard.damage * (enemyCard.hits || 1);
+      damage += state.enemy.strength || 0;
+
+      // 약화 체크
+      if (state.enemy.tokens?.['weak']) {
+        damage = Math.floor(damage * 0.75);
+      }
+
+      // 취약 체크
+      if (state.player.tokens?.['vulnerable']) {
+        damage = Math.floor(damage * 1.5);
+      }
+
+      const actualDamage = Math.max(0, damage - playerBlock);
+      playerBlock = Math.max(0, playerBlock - damage);
+      playerHp -= actualDamage;
+      damageTaken += actualDamage;
+    }
+
+    // 점수 계산
+    const playerHpRatio = playerHp / state.player.maxHp;
+    const enemyHpRatio = enemyHp / (state.enemy.maxHp || state.enemy.hp);
+
+    let score = 0;
+
+    // 승리/패배 가중치
+    if (enemyHp <= 0) {
+      score = 100 + (playerHpRatio * 50); // 승리 + 남은 체력 보너스
+    } else if (playerHp <= 0) {
+      score = -100 + (1 - enemyHpRatio) * 50; // 패배 + 적에게 준 피해 보너스
+    } else {
+      // 진행 중
+      score = (playerHpRatio - enemyHpRatio) * 50;
+    }
+
+    // 피해량 가중치
+    const damageDealt = Math.max(0, state.enemy.hp - enemyHp);
+    score += damageDealt * 0.5;
+    score -= damageTaken * 0.3;
+
+    return {
+      score,
+      win: enemyHp <= 0,
+      damageDealt,
+      damageTaken,
+    };
+  }
+
+  /**
+   * 시뮬레이션 기반 대응 결정 (고급)
+   */
+  decideResponseWithSimulation(
+    state: GameBattleState,
+    availableCards: GameCard[]
+  ): ResponseDecision {
+    const analysis = this.analyzeTimeline(state);
+    const playerTokens = state.player.tokens || {};
+
+    // 대응 가능한 카드 필터링
+    const reactionCards = availableCards.filter(card => {
+      if (!this.canUseCard(card, playerTokens)) return false;
+      return (
+        card.type === 'reaction' ||
+        card.priority === 'instant' ||
+        card.traits?.includes('counter') ||
+        card.traits?.includes('counterShot') ||
+        card.parryRange
+      );
+    });
+
+    if (reactionCards.length === 0) {
+      return {
+        shouldRespond: false,
+        responseCards: [],
+        reason: '대응 카드 없음',
+        expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
+      };
+    }
+
+    // 시뮬레이션으로 카드 평가
+    const evaluatedCards = this.evaluateWithSimulation(
+      state,
+      reactionCards,
+      this.config.simulationIterations
+    );
+
+    // 상위 카드 선택 (점수가 양수인 것만)
+    const selectedCards = evaluatedCards
+      .filter(c => c.score > 0)
+      .slice(0, 3)
+      .map(c => c.cardId);
+
+    if (selectedCards.length === 0) {
+      return {
+        shouldRespond: false,
+        responseCards: [],
+        reason: '시뮬레이션 결과 대응 불필요',
+        expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
+      };
+    }
+
+    // 예상 결과 계산
+    let totalDamagePrevented = 0;
+    let totalDamageDealt = 0;
+    let totalBlockGained = 0;
+
+    for (const cardId of selectedCards) {
+      const card = reactionCards.find(c => c.id === cardId);
+      if (!card) continue;
+      if (card.block) totalBlockGained += card.block;
+      if (card.damage) totalDamageDealt += card.damage * (card.hits || 1);
+    }
+
+    totalDamagePrevented = Math.min(analysis.expectedDamage, totalBlockGained);
+
+    return {
+      shouldRespond: true,
+      responseCards: selectedCards,
+      reason: `시뮬레이션 기반 선택 (${evaluatedCards[0]?.reason || ''})`,
+      expectedOutcome: {
+        damagePrevented: totalDamagePrevented,
+        damageDealt: totalDamageDealt,
+        blockGained: totalBlockGained,
+      },
+    };
+  }
+
+  // ==================== 보스전 특화 AI ====================
+
+  /**
+   * 보스 패턴 분석 및 대응 전략
+   */
+  analyzeBossPattern(
+    state: GameBattleState,
+    bossId: string,
+    turn: number
+  ): {
+    currentPhase: string;
+    expectedPattern: string;
+    recommendedStrategy: 'offensive' | 'defensive' | 'balanced';
+    warnings: string[];
+  } {
+    const bossPattern = BOSS_PATTERNS[bossId];
+    if (!bossPattern) {
+      return {
+        currentPhase: 'unknown',
+        expectedPattern: 'balanced',
+        recommendedStrategy: 'balanced',
+        warnings: [],
+      };
+    }
+
+    const hpRatio = state.enemy.hp / (state.enemy.maxHp || state.enemy.hp);
+    const playerHpRatio = state.player.hp / state.player.maxHp;
+
+    // 현재 페이즈 판단
+    let currentPhase = 'phase1';
+    let currentPattern = bossPattern.phases.phase1.pattern;
+
+    if (bossPattern.phases.enrage && hpRatio <= bossPattern.phases.enrage.hpThreshold) {
+      currentPhase = 'enrage';
+      currentPattern = bossPattern.phases.enrage.pattern;
+    } else if (bossPattern.phases.phase3 && hpRatio <= bossPattern.phases.phase3.hpThreshold) {
+      currentPhase = 'phase3';
+      currentPattern = bossPattern.phases.phase3.pattern;
+    } else if (hpRatio <= bossPattern.phases.phase2.hpThreshold) {
+      currentPhase = 'phase2';
+      currentPattern = bossPattern.phases.phase2.pattern;
+    }
+
+    // 특수 행동 체크
+    const triggeredActions = checkBossSpecialActions(bossId, {
+      hpRatio,
+      turn,
+      playerHpRatio,
+      phaseChanged: false,
+    });
+
+    const warnings: string[] = triggeredActions.map(a => `주의: ${a.name} - ${a.effect.description}`);
+
+    // 권장 전략 결정
+    let recommendedStrategy: 'offensive' | 'defensive' | 'balanced' = 'balanced';
+
+    if (currentPattern === 'berserk' || currentPhase === 'enrage') {
+      recommendedStrategy = 'defensive'; // 광폭화 시 방어 우선
+      warnings.push('보스 광폭화 - 방어 우선 권장');
+    } else if (hpRatio <= 0.2 && playerHpRatio >= 0.5) {
+      recommendedStrategy = 'offensive'; // 보스 체력 낮고 플레이어 안전하면 공격
+      warnings.push('보스 체력 낮음 - 마무리 권장');
+    } else if (playerHpRatio <= 0.3) {
+      recommendedStrategy = 'defensive'; // 플레이어 위험하면 방어
+      warnings.push('플레이어 위험 - 방어 우선');
+    }
+
+    return {
+      currentPhase,
+      expectedPattern: currentPattern,
+      recommendedStrategy,
+      warnings,
+    };
+  }
+
+  /**
+   * 보스전 대응 결정 (향상된 버전)
+   */
+  decideResponseForBoss(
+    state: GameBattleState,
+    availableCards: GameCard[],
+    bossId: string,
+    turn: number
+  ): ResponseDecision {
+    // 보스 패턴 분석
+    const bossAnalysis = this.analyzeBossPattern(state, bossId, turn);
+
+    // 전략에 따른 설정 조정
+    const adjustedConfig = { ...this.config };
+    switch (bossAnalysis.recommendedStrategy) {
+      case 'defensive':
+        adjustedConfig.aggressive = false;
+        adjustedConfig.riskTolerance = 0.2;
+        break;
+      case 'offensive':
+        adjustedConfig.aggressive = true;
+        adjustedConfig.riskTolerance = 0.7;
+        break;
+    }
+
+    // 기본 대응 결정 실행
+    const originalConfig = this.config;
+    this.config = adjustedConfig;
+
+    let decision: ResponseDecision;
+    if (this.config.useSimulation) {
+      decision = this.decideResponseWithSimulation(state, availableCards);
+    } else {
+      decision = this.decideResponse(state, availableCards);
+    }
+
+    this.config = originalConfig;
+
+    // 보스 경고 추가
+    if (bossAnalysis.warnings.length > 0) {
+      decision.reason += ` | ${bossAnalysis.warnings.join(', ')}`;
+    }
+
+    return decision;
   }
 }
 
