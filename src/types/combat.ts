@@ -12,9 +12,9 @@ import type {
   TokenEffectPayload,
   TokenEntity,
   Relic,
-  LogFunction,
-  PassiveStats
+  LogFunction
 } from './core';
+import type { PassiveStats } from './systems';
 import type { RelicTriggeredRefs, RelicTrigger } from './ui';
 
 // ==================== 전투 기본 타입 ====================

@@ -16,14 +16,8 @@ interface AnomalyPlayerState {
   [key: string]: unknown;
 }
 
-/** 카드 성장 상태 타입 */
-interface CardGrowthState {
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-/** 카드 성장 맵 타입 */
-type CardGrowthMap = Record<string, CardGrowthState>;
+/** 카드 성장 맵 타입 - 유연한 타입으로 호환성 확보 */
+type CardGrowthMap = Record<string, { traits?: string[]; [key: string]: unknown } | unknown>;
 
 /**
  * 카드가 특정 특성을 가지고 있는지 확인 (card.traits + cardGrowth 둘 다 확인)
@@ -32,7 +26,10 @@ function hasCardTrait(card: { id?: string; traits?: string[] }, traitId: string,
   // 1. 카드 자체의 traits 확인
   if (card.traits?.includes(traitId)) return true;
   // 2. cardGrowth에서 확인
-  if (cardGrowth && card.id && cardGrowth[card.id]?.traits?.includes(traitId)) return true;
+  if (cardGrowth && card.id) {
+    const growth = cardGrowth[card.id] as { traits?: string[] } | undefined;
+    if (growth?.traits?.includes(traitId)) return true;
+  }
   return false;
 }
 

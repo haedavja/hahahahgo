@@ -219,7 +219,8 @@ export type SortType = 'speed' | 'cost' | 'order' | 'energy' | 'value' | 'type';
 /** 에테르 계산 페이즈 */
 export type EtherCalcPhase =
   | 'base' | 'combo' | 'multiplier' | 'deflation'
-  | 'transfer' | 'final' | null;
+  | 'transfer' | 'final' | 'calculating' | 'sum' | 'multiply' | 'result'
+  | 'win_calc' | null;
 
 // ==================== 액션 유니온 타입 ====================
 

@@ -180,20 +180,22 @@ export interface GroupedEnemyMember {
 export interface HpBarPlayer {
   hp: number;
   maxHp: number;
-  block: number;
+  block?: number;
   strength?: number;
   etherMultiplier?: number;
   etherOverflow?: number;
   tokens?: TokenState;
+  [key: string]: unknown;
 }
 
 /** HP바 적 상태 */
 export interface HpBarEnemy {
   hp: number;
   maxHp: number;
-  block: number;
+  block?: number;
   tokens?: TokenState;
   etherCapacity?: number;
+  [key: string]: unknown;
 }
 
 /** 상태 정보 (툴팁용) */
@@ -296,6 +298,8 @@ export type AnimEtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';
 export interface DeflationInfo {
   multiplier: number;
   usageCount: number;
+  comboName?: string;
+  [key: string]: unknown;
 }
 
 /** 적 에테르 상태 */
@@ -484,30 +488,39 @@ export interface ModalCard {
 export interface BreachCard {
   id?: string;
   name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
+  type?: string;
+  actionCost?: number;
+  speedCost?: number;
   damage?: number;
   block?: number;
   hits?: number;
   description?: string;
   icon?: React.FC<{ size?: number; className?: string }>;
+  [key: string]: unknown;
 }
 
 /** 브리치 카드 정보 */
 export interface BreachCardInfo {
+  id?: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  speedCost?: number;
+  actionCost?: number;
   breachSpOffset?: number;
+  [key: string]: unknown;
 }
 
 /** 브리치 선택 상태 */
 export interface BreachSelection {
-  cards: BreachCard[];
-  breachSp: number;
-  breachCard: BreachCardInfo | null;
+  cards: Array<BreachCard | unknown>;
+  breachSp?: number;
+  breachCard?: BreachCardInfo | unknown;
   sourceCardName?: string | null;
   isLastChain?: boolean;
   isCreationSelection?: boolean;
   isAoe?: boolean;
+  [key: string]: unknown;
 }
 
 /** 회상 카드 */
@@ -561,9 +574,13 @@ export interface TooltipCard {
 
 /** 호버된 카드 정보 */
 export interface HoveredCard {
-  card: TooltipCard;
-  x: number;
-  y: number;
+  card?: TooltipCard;
+  x?: number;
+  y?: number;
+  // 간단한 식별 필드
+  id?: string;
+  name?: string;
+  [key: string]: unknown;
 }
 
 /** 툴팁 전투 상태 */
@@ -577,7 +594,7 @@ export interface TooltipBattle {
 export interface ExpectedDamagePlayer {
   hp: number;
   maxHp: number;
-  block: number;
+  block?: number;
   [key: string]: unknown;
 }
 
@@ -585,7 +602,7 @@ export interface ExpectedDamagePlayer {
 export interface ExpectedDamageEnemy {
   hp: number;
   maxHp: number;
-  block: number;
+  block?: number;
   [key: string]: unknown;
 }
 

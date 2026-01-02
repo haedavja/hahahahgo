@@ -394,3 +394,8 @@ export interface Range {
 
 /** 로그 함수 타입 */
 export type LogFunction = (message: string) => void;
+
+// ==================== Re-exports ====================
+
+/** CharacterBuild (systems.ts에서 재export) */
+export type { CharacterBuild } from './systems';

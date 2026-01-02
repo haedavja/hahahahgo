@@ -9,6 +9,11 @@
 import type { MutableRefObject } from 'react';
 import type { Card, TokenState, TokenEntity } from './core';
 import type { HandCard } from './systems';
+import type { NextTurnEffects, InsightBadge } from './combat';
+import type { DeflationInfo } from './ui';
+
+// Re-export to maintain backwards compatibility
+export type { NextTurnEffects, InsightBadge, DeflationInfo };
 
 // ========== 배틀 엔티티 타입 ==========
 
@@ -19,8 +24,8 @@ import type { HandCard } from './systems';
 export interface BattleEntityState extends TokenEntity {
   hp: number;
   maxHp: number;
-  block: number;
-  tokens: TokenState;
+  block?: number;
+  tokens?: TokenState;
   // 선택적 전투 필드
   strength?: number;
   agility?: number;
@@ -56,7 +61,8 @@ export interface BattleEntityState extends TokenEntity {
 
 /** 전투 유닛 상태 (다중 유닛 적용) */
 export interface BattleUnitState {
-  unitId: number;
+  unitId?: number;
+  id?: string;
   hp: number;
   maxHp: number;
   block?: number;
@@ -88,17 +94,7 @@ export interface BattleRefValue {
   [key: string]: unknown;
 }
 
-/** 다음 턴 효과 */
-export interface NextTurnEffects {
-  guaranteedCards?: Card[];
-  bonusEnergy?: number;
-  energyPenalty?: number;
-  etherBlocked?: boolean;
-  mainSpecialOnly?: boolean;
-  subSpecialBoost?: number;
-  extraCardPlay?: number;
-  [key: string]: unknown;
-}
+// NextTurnEffects는 combat.ts에서 import됨
 
 /** 전투 상태 Ref */
 export type BattleRefType = MutableRefObject<BattleRefValue | null>;
@@ -237,13 +233,7 @@ export interface UseInsightSystemParams {
   };
 }
 
-/** 통찰 뱃지 */
-export interface InsightBadge {
-  level: number;
-  dir: 'up' | 'down';
-  show: boolean;
-  key: number;
-}
+// InsightBadge는 combat.ts에서 import됨
 
 /** useMultiTargetSelection 파라미터 */
 export interface UseMultiTargetSelectionParams {
@@ -284,11 +274,7 @@ export interface UseBattleTimelinesParams {
   selected: Card[];
 }
 
-/** 디플레이션 정보 */
-export interface DeflationInfo {
-  multiplier: number;
-  usageCount: number;
-}
+// DeflationInfo는 ui.ts에서 import됨
 
 /** useEtherAnimation 파라미터 */
 export interface UseEtherAnimationParams {

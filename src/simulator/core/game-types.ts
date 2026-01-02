@@ -444,6 +444,11 @@ export interface BattleResult {
   victory?: boolean;
   battleId?: string;
   enemyId?: string;
+  // 호환성 별칭
+  totalDamageDealt?: number;
+  playerHealth?: number;
+  enemyHealth?: number;
+  log?: string[];
 }
 
 export interface SimulationSummary {
