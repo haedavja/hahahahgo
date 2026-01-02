@@ -46,6 +46,9 @@ export interface AnomalyEffect {
   grantTokens?: { target: 'player' | 'enemy'; tokens: TokenState };
   additionalAction?: (state: GameState) => void;
   message?: string;
+  // 추가 효과
+  damage?: number;
+  heal?: number;
 }
 
 export interface AnomalyDefinition {
@@ -54,7 +57,7 @@ export interface AnomalyDefinition {
   description: string;
   category: AnomalyCategory;
   activePhases: AnomalyPhase[];
-  difficulty: 'easy' | 'normal' | 'hard' | 'nightmare';
+  difficulty: 'easy' | 'normal' | 'hard' | 'nightmare' | 'chaos';
   modifiers: AnomalyModifier[];
   rules: AnomalyRule[];
   duration?: number;  // -1 = 영구

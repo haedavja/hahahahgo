@@ -7,13 +7,13 @@
 
 // ==================== 카드 타입 ====================
 
-export type CardType = 'attack' | 'defense' | 'general' | 'move' | 'reaction' | 'support';
+export type CardType = 'attack' | 'defense' | 'general' | 'move' | 'reaction' | 'support' | 'skill';
 export type CardPriority = 'quick' | 'normal' | 'slow' | 'instant';
 export type CardCategory = 'fencing' | 'gun' | 'special' | 'basic';
 
 export interface AppliedToken {
   id: string;
-  target: 'player' | 'enemy';
+  target: 'player' | 'enemy' | 'self';
   stacks?: number;
 }
 
@@ -67,6 +67,30 @@ export interface GameCard {
   // 포커 조합 관련
   suit?: string;
   value?: string | number;
+  // 연계 시스템
+  chainSpeedReduction?: number;
+  followupDamageBonus?: number;
+  followupBlockBonus?: number;
+  finisherDamageBonus?: number;
+  consumeFinesse?: boolean;
+  isGhost?: boolean;
+  // 전투 특성
+  parryRange?: number;
+  ignoreBlock?: boolean;
+  energyCost?: number;
+  parryPushAmount?: number;
+  doubleEdgeSelfDamage?: number;
+  doubleEdgeBonusDamage?: number;
+  creationEffect?: {
+    type: string;
+    value?: number;
+    target?: string;
+  };
+  effects?: {
+    lifesteal?: number;
+    [key: string]: unknown;
+  };
+  category?: CardCategory;
 }
 
 // ==================== 토큰 타입 ====================
@@ -219,6 +243,8 @@ export interface TimelineCard {
   sp?: number;
   crossed?: boolean;
   executed?: boolean;
+  /** 카드 데이터 참조 */
+  card?: GameCard;
 }
 
 export interface TokenState {
@@ -255,6 +281,10 @@ export interface PlayerState extends CombatantState {
   repeatTimelineNext?: boolean;   // 다음 턴 타임라인 반복 (르 송쥬)
   blockPerCardExecution?: number; // 카드 실행마다 방어력 획득
   repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
+  // 호환성 필드
+  etherPts?: number;              // 에테르 포인트 (리듀서 호환)
+  cardEnhancements?: Record<string, unknown>; // 카드 강화 정보
+  speed?: number;                 // 현재 스피드 (시뮬레이터 호환)
 }
 
 // ==================== 다중 적 유닛 타입 ====================
@@ -288,13 +318,19 @@ export interface EnemyState extends CombatantState {
   passives?: EnemyPassives;
   /** 소환 발동 여부 */
   hasSummoned?: boolean;
+  /** 에테르 포인트 (호환) */
+  etherPts?: number;
+  /** 힘 (호환) */
+  strength?: number;
+  /** 에테르 (호환) */
+  ether?: number;
 }
 
 export interface GameBattleState {
   player: PlayerState;
   enemy: EnemyState;
   turn: number;
-  phase: 'select' | 'respond' | 'resolve' | 'end';
+  phase: 'select' | 'respond' | 'resolve' | 'end' | 'action';
   timeline: TimelineCard[];
   anomalyId?: string;
   battleLog: string[];
@@ -311,6 +347,8 @@ export interface GameBattleState {
   comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
   currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
   currentComboRank?: number;                  // 현재 턴 콤보 등급 (0=하이카드)
+  // 연계 시스템
+  ghostCards?: GameCard[];                     // 고스트 카드 (연계용)
   // 성장 시스템 보너스
   growthBonuses?: {
     crossRangeBonus?: number;

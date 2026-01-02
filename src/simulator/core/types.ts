@@ -29,6 +29,11 @@ export interface SimPlayerState extends SimEntity {
   energy: number;
   maxEnergy: number;
   relics: string[];
+  // 추가 상태
+  speed?: number;
+  dexterity?: number;
+  exhaust?: string[];
+  agility?: number;
 }
 
 export interface SimEnemyState extends SimEntity {
@@ -36,6 +41,10 @@ export interface SimEnemyState extends SimEntity {
   name: string;
   deck: string[];
   cardsPerTurn: number;
+  // 추가 상태
+  speed?: number;
+  dexterity?: number;
+  agility?: number;
 }
 
 // ==================== 전투 결과 ====================
@@ -47,9 +56,17 @@ export interface BattleResult {
   enemyDamageDealt: number;
   playerFinalHp: number;
   enemyFinalHp: number;
+  etherGained?: number;
   battleLog: string[];
   cardUsage: Record<string, number>;
   comboStats: Record<string, number>;
+  tokenStats?: Record<string, number>;
+  events?: unknown[];
+  timeline?: unknown[];
+  goldChange?: number;
+  victory?: boolean;
+  battleId?: string;
+  enemyId?: string;
 }
 
 export interface SimulationConfig {
@@ -86,6 +103,9 @@ export interface SimulationSummary {
   avgPlayerDamage: number;
   avgEnemyDamage: number;
   cardEfficiency: Record<string, { uses: number; avgDamage: number }>;
+  topCards?: Array<{ id: string; uses: number; avgDamage: number }>;
+  avgEtherGained?: number;
+  tokenUsage?: Record<string, number>;
 }
 
 // ==================== Worker 메시지 ====================
@@ -174,7 +194,7 @@ export interface GameState {
   player: SimPlayerState;
   enemy: SimEnemyState;
   turn: number;
-  phase: 'select' | 'respond' | 'resolve';
+  phase: 'select' | 'respond' | 'resolve' | 'action' | 'end';
   timeline: TimelineCard[];
 }
 

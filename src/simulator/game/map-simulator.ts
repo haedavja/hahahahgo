@@ -15,7 +15,7 @@ const log = getLogger('MapSimulator');
 
 // ==================== 타입 정의 ====================
 
-export type MapNodeType = 'combat' | 'elite' | 'boss' | 'event' | 'shop' | 'rest' | 'dungeon';
+export type MapNodeType = 'combat' | 'elite' | 'boss' | 'event' | 'shop' | 'rest' | 'dungeon' | 'unknown' | 'start';
 
 export interface MapNode {
   id: string;

@@ -40,8 +40,10 @@ export interface ComboResult {
   name: string;
   multiplier: number;
   rank: number;
-  bonusKeys: Set<number> | null;
-  description: string;
+  bonusKeys?: Set<number> | null;
+  description?: string;
+  matchedCards?: string[];
+  baseEther?: number;
 }
 
 export interface EtherGainResult {

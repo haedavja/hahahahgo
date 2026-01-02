@@ -154,6 +154,7 @@ export interface ComboResult {
   rank: number;
   damageMultiplier: number;
   description: string;
+  matchedCards?: string[];
 }
 
 export const COMBO_RANKS: Record<string, ComboResult> = {
@@ -253,12 +254,12 @@ export function calculateDamage(ctx: DamageContext): {
   // 치명타 계산
   let isCritical = ctx.isCritical || false;
   if (!isCritical) {
-    const critChance = CRIT_BASE_CHANCE + getTokenStacks(ctx.attacker.tokens, 'crit_boost') * 0.05;
+    const critChance = BATTLE_CONSTANTS.CRIT_BASE_CHANCE + getTokenStacks(ctx.attacker.tokens, 'crit_boost') * 0.05;
     isCritical = Math.random() < critChance;
   }
 
   if (isCritical) {
-    damage = Math.floor(damage * CRIT_MULTIPLIER);
+    damage = Math.floor(damage * BATTLE_CONSTANTS.CRIT_MULTIPLIER);
   }
 
   const finalDamage = damage;
