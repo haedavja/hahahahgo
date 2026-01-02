@@ -89,6 +89,8 @@ const DEFAULT_GENERATION_CONFIG: MapGenerationConfig = {
     shop: 10,
     rest: 10,
     dungeon: 5,
+    unknown: 0,
+    start: 0,
   },
   eliteFrequency: 3, // 3레이어마다
   shopFrequency: 4,
@@ -192,7 +194,7 @@ export class MapSimulator {
     }
 
     // 가중치 기반 선택
-    const weights = { ...config.nodeTypeWeights };
+    const weights = { ...config.nodeTypeWeights } as Record<string, number>;
     delete weights.boss; // 보스는 제외
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
@@ -240,6 +242,8 @@ export class MapSimulator {
       shop: {},
       rest: {},
       dungeon: { gold: 50, material: 2 },
+      unknown: {},
+      start: {},
     };
 
     const rewards = { ...baseRewards[nodeType] };
@@ -390,6 +394,8 @@ export class MapSimulator {
       shop: 0,
       rest: 0,
       dungeon: 0,
+      unknown: 0,
+      start: 0,
     };
 
     let totalConnections = 0;

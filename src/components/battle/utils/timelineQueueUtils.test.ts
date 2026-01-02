@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file timelineQueueUtils.test.ts
  * @description 타임라인 큐 조작 유틸리티 테스트

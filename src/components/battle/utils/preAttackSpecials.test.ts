@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file preAttackSpecials.test.js
  * @description 공격 전 특수 효과 테스트

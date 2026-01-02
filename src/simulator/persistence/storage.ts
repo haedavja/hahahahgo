@@ -351,11 +351,12 @@ export class SqliteStorage implements StorageAdapter {
   private async initDatabase(): Promise<void> {
     try {
       // better-sqlite3 동적 임포트 시도
+      // @ts-ignore - better-sqlite3 may not be installed
       const Database = (await import('better-sqlite3')).default;
       this.db = new Database(this.dbPath);
 
       // 테이블 생성
-      this.db.exec(`
+      this.db!.exec(`
         CREATE TABLE IF NOT EXISTS simulations (
           id TEXT PRIMARY KEY,
           timestamp INTEGER NOT NULL,
@@ -387,7 +388,7 @@ export class SqliteStorage implements StorageAdapter {
   async save(result: SimulationResult, tags?: string[], notes?: string): Promise<string> {
     const id = `sim-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const stmt = this.db.prepare(`
+    const stmt = this.db!.prepare(`
       INSERT INTO simulations (id, timestamp, config, summary, tags, notes)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
@@ -402,12 +403,12 @@ export class SqliteStorage implements StorageAdapter {
     );
 
     // 배틀 결과 저장
-    const battleStmt = this.db.prepare(`
+    const battleStmt = this.db!.prepare(`
       INSERT INTO battle_results (simulation_id, winner, turns, player_damage, enemy_damage)
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    const insertBattles = this.db.transaction((battles: BattleRow[]) => {
+    const insertBattles = this.db!.transaction((battles: BattleRow[]) => {
       for (const battle of battles) {
         battleStmt.run(id, battle.winner, battle.turns, battle.playerDamageDealt, battle.enemyDamageDealt);
       }
@@ -419,7 +420,7 @@ export class SqliteStorage implements StorageAdapter {
   }
 
   async get(id: string): Promise<HistoryEntry | null> {
-    const row = this.db.prepare('SELECT * FROM simulations WHERE id = ?').get(id);
+    const row = this.db?.prepare('SELECT * FROM simulations WHERE id = ?').get(id) as DatabaseRow | undefined;
     if (!row) return null;
 
     return {
@@ -428,7 +429,7 @@ export class SqliteStorage implements StorageAdapter {
       config: JSON.parse(row.config),
       summary: JSON.parse(row.summary),
       tags: row.tags ? JSON.parse(row.tags) : undefined,
-      notes: row.notes,
+      notes: row.notes ?? undefined,
     };
   }
 
@@ -458,41 +459,41 @@ export class SqliteStorage implements StorageAdapter {
       params.push(options.offset);
     }
 
-    const rows = this.db.prepare(sql).all(...params);
+    const rows = this.db!.prepare(sql).all(...params);
 
     return rows.map((row: DatabaseRow) => ({
-      id: row.id,
-      timestamp: row.timestamp,
-      config: JSON.parse(row.config),
-      summary: JSON.parse(row.summary),
-      tags: row.tags ? JSON.parse(row.tags) : undefined,
-      notes: row.notes ?? undefined,
+      id: row.id as string,
+      timestamp: row.timestamp as number,
+      config: JSON.parse(row.config as string),
+      summary: JSON.parse(row.summary as string),
+      tags: row.tags ? JSON.parse(row.tags as string) : undefined,
+      notes: (row.notes as string | null) ?? undefined,
     }));
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = this.db.prepare('DELETE FROM simulations WHERE id = ?').run(id);
-    this.db.prepare('DELETE FROM battle_results WHERE simulation_id = ?').run(id);
+    const result = this.db!.prepare('DELETE FROM simulations WHERE id = ?').run(id);
+    this.db!.prepare('DELETE FROM battle_results WHERE simulation_id = ?').run(id);
     return result.changes > 0;
   }
 
   async getStats(): Promise<StorageStats> {
-    const countRow = this.db.prepare('SELECT COUNT(*) as count, SUM(json_extract(summary, "$.totalBattles")) as battles FROM simulations').get();
-    const avgRow = this.db.prepare('SELECT AVG(json_extract(summary, "$.winRate")) as avgWinRate FROM simulations').get();
-    const dateRow = this.db.prepare('SELECT MIN(timestamp) as start, MAX(timestamp) as end FROM simulations').get();
+    const countRow = this.db!.prepare('SELECT COUNT(*) as count, SUM(json_extract(summary, "$.totalBattles")) as battles FROM simulations').get() as { count: number; battles: number } | undefined;
+    const avgRow = this.db!.prepare('SELECT AVG(json_extract(summary, "$.winRate")) as avgWinRate FROM simulations').get() as { avgWinRate: number } | undefined;
+    const dateRow = this.db!.prepare('SELECT MIN(timestamp) as start, MAX(timestamp) as end FROM simulations').get() as { start: number | null; end: number | null } | undefined;
 
     return {
-      totalEntries: countRow.count,
-      totalBattles: countRow.battles || 0,
-      avgWinRate: avgRow.avgWinRate || 0,
-      dateRange: dateRow.start ? { start: dateRow.start, end: dateRow.end } : null,
+      totalEntries: countRow?.count ?? 0,
+      totalBattles: countRow?.battles ?? 0,
+      avgWinRate: avgRow?.avgWinRate ?? 0,
+      dateRange: dateRow?.start ? { start: dateRow.start, end: dateRow.end ?? dateRow.start } : null,
       sizeBytes: 0, // SQLite doesn't easily expose this
     };
   }
 
   async clear(): Promise<void> {
-    this.db.exec('DELETE FROM battle_results');
-    this.db.exec('DELETE FROM simulations');
+    this.db!.exec('DELETE FROM battle_results');
+    this.db!.exec('DELETE FROM simulations');
   }
 
   close(): void {

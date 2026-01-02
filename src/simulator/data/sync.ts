@@ -149,7 +149,13 @@ export function syncEnemies(): Record<string, SimEnemyData> {
 
   for (const [id, enemy] of Object.entries(gameEnemies)) {
     // ENEMY_PATTERNS에서 패턴 정보 가져오기
-    const pattern = ENEMY_PATTERNS[id] as {
+    const pattern = (ENEMY_PATTERNS as Record<string, {
+      type?: string;
+      pattern?: string[];
+      phases?: Array<{ hpThreshold: number; pattern: string[]; description: string }>;
+      specialActions?: Record<string, unknown>;
+      description?: string;
+    } | undefined>)[id] as {
       type?: string;
       pattern?: string[];
       phases?: Array<{ hpThreshold: number; pattern: string[]; description: string }>;
@@ -164,7 +170,7 @@ export function syncEnemies(): Record<string, SimEnemyData> {
       tier: enemy.tier,
       patternType: (pattern?.type as 'cycle' | 'phase' | 'random') || 'cycle',
       deck: enemy.deck,
-      description: pattern?.description || enemy.description,
+      description: pattern?.description || enemy.description || '',
     };
 
     if (pattern?.type === 'cycle' && pattern.pattern) {

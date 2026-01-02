@@ -32,10 +32,11 @@ async function main() {
   for (const strategy of strategies) {
     const stats = simulator.simulateMultipleRuns(50, { strategy });
     console.log('\n[' + strategy + ' 전략]');
-    console.log('  승률: ' + (stats.successRate * 100).toFixed(1) + '%');
-    console.log('  평균 레이어: ' + stats.averageLayersCompleted.toFixed(1));
-    console.log('  평균 HP: ' + stats.averageFinalHp.toFixed(1));
-    console.log('  평균 전투 승률: ' + (stats.averageBattleWinRate * 100).toFixed(1) + '%');
+    const s = stats as { successRate?: number; averageLayersCompleted?: number; averageFinalHp?: number; averageBattleWinRate?: number };
+    console.log('  승률: ' + ((s.successRate ?? 0) * 100).toFixed(1) + '%');
+    console.log('  평균 레이어: ' + (s.averageLayersCompleted ?? 0).toFixed(1));
+    console.log('  평균 HP: ' + (s.averageFinalHp ?? 0).toFixed(1));
+    console.log('  평균 전투 승률: ' + ((s.averageBattleWinRate ?? 0) * 100).toFixed(1) + '%');
   }
 
   // 난이도별 테스트

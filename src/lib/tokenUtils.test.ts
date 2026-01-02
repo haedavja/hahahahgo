@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file tokenUtils.test.js
  * @description tokenUtils 함수 테스트

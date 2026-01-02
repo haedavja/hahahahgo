@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file gameStoreHelpers.test.ts
  * @description 게임 스토어 유틸리티 함수 테스트

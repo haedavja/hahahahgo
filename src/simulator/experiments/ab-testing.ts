@@ -449,15 +449,17 @@ export class ABTestManager {
    * 메트릭 값 추출
    */
   private extractMetricValues(results: SimulationResult[], metric: MetricDefinition): number[] {
+    // Flatten all battle results from simulations
+    const battleResults = results.flatMap(r => r.results);
     switch (metric.type) {
       case 'winRate':
-        return results.map(r => r.winner === 'player' ? 1 : 0);
+        return battleResults.map(b => b.winner === 'player' ? 1 : 0);
       case 'avgTurns':
-        return results.map(r => r.turns);
+        return battleResults.map(b => b.turns);
       case 'avgHpRemaining':
-        return results.map(r => r.playerFinalHp);
+        return battleResults.map(b => b.playerFinalHp);
       case 'avgDamage':
-        return results.map(r => r.totalDamageDealt || 0);
+        return battleResults.map(b => b.playerDamageDealt || 0);
       default:
         return [];
     }

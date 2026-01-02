@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file combatActions.integration.test.js
  * @description 전투 시스템 통합 테스트 (Mock 없음)

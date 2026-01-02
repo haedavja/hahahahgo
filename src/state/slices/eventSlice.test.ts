@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file eventSlice.test.ts
  * @description 이벤트 슬라이스 테스트

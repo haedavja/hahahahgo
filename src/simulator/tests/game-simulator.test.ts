@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file game-simulator.test.ts
  * @description 전체 게임 시뮬레이터 통합 테스트

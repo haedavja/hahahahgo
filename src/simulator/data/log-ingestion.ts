@@ -590,7 +590,7 @@ export class LogAnalyzer {
 
     if (!startEvent) return null;
 
-    const startPayload = startEvent.payload as BattleStartPayload;
+    const startPayload = startEvent.payload as unknown as BattleStartPayload;
     const endPayload = endEvent?.payload as BattleEndPayload | undefined;
 
     const turns: BattleTurn[] = [];

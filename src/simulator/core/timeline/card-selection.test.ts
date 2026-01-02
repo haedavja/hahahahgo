@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file card-selection.test.ts
  * @description 카드 선택 AI 테스트

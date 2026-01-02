@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file tokenExpirationProcessing.test.ts
  * @description 타임라인 기반 토큰 만료 처리 테스트

@@ -43,6 +43,11 @@ export interface SpecialEffectResult {
     summoned?: string[];
     /** 카드 소진 (덱에서 영구 제거) */
     exhaustCard?: boolean;
+    /** 다음 턴 타임라인 반복 */
+    repeatTimelineNext?: boolean;
+    /** 카드 실행당 방어력 */
+    blockPerCardExecution?: number;
+    [key: string]: unknown;
   };
 }
 

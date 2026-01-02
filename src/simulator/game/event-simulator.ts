@@ -131,7 +131,7 @@ export class EventSimulator {
     // 비용 체크
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
-        const current = (resources as Record<string, number>)[resource] || 0;
+        const current = (resources as unknown as Record<string, number>)[resource] || 0;
         if (current < amount) {
           return { canSelect: false, reason: `${resource} 부족 (필요: ${amount}, 보유: ${current})` };
         }
@@ -141,7 +141,7 @@ export class EventSimulator {
     // 스탯 요구사항 체크
     if (choice.statRequirement) {
       for (const [stat, required] of Object.entries(choice.statRequirement)) {
-        const current = (stats as Record<string, number>)[stat] || 0;
+        const current = (stats as unknown as Record<string, number>)[stat] || 0;
         if (current < required) {
           return { canSelect: false, reason: `${stat} 부족 (필요: ${required}, 보유: ${current})` };
         }

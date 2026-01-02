@@ -149,13 +149,11 @@ export class BattleLogValidator {
       deck: [...enemy.deck],
       cardsPerTurn: enemy.cardsPerTurn || 1,
       emoji: enemy.emoji,
-      tier: enemy.tier,
-      description: enemy.description,
       isBoss: enemy.isBoss,
       passives: enemy.passives,
       block: 0,
       tokens: {},
-    };
+    } as EnemyState;
 
     // 시뮬레이션 실행
     const simResult = this.engine.runBattle(
@@ -289,13 +287,20 @@ export class BattleLogValidator {
       logId: log.id,
       gameResult: log.result,
       simResult: {
+        winner: 'enemy' as const,
         victory: false,
         turns: 0,
         playerFinalHp: 0,
         enemyFinalHp: 0,
         playerDamageDealt: 0,
         enemyDamageDealt: 0,
+        etherGained: 0,
+        goldChange: 0,
+        battleLog: [],
         cardUsage: {},
+        comboStats: {},
+        tokenStats: {},
+        timeline: [],
         events: [],
       },
       outcomeMatch: false,

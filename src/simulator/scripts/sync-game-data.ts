@@ -84,7 +84,7 @@ function syncCards(): Record<string, SimulatorCard> {
     if (card.cardCategory) simCard.cardCategory = card.cardCategory;
 
     // 특수 효과
-    if (card.special) simCard.special = card.special;
+    if (card.special) simCard.special = Array.isArray(card.special) ? card.special[0] : card.special;
 
     // 교차 보너스
     if (card.crossBonus) {
@@ -96,7 +96,7 @@ function syncCards(): Record<string, SimulatorCard> {
       simCard.appliedTokens = card.appliedTokens.map(t => ({
         id: t.id,
         target: t.target,
-        stacks: t.stacks || 1,
+        stacks: 'stacks' in t ? t.stacks : 1,
       }));
     }
 

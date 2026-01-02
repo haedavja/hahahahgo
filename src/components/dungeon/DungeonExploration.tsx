@@ -372,7 +372,7 @@ function DungeonExplorationComponent() {
             playerX,
             currentRoomKey,
             grid: grid as Record<string, MazeRoom>,
-            setDungeonData: (data) => setDungeonData(data as unknown as RenderMazeData),
+            setDungeonData: (data) => setDungeonData(data as unknown as import('../../types').DungeonData),
           });
         }
         return;

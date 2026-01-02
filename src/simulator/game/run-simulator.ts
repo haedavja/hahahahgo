@@ -459,7 +459,7 @@ export class RunSimulator {
         upgradedCards: player.upgradedCards,
         shopsVisited: result.shopsVisited,
         dungeonsCleared: result.dungeonsCleared,
-        growthLevel: player.growth?.level || 0,
+        growthLevel: (player.growth as { level?: number } | undefined)?.level || 0,
         eventsCompleted: result.eventsCompleted,
       });
 
@@ -1461,7 +1461,7 @@ export class RunSimulator {
     const dungeonConfig: DungeonSimulationConfig = {
       player: dungeonPlayer,
       strategy: config.strategy === 'speedrun' ? 'speedrun' : 'explore_all',
-      battleSimulator, // 실제 전투 엔진 연결
+      battleSimulator: battleSimulator as DungeonSimulationConfig['battleSimulator'], // 실제 전투 엔진 연결
     };
 
     const dungeonResult = this.dungeonSimulator.simulateDungeonExploration(dungeon, dungeonConfig);

@@ -187,10 +187,12 @@ export class RedisQueue<T> implements IQueue<T> {
 
   private async loadRedisLibrary(): Promise<any> {
     try {
+      // @ts-ignore - ioredis may not be installed
       const { default: Redis } = await import('ioredis');
       return Redis;
     } catch {
       try {
+        // @ts-ignore - redis may not be installed
         const { createClient } = await import('redis');
         return createClient;
       } catch {
@@ -872,10 +874,12 @@ export class ResultAggregator {
         totalBattles: 0,
         wins: 0,
         losses: 0,
+        draws: 0,
         winRate: 0,
         avgTurns: 0,
         avgPlayerDamage: 0,
         avgEnemyDamage: 0,
+        cardEfficiency: {},
         topCards: [],
       };
     }
@@ -898,23 +902,28 @@ export class ResultAggregator {
       totalEnemyDamage += s.avgEnemyDamage * s.totalBattles;
 
       for (const card of s.topCards || []) {
-        cardUsage[card.cardId] = (cardUsage[card.cardId] || 0) + card.count;
+        const id = card.cardId || card.id;
+        if (id) {
+          cardUsage[id] = (cardUsage[id] || 0) + (card.count || card.uses || 0);
+        }
       }
     }
 
     const topCards = Object.entries(cardUsage)
-      .map(([cardId, count]) => ({ cardId, count }))
-      .sort((a, b) => b.count - a.count)
+      .map(([id, uses]) => ({ id, cardId: id, uses, count: uses, avgDamage: 0 }))
+      .sort((a, b) => b.uses - a.uses)
       .slice(0, 10);
 
     return {
       totalBattles,
       wins,
       losses,
+      draws: 0,
       winRate: totalBattles > 0 ? wins / totalBattles : 0,
       avgTurns: totalBattles > 0 ? totalTurns / totalBattles : 0,
       avgPlayerDamage: totalBattles > 0 ? totalPlayerDamage / totalBattles : 0,
       avgEnemyDamage: totalBattles > 0 ? totalEnemyDamage / totalBattles : 0,
+      cardEfficiency: {},
       topCards,
     };
   }

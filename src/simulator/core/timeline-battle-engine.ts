@@ -191,7 +191,7 @@ export class TimelineBattleEngine {
     for (const [cardId, level] of Object.entries(this.cardEnhancements)) {
       if (level > 0 && this.cards[cardId]) {
         const baseCard = this.cards[cardId];
-        const enhanced = getEnhancedCard(baseCard, level);
+        const enhanced = getEnhancedCard(baseCard as import('../../lib/cardEnhancementUtils').BaseCard, level);
         this.enhancedCards[cardId] = enhanced as GameCard;
       }
     }

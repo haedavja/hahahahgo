@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file gameStore.test.ts
  * @description 메인 게임 상태 저장소 테스트

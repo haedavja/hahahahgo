@@ -4,6 +4,7 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+// @ts-ignore - ws module may not have type declarations
 import { WebSocketServer, WebSocket } from 'ws';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
@@ -203,9 +204,9 @@ export class DashboardServer extends EventEmitter {
       payload: this.state,
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', (data: unknown) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(String(data));
         this.handleClientMessage(ws, message);
       } catch {
         console.error('Invalid message received');
@@ -217,7 +218,7 @@ export class DashboardServer extends EventEmitter {
       console.log(`📡 클라이언트 연결 해제 (총 ${this.clients.size}명)`);
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       console.error('WebSocket error:', error);
       this.clients.delete(ws);
     });

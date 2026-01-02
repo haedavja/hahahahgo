@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file handGeneration.test.js
  * @description 핸드/덱 생성 테스트

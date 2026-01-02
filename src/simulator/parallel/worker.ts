@@ -93,8 +93,7 @@ export class BattleSimulator {
       tier: enemy.tier || 1,
       cardsPerTurn: enemy.cardsPerTurn || 2,
       isBoss: enemy.isBoss || false,
-      intent: 'attack',
-    };
+    } as EnemyState;
   }
 
   /**
@@ -162,8 +161,7 @@ export class BattleSimulator {
       tier: 1,
       cardsPerTurn: 2,
       isBoss: false,
-      intent: 'attack',
-    };
+    } as EnemyState;
   }
 }
 

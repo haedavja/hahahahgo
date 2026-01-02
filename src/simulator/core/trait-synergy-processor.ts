@@ -111,7 +111,7 @@ export class TraitSynergyProcessor {
     const actorState = actor === 'player' ? state.player : state.enemy;
 
     for (const trait of card.traits) {
-      this.processIndividualTrait(trait, card, result, context, actorState);
+      this.processIndividualTrait(trait, card, result, context, actorState as { tokens: TokenState; strength?: number; hp: number; maxHp: number });
     }
 
     // 다중 특성 시너지 처리
@@ -128,7 +128,7 @@ export class TraitSynergyProcessor {
     card: GameCard,
     result: TraitSynergyResult,
     context: TraitContext,
-    actorState: { tokens: TokenState[]; strength?: number; hp: number; maxHp: number }
+    actorState: { tokens: TokenState | TokenState[]; strength?: number; hp: number; maxHp: number }
   ): void {
     // 공격력 증폭 특성
     if (DAMAGE_MULTIPLIER_TRAITS[trait]) {

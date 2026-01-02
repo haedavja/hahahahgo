@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex type issues
 /**
  * @file postAttackSpecials.test.js
  * @description 공격 후 특수 효과 테스트

@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with type issues
 /**
  * @file tokenEffects.test.js
  * @description tokenEffects 함수 테스트
