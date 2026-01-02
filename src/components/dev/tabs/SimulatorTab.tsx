@@ -1919,7 +1919,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                         <>
                           <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>⚠️ 문제점 ({analysis.problems.length}개)</h5>
                           <div style={STYLES.scrollBox}>
-                            {analysis.problems.slice(0, 10).map((problem, i) => (
+                            {analysis.problems.map((problem, i) => (
                               <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${problem.severity >= 4 ? '#ef4444' : problem.severity >= 3 ? '#f59e0b' : '#3b82f6'}` }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>{problem.category}</span>
