@@ -1,11 +1,12 @@
 /**
  * @file run-simulator.test.ts
- * @description 런 시뮬레이터 테스트 - 유틸리티 함수 및 타입 테스트
+ * @description 런 시뮬레이터 테스트 - 유틸리티 함수, 타입, 클래스 테스트
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createDefaultPlayer,
+  RunSimulator,
   type PlayerRunState,
   type RunConfig,
   type RunStrategy,
@@ -13,6 +14,7 @@ import {
   type RunResult,
   type RunStatistics,
 } from './run-simulator';
+import { StatsCollector } from '../analysis/detailed-stats';
 
 describe('run-simulator', () => {
   describe('createDefaultPlayer', () => {
@@ -347,6 +349,214 @@ describe('run-simulator', () => {
 
       expect(player1.deck).toHaveLength(11);
       expect(player2.deck).toHaveLength(10);
+    });
+  });
+
+  // ==================== RunSimulator 클래스 테스트 ====================
+
+  describe('RunSimulator 클래스', () => {
+    let simulator: RunSimulator;
+
+    beforeEach(() => {
+      simulator = new RunSimulator({ seed: 12345, verbose: false });
+    });
+
+    describe('생성자', () => {
+      it('기본 설정으로 생성된다', () => {
+        const sim = new RunSimulator();
+        expect(sim).toBeDefined();
+        expect(sim.getSeed()).toBeDefined();
+      });
+
+      it('시드 옵션으로 생성된다', () => {
+        const seed = 99999;
+        const sim = new RunSimulator({ seed });
+        expect(sim.getSeed()).toBe(seed);
+      });
+
+      it('verbose 옵션으로 생성된다', () => {
+        const sim = new RunSimulator({ verbose: true });
+        expect(sim).toBeDefined();
+      });
+
+      it('useEnhancedBattle 옵션으로 생성된다', () => {
+        const sim = new RunSimulator({ useEnhancedBattle: false });
+        expect(sim).toBeDefined();
+      });
+    });
+
+    describe('시드 관리', () => {
+      it('getSeed()는 현재 시드를 반환한다', () => {
+        const seed = simulator.getSeed();
+        expect(typeof seed).toBe('number');
+        expect(seed).toBe(12345);
+      });
+
+      it('resetSeed()로 시드를 리셋한다', () => {
+        const newSeed = 54321;
+        simulator.resetSeed(newSeed);
+        expect(simulator.getSeed()).toBe(newSeed);
+      });
+
+      it('resetSeed()를 인자 없이 호출하면 새 시드가 생성된다', () => {
+        const originalSeed = simulator.getSeed();
+        simulator.resetSeed();
+        // 새 시드는 다른 값일 수 있지만, 반드시 숫자여야 함
+        expect(typeof simulator.getSeed()).toBe('number');
+      });
+
+      it('같은 시드는 동일한 결과를 생성한다', () => {
+        const sim1 = new RunSimulator({ seed: 42 });
+        const sim2 = new RunSimulator({ seed: 42 });
+
+        expect(sim1.getSeed()).toBe(sim2.getSeed());
+      });
+    });
+
+    describe('통계 수집기', () => {
+      it('setStatsCollector()로 통계 수집기를 설정한다', () => {
+        const collector = new StatsCollector();
+        simulator.setStatsCollector(collector);
+
+        expect(simulator.getStatsCollector()).toBe(collector);
+      });
+
+      it('getStatsCollector()는 설정된 수집기를 반환한다', () => {
+        expect(simulator.getStatsCollector()).toBeNull();
+
+        const collector = new StatsCollector();
+        simulator.setStatsCollector(collector);
+
+        expect(simulator.getStatsCollector()).toBe(collector);
+      });
+
+      it('setStatsCollector(null)로 수집기를 해제한다', () => {
+        const collector = new StatsCollector();
+        simulator.setStatsCollector(collector);
+        simulator.setStatsCollector(null);
+
+        expect(simulator.getStatsCollector()).toBeNull();
+      });
+    });
+
+    describe('재현성', () => {
+      it('같은 시드로 여러 시뮬레이터를 생성하면 동일한 시드를 가진다', () => {
+        const seeds = [1, 100, 9999, 123456789];
+
+        for (const seed of seeds) {
+          const sim = new RunSimulator({ seed });
+          expect(sim.getSeed()).toBe(seed);
+        }
+      });
+
+      it('시드를 리셋해도 시뮬레이터는 유효하다', () => {
+        simulator.resetSeed(1);
+        expect(simulator.getSeed()).toBe(1);
+
+        simulator.resetSeed(2);
+        expect(simulator.getSeed()).toBe(2);
+
+        simulator.resetSeed(3);
+        expect(simulator.getSeed()).toBe(3);
+      });
+    });
+  });
+
+  describe('RunResult 타입', () => {
+    it('성공적인 런 결과를 나타낸다', () => {
+      const result: RunResult = {
+        success: true,
+        finalPlayer: createDefaultPlayer(),
+        nodesVisited: 12,
+        combatsWon: 8,
+        elitesDefeated: 2,
+        bossDefeated: true,
+        goldEarned: 350,
+        cardsAdded: ['fleche', 'riposte'],
+        cardsRemoved: ['strike'],
+        relicsFound: ['relic1'],
+        itemsUsed: 3,
+        path: [
+          { nodeId: 'n1', nodeType: 'combat', success: true, hpChange: -10, goldChange: 20, cardsGained: [], relicsGained: [], details: '' }
+        ],
+        stats: {
+          averageTurnsPerCombat: 5.2,
+          totalDamageDealt: 450,
+          totalDamageTaken: 180,
+          healingReceived: 60,
+          cardsPlayed: 85,
+          goldSpent: 120,
+        },
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.bossDefeated).toBe(true);
+      expect(result.combatsWon).toBe(8);
+    });
+
+    it('실패한 런 결과를 나타낸다', () => {
+      const result: RunResult = {
+        success: false,
+        finalPlayer: { ...createDefaultPlayer(), hp: 0 },
+        nodesVisited: 7,
+        combatsWon: 5,
+        elitesDefeated: 1,
+        bossDefeated: false,
+        goldEarned: 150,
+        cardsAdded: ['thrust'],
+        cardsRemoved: [],
+        relicsFound: [],
+        itemsUsed: 1,
+        deathCause: 'elite_combat',
+        path: [],
+        stats: {
+          averageTurnsPerCombat: 6.0,
+          totalDamageDealt: 200,
+          totalDamageTaken: 100,
+          healingReceived: 0,
+          cardsPlayed: 40,
+          goldSpent: 50,
+        },
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.deathCause).toBe('elite_combat');
+      expect(result.finalPlayer.hp).toBe(0);
+    });
+  });
+
+  describe('RunStatistics 타입', () => {
+    it('전투 통계를 포함한다', () => {
+      const stats: RunStatistics = {
+        averageTurnsPerCombat: 4.5,
+        totalDamageDealt: 500,
+        totalDamageTaken: 200,
+        healingReceived: 80,
+        cardsPlayed: 100,
+        goldSpent: 200,
+      };
+
+      expect(stats.averageTurnsPerCombat).toBe(4.5);
+      expect(stats.totalDamageDealt).toBe(500);
+      expect(stats.totalDamageTaken).toBe(200);
+    });
+
+    it('숫자 값만 포함한다', () => {
+      const stats: RunStatistics = {
+        averageTurnsPerCombat: 3,
+        totalDamageDealt: 300,
+        totalDamageTaken: 150,
+        healingReceived: 50,
+        cardsPlayed: 60,
+        goldSpent: 100,
+      };
+
+      expect(typeof stats.averageTurnsPerCombat).toBe('number');
+      expect(typeof stats.totalDamageDealt).toBe('number');
+      expect(typeof stats.totalDamageTaken).toBe('number');
+      expect(typeof stats.healingReceived).toBe('number');
+      expect(typeof stats.cardsPlayed).toBe('number');
+      expect(typeof stats.goldSpent).toBe('number');
     });
   });
 });
