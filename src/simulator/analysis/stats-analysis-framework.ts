@@ -865,6 +865,411 @@ export function analyzeSynergies(stats: DetailedStats, thresholds: DynamicThresh
 }
 
 /**
+ * 카드 컨텍스트 분석
+ * - HP 상태별 카드 효과 비교
+ * - 층별 카드 성능 변화
+ * - 적 유형별 카드 효과
+ * - 턴 순서별 카드 효과
+ */
+export function analyzeCardContexts(stats: DetailedStats, thresholds: DynamicThresholds): Problem[] {
+  const problems: Problem[] = [];
+
+  for (const [cardId, cardStats] of stats.cardStats) {
+    if (cardStats.totalUses < 5) continue;
+
+    // HP 상태별 분석
+    if (cardStats.contextByHpState) {
+      const { critical, unstable, stable } = cardStats.contextByHpState;
+
+      // 위기 상황에서만 좋은 카드 (위기 승률이 안정 상황보다 20%p 이상 높음)
+      if (critical.uses >= 3 && stable.uses >= 3) {
+        const diff = critical.winRate - stable.winRate;
+        if (diff > 0.2) {
+          problems.push({
+            category: 'design',
+            description: `${cardId}는 위기 상황(HP<30%)에서 승률 ${(critical.winRate * 100).toFixed(0)}%, 안정 상황에서 ${(stable.winRate * 100).toFixed(0)}% - 역전용 카드`,
+            severity: 2,
+            confidence: calculateConfidence(Math.min(critical.uses, stable.uses), 5),
+            relatedData: { cardId, criticalWinRate: critical.winRate, stableWinRate: stable.winRate, diff },
+            methodology: 'HP 상태별 카드 효과 분석',
+          });
+        } else if (diff < -0.2) {
+          problems.push({
+            category: 'balance',
+            description: `${cardId}는 위기 상황에서 승률 급락 (${(critical.winRate * 100).toFixed(0)}% vs ${(stable.winRate * 100).toFixed(0)}%) - 위기 대응력 부족`,
+            severity: 3,
+            confidence: calculateConfidence(Math.min(critical.uses, stable.uses), 5),
+            relatedData: { cardId, criticalWinRate: critical.winRate, stableWinRate: stable.winRate, diff },
+            methodology: 'HP 상태별 카드 효과 분석',
+          });
+        }
+      }
+    }
+
+    // 층별 분석
+    if (cardStats.contextByFloor) {
+      const { early, mid, late } = cardStats.contextByFloor;
+
+      // 후반에 약해지는 카드 (스케일링 문제)
+      if (early.uses >= 3 && late.uses >= 3) {
+        const scalingDiff = early.winRate - late.winRate;
+        if (scalingDiff > 0.25) {
+          problems.push({
+            category: 'design',
+            description: `${cardId}는 후반 스케일링 부족 - 초반 승률 ${(early.winRate * 100).toFixed(0)}%, 후반 ${(late.winRate * 100).toFixed(0)}%`,
+            severity: 3,
+            confidence: calculateConfidence(Math.min(early.uses, late.uses), 5),
+            relatedData: { cardId, earlyWinRate: early.winRate, lateWinRate: late.winRate, scalingDiff },
+            methodology: '층별 카드 성능 분석',
+          });
+        }
+      }
+    }
+
+    // 적 유형별 분석
+    if (cardStats.contextByEnemy) {
+      const { vsNormal, vsElite, vsBoss, vsMultiple } = cardStats.contextByEnemy;
+
+      // 보스전에서 특히 약한 카드
+      if (vsNormal.uses >= 3 && vsBoss.uses >= 3) {
+        const bossDiff = vsNormal.winRate - vsBoss.winRate;
+        if (bossDiff > 0.3) {
+          problems.push({
+            category: 'balance',
+            description: `${cardId}는 보스전 약함 - 일반 ${(vsNormal.winRate * 100).toFixed(0)}%, 보스 ${(vsBoss.winRate * 100).toFixed(0)}%`,
+            severity: 3,
+            confidence: calculateConfidence(vsBoss.uses, 3),
+            relatedData: { cardId, vsNormalWinRate: vsNormal.winRate, vsBossWinRate: vsBoss.winRate },
+            methodology: '적 유형별 카드 효과 분석',
+          });
+        }
+      }
+
+      // 다수 적 상대에서 특히 약한 카드
+      if (vsNormal.uses >= 3 && vsMultiple.uses >= 3) {
+        const multiDiff = vsNormal.winRate - vsMultiple.winRate;
+        if (multiDiff > 0.25) {
+          problems.push({
+            category: 'design',
+            description: `${cardId}는 다수 적 전투 약함 - 단일 적 ${(vsNormal.winRate * 100).toFixed(0)}%, 다수 적 ${(vsMultiple.winRate * 100).toFixed(0)}%`,
+            severity: 3,
+            confidence: calculateConfidence(vsMultiple.uses, 5),
+            relatedData: { cardId, vsNormalWinRate: vsNormal.winRate, vsMultipleWinRate: vsMultiple.winRate },
+            methodology: '적 유형별 카드 효과 분석',
+          });
+        }
+      }
+    }
+
+    // 턴 순서별 분석
+    if (cardStats.contextByTurn) {
+      const { firstTurn, lateTurns } = cardStats.contextByTurn;
+
+      // 첫 턴에만 좋은 카드 vs 후반 턴에 좋은 카드
+      if (firstTurn.uses >= 3 && lateTurns.uses >= 3) {
+        const turnDiff = firstTurn.winRate - lateTurns.winRate;
+        if (Math.abs(turnDiff) > 0.2) {
+          problems.push({
+            category: 'design',
+            description: turnDiff > 0
+              ? `${cardId}는 첫 턴 특화 (첫턴 ${(firstTurn.winRate * 100).toFixed(0)}%, 후반 ${(lateTurns.winRate * 100).toFixed(0)}%)`
+              : `${cardId}는 지구전 특화 (첫턴 ${(firstTurn.winRate * 100).toFixed(0)}%, 후반 ${(lateTurns.winRate * 100).toFixed(0)}%)`,
+            severity: 2,
+            confidence: calculateConfidence(Math.min(firstTurn.uses, lateTurns.uses), 5),
+            relatedData: { cardId, firstTurnWinRate: firstTurn.winRate, lateTurnsWinRate: lateTurns.winRate },
+            methodology: '턴 순서별 카드 효과 분석',
+          });
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 토큰 밸런스 분석
+ * - 사용률 분석
+ * - 효과 가치 분석
+ * - 컨텍스트별 효과 분석
+ */
+export function analyzeTokenBalance(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+
+  if (!stats.tokenStats || stats.tokenStats.size === 0) {
+    return problems;
+  }
+
+  const allTokens = Array.from(stats.tokenStats.values());
+  const usageRates = allTokens.filter(t => t.timesAcquired >= 3).map(t => t.usageRate);
+  const avgUsageRate = usageRates.length > 0 ? usageRates.reduce((a, b) => a + b, 0) / usageRates.length : 0.5;
+  const usageRateStdDev = calculateStdDev(usageRates);
+
+  for (const [tokenId, tokenStats] of stats.tokenStats) {
+    if (tokenStats.timesAcquired < 3) continue;
+
+    const zScore = calculateZScore(tokenStats.usageRate, avgUsageRate, usageRateStdDev);
+    const confidence = calculateConfidence(tokenStats.timesAcquired, 5);
+
+    // 거의 사용되지 않는 토큰
+    if (zScore < -1.5 || tokenStats.usageRate < 0.2) {
+      problems.push({
+        category: 'balance',
+        description: `토큰 "${tokenStats.tokenName}" 사용률 ${(tokenStats.usageRate * 100).toFixed(0)}% - 효용 부족 또는 사용 타이밍 어려움`,
+        severity: tokenStats.usageRate < 0.1 ? 4 : 3,
+        confidence,
+        relatedData: { tokenId, usageRate: tokenStats.usageRate, zScore, timesAcquired: tokenStats.timesAcquired },
+        methodology: '토큰 사용률 Z-score 분석',
+      });
+    }
+
+    // 만료율이 높은 토큰 (획득했지만 사용 안함)
+    if (tokenStats.timesExpired > tokenStats.timesUsed) {
+      const expireRate = tokenStats.timesExpired / tokenStats.timesAcquired;
+      problems.push({
+        category: 'design',
+        description: `토큰 "${tokenStats.tokenName}" 만료율 ${(expireRate * 100).toFixed(0)}% - 사용 조건이 까다롭거나 효과가 약함`,
+        severity: expireRate > 0.7 ? 4 : 3,
+        confidence,
+        relatedData: { tokenId, expireRate, timesUsed: tokenStats.timesUsed, timesExpired: tokenStats.timesExpired },
+        methodology: '토큰 만료율 분석',
+      });
+    }
+
+    // HP 상태별 토큰 사용 분석
+    if (tokenStats.contextStats?.byHpState) {
+      const { critical, stable } = tokenStats.contextStats.byHpState;
+
+      // 위기 상황에서 더 많이 쓰이는 토큰 (구조용)
+      if (critical.uses >= 3 && stable.uses >= 3) {
+        const criticalRatio = critical.uses / (critical.uses + stable.uses);
+        if (criticalRatio > 0.6) {
+          // 이건 정보 제공용 (문제가 아님)
+          problems.push({
+            category: 'design',
+            description: `토큰 "${tokenStats.tokenName}"는 위기 상황(HP<30%)에서 ${(criticalRatio * 100).toFixed(0)}% 사용 - 구명 토큰`,
+            severity: 1, // 낮은 심각도 (정보 제공)
+            confidence,
+            relatedData: { tokenId, criticalUses: critical.uses, stableUses: stable.uses, criticalRatio },
+            methodology: 'HP 상태별 토큰 사용 분석',
+          });
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 포커 콤보 밸런스 분석
+ * - 콤보별 에테르 효율
+ * - 콤보별 승률 기여도
+ * - 컨텍스트별 콤보 효과
+ */
+export function analyzePokerComboBalance(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+
+  if (!stats.pokerComboStats) {
+    return problems;
+  }
+
+  const { comboFrequency, avgEtherByCombo, winRateByCombo, comboDetails } = stats.pokerComboStats;
+
+  // 콤보 빈도 분석
+  const frequencies = Object.values(comboFrequency);
+  const totalCombos = frequencies.reduce((a, b) => a + b, 0);
+  if (totalCombos === 0) return problems;
+
+  const avgFrequency = totalCombos / Object.keys(comboFrequency).length;
+  const frequencyStdDev = calculateStdDev(frequencies);
+
+  // 에테르 획득량 분석
+  const etherValues = Object.values(avgEtherByCombo).filter(v => v > 0);
+  const avgEther = etherValues.length > 0 ? etherValues.reduce((a, b) => a + b, 0) / etherValues.length : 0;
+  const etherStdDev = calculateStdDev(etherValues);
+
+  for (const [comboType, freq] of Object.entries(comboFrequency)) {
+    if (freq < 5) continue;
+
+    const freqRate = freq / totalCombos;
+    const ether = avgEtherByCombo[comboType] || 0;
+    const winRate = winRateByCombo[comboType] || 0.5;
+    const freqZScore = calculateZScore(freq, avgFrequency, frequencyStdDev);
+    const etherZScore = calculateZScore(ether, avgEther, etherStdDev);
+
+    // 발동 빈도가 너무 낮은 콤보
+    if (freqZScore < -1.5 && freqRate < 0.05) {
+      problems.push({
+        category: 'design',
+        description: `콤보 "${comboType}" 발동률 ${(freqRate * 100).toFixed(1)}% - 달성 조건이 까다롭거나 카드 풀 부족`,
+        severity: 3,
+        confidence: calculateConfidence(totalCombos, 20),
+        relatedData: { comboType, frequency: freq, freqRate, freqZScore },
+        methodology: '포커 콤보 빈도 분석',
+      });
+    }
+
+    // 에테르 효율이 극단적인 콤보
+    if (Math.abs(etherZScore) > 2) {
+      const isHigh = etherZScore > 0;
+      problems.push({
+        category: 'balance',
+        description: isHigh
+          ? `콤보 "${comboType}" 에테르 ${ether.toFixed(1)} - 평균 대비 과다 (Z=${etherZScore.toFixed(2)})`
+          : `콤보 "${comboType}" 에테르 ${ether.toFixed(1)} - 평균 대비 부족 (Z=${etherZScore.toFixed(2)})`,
+        severity: Math.abs(etherZScore) > 3 ? 4 : 3,
+        confidence: calculateConfidence(freq, 10),
+        relatedData: { comboType, avgEther: ether, etherZScore },
+        methodology: '포커 콤보 에테르 효율 분석',
+      });
+    }
+
+    // 승률 기여도 분석
+    if (comboDetails && comboDetails.has(comboType)) {
+      const detail = comboDetails.get(comboType)!;
+      if (detail.totalOccurrences >= 10) {
+        // 콤보 발동했는데 승률이 낮으면 효과가 약한 것
+        if (detail.winRateAfterCombo < 0.4) {
+          problems.push({
+            category: 'balance',
+            description: `콤보 "${comboType}" 발동 후 승률 ${(detail.winRateAfterCombo * 100).toFixed(0)}% - 콤보 보상이 약함`,
+            severity: 4,
+            confidence: calculateConfidence(detail.totalOccurrences, 15),
+            relatedData: { comboType, winRateAfterCombo: detail.winRateAfterCombo, totalOccurrences: detail.totalOccurrences },
+            methodology: '포커 콤보 승률 기여도 분석',
+          });
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 층별 진행 분석
+ * - 층별 클리어율/사망률
+ * - 난이도 스파이크 감지
+ * - 자원 커브 분석
+ * - 병목 구간 분석
+ */
+export function analyzeFloorProgression(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+
+  if (!stats.floorProgressionAnalysis) {
+    return problems;
+  }
+
+  const { floorStats, difficultySpikes, bottleneckAnalysis, resourceCurves } = stats.floorProgressionAnalysis;
+
+  // 난이도 스파이크 분석
+  for (const spike of difficultySpikes) {
+    if (spike.winRateDrop > 0.15) {
+      problems.push({
+        category: 'progression',
+        description: `${spike.floor}층 난이도 스파이크 - 승률 ${(spike.winRateDrop * 100).toFixed(0)}%p 급락: ${spike.reason}`,
+        severity: spike.winRateDrop > 0.25 ? 5 : 4,
+        confidence: 0.8,
+        relatedData: { floor: spike.floor, winRateDrop: spike.winRateDrop, reason: spike.reason },
+        methodology: '층별 승률 변화 분석',
+      });
+    }
+  }
+
+  // 병목 구간 분석
+  if (bottleneckAnalysis) {
+    for (const bottleneck of bottleneckAnalysis.highFailureFloors) {
+      problems.push({
+        category: 'progression',
+        description: `${bottleneck.floor}층 병목 - 실패율 ${(bottleneck.failureRate * 100).toFixed(0)}%: ${bottleneck.mainCause}`,
+        severity: bottleneck.failureRate > 0.4 ? 5 : 4,
+        confidence: 0.7,
+        relatedData: { floor: bottleneck.floor, failureRate: bottleneck.failureRate, mainCause: bottleneck.mainCause },
+        methodology: '층별 실패율 분석',
+      });
+    }
+
+    // 자원 고갈 구간 분석
+    for (const zone of bottleneckAnalysis.resourceDepletionZones) {
+      problems.push({
+        category: 'progression',
+        description: `${zone.floorRange[0]}-${zone.floorRange[1]}층 자원 고갈 구간 - 실패 시 평균 HP ${zone.avgHpAtFailure.toFixed(0)}`,
+        severity: 4,
+        confidence: 0.6,
+        relatedData: { floorRange: zone.floorRange, avgHpAtFailure: zone.avgHpAtFailure },
+        methodology: '자원 커브 분석',
+      });
+    }
+  }
+
+  // 층별 상세 통계 분석
+  if (floorStats && floorStats.size > 0) {
+    const floors = Array.from(floorStats.entries()).sort((a, b) => a[0] - b[0]);
+    const clearRates = floors.map(([, s]) => s.clearRate);
+    const avgClearRate = clearRates.reduce((a, b) => a + b, 0) / clearRates.length;
+    const clearRateStdDev = calculateStdDev(clearRates);
+
+    for (const [floor, floorStat] of floors) {
+      if (floorStat.timesReached < 5) continue;
+
+      const zScore = calculateZScore(floorStat.clearRate, avgClearRate, clearRateStdDev);
+
+      // 클리어율이 평균보다 2σ 이상 낮은 층
+      if (zScore < -2) {
+        const battleStats = floorStat.battleStats;
+        let reason = '';
+
+        if (battleStats.avgDamageTaken > battleStats.avgDamageDealt) {
+          reason = '피해량 열세';
+        } else if (battleStats.avgTurns > 8) {
+          reason = '장기전으로 인한 자원 소모';
+        } else if (battleStats.flawlessVictories === 0 && battleStats.totalBattles > 3) {
+          reason = '무피해 클리어 불가능 - 피해 회피 옵션 부족';
+        } else {
+          reason = '종합적 난이도 상승';
+        }
+
+        problems.push({
+          category: 'progression',
+          description: `${floor}층 클리어율 ${(floorStat.clearRate * 100).toFixed(0)}% (평균 ${(avgClearRate * 100).toFixed(0)}%, Z=${zScore.toFixed(2)}): ${reason}`,
+          severity: zScore < -3 ? 5 : 4,
+          confidence: calculateConfidence(floorStat.timesReached, 10),
+          relatedData: {
+            floor,
+            clearRate: floorStat.clearRate,
+            zScore,
+            battleStats: {
+              avgDamageTaken: battleStats.avgDamageTaken,
+              avgDamageDealt: battleStats.avgDamageDealt,
+              avgTurns: battleStats.avgTurns,
+            },
+          },
+          methodology: '층별 클리어율 Z-score 분석',
+        });
+      }
+
+      // 자원 통계 분석 - HP 분포가 위기 상황에 편중된 층
+      if (floorStat.resourceStats) {
+        const { hpDistribution } = floorStat.resourceStats;
+        if (hpDistribution.critical > 0.3) {
+          problems.push({
+            category: 'progression',
+            description: `${floor}층 도달 시 ${(hpDistribution.critical * 100).toFixed(0)}%가 위기 상황(HP<30%) - 이전 구간 피해 누적`,
+            severity: hpDistribution.critical > 0.5 ? 4 : 3,
+            confidence: calculateConfidence(floorStat.timesReached, 10),
+            relatedData: { floor, hpDistribution },
+            methodology: '층별 HP 분포 분석',
+          });
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
  * 성장 경로 분석
  */
 export function analyzeGrowthPaths(stats: DetailedStats): Problem[] {
@@ -911,6 +1316,10 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
     ...analyzeEnemyBalance(stats, thresholds),
     ...analyzeEnemyGroupBalance(stats, thresholds),
     ...analyzeCardBalance(stats, thresholds),
+    ...analyzeCardContexts(stats, thresholds),
+    ...analyzeTokenBalance(stats),
+    ...analyzePokerComboBalance(stats),
+    ...analyzeFloorProgression(stats),
     ...analyzeProgressionCurve(stats),
     ...analyzeSynergies(stats, thresholds),
     ...analyzeGrowthPaths(stats),
@@ -1307,6 +1716,10 @@ export const StatsAnalyzer = {
   analyzeEnemyBalance,
   analyzeEnemyGroupBalance,
   analyzeCardBalance,
+  analyzeCardContexts,
+  analyzeTokenBalance,
+  analyzePokerComboBalance,
+  analyzeFloorProgression,
   analyzeProgressionCurve,
   analyzeSynergies,
   analyzeGrowthPaths,
