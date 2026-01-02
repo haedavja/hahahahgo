@@ -2364,7 +2364,7 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
     lines.push('심각도 × 신뢰도 가중 정렬됨');
     lines.push('');
 
-    analysis.problems.slice(0, 10).forEach((problem, i) => {
+    analysis.problems.forEach((problem, i) => {
       const confidenceBar = '█'.repeat(Math.round(problem.confidence * 5)) + '░'.repeat(5 - Math.round(problem.confidence * 5));
       lines.push(`### ${i + 1}. [${problem.category.toUpperCase()}] 심각도 ${problem.severity}/5 | 신뢰도 ${confidenceBar}`);
       lines.push(problem.description);
