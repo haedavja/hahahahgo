@@ -440,13 +440,13 @@ export class LogAnalyzer {
     // 배틀별 승패 맵
     const battleWins = new Map<string, boolean>();
     for (const end of battleEnds) {
-      const payload = end.payload as BattleEndPayload;
+      const payload = end.payload as unknown as BattleEndPayload;
       battleWins.set(payload.battleId, payload.winner === 'player');
     }
 
     // 카드별 집계
     for (const play of cardPlays) {
-      const payload = play.payload as CardPlayedPayload;
+      const payload = play.payload as unknown as CardPlayedPayload;
       const cardId = payload.cardId;
       const battleId = payload.battleId;
       const won = battleWins.get(battleId) || false;
@@ -497,12 +497,12 @@ export class LogAnalyzer {
     const battleStarts = this.store.getByEventType('battle_start');
     const enemyMap = new Map<string, string>();
     for (const start of battleStarts) {
-      const payload = start.payload as BattleStartPayload;
+      const payload = start.payload as unknown as BattleStartPayload;
       enemyMap.set(payload.battleId, payload.enemyId);
     }
 
     for (const end of battleEnds) {
-      const payload = end.payload as BattleEndPayload;
+      const payload = end.payload as unknown as BattleEndPayload;
       const enemyId = enemyMap.get(payload.battleId);
       if (!enemyId) continue;
 
