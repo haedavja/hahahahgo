@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "game-tools": {
+      "command": "node",
+      "args": [".claude/mcp-servers/game-tools/index.js"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}
