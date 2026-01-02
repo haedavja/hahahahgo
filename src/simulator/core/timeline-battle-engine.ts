@@ -152,6 +152,7 @@ interface TraitModifiers {
   damageMultiplier: number;
   blockMultiplier: number;
   speedModifier: number;
+  speedBonus?: number;
   effects: string[];
 }
 
@@ -2486,6 +2487,7 @@ interface TraitModifiers {
   damageMultiplier: number;
   blockMultiplier: number;
   speedModifier: number;
+  speedBonus?: number;
   effects: string[];
 }
 

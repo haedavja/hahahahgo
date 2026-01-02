@@ -38,6 +38,10 @@ export interface CrossBonus {
   count?: number;
   maxPush?: number;
   tokens?: { id: string; stacks: number; target: 'player' | 'enemy' }[];
+  // 조건부 보너스
+  condition?: 'after_attack' | 'after_defense' | 'after_skill' | string;
+  damage?: number;
+  block?: number;
 }
 
 export interface GameCard {
@@ -326,6 +330,8 @@ export interface EnemyState extends CombatantState {
   ether?: number;
   /** 속도 (호환) */
   speed?: number;
+  /** 보스 여부 */
+  isBoss?: boolean;
 }
 
 export interface GameBattleState {
