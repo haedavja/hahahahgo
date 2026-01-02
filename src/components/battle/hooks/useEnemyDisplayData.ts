@@ -27,11 +27,11 @@ interface EnemyPlan {
   mode?: unknown;
 }
 
-interface ComboResult {
+// detectPokerCombo에서 반환하는 타입과 호환
+type ComboResult = {
   name: string;
   bonusKeys?: Set<number> | null;
-  [key: string]: unknown;
-}
+} | null;
 
 interface UseEnemyDisplayDataParams {
   enemy: EnemyState | null;
@@ -42,7 +42,7 @@ interface UseEnemyDisplayDataParams {
 interface EnemyDisplayData {
   enemyNameCounts: ReturnType<typeof getEnemyNameCounts>;
   groupedEnemyMembers: ReturnType<typeof getGroupedEnemyMembers>;
-  enemyCombo: ComboResult | null;
+  enemyCombo: ComboResult;
   enemyHint: string | null;
 }
 
@@ -75,7 +75,8 @@ export function useEnemyDisplayData(params: UseEnemyDisplayDataParams): EnemyDis
   const enemyCombo = useMemo(() => {
     const rawActions = enemyPlan?.actions;
     const actions = Array.isArray(rawActions) ? rawActions : [];
-    return detectPokerCombo(actions);
+    // actions가 카드 형태인지 확인하고 ComboCard[]로 캐스팅
+    return detectPokerCombo(actions as import('../utils/comboDetection').ComboCard[]);
   }, [enemyPlan?.actions]);
 
   // 적 성향 힌트 추출

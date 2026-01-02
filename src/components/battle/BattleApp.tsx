@@ -303,7 +303,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 파생 전투 상태 (적 유닛, 타겟 유닛, 카드 제출 수 제한, 총 에너지/속도)
   const { enemyUnits, hasMultipleUnits, targetUnit, effectiveMaxSubmitCards, totalEnergy, totalSpeed } = useDerivedBattleState({
     enemy: enemy as { units?: { unitId: number; hp: number }[] } | null,
-    player: player as { tokens?: import('../../types/core').Token[] },
+    player: player as { tokens?: import('../../types/core').TokenState },
     selectedTargetUnit,
     baseMaxSubmitCards,
     nextTurnEffects: battle.nextTurnEffects,

@@ -30,7 +30,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
 /**
  * 포커 조합 보너스 적용
  */
-export function applyPokerBonus(cards: ComboCard[], combo: ComboCalculation | null): ComboCard[] {
+export function applyPokerBonus<T extends ComboCard>(cards: T[], combo: ComboCalculation | null): T[] {
   return applyPokerBonusShared(cards, combo);
 }
 

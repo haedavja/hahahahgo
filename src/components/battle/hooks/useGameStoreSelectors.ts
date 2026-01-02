@@ -10,17 +10,21 @@
 
 import { useGameStore } from '../../../state/gameStore';
 import type { CharacterBuild, Token } from '../../../types/core';
+import type { PlayerEgo } from '../../../state/slices/types';
 
 interface DevBattleTokens {
-  tokens?: Token[];
+  id: string;
+  stacks: number;
+  target: string;
+  timestamp?: number;
   [key: string]: unknown;
 }
 
 interface GameStoreSelectors {
   playerTraits: string[];
-  playerEgos: string[];
+  playerEgos: PlayerEgo[];
   devCharacterBuild: CharacterBuild | null;
-  devBattleTokens: DevBattleTokens | null;
+  devBattleTokens: DevBattleTokens[] | null;
   devClearBattleTokens: (() => void) | null;
   relics: string[];
   playerStrength: number;
