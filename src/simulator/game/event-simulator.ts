@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../core/logger';
+import { getGlobalRandom } from '../core/seeded-random';
 
 const log = getLogger('EventSimulator');
 
@@ -426,7 +427,7 @@ export class EventSimulator {
 
       case 'random':
       default:
-        return choices[Math.floor(Math.random() * choices.length)];
+        return getGlobalRandom().pick(choices);
     }
   }
 
