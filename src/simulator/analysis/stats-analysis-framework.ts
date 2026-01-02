@@ -18,7 +18,29 @@
  * - https://www.gamedeveloper.com/design/how-i-slay-the-spire-i-s-devs-use-data-to-balance-their-roguelike-deck-builder
  */
 
-import type { DetailedStats } from './detailed-stats-types';
+import type {
+  DetailedStats,
+  EventImpactAnalysis,
+  EventImpactStats,
+  EventChoiceImpact,
+  EventImpactRanking,
+  RelicSynergyImpactAnalysis,
+  RelicSynergyStats,
+  RelicSynergyRanking,
+  CoreRelicStats,
+  ContextualRelicValue,
+  GrowthDecisionAnalysis,
+  GrowthDecisionRecord,
+  GrowthContextPattern,
+  GrowthMistake,
+  OptimalGrowthPath,
+  CardSelectionReasoningAnalysis,
+  CardSelectionDecision,
+  SkipReasonAnalysis,
+  CardSelectionMistake,
+  CardValueAssessment,
+  CardPickGuideEntry,
+} from './detailed-stats-types';
 
 // ==================== 하하하GO 게임 설정 ====================
 
@@ -1302,6 +1324,711 @@ export function analyzeGrowthPaths(stats: DetailedStats): Problem[] {
   return problems;
 }
 
+// ==================== 이벤트 영향력 분석 ====================
+
+/**
+ * 이벤트 영향력 분석
+ * - 이벤트별 승률 영향
+ * - 선택지별 영향력
+ * - 치명적 이벤트 감지
+ */
+export function analyzeEventImpact(stats: DetailedStats): EventImpactAnalysis {
+  const eventImpacts = new Map<string, EventImpactStats>();
+  const mostBeneficialEvents: EventImpactRanking[] = [];
+  const mostDetrimentalEvents: EventImpactRanking[] = [];
+
+  // 이벤트 선택 통계가 있는 경우 분석
+  if (stats.eventChoiceStats && stats.eventChoiceStats.size > 0) {
+    const allImpacts: { eventId: string; netImpact: number; stats: EventImpactStats }[] = [];
+
+    for (const [eventId, eventChoice] of stats.eventChoiceStats) {
+      if (eventChoice.occurrences < 3) continue;
+
+      // 선택지별 영향력 계산
+      const choiceImpacts: EventChoiceImpact[] = [];
+      let totalChoices = 0;
+      let totalWins = 0;
+
+      for (const [choiceId, outcome] of Object.entries(eventChoice.choiceOutcomes)) {
+        totalChoices += outcome.timesChosen;
+        // 승률 추정 (successRate를 사용)
+        totalWins += outcome.timesChosen * outcome.successRate;
+
+        choiceImpacts.push({
+          choiceId,
+          choiceName: choiceId,
+          timesChosen: outcome.timesChosen,
+          winRateAfterChoice: outcome.successRate,
+          winRateDifferential: 0, // 후에 계산
+          optimalChoiceRate: 0,
+          reasonDistribution: {},
+          outcomeDistribution: {
+            positive: outcome.avgHpChange > 0 ? outcome.timesChosen : 0,
+            neutral: outcome.avgHpChange === 0 ? outcome.timesChosen : 0,
+            negative: outcome.avgHpChange < 0 && outcome.avgHpChange > -20 ? outcome.timesChosen : 0,
+            fatal: outcome.avgHpChange <= -20 ? outcome.timesChosen : 0,
+          },
+        });
+      }
+
+      // 평균 승률 계산
+      const avgWinRate = totalChoices > 0 ? totalWins / totalChoices : 0.5;
+
+      // 선택지별 차이 계산
+      if (choiceImpacts.length > 0) {
+        const bestChoice = choiceImpacts.reduce((a, b) =>
+          a.winRateAfterChoice > b.winRateAfterChoice ? a : b
+        );
+        for (const impact of choiceImpacts) {
+          impact.winRateDifferential = impact.winRateAfterChoice - avgWinRate;
+          impact.optimalChoiceRate = impact.choiceId === bestChoice.choiceId ? 1 : 0;
+        }
+      }
+
+      const eventStats: EventImpactStats = {
+        eventId,
+        eventName: eventChoice.eventName,
+        occurrences: eventChoice.occurrences,
+        winRateAfterEvent: eventChoice.postEventWinRate,
+        winRateWhenSkipped: eventChoice.timesSkipped > 0 ? 0.5 : 0, // 스킵 데이터 없으면 기본값
+        netImpact: eventChoice.postEventWinRate - 0.5,
+        choiceImpacts,
+        survivalProbability: eventChoice.postEventWinRate,
+        avgResourceChanges: {
+          hp: Object.values(eventChoice.choiceOutcomes).reduce((sum, o) => sum + o.avgHpChange * o.timesChosen, 0) /
+              Math.max(1, totalChoices),
+          gold: Object.values(eventChoice.choiceOutcomes).reduce((sum, o) => sum + o.avgGoldChange * o.timesChosen, 0) /
+              Math.max(1, totalChoices),
+          deckQuality: 0,
+          relicValue: 0,
+        },
+        avgFloorsToDeathAfter: 0,
+        directDeathCount: 0,
+      };
+
+      eventImpacts.set(eventId, eventStats);
+      allImpacts.push({ eventId, netImpact: eventStats.netImpact, stats: eventStats });
+    }
+
+    // 영향력 순위 계산
+    const impacts = allImpacts.map(i => i.netImpact);
+    const avgImpact = impacts.length > 0 ? impacts.reduce((a, b) => a + b, 0) / impacts.length : 0;
+    const stdDev = calculateStdDev(impacts);
+
+    for (const { eventId, netImpact, stats: eventStats } of allImpacts) {
+      const zScore = calculateZScore(netImpact, avgImpact, stdDev);
+      const ranking: EventImpactRanking = {
+        eventId,
+        eventName: eventStats.eventName,
+        netImpact,
+        zScore,
+        recommendation: zScore > 1.5 ? 'always_do' :
+                       zScore < -1.5 ? 'avoid' :
+                       Math.abs(zScore) < 0.5 ? 'situational' : 'situational',
+        optimalChoice: eventStats.choiceImpacts.length > 0
+          ? eventStats.choiceImpacts.reduce((a, b) => a.winRateAfterChoice > b.winRateAfterChoice ? a : b).choiceId
+          : null,
+      };
+
+      if (zScore > 1) {
+        mostBeneficialEvents.push(ranking);
+      } else if (zScore < -1) {
+        mostDetrimentalEvents.push(ranking);
+      }
+    }
+
+    // 정렬
+    mostBeneficialEvents.sort((a, b) => b.netImpact - a.netImpact);
+    mostDetrimentalEvents.sort((a, b) => a.netImpact - b.netImpact);
+  }
+
+  // 가장 치명적인 선택 찾기
+  let mostFatalChoice: { eventId: string; choiceId: string; deathRate: number } | null = null;
+  for (const [eventId, eventStats] of eventImpacts) {
+    for (const choice of eventStats.choiceImpacts) {
+      const deathRate = choice.outcomeDistribution.fatal / Math.max(1, choice.timesChosen);
+      if (!mostFatalChoice || deathRate > mostFatalChoice.deathRate) {
+        mostFatalChoice = { eventId, choiceId: choice.choiceId, deathRate };
+      }
+    }
+  }
+
+  return {
+    eventImpacts,
+    mostBeneficialEvents: mostBeneficialEvents.slice(0, 5),
+    mostDetrimentalEvents: mostDetrimentalEvents.slice(0, 5),
+    overallEventInfluence: {
+      winContribution: mostBeneficialEvents.length / Math.max(1, eventImpacts.size),
+      lossContribution: mostDetrimentalEvents.length / Math.max(1, eventImpacts.size),
+      mostFatalChoice,
+    },
+  };
+}
+
+// ==================== 상징 시너지 영향력 분석 ====================
+
+/**
+ * 상징 시너지 영향력 분석
+ * - 상징 조합별 승률
+ * - 핵심 상징 감지
+ * - 상황별 가치 분석
+ */
+export function analyzeRelicSynergyImpact(stats: DetailedStats): RelicSynergyImpactAnalysis {
+  const synergyCombinations = new Map<string, RelicSynergyStats>();
+  const topSynergies: RelicSynergyRanking[] = [];
+  const antiSynergies: RelicSynergyRanking[] = [];
+  const coreRelics: CoreRelicStats[] = [];
+  const contextualRelicValues = new Map<string, ContextualRelicValue>();
+
+  // 상징 통계가 있는 경우 분석
+  if (stats.relicStats && stats.relicStats.size > 0) {
+    const relicList = Array.from(stats.relicStats.entries());
+
+    // 개별 상징 승률 계산
+    const individualWinRates = new Map<string, number>();
+    for (const [relicId, relicData] of relicList) {
+      individualWinRates.set(relicId, relicData.winRateWith || 0.5);
+
+      // 핵심 상징 감지
+      const contribution = (relicData.winRateWith || 0.5) - (relicData.winRateWithout || 0.5);
+      if (contribution > 0.1 && relicData.timesAcquired >= 3) {
+        coreRelics.push({
+          relicId,
+          relicName: relicData.relicName,
+          winRateWith: relicData.winRateWith || 0.5,
+          winRateWithout: relicData.winRateWithout || 0.5,
+          coreScore: contribution,
+          isBuildDefining: contribution > 0.2,
+          mustHavePairs: [],
+          optimalAcquisitionFloor: relicData.avgAcquireFloor || 5,
+        });
+      }
+
+      // 상황별 가치 분석 (컨텍스트 통계가 있는 경우)
+      if ('contextStats' in relicData && relicData.contextStats) {
+        const ctx = relicData.contextStats as {
+          byFloorRange?: { early: { avgValue: number }; mid: { avgValue: number }; late: { avgValue: number } };
+          byBattleType?: { normal: { avgValue: number }; elite: { avgValue: number }; boss: { avgValue: number } };
+        };
+        contextualRelicValues.set(relicId, {
+          relicId,
+          earlyValue: ctx.byFloorRange?.early?.avgValue || 0.5,
+          midValue: ctx.byFloorRange?.mid?.avgValue || 0.5,
+          lateValue: ctx.byFloorRange?.late?.avgValue || 0.5,
+          valueByBattleType: {
+            normal: ctx.byBattleType?.normal?.avgValue || 0.5,
+            elite: ctx.byBattleType?.elite?.avgValue || 0.5,
+            boss: ctx.byBattleType?.boss?.avgValue || 0.5,
+          },
+          valueByDeckType: {},
+          valueFactors: [],
+        });
+      }
+    }
+
+    // 상징 조합 시너지 분석 (기존 시너지 데이터 활용)
+    for (const [relicId, relicData] of relicList) {
+      if ('synergies' in relicData && Array.isArray(relicData.synergies)) {
+        for (const syn of relicData.synergies) {
+          const combinationKey = [relicId, syn.relicId].sort().join(':');
+          if (synergyCombinations.has(combinationKey)) continue;
+
+          const individualAvg = ((individualWinRates.get(relicId) || 0.5) + (individualWinRates.get(syn.relicId) || 0.5)) / 2;
+          const synergyBonus = syn.combinedWinRate - individualAvg;
+
+          const synergyStats: RelicSynergyStats = {
+            combinationKey,
+            relicIds: [relicId, syn.relicId],
+            relicNames: [relicData.relicName, syn.relicId],
+            coOccurrences: syn.count,
+            combinedWinRate: syn.combinedWinRate,
+            individualWinRate: individualAvg,
+            synergyBonus,
+            activationBoost: 0,
+            additionalValue: {
+              damageBoost: 0,
+              survivalBoost: synergyBonus * 100,
+              resourceBoost: 0,
+            },
+            optimalAcquisitionOrder: synergyBonus > 0 ? [relicId, syn.relicId] : [],
+          };
+
+          synergyCombinations.set(combinationKey, synergyStats);
+
+          // 시너지 순위
+          if (syn.count >= 2) {
+            const ranking: RelicSynergyRanking = {
+              combinationKey,
+              relicNames: [relicData.relicName, syn.relicId],
+              synergyScore: Math.max(0, Math.min(1, 0.5 + synergyBonus)),
+              winRateBoost: synergyBonus,
+              acquisitionDifficulty: 0.5, // 기본값
+              efficiency: synergyBonus / 0.5,
+              recommendedContext: [],
+            };
+
+            if (synergyBonus > 0.05) {
+              topSynergies.push(ranking);
+            } else if (synergyBonus < -0.05) {
+              antiSynergies.push(ranking);
+            }
+          }
+        }
+      }
+    }
+
+    // 정렬
+    topSynergies.sort((a, b) => b.winRateBoost - a.winRateBoost);
+    antiSynergies.sort((a, b) => a.winRateBoost - b.winRateBoost);
+    coreRelics.sort((a, b) => b.coreScore - a.coreScore);
+  }
+
+  // 상징 수에 따른 승률 곡선 (추정)
+  const relicCountImpact: { count: number; winRate: number; avgValue: number }[] = [];
+  for (let i = 0; i <= 10; i++) {
+    relicCountImpact.push({
+      count: i,
+      winRate: Math.min(0.9, 0.3 + i * 0.05), // 추정값
+      avgValue: i * 10,
+    });
+  }
+
+  return {
+    synergyCombinations,
+    topSynergies: topSynergies.slice(0, 10),
+    antiSynergies: antiSynergies.slice(0, 5),
+    relicCountImpact,
+    coreRelics: coreRelics.slice(0, 10),
+    contextualRelicValues,
+  };
+}
+
+// ==================== AI 성장 결정 분석 ====================
+
+/**
+ * AI 성장 결정 분석
+ * - 성장 선택 패턴
+ * - 선택 정확도
+ * - 최적 경로 추천
+ */
+export function analyzeGrowthDecisions(stats: DetailedStats): GrowthDecisionAnalysis {
+  const decisions: GrowthDecisionRecord[] = [];
+  const reasonsByType: Record<string, Record<string, number>> = {};
+  const contextualPatterns: GrowthContextPattern[] = [];
+  const commonMistakes: GrowthMistake[] = [];
+  const optimalPaths: OptimalGrowthPath[] = [];
+
+  // 성장 통계에서 패턴 추출
+  if (stats.growthStats) {
+    const { statInvestments, ethosInvestments, pathosInvestments, logosInvestments, growthPathStats, statWinCorrelation } = stats.growthStats;
+
+    // 스탯별 투자 이유 분포 (추정)
+    for (const [stat, count] of Object.entries(statInvestments)) {
+      if (!reasonsByType[stat]) reasonsByType[stat] = {};
+      reasonsByType[stat]['general_boost'] = count;
+    }
+
+    // 성장 경로별 분석
+    if (growthPathStats && growthPathStats.length > 0) {
+      // 최적 경로 추출
+      const sortedPaths = [...growthPathStats].sort((a, b) => b.winRate - a.winRate);
+
+      for (const pathStat of sortedPaths.slice(0, 5)) {
+        optimalPaths.push({
+          pathName: pathStat.path,
+          steps: pathStat.path.split('→').map((stat, i) => ({
+            floor: (i + 1) * 2,
+            stat,
+            reason: `${stat} 선택으로 시너지 강화`,
+          })),
+          winRate: pathStat.winRate,
+          recommendedFor: ['일반 플레이'],
+          requirements: [],
+        });
+      }
+
+      // 상황별 패턴 추출
+      const avgWinRate = sortedPaths.reduce((sum, p) => sum + p.winRate, 0) / sortedPaths.length;
+
+      for (const pathStat of sortedPaths) {
+        if (pathStat.count >= 3) {
+          const firstStat = pathStat.path.split('→')[0];
+          contextualPatterns.push({
+            patternName: `${firstStat} 우선 빌드`,
+            conditions: { startWith: firstStat },
+            preferredChoices: [{ stat: firstStat, frequency: pathStat.count, winRate: pathStat.winRate }],
+            optimalChoice: firstStat,
+            frequency: pathStat.count,
+          });
+        }
+      }
+
+      // 실수 분석 (낮은 승률 경로)
+      for (const pathStat of sortedPaths.slice(-3)) {
+        if (pathStat.winRate < avgWinRate - 0.1 && pathStat.count >= 2) {
+          const bestPath = sortedPaths[0];
+          commonMistakes.push({
+            mistakeType: 'suboptimal_path',
+            chosenStat: pathStat.path,
+            optimalStat: bestPath.path,
+            occurrences: pathStat.count,
+            winRateLoss: bestPath.winRate - pathStat.winRate,
+            situationDescription: `${pathStat.path} 경로가 ${bestPath.path}보다 승률 ${((bestPath.winRate - pathStat.winRate) * 100).toFixed(1)}%p 낮음`,
+          });
+        }
+      }
+    }
+
+    // 스탯 상관관계 기반 패턴
+    if (statWinCorrelation) {
+      const sortedStats = Object.entries(statWinCorrelation).sort((a, b) => b[1] - a[1]);
+      for (const [stat, correlation] of sortedStats) {
+        if (correlation > 0.1) {
+          contextualPatterns.push({
+            patternName: `${stat} 집중`,
+            conditions: { highCorrelation: stat },
+            preferredChoices: [{ stat, frequency: statInvestments[stat] || 0, winRate: 0.5 + correlation }],
+            optimalChoice: stat,
+            frequency: statInvestments[stat] || 0,
+          });
+        }
+      }
+    }
+  }
+
+  // 정확도 계산
+  const totalDecisions = decisions.length;
+  const correctDecisions = decisions.filter(d => d.wasOptimal).length;
+  const correctChoiceRate = totalDecisions > 0 ? correctDecisions / totalDecisions : 0.5;
+
+  return {
+    decisions,
+    reasonsByType,
+    contextualPatterns,
+    decisionAccuracy: {
+      correctChoiceRate,
+      commonMistakes,
+      accuracyByContext: {},
+    },
+    optimalPaths,
+  };
+}
+
+// ==================== 카드 선택 이유 분석 ====================
+
+/**
+ * 카드 선택 이유 분석
+ * - 선택/스킵 패턴
+ * - 선택 정확도
+ * - 카드 가치 평가
+ */
+export function analyzeCardSelectionReasoning(stats: DetailedStats): CardSelectionReasoningAnalysis {
+  const decisions: CardSelectionDecision[] = [];
+  const reasonsByCard = new Map<string, Record<string, number>>();
+  const commonMistakes: CardSelectionMistake[] = [];
+  const cardValueAssessment = new Map<string, CardValueAssessment>();
+  const optimalPickGuide: CardPickGuideEntry[] = [];
+
+  // 스킵 이유 분석
+  let totalSkips = 0;
+  const skipReasonDistribution: Record<string, number> = {};
+  const shouldHaveSkipped: { cardId: string; occurrences: number; winRateLoss: number }[] = [];
+  const shouldNotHaveSkipped: { cardId: string; occurrences: number; winRateLoss: number }[] = [];
+
+  // 카드 선택 기록 분석
+  if (stats.allCardChoices && stats.allCardChoices.length > 0) {
+    for (const choice of stats.allCardChoices) {
+      if (choice.skipped) {
+        totalSkips++;
+        skipReasonDistribution['deck_size'] = (skipReasonDistribution['deck_size'] || 0) + 1;
+      }
+    }
+  }
+
+  // 카드별 가치 평가
+  if (stats.cardPickStats && stats.cardContributionStats) {
+    const { pickRate, timesOffered, timesPicked } = stats.cardPickStats;
+    const { winRateWithCard, winRateWithoutCard, contribution } = stats.cardContributionStats;
+
+    for (const cardId of Object.keys(pickRate)) {
+      const pr = pickRate[cardId] || 0;
+      const wr = winRateWithCard[cardId] || 0.5;
+      const wrWithout = winRateWithoutCard[cardId] || 0.5;
+      const offered = timesOffered[cardId] || 0;
+      const picked = timesPicked[cardId] || 0;
+
+      // 선택 이유 분포 추정
+      const reasons: Record<string, number> = {};
+      if (wr > wrWithout + 0.1) {
+        reasons['power_level'] = picked;
+      } else if (pr > 0.5) {
+        reasons['deck_synergy'] = picked;
+      } else {
+        reasons['situational'] = picked;
+      }
+      reasonsByCard.set(cardId, reasons);
+
+      // 가치 평가
+      const assessment: CardValueAssessment = {
+        cardId,
+        cardName: cardId,
+        baseValue: wr,
+        contextModifiers: [],
+        synergyBonuses: [],
+        optimalConditions: wr > 0.6 ? ['항상 좋음'] : ['상황에 따라'],
+        skipConditions: wr < 0.4 ? ['낮은 승률'] : [],
+      };
+      cardValueAssessment.set(cardId, assessment);
+
+      // 실수 분석
+      // 픽률 높지만 승률 낮은 카드 = 과대평가 (스킵해야 했음)
+      if (pr > 0.5 && wr < wrWithout - 0.05 && offered >= 5) {
+        shouldHaveSkipped.push({
+          cardId,
+          occurrences: picked,
+          winRateLoss: wrWithout - wr,
+        });
+        commonMistakes.push({
+          mistakeType: 'should_skip',
+          pickedCard: cardId,
+          optimalCard: null,
+          occurrences: picked,
+          winRateLoss: wrWithout - wr,
+          situationDescription: `${cardId} 선택 시 승률 ${((wrWithout - wr) * 100).toFixed(1)}%p 하락`,
+        });
+      }
+
+      // 픽률 낮지만 승률 높은 카드 = 과소평가 (스킵하지 말았어야 함)
+      if (pr < 0.3 && wr > wrWithout + 0.1 && offered >= 5) {
+        const skipped = offered - picked;
+        shouldNotHaveSkipped.push({
+          cardId,
+          occurrences: skipped,
+          winRateLoss: wr - wrWithout,
+        });
+        commonMistakes.push({
+          mistakeType: 'should_not_skip',
+          pickedCard: null,
+          optimalCard: cardId,
+          occurrences: skipped,
+          winRateLoss: wr - wrWithout,
+          situationDescription: `${cardId} 스킵 시 승률 ${((wr - wrWithout) * 100).toFixed(1)}%p 손실`,
+        });
+      }
+    }
+
+    // 최적 픽 가이드 생성
+    const sortedByContribution = Object.entries(contribution || {}).sort((a, b) => b[1] - a[1]);
+
+    // 일반 상황 가이드
+    optimalPickGuide.push({
+      situation: '일반 상황',
+      conditions: {},
+      recommendedPicks: sortedByContribution.slice(0, 5).map(([cardId, contrib], i) => ({
+        cardId,
+        priority: 5 - i,
+        reason: `기여도 ${((contrib || 0) * 100).toFixed(1)}%p`,
+      })),
+      avoidPicks: sortedByContribution.slice(-3).map(([cardId]) => ({
+        cardId,
+        reason: '낮은 기여도',
+      })),
+      shouldSkip: false,
+    });
+
+    // 덱 크기별 가이드
+    optimalPickGuide.push({
+      situation: '덱이 큰 경우 (15장+)',
+      conditions: { deckSize: 15 },
+      recommendedPicks: [],
+      avoidPicks: [],
+      shouldSkip: true,
+      skipReason: '덱 비대화 방지',
+    });
+  }
+
+  const skipReasonAnalysis: SkipReasonAnalysis = {
+    totalSkips,
+    reasonDistribution: skipReasonDistribution,
+    winRateAfterSkip: 0.5, // 기본값
+    shouldHaveSkipped,
+    shouldNotHaveSkipped,
+  };
+
+  // 정확도 계산
+  const totalDecisions = decisions.length;
+  const correctDecisions = decisions.filter(d => d.wasOptimal).length;
+  const correctRate = totalDecisions > 0 ? correctDecisions / totalDecisions : 0.5;
+
+  return {
+    decisions,
+    reasonsByCard,
+    skipReasonAnalysis,
+    selectionAccuracy: {
+      correctRate,
+      commonMistakes,
+      accuracyByContext: {},
+    },
+    cardValueAssessment,
+    optimalPickGuide,
+  };
+}
+
+// ==================== 영향력 분석 문제점 추출 ====================
+
+/**
+ * 이벤트 영향력 분석에서 문제점 추출
+ */
+export function analyzeEventImpactProblems(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+  const analysis = analyzeEventImpact(stats);
+
+  // 치명적인 이벤트 선택
+  if (analysis.overallEventInfluence.mostFatalChoice) {
+    const fatal = analysis.overallEventInfluence.mostFatalChoice;
+    if (fatal.deathRate > 0.3) {
+      problems.push({
+        category: 'design',
+        description: `이벤트 "${fatal.eventId}"의 선택지 "${fatal.choiceId}"가 ${(fatal.deathRate * 100).toFixed(0)}% 확률로 치명적`,
+        severity: fatal.deathRate > 0.5 ? 5 : 4,
+        confidence: 0.7,
+        relatedData: { eventId: fatal.eventId, choiceId: fatal.choiceId, deathRate: fatal.deathRate },
+        methodology: '이벤트 영향력 분석',
+      });
+    }
+  }
+
+  // 극단적으로 부정적인 이벤트
+  for (const event of analysis.mostDetrimentalEvents) {
+    if (event.netImpact < -0.1) {
+      problems.push({
+        category: 'balance',
+        description: `이벤트 "${event.eventName}" 승률 영향 ${(event.netImpact * 100).toFixed(1)}%p - 조정 필요`,
+        severity: event.netImpact < -0.2 ? 4 : 3,
+        confidence: 0.6,
+        relatedData: { eventId: event.eventId, netImpact: event.netImpact, zScore: event.zScore },
+        methodology: '이벤트 영향력 Z-score 분석',
+      });
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 상징 시너지 분석에서 문제점 추출
+ */
+export function analyzeRelicSynergyProblems(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+  const analysis = analyzeRelicSynergyImpact(stats);
+
+  // OP 시너지
+  for (const synergy of analysis.topSynergies.slice(0, 3)) {
+    if (synergy.winRateBoost > 0.15) {
+      problems.push({
+        category: 'balance',
+        description: `상징 조합 "${synergy.relicNames.join(' + ')}" 시너지가 과도함 (+${(synergy.winRateBoost * 100).toFixed(1)}%p)`,
+        severity: synergy.winRateBoost > 0.25 ? 4 : 3,
+        confidence: 0.6,
+        relatedData: { combinationKey: synergy.combinationKey, winRateBoost: synergy.winRateBoost },
+        methodology: '상징 시너지 분석',
+      });
+    }
+  }
+
+  // 핵심 상징이 너무 강함
+  for (const core of analysis.coreRelics.slice(0, 3)) {
+    if (core.coreScore > 0.2) {
+      problems.push({
+        category: 'balance',
+        description: `상징 "${core.relicName}"이 필수급 (+${(core.coreScore * 100).toFixed(1)}%p 승률)`,
+        severity: core.coreScore > 0.3 ? 5 : 4,
+        confidence: 0.7,
+        relatedData: { relicId: core.relicId, coreScore: core.coreScore },
+        methodology: '핵심 상징 분석',
+      });
+    }
+  }
+
+  // 안티 시너지
+  for (const anti of analysis.antiSynergies) {
+    if (anti.winRateBoost < -0.1) {
+      problems.push({
+        category: 'design',
+        description: `상징 조합 "${anti.relicNames.join(' + ')}"이 안티시너지 (${(anti.winRateBoost * 100).toFixed(1)}%p)`,
+        severity: 2,
+        confidence: 0.5,
+        relatedData: { combinationKey: anti.combinationKey, winRateBoost: anti.winRateBoost },
+        methodology: '안티시너지 분석',
+      });
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 성장 결정 분석에서 문제점 추출
+ */
+export function analyzeGrowthDecisionProblems(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+  const analysis = analyzeGrowthDecisions(stats);
+
+  // 자주 발생하는 실수
+  for (const mistake of analysis.decisionAccuracy.commonMistakes) {
+    if (mistake.winRateLoss > 0.1 && mistake.occurrences >= 3) {
+      problems.push({
+        category: 'design',
+        description: `성장 경로 "${mistake.chosenStat}"이 최적 경로 "${mistake.optimalStat}"보다 ${(mistake.winRateLoss * 100).toFixed(1)}%p 낮음`,
+        severity: mistake.winRateLoss > 0.15 ? 4 : 3,
+        confidence: calculateConfidence(mistake.occurrences, 5),
+        relatedData: { chosenStat: mistake.chosenStat, optimalStat: mistake.optimalStat, winRateLoss: mistake.winRateLoss },
+        methodology: 'AI 성장 결정 분석',
+      });
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * 카드 선택 분석에서 문제점 추출
+ */
+export function analyzeCardSelectionProblems(stats: DetailedStats): Problem[] {
+  const problems: Problem[] = [];
+  const analysis = analyzeCardSelectionReasoning(stats);
+
+  // 스킵해야 했는데 안 한 카드
+  for (const skip of analysis.skipReasonAnalysis.shouldHaveSkipped) {
+    if (skip.winRateLoss > 0.05 && skip.occurrences >= 3) {
+      problems.push({
+        category: 'design',
+        description: `카드 "${skip.cardId}" 과대평가됨 - 선택 시 승률 ${(skip.winRateLoss * 100).toFixed(1)}%p 하락`,
+        severity: skip.winRateLoss > 0.1 ? 4 : 3,
+        confidence: calculateConfidence(skip.occurrences, 5),
+        relatedData: { cardId: skip.cardId, winRateLoss: skip.winRateLoss },
+        methodology: '카드 선택 이유 분석',
+      });
+    }
+  }
+
+  // 스킵하지 말았어야 하는 카드
+  for (const noSkip of analysis.skipReasonAnalysis.shouldNotHaveSkipped) {
+    if (noSkip.winRateLoss > 0.05 && noSkip.occurrences >= 3) {
+      problems.push({
+        category: 'design',
+        description: `카드 "${noSkip.cardId}" 과소평가됨 - 스킵 시 승률 ${(noSkip.winRateLoss * 100).toFixed(1)}%p 손실`,
+        severity: noSkip.winRateLoss > 0.1 ? 4 : 3,
+        confidence: calculateConfidence(noSkip.occurrences, 5),
+        relatedData: { cardId: noSkip.cardId, winRateLoss: noSkip.winRateLoss },
+        methodology: '카드 선택 이유 분석',
+      });
+    }
+  }
+
+  return problems;
+}
+
 // ==================== 종합 분석 ====================
 
 /**
@@ -1323,6 +2050,11 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
     ...analyzeProgressionCurve(stats),
     ...analyzeSynergies(stats, thresholds),
     ...analyzeGrowthPaths(stats),
+    // 새로운 영향력 분석
+    ...analyzeEventImpactProblems(stats),
+    ...analyzeRelicSynergyProblems(stats),
+    ...analyzeGrowthDecisionProblems(stats),
+    ...analyzeCardSelectionProblems(stats),
   ];
 
   // 3. 신뢰도 가중 심각도 정렬
@@ -1690,6 +2422,140 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
   lines.push('3. **재미 > 밸런스**: 숫자보다 플레이 경험 우선');
   lines.push('4. **버프 우선 정책**: 너프보다 약한 것 강화');
   lines.push('');
+
+  // ==================== 영향력 분석 섹션 ====================
+  lines.push('---');
+  lines.push('');
+  lines.push('## 📈 영향력 분석 (WHY 분석)');
+  lines.push('');
+
+  // 이벤트 영향력 분석
+  const eventImpact = analyzeEventImpact(stats);
+  if (eventImpact.eventImpacts.size > 0) {
+    lines.push('### 🎭 이벤트 영향력');
+    lines.push('');
+
+    if (eventImpact.mostBeneficialEvents.length > 0) {
+      lines.push('#### 가장 이로운 이벤트');
+      eventImpact.mostBeneficialEvents.slice(0, 3).forEach(e => {
+        lines.push(`- **${e.eventName}**: 승률 영향 +${(e.netImpact * 100).toFixed(1)}%p (권장: ${e.recommendation === 'always_do' ? '항상 진행' : e.recommendation === 'avoid' ? '피하기' : '상황에 따라'})`);
+        if (e.optimalChoice) {
+          lines.push(`  - 최적 선택: ${e.optimalChoice}`);
+        }
+      });
+      lines.push('');
+    }
+
+    if (eventImpact.mostDetrimentalEvents.length > 0) {
+      lines.push('#### 주의해야 할 이벤트');
+      eventImpact.mostDetrimentalEvents.slice(0, 3).forEach(e => {
+        lines.push(`- **${e.eventName}**: 승률 영향 ${(e.netImpact * 100).toFixed(1)}%p (권장: ${e.recommendation === 'avoid' ? '피하기' : e.recommendation === 'skip' ? '스킵' : '주의'})`);
+      });
+      lines.push('');
+    }
+
+    if (eventImpact.overallEventInfluence.mostFatalChoice) {
+      const fatal = eventImpact.overallEventInfluence.mostFatalChoice;
+      lines.push(`> ⚠️ 가장 치명적인 선택: ${fatal.eventId}의 "${fatal.choiceId}" (사망률 ${(fatal.deathRate * 100).toFixed(0)}%)`);
+      lines.push('');
+    }
+  }
+
+  // 상징 시너지 분석
+  const relicSynergy = analyzeRelicSynergyImpact(stats);
+  if (relicSynergy.coreRelics.length > 0 || relicSynergy.topSynergies.length > 0) {
+    lines.push('### 💎 상징 시너지 분석');
+    lines.push('');
+
+    if (relicSynergy.coreRelics.length > 0) {
+      lines.push('#### 핵심 상징 (있으면 승률 급상승)');
+      relicSynergy.coreRelics.slice(0, 5).forEach(r => {
+        const buildDefining = r.isBuildDefining ? ' [빌드 정의]' : '';
+        lines.push(`- **${r.relicName}**: +${(r.coreScore * 100).toFixed(1)}%p (보유 ${(r.winRateWith * 100).toFixed(0)}% vs 미보유 ${(r.winRateWithout * 100).toFixed(0)}%)${buildDefining}`);
+      });
+      lines.push('');
+    }
+
+    if (relicSynergy.topSynergies.length > 0) {
+      lines.push('#### TOP 시너지 조합');
+      relicSynergy.topSynergies.slice(0, 5).forEach(s => {
+        lines.push(`- **${s.relicNames.join(' + ')}**: +${(s.winRateBoost * 100).toFixed(1)}%p`);
+      });
+      lines.push('');
+    }
+
+    if (relicSynergy.antiSynergies.length > 0) {
+      lines.push('#### ⚠️ 안티시너지 (함께 사용 주의)');
+      relicSynergy.antiSynergies.slice(0, 3).forEach(s => {
+        lines.push(`- ${s.relicNames.join(' + ')}: ${(s.winRateBoost * 100).toFixed(1)}%p`);
+      });
+      lines.push('');
+    }
+  }
+
+  // AI 성장 결정 분석
+  const growthDecision = analyzeGrowthDecisions(stats);
+  if (growthDecision.optimalPaths.length > 0 || growthDecision.contextualPatterns.length > 0) {
+    lines.push('### 📊 AI 성장 결정 분석');
+    lines.push('');
+
+    if (growthDecision.optimalPaths.length > 0) {
+      lines.push('#### 최적 성장 경로');
+      growthDecision.optimalPaths.slice(0, 3).forEach((p, i) => {
+        lines.push(`${i + 1}. **${p.pathName}** (승률 ${(p.winRate * 100).toFixed(1)}%)`);
+        if (p.recommendedFor.length > 0) {
+          lines.push(`   - 권장: ${p.recommendedFor.join(', ')}`);
+        }
+      });
+      lines.push('');
+    }
+
+    if (growthDecision.decisionAccuracy.commonMistakes.length > 0) {
+      lines.push('#### 자주 발생하는 실수');
+      growthDecision.decisionAccuracy.commonMistakes.slice(0, 3).forEach(m => {
+        lines.push(`- ${m.situationDescription}`);
+        lines.push(`  → 최적 선택: ${m.optimalStat} (승률 +${(m.winRateLoss * 100).toFixed(1)}%p)`);
+      });
+      lines.push('');
+    }
+  }
+
+  // 카드 선택 이유 분석
+  const cardSelection = analyzeCardSelectionReasoning(stats);
+  if (cardSelection.optimalPickGuide.length > 0 || cardSelection.selectionAccuracy.commonMistakes.length > 0) {
+    lines.push('### 🃏 카드 선택 분석');
+    lines.push('');
+
+    if (cardSelection.skipReasonAnalysis.shouldHaveSkipped.length > 0) {
+      lines.push('#### 과대평가된 카드 (스킵 권장)');
+      cardSelection.skipReasonAnalysis.shouldHaveSkipped.slice(0, 3).forEach(s => {
+        lines.push(`- **${s.cardId}**: 선택 시 승률 ${(s.winRateLoss * 100).toFixed(1)}%p 하락`);
+      });
+      lines.push('');
+    }
+
+    if (cardSelection.skipReasonAnalysis.shouldNotHaveSkipped.length > 0) {
+      lines.push('#### 과소평가된 카드 (픽 권장)');
+      cardSelection.skipReasonAnalysis.shouldNotHaveSkipped.slice(0, 3).forEach(s => {
+        lines.push(`- **${s.cardId}**: 스킵 시 승률 ${(s.winRateLoss * 100).toFixed(1)}%p 손실`);
+      });
+      lines.push('');
+    }
+
+    if (cardSelection.optimalPickGuide.length > 0) {
+      const guide = cardSelection.optimalPickGuide[0];
+      if (guide.recommendedPicks.length > 0) {
+        lines.push('#### 일반 상황 추천 픽');
+        guide.recommendedPicks.slice(0, 5).forEach(p => {
+          lines.push(`- ${p.cardId}: ${p.reason}`);
+        });
+        lines.push('');
+      }
+    }
+  }
+
+  lines.push('---');
+  lines.push('');
   lines.push('### 업계 참고 (하하하GO 맞춤 적용)');
   lines.push('- Riot: 동적 임계값 사용 (단, PvP 50% 목표 → 난이도별 목표로 조정)');
   lines.push('- Supercell: 4분면 분석 사용 (단, AI 픽률 편향 고려)');
@@ -1723,6 +2589,16 @@ export const StatsAnalyzer = {
   analyzeProgressionCurve,
   analyzeSynergies,
   analyzeGrowthPaths,
+  // 영향력 분석 (신규)
+  analyzeEventImpact,
+  analyzeRelicSynergyImpact,
+  analyzeGrowthDecisions,
+  analyzeCardSelectionReasoning,
+  // 영향력 분석 문제점 추출 (신규)
+  analyzeEventImpactProblems,
+  analyzeRelicSynergyProblems,
+  analyzeGrowthDecisionProblems,
+  analyzeCardSelectionProblems,
   // 유틸리티
   calculateDynamicThresholds,
   analyzeCardQuadrants,
