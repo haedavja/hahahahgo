@@ -184,7 +184,7 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
 
   // 카드 1장: 하이카드
   if (validCards.length === 1) {
-    return createComboResult('하이카드', new Set([validCards[0].actionCost]));
+    return createComboResult('하이카드', new Set([validCards[0].actionCost ?? 0]));
   }
 
   // 빈도 분석
@@ -237,7 +237,7 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
 
   // 조합 없음: 하이카드
   const allKeys = new Set<number>();
-  validCards.forEach(c => allKeys.add(c.actionCost));
+  validCards.forEach(c => allKeys.add(c.actionCost ?? 0));
   return createComboResult('하이카드', allKeys);
 }
 
@@ -247,16 +247,16 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
 function inferCategory(card: GameCard | ComboCard): string {
   // 1. 명시적인 cardCategory가 있으면 사용
   if ('cardCategory' in card && card.cardCategory) {
-    return card.cardCategory;
+    return card.cardCategory as string;
   }
 
   // 2. category 필드 확인
   if (card.category) {
-    return card.category;
+    return card.category as string;
   }
 
   // 3. ID 기반 추론 (폴백)
-  const id = card.id.toLowerCase();
+  const id = (card.id ?? '').toLowerCase();
   // 펜싱 카드 판별
   if (id.includes('thrust') || id.includes('slash') || id.includes('parry') ||
       id.includes('riposte') || id.includes('fleche') || id.includes('lunge') ||
@@ -283,12 +283,13 @@ function inferCategory(card: GameCard | ComboCard): string {
  * ComboResult 생성 헬퍼
  */
 function createComboResult(name: string, bonusKeys: Set<number> | null): ComboResult {
+  const comboName = name as keyof typeof COMBO_MULTIPLIERS;
   return {
     name,
-    multiplier: COMBO_MULTIPLIERS[name] || 1,
-    rank: COMBO_INFO[name]?.rank || 0,
+    multiplier: COMBO_MULTIPLIERS[comboName] || 1,
+    rank: COMBO_INFO[comboName]?.rank || 0,
     bonusKeys,
-    description: COMBO_INFO[name]?.description || '',
+    description: COMBO_INFO[comboName]?.description || '',
   };
 }
 

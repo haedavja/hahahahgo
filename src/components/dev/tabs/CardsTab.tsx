@@ -13,7 +13,7 @@ const CardGrowthModal = lazy(() => import('../../map/ui/CardGrowthModal').then(m
 
 // 특성 목록 (긍정/부정 분리 후 가나다 순 정렬)
 const ALL_TRAITS = Object.entries(TRAITS)
-  .map(([id, trait]) => ({ id, ...trait }))
+  .map(([traitId, trait]) => ({ ...trait, id: traitId }))
   .sort((a, b) => {
     // 긍정 먼저, 그 다음 가나다 순
     if (a.type !== b.type) return a.type === 'positive' ? -1 : 1;

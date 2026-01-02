@@ -109,6 +109,7 @@ export function getPyramidLevelFromTraits(traitCount: number): number {
 interface Reflection {
   id: string;
   name: string;
+  emoji?: string;
   description: string;
   probability: number;
 }

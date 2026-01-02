@@ -228,7 +228,7 @@ export const BalanceTab = memo(function BalanceTab() {
           const battleResult = engine.runBattle(
             deck,
             [],
-            { ...enemy, hp: enemy.maxHp, block: 0, tokens: {} },
+            { ...enemy, hp: enemy.maxHp, block: 0, tokens: {} } as unknown as Parameters<typeof engine.runBattle>[2],
             anomalyConfig
           );
 

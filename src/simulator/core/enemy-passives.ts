@@ -77,11 +77,11 @@ export function processEnemyBattleStartPassives(
       if (!unitPassives) continue;
 
       if (unitPassives.veilAtStart) {
-        unit.tokens = addToken(unit.tokens, 'veil', 1);
+        unit.tokens = addToken(unit.tokens ?? {}, 'veil', 1);
       }
 
       if (unitPassives.critBoostAtStart && unitPassives.critBoostAtStart > 0) {
-        unit.tokens = addToken(unit.tokens, 'crit_boost', unitPassives.critBoostAtStart);
+        unit.tokens = addToken(unit.tokens ?? {}, 'crit_boost', unitPassives.critBoostAtStart);
       }
     }
   }
@@ -147,7 +147,7 @@ export function processEnemyTurnStartPassives(
       // strengthPerTurn
       if (unitPassives.strengthPerTurn && unitPassives.strengthPerTurn > 0) {
         const strengthAmount = unitPassives.strengthPerTurn;
-        unit.tokens = addToken(unit.tokens, 'strength', strengthAmount);
+        unit.tokens = addToken(unit.tokens ?? {}, 'strength', strengthAmount);
         results.push({
           triggered: true,
           effects: [`${unit.name}: 힘 +${strengthAmount}`],
@@ -290,7 +290,7 @@ export function hasVeilEffect(state: GameBattleState): boolean {
   // 유닛 중 장막을 가진 유닛이 있으면
   if (state.enemy.units) {
     for (const unit of state.enemy.units) {
-      if (unit.hp > 0 && hasToken(unit.tokens, 'veil')) {
+      if (unit.hp > 0 && hasToken(unit.tokens ?? {}, 'veil')) {
         return true;
       }
     }

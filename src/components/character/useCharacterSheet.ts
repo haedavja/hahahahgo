@@ -75,7 +75,8 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
   // 활성화된 성찰 및 확률 계산 (획득한 자아 기준)
   const activeReflectionsInfo = useMemo(() => {
     if (!playerEgos || playerEgos.length === 0) return [];
-    const activeReflections = getReflectionsByEgos(playerEgos);
+    const egoNames = playerEgos.map(e => e.name);
+    const activeReflections = getReflectionsByEgos(egoNames);
     const probabilityBonus = getTraitCountBonus(playerTraits.length);
 
     return activeReflections.map(r => ({

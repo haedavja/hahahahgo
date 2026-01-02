@@ -93,7 +93,7 @@ export const ResourcesTab = memo(function ResourcesTab({ resources, setResources
           </label>
           <input
             type="number"
-            value={(inputs as Record<string, number>)[key]}
+            value={(inputs as unknown as Record<string, number>)[key]}
             onChange={(e) => handleInputChange(key, e.target.value)}
             style={STYLES.input}
           />

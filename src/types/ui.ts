@@ -729,8 +729,9 @@ export interface CharacterEgo {
 export interface ReflectionInfo {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string;
   description: string;
+  probability?: number;
   finalProbability: number;
 }
 

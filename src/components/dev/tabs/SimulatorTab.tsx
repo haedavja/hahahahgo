@@ -13,7 +13,7 @@ import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 
 // 한글 이름 조회 헬퍼 함수들
 function getRelicName(id: string): string {
-  return RELICS[id]?.name || id;
+  return (RELICS as Record<string, { name?: string }>)[id]?.name || id;
 }
 
 function getItemName(id: string): string {
