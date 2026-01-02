@@ -47,3 +47,6 @@ lerna-debug.log*
 new/
 coverage/
 test-results/
+
+# Claude settings with API keys
+.claude/settings.json

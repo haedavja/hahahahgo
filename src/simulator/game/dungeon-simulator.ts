@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../core/logger';
+import { getGlobalRandom } from '../core/seeded-random';
 
 const log = getLogger('DungeonSimulator');
 
@@ -225,7 +226,7 @@ export class DungeonSimulator {
 
     // 분기 경로 생성
     for (let b = 0; b < cfg.branchCount; b++) {
-      const branchStartIndex = Math.floor(Math.random() * (nodes.length - 2)) + 1;
+      const branchStartIndex = getGlobalRandom().nextInt(1, nodes.length - 2);
       const branchStartNode = nodes[branchStartIndex];
 
       let branchPrevId = branchStartNode.id;
@@ -305,9 +306,10 @@ export class DungeonSimulator {
       });
     }
 
-    if (roomType === 'room' && Math.random() < 0.5) {
+    const rng = getGlobalRandom();
+    if (roomType === 'room' && rng.chance(0.5)) {
       const objectTypes: DungeonObjectType[] = ['curio', 'ore', 'crate', 'crystal', 'mushroom'];
-      const randomType = objectTypes[Math.floor(Math.random() * objectTypes.length)];
+      const randomType = rng.pick(objectTypes);
       objects.push({
         id: `${randomType}_${Date.now()}`,
         type: randomType,
@@ -457,8 +459,9 @@ export class DungeonSimulator {
 
         // 전투 승리 시 카드 보상 (50% 확률)
         const cardsGained: string[] = [];
-        if (battleResult.won && Math.random() < 0.5) {
-          const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+        const rng = getGlobalRandom();
+        if (battleResult.won && rng.chance(0.5)) {
+          const randomCard = rng.pick(DUNGEON_CARD_REWARDS);
           cardsGained.push(randomCard);
           player.deck.push(randomCard);
         }
@@ -476,18 +479,19 @@ export class DungeonSimulator {
         const baseWinChance = 0.75 - (difficulty - 1) * 0.05;
         const relicBonus = player.relics.length * 0.03;
         const winChance = Math.min(0.9, Math.max(0.3, baseWinChance + relicBonus));
-        const won = Math.random() < winChance;
+        const rng = getGlobalRandom();
+        const won = rng.chance(winChance);
 
         if (!won) {
           player.hp -= 10 + difficulty * 3;
         } else {
-          player.hp -= Math.floor(Math.random() * (3 + difficulty));
+          player.hp -= rng.nextInt(0, 2 + difficulty);
         }
 
         // 전투 승리 시 카드 보상 (50% 확률)
         const cardsGained: string[] = [];
-        if (won && Math.random() < 0.5) {
-          const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+        if (won && rng.chance(0.5)) {
+          const randomCard = rng.pick(DUNGEON_CARD_REWARDS);
           cardsGained.push(randomCard);
           player.deck.push(randomCard);
         }
@@ -508,14 +512,15 @@ export class DungeonSimulator {
 
     // 보물 상자에서 카드/상징 보상
     if (obj.type === 'chest') {
+      const rng = getGlobalRandom();
       // 보물 상자는 항상 카드 1장 제공
-      const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+      const randomCard = rng.pick(DUNGEON_CARD_REWARDS);
       cardsGained.push(randomCard);
       player.deck.push(randomCard);
 
       // 희귀 보물 상자는 상징도 제공 (25% 확률)
-      if (obj.quality === 'rare' && Math.random() < 0.25) {
-        const randomRelic = DUNGEON_RELIC_REWARDS[Math.floor(Math.random() * DUNGEON_RELIC_REWARDS.length)];
+      if (obj.quality === 'rare' && rng.chance(0.25)) {
+        const randomRelic = rng.pick(DUNGEON_RELIC_REWARDS);
         relicsGained.push(randomRelic);
         player.relics.push(randomRelic);
       }

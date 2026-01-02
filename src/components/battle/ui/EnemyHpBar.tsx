@@ -324,13 +324,25 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   }, [dulledLevel, enemyEtherValue, enemy?.etherCapacity]);
 
   return (
-    <div style={CONTAINER_STYLE} data-testid="enemy-hp-bar-container">
+    <div
+      style={CONTAINER_STYLE}
+      data-testid="enemy-hp-bar-container"
+      role="region"
+      aria-label="적 상태"
+    >
       <div style={INNER_CONTAINER_STYLE}>
         <div style={HP_AREA_STYLE} data-testid="enemy-hp-area">
           <div style={HP_COLUMN_STYLE}>
             <div style={HP_BAR_WRAPPER_STYLE}>
               {/* HP/방어력 텍스트 */}
-              <div className={enemyHit ? 'hit-animation' : ''} style={hpTextStyle} data-testid="enemy-hp-text">
+              <div
+                className={enemyHit ? 'hit-animation' : ''}
+                style={hpTextStyle}
+                data-testid="enemy-hp-text"
+                role="status"
+                aria-live="polite"
+                aria-label={`적 체력 ${hpText}${blockText ? `, 방어력 ${blockText}` : ''}`}
+              >
                 {showDamage && (
                   <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
                     🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
@@ -340,7 +352,15 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
                 <span>❤️ {hpText}</span>
               </div>
               <div style={HP_BAR_CONTAINER_STYLE}>
-                <div className="hp-bar-enhanced mb-1" style={HP_BAR_STYLE}>
+                <div
+                  className="hp-bar-enhanced mb-1"
+                  style={HP_BAR_STYLE}
+                  role="progressbar"
+                  aria-valuenow={hideEnemyVitals ? 0 : enemy.hp}
+                  aria-valuemin={0}
+                  aria-valuemax={enemy.maxHp ?? enemy.hp}
+                  aria-label="적 체력 바"
+                >
                   <div className="hp-fill" style={{ width: `${hideEnemyVitals ? 0 : (enemy.hp / (enemy.maxHp ?? enemy.hp ?? 1)) * 100}%` }}></div>
                   {(enemy.block ?? 0) > 0 && !hideEnemyVitals && (
                     <div style={blockOverlayStyle}></div>
@@ -352,11 +372,16 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
                 </div>
                 {/* 빙결 상태이상 표시 */}
                 {frozenOrder > 0 && (
-                  <div className="enemy-status-frozen" style={FROZEN_BADGE_STYLE}>
-                    <span>❄️</span>
+                  <div
+                    className="enemy-status-frozen"
+                    style={FROZEN_BADGE_STYLE}
+                    role="status"
+                    aria-label={`빙결 x${frozenOrder}: ${frozenOrder}턴 동안 플레이어 카드가 먼저 발동합니다`}
+                  >
+                    <span aria-hidden="true">❄️</span>
                     <span style={FROZEN_COUNT_STYLE}>x{frozenOrder}</span>
                     {/* 툴팁 */}
-                    <div className="status-tooltip" style={FROZEN_TOOLTIP_STYLE}>
+                    <div className="status-tooltip" style={FROZEN_TOOLTIP_STYLE} role="tooltip">
                       <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '8px', fontSize: '16px' }}>❄️ 빙결 (x{frozenOrder})</div>
                       <div style={{ lineHeight: 1.5 }}>{frozenOrder}턴 동안 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
                     </div>
@@ -393,7 +418,13 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
       <div
         className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
         title={soulOrbTitle}
-        style={SOUL_ORB_STYLE}>
+        style={SOUL_ORB_STYLE}
+        role="meter"
+        aria-label="적 에테르 (소울)"
+        aria-valuenow={dulledLevel >= 3 ? 0 : enemyEtherValue}
+        aria-valuemin={0}
+        aria-valuemax={enemy?.etherCapacity ?? enemyEtherValue}
+      >
         <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
         <div className="soul-orb-content">
           <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
@@ -402,7 +433,12 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
       </div>
       {/* 은총 오브 */}
       {graceState && graceState.gracePts > 0 && (
-        <div style={GRACE_ORB_STYLE}>
+        <div
+          style={GRACE_ORB_STYLE}
+          role="meter"
+          aria-label="적 은총"
+          aria-valuenow={dulledLevel >= 3 ? 0 : calculateGraceSlots(graceState.gracePts)}
+        >
           <div style={GRACE_ORB_SHELL_STYLE}>
             <span style={GRACE_ORB_VALUE_STYLE}>
               {dulledLevel >= 3 ? '?' : calculateGraceSlots(graceState.gracePts)}

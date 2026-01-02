@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../core/logger';
+import { getGlobalRandom } from '../core/seeded-random';
 import { DeckBuildingAI, mapRunStrategyToDeckStrategy, type DeckStrategy } from '../ai/deck-building-ai';
 import type { Card } from '../../types';
 
@@ -284,8 +285,9 @@ export class ShopSimulator {
 
     // 카드 생성
     const cardIds = Object.keys(this.cardData);
+    const rng = getGlobalRandom();
     for (let i = 0; i < config.cardSlots && cardIds.length > 0; i++) {
-      const randomId = cardIds[Math.floor(Math.random() * cardIds.length)];
+      const randomId = rng.pick(cardIds);
       const card = this.cardData[randomId];
       if (card) {
         const price = Math.floor(CARD_PRICES[card.rarity] * config.priceMultiplier);
@@ -303,7 +305,7 @@ export class ShopSimulator {
     // 상징 생성
     const relicIds = Object.keys(this.relicData);
     for (let i = 0; i < config.relicSlots && relicIds.length > 0; i++) {
-      const randomId = relicIds[Math.floor(Math.random() * relicIds.length)];
+      const randomId = getGlobalRandom().pick(relicIds);
       const relic = this.relicData[randomId];
       if (relic) {
         const price = Math.floor(RELIC_PRICES[relic.rarity] * config.priceMultiplier);
@@ -321,7 +323,7 @@ export class ShopSimulator {
     // 아이템 생성
     const itemIds = Object.keys(this.itemData);
     for (let i = 0; i < config.itemSlots && itemIds.length > 0; i++) {
-      const randomId = itemIds[Math.floor(Math.random() * itemIds.length)];
+      const randomId = getGlobalRandom().pick(itemIds);
       const item = this.itemData[randomId];
       if (item) {
         const price = Math.floor(ITEM_PRICES[item.tier] * config.priceMultiplier);
@@ -581,7 +583,7 @@ export class ShopSimulator {
 
         case 'random':
         default:
-          priority = Math.random() * 100;
+          priority = getGlobalRandom().next() * 100;
           reason = '랜덤 선택';
       }
 
@@ -728,10 +730,10 @@ export class ShopSimulator {
               ['strike', 'shoot', 'deflect'].includes(c)
             );
             if (basicCards.length > 0) {
-              cardToRemove = basicCards[Math.floor(Math.random() * basicCards.length)];
+              cardToRemove = getGlobalRandom().pick(basicCards);
             } else {
               // 아무 카드나 선택
-              cardToRemove = player.deck[Math.floor(Math.random() * player.deck.length)];
+              cardToRemove = getGlobalRandom().pick(player.deck);
             }
           }
 
@@ -763,7 +765,7 @@ export class ShopSimulator {
           if (!cardToUpgrade) {
             const upgradable = player.deck.filter(c => !upgradedCards.includes(c));
             if (upgradable.length > 0) {
-              cardToUpgrade = upgradable[Math.floor(Math.random() * upgradable.length)];
+              cardToUpgrade = getGlobalRandom().pick(upgradable);
             }
           }
 

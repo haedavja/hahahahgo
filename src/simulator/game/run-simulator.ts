@@ -555,7 +555,7 @@ export class RunSimulator {
     if (nodeType === 'boss') {
       const bosses = this.enemyLibrary.filter(e => e.isBoss === true);
       if (bosses.length > 0) {
-        const boss = bosses[Math.floor(Math.random() * bosses.length)];
+        const boss = getGlobalRandom().pick(bosses);
         return [this.convertToEnemyState(boss)];
       }
       return [defaultEnemy()];
@@ -564,7 +564,7 @@ export class RunSimulator {
     if (nodeType === 'elite') {
       const elites = this.enemyLibrary.filter(e => e.tier === 2 && !e.isBoss);
       if (elites.length > 0) {
-        const elite = elites[Math.floor(Math.random() * elites.length)];
+        const elite = getGlobalRandom().pick(elites);
         return [this.convertToEnemyState(elite)];
       }
       return [defaultEnemy()];
@@ -579,7 +579,7 @@ export class RunSimulator {
       });
 
       if (validGroups.length > 0) {
-        const selectedGroup = validGroups[Math.floor(Math.random() * validGroups.length)];
+        const selectedGroup = getGlobalRandom().pick(validGroups);
         const enemies: EnemyState[] = [];
 
         for (const enemyId of selectedGroup.enemies) {
@@ -598,7 +598,7 @@ export class RunSimulator {
     // 폴백: 단일 적 선택
     const tier1Enemies = this.enemyLibrary.filter(e => e.tier === 1 && !e.isBoss);
     if (tier1Enemies.length > 0) {
-      const enemy = tier1Enemies[Math.floor(Math.random() * tier1Enemies.length)];
+      const enemy = getGlobalRandom().pick(tier1Enemies);
       return [this.convertToEnemyState(enemy)];
     }
 
@@ -646,7 +646,7 @@ export class RunSimulator {
       .filter(p => difficulty >= p.minDiff)
       .flatMap(p => p.enemies);
     const selectedId = pool.length > 0
-      ? pool[Math.floor(Math.random() * pool.length)]
+      ? getGlobalRandom().pick(pool)
       : 'ghoul';
 
     // 적 라이브러리에서 찾기
@@ -814,10 +814,10 @@ export class RunSimulator {
       }
 
       // 엘리트/보스 상징 획득
-      if ((isElite || isBoss) && Math.random() < 0.5) {
+      if ((isElite || isBoss) && getGlobalRandom().chance(0.5)) {
         const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
         if (availableRelics.length > 0) {
-          const newRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+          const newRelic = getGlobalRandom().pick(availableRelics);
           player.relics.push(newRelic);
           result.relicsGained.push(newRelic);
         }
@@ -944,21 +944,22 @@ export class RunSimulator {
 
     // 최종 승률 제한
     const winChance = Math.min(0.90, Math.max(0.10, baseWinRate));
-    const won = Math.random() < winChance;
+    const rng = getGlobalRandom();
+    const won = rng.chance(winChance);
 
-    const turns = Math.floor(3 + Math.random() * 5);
+    const turns = rng.nextInt(3, 7);
     const damageReceived = won
-      ? Math.floor(Math.random() * (10 + difficulty * 3))
+      ? rng.nextInt(0, 10 + difficulty * 3 - 1)
       : player.hp;
 
     return {
       winner: won ? 'player' : 'enemy',
       turns,
-      playerDamageDealt: enemy.maxHp - (won ? 0 : Math.floor(enemy.maxHp * Math.random())),
+      playerDamageDealt: enemy.maxHp - (won ? 0 : rng.nextInt(0, enemy.maxHp - 1)),
       enemyDamageDealt: damageReceived,
       playerFinalHp: Math.max(0, player.hp - damageReceived),
-      enemyFinalHp: won ? 0 : Math.floor(enemy.maxHp * Math.random()),
-      etherGained: won ? Math.floor(20 + Math.random() * 30) : 0,
+      enemyFinalHp: won ? 0 : rng.nextInt(0, enemy.maxHp - 1),
+      etherGained: won ? rng.nextInt(20, 49) : 0,
       goldChange: 0,
       battleLog: [],
       events: [],
@@ -984,7 +985,7 @@ export class RunSimulator {
       return;
     }
 
-    const randomEvent = events[Math.floor(Math.random() * events.length)];
+    const randomEvent = getGlobalRandom().pick(events);
 
     const eventConfig: EventSimulationConfig = {
       resources: {
@@ -1221,41 +1222,42 @@ export class RunSimulator {
     const attackRatio = attackCount / player.deck.length;
 
     // 전략별 필터링
+    const rng = getGlobalRandom();
     return cards.filter(shopItem => {
       const card = this.cardLibrary[shopItem.id];
-      if (!card) return Math.random() < 0.3; // 카드 정보 없으면 30% 확률
+      if (!card) return rng.chance(0.3); // 카드 정보 없으면 30% 확률
 
       const category = categorizeCard(card);
 
       switch (strategy) {
         case 'aggressive':
           // 공격 카드 선호, 방어 카드 50% 스킵
-          if (category === 'defense') return Math.random() < 0.5;
+          if (category === 'defense') return rng.chance(0.5);
           return true;
 
         case 'defensive':
           // 방어 카드 선호, 공격 카드 50% 스킵
-          if (category === 'attack') return Math.random() < 0.5;
+          if (category === 'attack') return rng.chance(0.5);
           return true;
 
         case 'balanced':
           // 덱 균형 고려: 공격 비율이 높으면 방어 카드, 낮으면 공격 카드
-          if (attackRatio > 0.6 && category === 'attack') return Math.random() < 0.3;
-          if (attackRatio < 0.4 && category === 'defense') return Math.random() < 0.3;
-          return Math.random() < 0.7; // 기본 70% 확률
+          if (attackRatio > 0.6 && category === 'attack') return rng.chance(0.3);
+          if (attackRatio < 0.4 && category === 'defense') return rng.chance(0.3);
+          return rng.chance(0.7); // 기본 70% 확률
 
         case 'speedrun':
           // 빠른 카드만 구매
           if (card.speedCost && card.speedCost > 5) return false;
-          return Math.random() < 0.5;
+          return rng.chance(0.5);
 
         case 'treasure_hunter':
           // 유틸리티 카드 선호
           if (category === 'utility') return true;
-          return Math.random() < 0.4;
+          return rng.chance(0.4);
 
         default:
-          return Math.random() < 0.5;
+          return rng.chance(0.5);
       }
     });
   }
@@ -1512,11 +1514,7 @@ export class RunSimulator {
     if (availableCards.length === 0) return null;
 
     // 3장의 카드 제시 (중복 없이)
-    const cardChoices: string[] = [];
-    const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-      cardChoices.push(shuffled[i]);
-    }
+    const cardChoices = getGlobalRandom().pickN(availableCards, Math.min(3, availableCards.length));
 
     if (cardChoices.length === 0) return null;
 
@@ -1555,10 +1553,12 @@ export class RunSimulator {
   ): boolean {
     const deckSize = player.deck.length;
 
+    const rng = getGlobalRandom();
+
     // 덱이 15장 이상이면 스킵 확률 증가
     if (deckSize >= 15) {
       const skipChance = (deckSize - 14) * 0.15; // 15장: 15%, 16장: 30%, ...
-      if (Math.random() < skipChance) return true;
+      if (rng.chance(skipChance)) return true;
     }
 
     // 제시된 카드 품질 평가
@@ -1581,7 +1581,7 @@ export class RunSimulator {
     });
 
     // 좋은 카드가 없으면 40% 확률로 스킵
-    if (!hasGoodCard && Math.random() < 0.4) return true;
+    if (!hasGoodCard && rng.chance(0.4)) return true;
 
     return false;
   }
@@ -1592,7 +1592,7 @@ export class RunSimulator {
   private selectBestCard(cardChoices: string[], strategy: RunStrategy): string {
     // 카드 라이브러리가 없으면 랜덤 선택
     if (Object.keys(this.cardLibrary).length === 0) {
-      return cardChoices[Math.floor(Math.random() * cardChoices.length)];
+      return getGlobalRandom().pick(cardChoices);
     }
 
     // 콤보 최적화기가 있으면 사용
@@ -1658,7 +1658,7 @@ export class RunSimulator {
       }
 
       // 랜덤 요소 추가 (10%)
-      score += Math.random() * 10;
+      score += getGlobalRandom().next() * 10;
 
       return { cardId, score };
     });
@@ -1728,7 +1728,7 @@ export class RunSimulator {
     availableNodes.sort((a, b) => b.layer - a.layer);
     const highestLayer = availableNodes[0].layer;
     const topLayerNodes = availableNodes.filter(n => n.layer === highestLayer);
-    return topLayerNodes[Math.floor(Math.random() * topLayerNodes.length)].id;
+    return getGlobalRandom().pick(topLayerNodes).id;
   }
 
   // ==================== 통계 ====================
@@ -1845,12 +1845,13 @@ export class RunSimulator {
     nodeType: MapNodeType
   ): string | null {
     // 엘리트/보스 전투 후 30% 확률로 개성 획득
-    if ((nodeType === 'elite' || nodeType === 'boss') && Math.random() < 0.3) {
+    const rng = getGlobalRandom();
+    if ((nodeType === 'elite' || nodeType === 'boss') && rng.chance(0.3)) {
       const availableTraits = ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적']
         .filter(t => !growthSystem.getState().traits.includes(t));
 
       if (availableTraits.length > 0) {
-        const newTrait = availableTraits[Math.floor(Math.random() * availableTraits.length)];
+        const newTrait = rng.pick(availableTraits);
         growthSystem.addTrait(newTrait);
 
         // 성장 상태 업데이트

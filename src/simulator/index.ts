@@ -532,6 +532,23 @@ export {
   type PatchImpact,
 } from './analysis/trends';
 
+// ==================== AI Share Formatter ====================
+export {
+  AIShareFormatter,
+  formatBattleForAI,
+  formatSimulationForAI,
+  formatRunStatsForAI,
+  formatDetailedStatsForAI,
+  formatBalanceComparisonForAI,
+  formatComprehensiveReportForAI,
+  outputForCopy,
+  type AIShareBattleOptions,
+  type AIShareSimulationOptions,
+  type AIShareRunStatsOptions,
+  type BalanceComparisonData,
+  type ComprehensiveReportData,
+} from './analysis/ai-share-formatter';
+
 // ==================== Caching Layer ====================
 export {
   MemoryCache,
@@ -675,6 +692,7 @@ export const CLI_COMMANDS = {
   // 리포트
   report: 'HTML 리포트 생성',
   replay: '전투 리플레이 생성',
+  'ai-share': 'AI 공유용 텍스트 출력',
 
   // 데이터
   history: '히스토리 조회',

@@ -340,7 +340,8 @@ export class PatternLearner {
     const probs = topActions.map(a => a.frequency);
     const entropy = -probs.reduce((sum, p) => sum + (p > 0 ? p * Math.log2(p) : 0), 0);
     const maxEntropy = Math.log2(topActions.length);
-    const predictability = 1 - (entropy / maxEntropy);
+    // 행동이 하나뿐이면 완전히 예측 가능 (1.0)
+    const predictability = maxEntropy === 0 ? 1 : 1 - (entropy / maxEntropy);
 
     // 행동 스타일
     let style: 'aggressive' | 'defensive' | 'balanced' | 'random';

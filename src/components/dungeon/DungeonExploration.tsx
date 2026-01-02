@@ -401,8 +401,8 @@ function DungeonExplorationComponent() {
     interactionRef.current = handleInteraction;
   }, [handleInteraction]);
 
-  // 보상 모달 닫기
-  const closeRewardModal = () => {
+  // 보상 모달 닫기 (메모이제이션)
+  const closeRewardModal = useCallback(() => {
     if (rewardModal && (rewardModal.gold > 0 || rewardModal.loot > 0)) {
       setDungeonDeltas({
         ...dungeonDeltas,
@@ -420,10 +420,10 @@ function DungeonExplorationComponent() {
     }
 
     actions.setRewardModal(null);
-  };
+  }, [rewardModal, dungeonDeltas, setDungeonDeltas, setCurrentRoomKey, actions]);
 
-  // 던전 탈출
-  const handleSkipDungeon = () => {
+  // 던전 탈출 (메모이제이션)
+  const handleSkipDungeon = useCallback(() => {
     actions.setDungeonSummary({
       gold: dungeonDeltas.gold ?? 0,
       intel: dungeonDeltas.intel ?? 0,
@@ -431,10 +431,10 @@ function DungeonExplorationComponent() {
       material: dungeonDeltas.material ?? 0,
       isComplete: false,
     });
-  };
+  }, [actions, dungeonDeltas]);
 
-  // 던전 요약 닫기
-  const closeDungeonSummary = () => {
+  // 던전 요약 닫기 (메모이제이션)
+  const closeDungeonSummary = useCallback(() => {
     const isComplete = dungeonSummary?.isComplete;
     addResources(dungeonDeltas);
     actions.setDungeonSummary(null);
@@ -443,7 +443,12 @@ function DungeonExplorationComponent() {
     } else {
       skipDungeon();
     }
-  };
+  }, [dungeonSummary, dungeonDeltas, addResources, actions, completeDungeon, skipDungeon]);
+
+  // 캐릭터 시트 닫기 (메모이제이션)
+  const handleCloseCharacter = useCallback(() => {
+    actions.setShowCharacter(false);
+  }, [actions]);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -598,10 +603,10 @@ function DungeonExplorationComponent() {
       {showCharacter && (
         <div
           style={CHARACTER_OVERLAY_STYLE}
-          onClick={() => actions.setShowCharacter(false)}
+          onClick={handleCloseCharacter}
         >
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-            <CharacterSheet onClose={() => actions.setShowCharacter(false)} />
+            <CharacterSheet onClose={handleCloseCharacter} />
           </div>
         </div>
       )}
