@@ -91,6 +91,89 @@ export {
   getConstants,
 } from './core/battle-engine';
 
+// ==================== Typed Event System (타입 안전 이벤트) ====================
+export type {
+  // 이벤트 기본 타입
+  BattleEventType,
+  Actor,
+  EventActor,
+  BaseBattleEvent,
+  TypedBattleEvent,
+  LegacyBattleEvent,
+  // 개별 이벤트 데이터 타입
+  BattleStartData,
+  TurnStartData,
+  CardSelectData,
+  CardRespondData,
+  TimelineResolveData,
+  CardExecuteData,
+  DamageDealtData,
+  BlockGainedData,
+  HealData,
+  TokenAppliedData,
+  TokenRemovedData,
+  CounterTriggeredData,
+  CrossTriggeredData,
+  ChainTriggeredData,
+  SpecialTriggeredData,
+  ComboTriggeredData,
+  RelicTriggeredData,
+  TurnEndData,
+  BattleEndData,
+  // 개별 이벤트 타입
+  BattleStartEvent,
+  TurnStartEvent,
+  CardSelectEvent,
+  CardRespondEvent,
+  TimelineResolveEvent,
+  CardExecuteEvent,
+  DamageDealtEvent,
+  BlockGainedEvent,
+  HealEvent,
+  TokenAppliedEvent,
+  TokenRemovedEvent,
+  CounterTriggeredEvent,
+  CrossTriggeredEvent,
+  ChainTriggeredEvent,
+  SpecialTriggeredEvent,
+  ComboTriggeredEvent,
+  RelicTriggeredEvent,
+  TurnEndEvent,
+  BattleEndEvent,
+} from './core/event-types';
+
+export {
+  // 타입 가드
+  isBattleStartEvent,
+  isTurnStartEvent,
+  isDamageDealtEvent,
+  isTokenAppliedEvent,
+  isTokenRemovedEvent,
+  isCardExecuteEvent,
+  isComboTriggeredEvent,
+  isRelicTriggeredEvent,
+  isBattleEndEvent,
+  // 이벤트 생성 헬퍼
+  createBattleStartEvent,
+  createTurnStartEvent,
+  createDamageDealtEvent,
+  createBlockGainedEvent,
+  createTokenAppliedEvent,
+  createBattleEndEvent,
+  // 이벤트 필터링 유틸리티
+  filterEventsByType,
+  filterEventsByActor,
+  filterEventsByTurn,
+  // 이벤트 통계 유틸리티
+  sumDamageDealt,
+  countCardsPlayed,
+  getUniqueCardsUsed,
+  countTokensApplied,
+  // 호환성 함수
+  toLegacyEvent,
+  fromLegacyEvent,
+} from './core/event-types';
+
 // ==================== Parallel Processing ====================
 export { WorkerPool, runParallelSimulation, runQuickSimulation, type PoolOptions, type PoolStats } from './parallel/pool';
 
