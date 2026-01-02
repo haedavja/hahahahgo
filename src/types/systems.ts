@@ -335,7 +335,8 @@ export type CalculateEtherTransferFn = (
   enemyAppliedEther: number,
   curPlayerPts: number,
   curEnemyPts: number,
-  enemyHp: number
+  enemyHp: number,
+  graceState?: import('../data/monsterEther').MonsterGraceState
 ) => EtherTransferProcessResult;
 
 // ==================== 턴 종료 에테르 계산 ====================
@@ -448,6 +449,11 @@ export interface AnomalyPlayer {
   speedPenalty?: number;
   drawPenalty?: number;
   insightPenalty?: number;
+  vulnerabilityPercent?: number;
+  speedInstability?: number;
+  traitSilenceLevel?: number;
+  chainIsolationLevel?: number;
+  finesseBlockLevel?: number;
   [key: string]: unknown;
 }
 

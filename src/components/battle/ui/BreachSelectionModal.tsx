@@ -25,7 +25,7 @@ export const BreachSelectionModal: FC<BreachSelectionModalProps> = memo(({
     if (!breachSelection) return { title: '', desc: '', note: '', insertSp: 0 };
 
     const { cards, breachSp, breachCard, sourceCardName, isLastChain } = breachSelection;
-    const sp = breachSp + (breachCard?.breachSpOffset || 3);
+    const sp = (breachSp ?? 0) + (breachCard?.breachSpOffset || 3);
     const isFleche = sourceCardName && sourceCardName !== '브리치';
 
     return {

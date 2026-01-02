@@ -14,6 +14,7 @@ import { TOKENS } from '../../../data/tokens';
 import { initializeDeck, drawFromDeck } from '../utils/handGeneration';
 import { DEFAULT_DRAW_COUNT } from '../battleData';
 import type { Card, TokenEntity } from '../../../types/core';
+import type { CardGrowthState } from '../../../state/slices/types';
 
 interface CharacterBuild {
   mainSpecials?: string[];
@@ -56,7 +57,7 @@ interface UseDevModeEffectsParams {
   escapeBanRef: MutableRefObject<Set<string>>;
   battleRef: MutableRefObject<BattleRefValue>;
   addLog: (msg: string) => void;
-  cardGrowth: Record<string, unknown>;
+  cardGrowth: Record<string, CardGrowthState | undefined>;
   actions: {
     setPlayer: (player: PlayerState) => void;
     setEnemy: (enemy: EnemyState) => void;

@@ -3,7 +3,8 @@
  * @description 카드 실행 시 토큰 관련 처리 유틸리티
  */
 
-import { addToken, removeToken, setTokenStacks, type TokenEntity, type TokenType } from '../../../lib/tokenUtils';
+import { addToken, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
+import type { TokenEntity, TokenType } from '../../../types';
 import { TOKENS } from '../../../data/tokens';
 
 interface TokenActions {

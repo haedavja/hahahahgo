@@ -308,6 +308,12 @@ export interface QueueAction {
   unitId?: number;
 }
 
+/** 이변 플레이어 상태 (BattleContext용) */
+export interface AnomalyPlayerState {
+  chainIsolationLevel?: number;
+  [key: string]: unknown;
+}
+
 /** 전투 컨텍스트 */
 export interface BattleContext {
   enemyDisplayName?: string;
@@ -328,6 +334,7 @@ export interface BattleContext {
   isCritical?: boolean;
   enemyUnits?: EnemyUnit[];
   guaranteedCrit?: boolean;
+  playerState?: AnomalyPlayerState;
   // 파토스 턴 효과
   pathosTurnEffects?: {
     gunToMelee?: boolean;      // 총격 시 추가 타격

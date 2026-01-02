@@ -3,7 +3,8 @@
  * @description 카드 실행 후 상태 업데이트 처리
  */
 
-import { addToken, type TokenEntity } from '../../../lib/tokenUtils';
+import { addToken } from '../../../lib/tokenUtils';
+import type { TokenEntity } from '../../../types';
 import { hasTrait, hasEnemyUnits } from './battleUtils';
 import { distributeUnitDamage, type EnemyUnit } from './unitDamageDistribution';
 import type { Card, HandAction } from '../../../types';

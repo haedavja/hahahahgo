@@ -26,8 +26,8 @@ import type {
   TokenType
 } from '../types';
 
-/** TokenState의 키 타입 */
-type TokenStateKey = keyof TokenState;
+/** TokenState의 기본 키 타입 */
+type TokenStateKey = 'usage' | 'turn' | 'permanent';
 
 /** 토큰 타입이 유효한 TokenState 키인지 확인 */
 function isTokenStateKey(key: string): key is TokenStateKey {

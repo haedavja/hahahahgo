@@ -29,7 +29,7 @@ interface GameStoreSelectors {
   relics: string[];
   playerStrength: number;
   devDulledLevel: number | null;
-  cardUpgrades: Record<string, unknown>;
+  cardUpgrades: Record<string, string | undefined>;
 }
 
 /**

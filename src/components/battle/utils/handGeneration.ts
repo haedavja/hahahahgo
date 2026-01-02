@@ -18,7 +18,7 @@ import type { CardGrowthState } from '../../../state/slices/types';
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
 import { generateHandUid } from "../../../lib/randomUtils";
-import { getEnhancedCard } from "../../../lib/cardEnhancementUtils";
+import { getEnhancedCard, type EnhancedCardStats } from "../../../lib/cardEnhancementUtils";
 
 /** 카드 성장 상태 맵 타입 */
 type CardGrowthMap = Record<string, CardGrowthState | undefined>;
@@ -81,7 +81,8 @@ function applyEnhancementToCard(card: HandCard, cardGrowth?: CardGrowthMap): Han
     const existingTraits = (result.traits || []) as string[];
     const specializationTraits = growth.traits!;
     // 강화로 제거된 특성 목록
-    const removedByEnhancement = result.enhancedStats?.removedTraits || [];
+    const enhancedStats = result.enhancedStats as EnhancedCardStats | undefined;
+    const removedByEnhancement = enhancedStats?.removedTraits || [];
     // 제거된 특성을 제외하고 병합
     const filteredSpecTraits = specializationTraits.filter(t => !removedByEnhancement.includes(t));
     const mergedTraits = [...new Set([...existingTraits, ...filteredSpecTraits])];

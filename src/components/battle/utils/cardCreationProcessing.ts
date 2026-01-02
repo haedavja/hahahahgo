@@ -27,6 +27,7 @@ export interface BreachSelection {
   isLastChain?: boolean;
   isCreationSelection?: boolean;
   isAoe?: boolean;
+  [key: string]: unknown;
 }
 
 interface GenerateBreachCardsResult {

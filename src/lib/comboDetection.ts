@@ -138,13 +138,15 @@ function analyzeCards(cards: ComboCard[]): CardAnalysis {
     // 유효 카드 필터링과 집계를 동시에 수행
     if (!isExcludedFromCombo(c)) {
       validCards.push(c);
-      freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1);
-      typeCount.set(c.type, (typeCount.get(c.type) || 0) + 1);
+      const cost = c.actionCost ?? 0;
+      const cardType = c.type ?? 'general';
+      freq.set(cost, (freq.get(cost) || 0) + 1);
+      typeCount.set(cardType, (typeCount.get(cardType) || 0) + 1);
 
       // 플러쉬 판정용 타입 체크
-      if (c.type === 'attack') {
+      if (cardType === 'attack') {
         attackCount++;
-      } else if (c.type === 'general' || c.type === 'defense') {
+      } else if (cardType === 'general' || cardType === 'defense') {
         defenseCount++;
       }
     }
@@ -190,7 +192,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
   if (validCards.length === 1) {
     return {
       name: '하이카드',
-      bonusKeys: new Set([validCards[0].actionCost]),
+      bonusKeys: new Set([validCards[0].actionCost ?? 0]),
     };
   }
 
@@ -228,7 +230,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
 
   // 조합 없음: 하이카드
   const allKeys = new Set<number>();
-  validCards.forEach((c) => allKeys.add(c.actionCost));
+  validCards.forEach((c) => allKeys.add(c.actionCost ?? 0));
   return { name: '하이카드', bonusKeys: allKeys };
 }
 
@@ -279,7 +281,7 @@ export function applyPokerBonus<T extends ComboCard>(
 ): T[] {
   if (!combo) return cards;
   return cards.map((c) => {
-    if (combo.bonusKeys && combo.bonusKeys.has(c.actionCost)) {
+    if (combo.bonusKeys && combo.bonusKeys.has(c.actionCost ?? 0)) {
       return { ...c, _combo: combo.name };
     }
     return c;
@@ -291,5 +293,5 @@ export function applyPokerBonus<T extends ComboCard>(
  */
 export function isInCombo(card: ComboCard, combo: ComboCalculation | null): boolean {
   if (!combo || !combo.bonusKeys) return false;
-  return combo.bonusKeys.has(card.actionCost);
+  return combo.bonusKeys.has(card.actionCost ?? 0);
 }

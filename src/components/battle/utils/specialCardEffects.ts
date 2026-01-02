@@ -161,8 +161,8 @@ export function processCreatedCardsEffect({
     sourceCardName: sourceName,
     isLastChain,
   };
-  breachSelectionRef.current = breachState as BreachSelection;
-  setBreachSelection(breachState as BreachSelection);
+  breachSelectionRef.current = breachState as unknown as BreachSelection;
+  setBreachSelection(breachState as unknown as BreachSelection);
 
   return { shouldReturn: true };
 }

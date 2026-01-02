@@ -99,6 +99,9 @@ export interface TimelineCard {
   strainOffset?: number;
   /** 카드 고유 식별자 */
   __uid?: string;
+  /** 핸드 고유 식별자 */
+  __handUid?: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -460,6 +463,7 @@ export interface PopupCard {
   __isMainSpecial?: boolean;
   __isSubSpecial?: boolean;
   __uid?: string;
+  [key: string]: unknown;
 }
 
 /** UI용 캐릭터 빌드 */

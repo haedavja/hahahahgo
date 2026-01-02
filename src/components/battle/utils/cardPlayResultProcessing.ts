@@ -3,7 +3,8 @@
  * @description 카드 플레이 결과 처리 유틸리티
  */
 
-import { addToken, removeToken, type TokenEntity } from '../../../lib/tokenUtils';
+import { addToken, removeToken } from '../../../lib/tokenUtils';
+import type { TokenEntity } from '../../../types';
 import type { BattleEvent, CardPlaySpecialsResult } from '../../../types/combat';
 
 interface TokenInfo {
