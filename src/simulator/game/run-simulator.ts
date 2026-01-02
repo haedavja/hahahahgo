@@ -912,6 +912,9 @@ export class RunSimulator {
           }
         }
       }
+
+      // 전투 승리 후 전장 밖 힐링 아이템 사용
+      this.useHealingItemsOutOfBattle(player);
     } else {
       result.success = false;
       result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
@@ -974,21 +977,29 @@ export class RunSimulator {
   ): void {
     if (player.items.length === 0) return;
 
-    // HP가 40% 이하이거나 어려운 전투일 때 아이템 사용 고려
     const hpRatio = player.hp / player.maxHp;
-    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
 
+    // 아이템 사용 조건: HP가 낮거나 어려운 전투
+    // - 일반 전투: HP < 40%
+    // - 어려운 전투(정예/보스): 항상 아이템 사용 고려
+    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
     if (!shouldUseItems) return;
 
     // 사용할 아이템 선택
     const itemsToUse: { itemId: string; hpHealed?: number; specialEffect?: string }[] = [];
 
+    // 어려운 전투에서는 더 많은 아이템 사용 허용
+    const maxItems = isDifficultBattle ? 3 : 2;
+
+    // 힐 아이템 임계값: 보스전에서는 HP 80% 미만이면 사용
+    const healThreshold = isDifficultBattle ? 0.8 : 0.5;
+
     for (const itemId of player.items) {
       const item = this.itemLibrary[itemId];
       if (!item) continue;
 
-      // 힐 아이템: HP가 낮을 때 사용
-      if (item.effect.type === 'healPercent' && hpRatio < 0.5) {
+      // 힐 아이템: HP가 임계값 미만일 때 사용
+      if (item.effect.type === 'healPercent' && hpRatio < healThreshold) {
         const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         itemsToUse.push({ itemId, hpHealed: healAmount });
@@ -1004,8 +1015,17 @@ export class RunSimulator {
         itemsToUse.push({ itemId, specialEffect: 'grantTokens' });
       }
 
-      // 최대 2개 아이템 사용
-      if (itemsToUse.length >= 2) break;
+      // 스탯 강화제: 어려운 전투 전 사용
+      if (item.effect.type === 'statBoost' && isDifficultBattle) {
+        const statEffect = item.effect as { type: 'statBoost'; stat: 'strength' | 'agility' | 'insight'; value: number };
+        // 전투에 영향을 주는 스탯만 사용 (strength, agility)
+        if (statEffect.stat === 'strength' || statEffect.stat === 'agility') {
+          itemsToUse.push({ itemId, specialEffect: `statBoost:${statEffect.stat}:${statEffect.value}` });
+        }
+      }
+
+      // 최대 아이템 수 제한
+      if (itemsToUse.length >= maxItems) break;
     }
 
     // 사용한 아이템 제거 및 통계 기록
@@ -1023,6 +1043,49 @@ export class RunSimulator {
           hpHealed: usedItem.hpHealed,
           specialEffect: usedItem.specialEffect,
         });
+      }
+    }
+  }
+
+  /**
+   * 전투 후 또는 맵 이동 중 힐링 아이템 사용
+   * - HP가 50% 미만이면 힐링 아이템 사용
+   * - 전투 외 사용 가능한(usableIn: 'any') 아이템만 대상
+   */
+  private useHealingItemsOutOfBattle(player: PlayerRunState): void {
+    if (player.items.length === 0) return;
+
+    const hpRatio = player.hp / player.maxHp;
+
+    // HP가 50% 이상이면 사용 안 함
+    if (hpRatio >= 0.5) return;
+
+    // 힐링 아이템 찾기 (usableIn: 'any'인 healPercent 아이템)
+    for (let i = player.items.length - 1; i >= 0; i--) {
+      const itemId = player.items[i];
+      const item = this.itemLibrary[itemId];
+      if (!item) continue;
+
+      // 힐링 아이템이고 전투 외 사용 가능한 경우
+      if (item.effect.type === 'healPercent' && item.usableIn === 'any') {
+        const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+
+        // 아이템 제거
+        player.items.splice(i, 1);
+
+        // 통계 기록
+        if (this.statsCollector) {
+          this.statsCollector.recordItemUsed({
+            itemId,
+            inBattle: false,
+            hpHealed: healAmount,
+          });
+        }
+
+        // 1개만 사용 후 재평가
+        const newHpRatio = player.hp / player.maxHp;
+        if (newHpRatio >= 0.7) break; // HP 70% 이상 회복되면 중단
       }
     }
   }
