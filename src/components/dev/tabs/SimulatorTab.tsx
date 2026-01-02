@@ -10,6 +10,7 @@ import { ITEMS } from '../../../data/items';
 import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
+import { analyzeStats, generateAnalysisGuidelines } from '../../../simulator/analysis/stats-analysis-framework';
 
 // AI 공유용 포맷 함수 (전체 통계 포함)
 function formatStatsForAI(stats: DetailedStats, config: { runCount: number; difficulty: number; strategy: string }): string {
@@ -417,6 +418,11 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     });
   }
 
+  // ==================== 18. AI 분석 리포트 ====================
+  lines.push('## 18. AI 분석 리포트');
+  lines.push('');
+  lines.push(generateAnalysisGuidelines(stats));
+
   return lines.join('\n');
 }
 
@@ -477,7 +483,7 @@ const STYLES = {
   scrollBox: { maxHeight: '300px', overflowY: 'auto' } as CSSProperties,
 } as const;
 
-type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records';
+type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records' | 'difficulty' | 'cardChoice' | 'recentRuns' | 'growth' | 'aiStrategy' | 'upgrade' | 'analysis';
 
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
@@ -558,7 +564,14 @@ const SimulatorTab = memo(function SimulatorTab() {
     { id: 'pickrate', label: '픽률' },
     { id: 'contribution', label: '기여도' },
     { id: 'synergy', label: '시너지' },
+    { id: 'upgrade', label: '승급' },
+    { id: 'growth', label: '성장' },
+    { id: 'aiStrategy', label: 'AI전략' },
+    { id: 'difficulty', label: '난이도별' },
+    { id: 'cardChoice', label: '선택분석' },
+    { id: 'recentRuns', label: '런진행' },
     { id: 'records', label: '기록' },
+    { id: 'analysis', label: '🔍분석' },
   ];
 
   return (
@@ -1007,6 +1020,441 @@ const SimulatorTab = memo(function SimulatorTab() {
                     </div>
                   </div>
                 )}
+              </>
+            )}
+
+            {/* 카드 승급 통계 */}
+            {activeStatTab === 'upgrade' && stats.upgradeStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f59e0b' }}>⬆️ 카드 승급 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>총 승급</div>
+                    <div style={STYLES.statValue}>{stats.upgradeStats.totalUpgrades}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>런당 평균</div>
+                    <div style={STYLES.statValue}>{(stats.upgradeStats.avgUpgradesPerRun ?? 0).toFixed(1)}회</div>
+                  </div>
+                </div>
+                {Object.keys(stats.upgradeStats.upgradesByCard || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>승급된 카드</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>승급</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.upgradeStats.upgradesByCard || {})
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([id, count]) => (
+                              <tr key={id}>
+                                <td style={STYLES.td}>{getCardName(id)}</td>
+                                <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
+                                <td style={STYLES.td}>{count}회</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 성장 통계 */}
+            {activeStatTab === 'growth' && stats.growthStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#14b8a6' }}>📈 성장 통계</h4>
+                <div style={STYLES.statsGrid}>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>총 투자</div>
+                    <div style={STYLES.statValue}>{stats.growthStats.totalInvestments ?? 0}회</div>
+                  </div>
+                  <div style={STYLES.statItem}>
+                    <div style={STYLES.statLabel}>런당 평균</div>
+                    <div style={STYLES.statValue}>{(stats.growthStats.avgInvestmentsPerRun ?? 0).toFixed(1)}회</div>
+                  </div>
+                </div>
+
+                {/* 스탯별 투자 */}
+                {Object.keys(stats.growthStats.statInvestments || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>스탯별 투자</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.growthStats.statInvestments || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([stat, count]) => (
+                          <div key={stat} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{stat}: </span>
+                            <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 스탯별 승률 기여도 */}
+                {Object.keys(stats.growthStats.statWinCorrelation || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>스탯별 승률 기여도</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>스탯</th><th style={STYLES.th}>기여도</th><th style={STYLES.th}>바</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.growthStats.statWinCorrelation || {})
+                            .sort((a, b) => (b[1] as number) - (a[1] as number))
+                            .map(([stat, corr]) => {
+                              const corrValue = corr as number;
+                              return (
+                                <tr key={stat}>
+                                  <td style={STYLES.td}>{stat}</td>
+                                  <td style={{...STYLES.td, color: corrValue > 0 ? '#22c55e' : corrValue < 0 ? '#ef4444' : '#94a3b8'}}>
+                                    {corrValue > 0 ? '+' : ''}{(corrValue * 100).toFixed(1)}%
+                                  </td>
+                                  <td style={STYLES.td}>
+                                    <div style={{ width: '80px', height: '8px', background: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${Math.abs(corrValue) * 100}%`, height: '100%', background: corrValue > 0 ? '#22c55e' : '#ef4444' }} />
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 성장 경로별 승률 */}
+                {stats.growthStats.growthPathStats && stats.growthStats.growthPathStats.length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>성장 경로별 승률</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>경로</th><th style={STYLES.th}>횟수</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균레벨</th></tr></thead>
+                        <tbody>
+                          {stats.growthStats.growthPathStats.slice(0, 10).map((path, i) => (
+                            <tr key={i}>
+                              <td style={STYLES.td}>{path.path}</td>
+                              <td style={STYLES.td}>{path.count}회</td>
+                              <td style={{...STYLES.td, color: path.winRate > 0.5 ? '#22c55e' : path.winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                                {(path.winRate * 100).toFixed(1)}%
+                              </td>
+                              <td style={STYLES.td}>{path.avgFinalLevel.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 최종 스탯 분포 */}
+                {Object.keys(stats.growthStats.finalStatDistribution || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>최종 스탯 분포</h5>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>스탯</th><th style={STYLES.th}>평균</th><th style={STYLES.th}>최대</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.growthStats.finalStatDistribution || {}).map(([stat, data]) => (
+                            <tr key={stat}>
+                              <td style={STYLES.td}>{stat}</td>
+                              <td style={STYLES.td}>{data.avg.toFixed(1)}</td>
+                              <td style={{...STYLES.td, color: '#fbbf24'}}>{data.max}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 로고스 효과 발동 */}
+                {Object.keys(stats.growthStats.logosActivations || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>로고스 효과 발동</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.growthStats.logosActivations || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([effect, count]) => (
+                          <div key={effect} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{effect}: </span>
+                            <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* AI 전략 통계 */}
+            {activeStatTab === 'aiStrategy' && stats.aiStrategyStats && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#6366f1' }}>🤖 AI 전략 통계</h4>
+                {Object.keys(stats.aiStrategyStats.strategyUsage || {}).length > 0 && (
+                  <>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>전략</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th></tr></thead>
+                        <tbody>
+                          {Object.entries(stats.aiStrategyStats.strategyUsage || {}).map(([strat, usage]) => {
+                            const winRate = stats.aiStrategyStats.strategyWinRate[strat] || 0;
+                            const avgTurns = stats.aiStrategyStats.strategyAvgTurns[strat] || 0;
+                            return (
+                              <tr key={strat}>
+                                <td style={STYLES.td}>{strat}</td>
+                                <td style={STYLES.td}>{usage}회</td>
+                                <td style={{...STYLES.td, color: winRate > 0.5 ? '#22c55e' : winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                                  {(winRate * 100).toFixed(1)}%
+                                </td>
+                                <td style={STYLES.td}>{avgTurns.toFixed(1)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                {/* 콤보 발동 */}
+                {Object.keys(stats.aiStrategyStats.comboTypeUsage || {}).length > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>콤보 발동</h5>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.aiStrategyStats.comboTypeUsage || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([combo, count]) => (
+                          <div key={combo} style={{ padding: '6px 10px', background: '#1e293b', borderRadius: '6px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#94a3b8' }}>{combo}: </span>
+                            <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{count}회</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 난이도별 통계 */}
+            {activeStatTab === 'difficulty' && stats.difficultyStats && stats.difficultyStats.size > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f43f5e' }}>🔥 난이도별 통계</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  Hades Heat 스타일 난이도 진행
+                </p>
+                <div style={STYLES.scrollBox}>
+                  <table style={STYLES.table}>
+                    <thead><tr><th style={STYLES.th}>난이도</th><th style={STYLES.th}>런</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균층</th><th style={STYLES.th}>연승</th></tr></thead>
+                    <tbody>
+                      {Array.from(stats.difficultyStats.entries())
+                        .sort((a, b) => a[0] - b[0])
+                        .map(([diff, d]) => (
+                          <tr key={diff}>
+                            <td style={{...STYLES.td, fontWeight: 'bold', color: '#f43f5e'}}>🔥{diff}</td>
+                            <td style={STYLES.td}>{d.runs}회</td>
+                            <td style={STYLES.td}>{d.wins}회</td>
+                            <td style={{...STYLES.td, color: d.winRate > 0.5 ? '#22c55e' : d.winRate > 0.3 ? '#fbbf24' : '#ef4444'}}>
+                              {(d.winRate * 100).toFixed(1)}%
+                            </td>
+                            <td style={STYLES.td}>{d.avgFloorReached.toFixed(1)}</td>
+                            <td style={STYLES.td}>{d.winStreak}연승</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* 카드 선택 분석 */}
+            {activeStatTab === 'cardChoice' && stats.allCardChoices && stats.allCardChoices.length > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#0ea5e9' }}>🎯 카드 선택 분석</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  Slay the Spire 스타일 카드 경쟁 분석 - 어떤 카드가 어떤 카드를 이겼는지
+                </p>
+                {(() => {
+                  const cardWinContext: Record<string, { picked: number; total: number; competitors: Record<string, number> }> = {};
+                  stats.allCardChoices.forEach(choice => {
+                    if (choice.pickedCardId) {
+                      if (!cardWinContext[choice.pickedCardId]) {
+                        cardWinContext[choice.pickedCardId] = { picked: 0, total: 0, competitors: {} };
+                      }
+                      cardWinContext[choice.pickedCardId].picked++;
+                      cardWinContext[choice.pickedCardId].total++;
+                      choice.notPickedCardIds.forEach(notPicked => {
+                        cardWinContext[choice.pickedCardId].competitors[notPicked] =
+                          (cardWinContext[choice.pickedCardId].competitors[notPicked] || 0) + 1;
+                      });
+                    }
+                    choice.notPickedCardIds.forEach(notPicked => {
+                      if (!cardWinContext[notPicked]) {
+                        cardWinContext[notPicked] = { picked: 0, total: 0, competitors: {} };
+                      }
+                      cardWinContext[notPicked].total++;
+                    });
+                  });
+
+                  return (
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>선택률</th><th style={STYLES.th}>주요 경쟁카드</th></tr></thead>
+                        <tbody>
+                          {Object.entries(cardWinContext)
+                            .filter(([, data]) => data.total >= 3)
+                            .sort((a, b) => (b[1].picked / b[1].total) - (a[1].picked / a[1].total))
+                            .slice(0, 20)
+                            .map(([cardId, data]) => {
+                              const topCompetitors = Object.entries(data.competitors)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 2)
+                                .map(([id]) => getCardName(id))
+                                .join(', ') || '-';
+                              const selectRate = data.picked / data.total;
+                              return (
+                                <tr key={cardId}>
+                                  <td style={STYLES.td}>{getCardName(cardId)}</td>
+                                  <td style={STYLES.td}>{data.total}회</td>
+                                  <td style={STYLES.td}>{data.picked}회</td>
+                                  <td style={{...STYLES.td, color: selectRate > 0.5 ? '#22c55e' : selectRate > 0.25 ? '#fbbf24' : '#ef4444'}}>
+                                    {(selectRate * 100).toFixed(1)}%
+                                  </td>
+                                  <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{topCompetitors}</td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* 최근 런 진행 요약 */}
+            {activeStatTab === 'recentRuns' && stats.recentRunProgressions && stats.recentRunProgressions.length > 0 && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#a855f7' }}>🛤️ 최근 런 진행 요약</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  최근 런들의 경로, 덱, 전투 피해 요약
+                </p>
+                <div style={STYLES.scrollBox}>
+                  {stats.recentRunProgressions.slice(0, 5).map((run, i) => (
+                    <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                      <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>런 #{i + 1}</h5>
+                      <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                        <strong>경로:</strong> {run.pathTaken.join(' → ')}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                        <strong>최종 덱 ({run.finalDeck.length}장):</strong>{' '}
+                        <span style={{ color: '#94a3b8' }}>{run.finalDeck.map(getCardName).join(', ')}</span>
+                      </div>
+                      {run.finalRelics.length > 0 && (
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '8px' }}>
+                          <strong>최종 상징:</strong>{' '}
+                          <span style={{ color: '#fbbf24' }}>{run.finalRelics.map(getRelicName).join(', ')}</span>
+                        </div>
+                      )}
+                      {run.damagePerBattle.length > 0 && (
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>
+                          <strong>전투 피해:</strong>{' '}
+                          총 {run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0)},
+                          평균 {(run.damagePerBattle.reduce((sum, b) => sum + b.damage, 0) / run.damagePerBattle.length).toFixed(1)}/전투
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* 분석 리포트 */}
+            {activeStatTab === 'analysis' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#f97316' }}>🔍 AI 분석 리포트</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  통계 기반 자동 분석 - 문제점, 원인, 개선 방향 제시
+                </p>
+                {(() => {
+                  const analysis = analyzeStats(stats);
+                  return (
+                    <>
+                      {/* 요약 */}
+                      <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
+                        <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>📊 요약</h5>
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{analysis.summary}</div>
+                      </div>
+
+                      {/* 문제점 */}
+                      {analysis.problems.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>⚠️ 문제점 ({analysis.problems.length}개)</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.problems.slice(0, 10).map((problem, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${problem.severity >= 4 ? '#ef4444' : problem.severity >= 3 ? '#f59e0b' : '#3b82f6'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>{problem.category}</span>
+                                  <span style={{ fontSize: '0.75rem', color: problem.severity >= 4 ? '#ef4444' : '#fbbf24' }}>심각도 {problem.severity}/5</span>
+                                </div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{problem.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 원인 분석 */}
+                      {analysis.rootCauses.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#8b5cf6' }}>🔬 원인 분석</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.rootCauses.map((cause, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginBottom: '4px' }}>{cause.type}</div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{cause.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 개선 권장사항 */}
+                      {analysis.recommendations.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#22c55e' }}>💡 개선 권장사항</h5>
+                          <div style={STYLES.scrollBox}>
+                            {analysis.recommendations.map((rec, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.target}</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>우선순위 {rec.priority}</span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>[{rec.type}]</div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>{rec.suggestion}</div>
+                                <div style={{ fontSize: '0.8rem', color: '#06b6d4' }}>→ {rec.expectedImpact}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 추가 조사 필요 */}
+                      {analysis.needsInvestigation.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🔎 추가 조사 필요</h5>
+                          <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
+                            {analysis.needsInvestigation.map((item, i) => (
+                              <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>• {item}</div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             )}
           </div>
