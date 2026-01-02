@@ -174,6 +174,18 @@ export {
   fromLegacyEvent,
 } from './core/event-types';
 
+// ==================== LRU Cache (메모리 관리) ====================
+export {
+  LRUCache,
+  TTLCache,
+  WeakRefCache,
+  createStateCache,
+  createResultCache,
+  createTranspositionCache,
+  type LRUCacheOptions,
+  type CacheStats,
+} from './core/lru-cache';
+
 // ==================== Parallel Processing ====================
 export { WorkerPool, runParallelSimulation, runQuickSimulation, type PoolOptions, type PoolStats } from './parallel/pool';
 

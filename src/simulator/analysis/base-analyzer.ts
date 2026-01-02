@@ -15,6 +15,7 @@ import type {
   TokenState,
   TimelineCard,
 } from '../core/types';
+import { LRUCache, type CacheStats } from '../core/lru-cache';
 
 // ==================== 상태 복제 유틸리티 ====================
 
@@ -134,6 +135,7 @@ export function computeSimpleHash(state: GameState): string {
 export interface AnalyzerOptions {
   enableCaching?: boolean;
   maxCacheSize?: number;
+  cacheTtlMs?: number;
   verbose?: boolean;
 }
 
@@ -143,16 +145,20 @@ export interface AnalyzerOptions {
 export abstract class BaseAnalyzer<TConfig, TResult> {
   protected options: AnalyzerOptions;
   protected stateHashCache: WeakMap<GameState, string>;
-  protected analysisCache: Map<string, TResult>;
+  protected analysisCache: LRUCache<string, TResult>;
 
   constructor(options: AnalyzerOptions = {}) {
     this.options = {
       enableCaching: options.enableCaching ?? true,
       maxCacheSize: options.maxCacheSize ?? 1000,
+      cacheTtlMs: options.cacheTtlMs,
       verbose: options.verbose ?? false,
     };
     this.stateHashCache = new WeakMap();
-    this.analysisCache = new Map();
+    this.analysisCache = new LRUCache<string, TResult>({
+      maxSize: this.options.maxCacheSize ?? 1000,
+      ttl: this.options.cacheTtlMs,
+    });
   }
 
   // ==================== 추상 메서드 ====================
@@ -205,7 +211,7 @@ export abstract class BaseAnalyzer<TConfig, TResult> {
   }
 
   /**
-   * 분석 결과 캐시에서 가져오기
+   * 분석 결과 캐시에서 가져오기 (LRU 캐시 사용)
    */
   protected getCachedResult(key: string): TResult | undefined {
     if (!this.options.enableCaching) return undefined;
@@ -213,20 +219,10 @@ export abstract class BaseAnalyzer<TConfig, TResult> {
   }
 
   /**
-   * 분석 결과 캐시에 저장
+   * 분석 결과 캐시에 저장 (LRU 캐시가 자동으로 eviction 처리)
    */
   protected cacheResult(key: string, result: TResult): void {
     if (!this.options.enableCaching) return;
-
-    // 캐시 크기 제한
-    if (this.analysisCache.size >= (this.options.maxCacheSize ?? 1000)) {
-      // 가장 오래된 항목 제거 (FIFO)
-      const firstKey = this.analysisCache.keys().next().value;
-      if (firstKey) {
-        this.analysisCache.delete(firstKey);
-      }
-    }
-
     this.analysisCache.set(key, result);
   }
 
@@ -236,6 +232,20 @@ export abstract class BaseAnalyzer<TConfig, TResult> {
   clearCache(): void {
     this.stateHashCache = new WeakMap();
     this.analysisCache.clear();
+  }
+
+  /**
+   * 캐시 통계 반환
+   */
+  getCacheStats(): CacheStats {
+    return this.analysisCache.getStats();
+  }
+
+  /**
+   * 만료된 캐시 항목 정리
+   */
+  pruneCache(): number {
+    return this.analysisCache.prune();
   }
 
   // ==================== 유틸리티 ====================

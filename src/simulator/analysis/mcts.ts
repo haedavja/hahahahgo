@@ -8,6 +8,7 @@ import { loadCards, loadEnemies, type CardData, type EnemyData } from '../data/l
 import { createError, safeSync, type SimulatorError } from '../core/error-handling';
 import { getLogger } from '../core/logger';
 import { cloneGameState, computeStateHash } from './base-analyzer';
+import { LRUCache } from '../core/lru-cache';
 
 const log = getLogger('MCTS');
 
@@ -83,7 +84,7 @@ export class MCTSEngine {
   private cards: Record<string, CardData>;
   private enemies: Record<string, EnemyData>;
   private stats: MCTSStats;
-  private transpositionTable: Map<string, { visits: number; value: number }>;
+  private transpositionTable: LRUCache<string, { visits: number; value: number }>;
   private stateHashCache: WeakMap<GameState, string>;
 
   constructor(options: Partial<MCTSOptions> = {}) {
@@ -107,7 +108,8 @@ export class MCTSEngine {
     this.cards = safeSync(() => loadCards(), {}, 'DATA_CARD_NOT_FOUND');
     this.enemies = safeSync(() => loadEnemies(), {}, 'DATA_ENEMY_NOT_FOUND');
     this.stats = { iterations: 0, avgDepth: 0, bestValue: 0 };
-    this.transpositionTable = new Map();
+    // LRU 캐시로 교체: 10000개 항목으로 제한, 자동 eviction
+    this.transpositionTable = new LRUCache({ maxSize: 10000 });
     this.stateHashCache = new WeakMap();
   }
 
@@ -133,15 +135,16 @@ export class MCTSEngine {
   }
 
   /**
-   * 트랜스포지션 테이블 조회
+   * 트랜스포지션 테이블 조회 (LRU 캐시가 자동으로 LRU 순서 갱신)
    */
   private lookupTransposition(state: GameState): { visits: number; value: number } | null {
     const hash = this.getStateHash(state);
-    return this.transpositionTable.get(hash) || null;
+    return this.transpositionTable.get(hash) ?? null;
   }
 
   /**
    * 트랜스포지션 테이블 업데이트
+   * LRU 캐시가 자동으로 eviction 처리하므로 수동 관리 불필요
    */
   private updateTransposition(state: GameState, visits: number, value: number): void {
     const hash = this.getStateHash(state);
@@ -149,15 +152,6 @@ export class MCTSEngine {
 
     if (!existing || visits > existing.visits) {
       this.transpositionTable.set(hash, { visits, value });
-    }
-
-    // 메모리 관리: 테이블 크기 제한
-    if (this.transpositionTable.size > 10000) {
-      const entries = Array.from(this.transpositionTable.entries());
-      entries.sort((a, b) => a[1].visits - b[1].visits);
-      for (let i = 0; i < 5000; i++) {
-        this.transpositionTable.delete(entries[i][0]);
-      }
     }
   }
 
@@ -167,6 +161,13 @@ export class MCTSEngine {
   clearCache(): void {
     this.transpositionTable.clear();
     this.stateHashCache = new WeakMap();
+  }
+
+  /**
+   * 캐시 통계 반환
+   */
+  getCacheStats() {
+    return this.transpositionTable.getStats();
   }
 
   // ==================== 메인 탐색 ====================
