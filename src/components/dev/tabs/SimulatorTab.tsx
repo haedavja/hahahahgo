@@ -11,6 +11,120 @@ import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 
+// AI 공유용 포맷 함수
+function formatStatsForAI(stats: DetailedStats, config: { runCount: number; difficulty: number; strategy: string }): string {
+  const lines: string[] = [];
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  const num = (v: number) => v.toFixed(1);
+
+  lines.push('# 시뮬레이션 결과');
+  lines.push(`설정: ${config.runCount}런, 난이도 ${config.difficulty}, 전략: ${config.strategy}`);
+  lines.push('');
+
+  // 런 통계
+  lines.push('## 런 통계');
+  lines.push(`- 총 런: ${stats.runStats.totalRuns}회`);
+  lines.push(`- 성공률: ${pct(stats.runStats.successRate)}`);
+  lines.push(`- 평균 도달 층: ${num(stats.runStats.avgLayerReached)}`);
+  lines.push(`- 평균 전투 승리: ${num(stats.runStats.avgBattlesWon)}`);
+  lines.push(`- 평균 골드: ${num(stats.runStats.avgGoldEarned)}`);
+  lines.push(`- 평균 덱 크기: ${num(stats.runStats.avgFinalDeckSize)}`);
+  lines.push('');
+
+  // 사망 원인
+  if (stats.runStats.deathCauses && Object.keys(stats.runStats.deathCauses).length > 0) {
+    lines.push('## 사망 원인');
+    Object.entries(stats.runStats.deathCauses)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([cause, count]) => {
+        const rate = count / stats.runStats.totalRuns;
+        lines.push(`- ${cause}: ${count}회 (${pct(rate)})`);
+      });
+    lines.push('');
+  }
+
+  // 몬스터 통계 (상위 10개)
+  if (stats.monsterStats.size > 0) {
+    lines.push('## 몬스터 승률 (상위 10)');
+    lines.push('| 몬스터 | 전투 | 승률 | 평균턴 |');
+    lines.push('|--------|------|------|--------|');
+    Array.from(stats.monsterStats.entries())
+      .sort((a, b) => b[1].battles - a[1].battles)
+      .slice(0, 10)
+      .forEach(([id, m]) => {
+        const name = ENEMIES.find(e => e.id === id)?.name || id;
+        const winRate = m.battles > 0 ? m.wins / m.battles : 0;
+        lines.push(`| ${name} | ${m.battles} | ${pct(winRate)} | ${num(m.avgTurns ?? 0)} |`);
+      });
+    lines.push('');
+  }
+
+  // 카드 사용 통계 (상위 15개)
+  if (stats.cardStats.size > 0) {
+    lines.push('## 카드 사용 (상위 15)');
+    lines.push('| 카드 | 사용 | 승리시 | 패배시 | 피해 | 방어 |');
+    lines.push('|------|------|--------|--------|------|------|');
+    Array.from(stats.cardStats.entries())
+      .sort((a, b) => b[1].totalUses - a[1].totalUses)
+      .slice(0, 15)
+      .forEach(([id, c]) => {
+        const name = CARDS.find(card => card.id === id)?.name || id;
+        lines.push(`| ${name} | ${c.totalUses} | ${c.usesInWins} | ${c.usesInLosses} | ${c.totalDamage} | ${c.totalBlock} |`);
+      });
+    lines.push('');
+  }
+
+  // 카드 픽률 (상위 10개)
+  if (stats.cardPickStats && Object.keys(stats.cardPickStats.timesOffered || {}).length > 0) {
+    lines.push('## 카드 픽률 (상위 10)');
+    lines.push('| 카드 | 제시 | 선택 | 픽률 |');
+    lines.push('|------|------|------|------|');
+    Object.entries(stats.cardPickStats.timesOffered || {})
+      .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
+      .slice(0, 10)
+      .forEach(([id, offered]) => {
+        const name = CARDS.find(c => c.id === id)?.name || id;
+        const picked = stats.cardPickStats.timesPicked[id] || 0;
+        const pickRate = stats.cardPickStats.pickRate[id] || 0;
+        lines.push(`| ${name} | ${offered} | ${picked} | ${pct(pickRate)} |`);
+      });
+    lines.push('');
+  }
+
+  // 카드 기여도 (상위 10개)
+  if (stats.cardContributionStats && Object.keys(stats.cardContributionStats.contribution || {}).length > 0) {
+    lines.push('## 카드 기여도 (상위 10)');
+    lines.push('| 카드 | 보유시 승률 | 미보유시 승률 | 기여도 |');
+    lines.push('|------|-------------|---------------|--------|');
+    Object.entries(stats.cardContributionStats.contribution || {})
+      .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 10)
+      .forEach(([id, contrib]) => {
+        const name = CARDS.find(c => c.id === id)?.name || id;
+        const winWith = stats.cardContributionStats.winRateWithCard[id] || 0;
+        const winWithout = stats.cardContributionStats.winRateWithoutCard[id] || 0;
+        const sign = (contrib as number) > 0 ? '+' : '';
+        lines.push(`| ${name} | ${pct(winWith)} | ${pct(winWithout)} | ${sign}${pct(contrib as number)} |`);
+      });
+    lines.push('');
+  }
+
+  // 기록 통계
+  if (stats.recordStats) {
+    lines.push('## 기록');
+    lines.push(`- 최장 연승: ${stats.recordStats.longestWinStreak}연승`);
+    lines.push(`- 무피해 전투 승리: ${stats.recordStats.flawlessVictories}회`);
+    lines.push(`- 단일 턴 최대 피해: ${stats.recordStats.maxSingleTurnDamage}`);
+    if (stats.recordStats.maxDamageRecord) {
+      const cardName = CARDS.find(c => c.id === stats.recordStats.maxDamageRecord?.cardId)?.name || stats.recordStats.maxDamageRecord.cardId;
+      lines.push(`  - ${cardName}로 ${stats.recordStats.maxDamageRecord.monster} 상대`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 // 한글 이름 조회 헬퍼 함수들
 function getRelicName(id: string): string {
   return (RELICS as Record<string, { name?: string }>)[id]?.name || id;
@@ -78,6 +192,23 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState<DetailedStats | null>(null);
   const [activeStatTab, setActiveStatTab] = useState<StatTab>('run');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  // AI 공유용 복사 함수
+  const copyForAI = useCallback(async () => {
+    if (!stats) return;
+
+    try {
+      const text = formatStatsForAI(stats, { runCount, difficulty, strategy });
+      await navigator.clipboard.writeText(text);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      setCopyStatus('error');
+      setTimeout(() => setCopyStatus('idle'), 2000);
+    }
+  }, [stats, runCount, difficulty, strategy]);
 
   const runSimulation = useCallback(async () => {
     setIsRunning(true);
@@ -173,14 +304,31 @@ const SimulatorTab = memo(function SimulatorTab() {
       {/* 결과 통계 */}
       {stats && (
         <>
-          {/* 탭 네비게이션 */}
-          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          {/* 탭 네비게이션 + AI 공유 버튼 */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             {statTabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveStatTab(tab.id)}
                 style={activeStatTab === tab.id ? STYLES.tabButtonActive : STYLES.tabButton}>
                 {tab.label}
               </button>
             ))}
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={copyForAI}
+              style={{
+                padding: '6px 12px',
+                background: copyStatus === 'copied' ? '#22c55e' : copyStatus === 'error' ? '#ef4444' : '#8b5cf6',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+            >
+              {copyStatus === 'copied' ? '✓ 복사됨!' : copyStatus === 'error' ? '✗ 실패' : '📋 AI 공유용 복사'}
+            </button>
           </div>
 
           <div style={STYLES.sectionBox}>
