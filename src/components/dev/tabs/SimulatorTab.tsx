@@ -174,9 +174,14 @@ function formatStatsForAI(statsByStrategy: StatsByStrategy, config: { runCount: 
   });
 
   // ==================== 18. AI 분석 리포트 ====================
-  lines.push('## 18. AI 분석 리포트');
-  lines.push('');
-  lines.push(generateAnalysisGuidelines(stats));
+  // 균형 전략 기준으로 분석 (가장 기본적인 전략)
+  const analysisStats = statsByStrategy.balanced || statsByStrategy.aggressive || statsByStrategy.defensive;
+  if (analysisStats) {
+    lines.push('---');
+    lines.push('## 18. AI 분석 리포트');
+    lines.push('');
+    lines.push(generateAnalysisGuidelines(analysisStats));
+  }
 
   return lines.join('\n');
 }
