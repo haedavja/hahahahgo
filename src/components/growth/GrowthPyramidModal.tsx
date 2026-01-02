@@ -132,7 +132,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
             onUnlockNode={unlockNode}
             onSelectChoice={selectNodeChoice}
             onSelectIdentity={selectIdentity}
-            onUnlockLogos={unlockLogos}
+            onUnlockLogos={unlockLogos as (logosType: 'common' | 'gunkata' | 'battleWaltz') => void}
           />
         </div>
 

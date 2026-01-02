@@ -224,7 +224,7 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
             devOpenRest={devOpenRest}
             awakenAtRest={awakenAtRest}
             closeRest={closeRest}
-            devUnlockAllGrowth={devUnlockAllGrowth}
+            devUnlockAllGrowth={devUnlockAllGrowth as () => void}
           />
         )}
         {activeTab === 'map' && (
