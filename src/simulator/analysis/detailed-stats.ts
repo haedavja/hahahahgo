@@ -186,6 +186,7 @@ export class StatsCollector {
   private cardSelectionReasons: Record<string, number> = {};
   private synergyTriggers: Record<string, number> = {};
   private comboTypeUsage: Record<string, number> = {};
+  private tokenTypeUsage: Record<string, number> = {};
 
   // 카드 픽률 통계 (Slay the Spire 스타일)
   private cardsOffered: Record<string, number> = {};
@@ -308,6 +309,20 @@ export class StatsCollector {
 
     // 적 조우 횟수 기록 (사망률 계산용)
     this.enemyEncounters[monster.id] = (this.enemyEncounters[monster.id] || 0) + 1;
+
+    // 콤보 통계 집계
+    if (result.comboStats) {
+      for (const [comboName, count] of Object.entries(result.comboStats)) {
+        this.comboTypeUsage[comboName] = (this.comboTypeUsage[comboName] || 0) + count;
+      }
+    }
+
+    // 토큰 통계 집계
+    if (result.tokenStats) {
+      for (const [tokenId, count] of Object.entries(result.tokenStats)) {
+        this.tokenTypeUsage[tokenId] = (this.tokenTypeUsage[tokenId] || 0) + count;
+      }
+    }
 
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
@@ -1966,8 +1981,45 @@ export class StatsCollector {
 
   /** 토큰 통계 계산 */
   private calculateTokenStats(): Map<string, TokenStats> {
-    // 토큰 수집 로직이 아직 구현되지 않았으므로 빈 Map 반환
-    return new Map();
+    const result = new Map<string, TokenStats>();
+
+    for (const [tokenId, count] of Object.entries(this.tokenTypeUsage)) {
+      if (count === 0) continue;
+
+      result.set(tokenId, {
+        tokenId,
+        tokenName: tokenId, // 토큰 라이브러리가 없으므로 ID 사용
+        category: 'neutral',
+        timesAcquired: count,
+        timesUsed: count,
+        usageRate: 1.0,
+        timesExpired: 0,
+        effectStats: {
+          totalDamage: 0,
+          totalBlock: 0,
+          totalHealing: 0,
+          totalEtherGained: 0,
+          specialEffects: {},
+          avgValuePerUse: 0,
+        },
+        contextStats: {
+          byHpState: {
+            critical: { uses: 0, avgValue: 0 },
+            unstable: { uses: 0, avgValue: 0 },
+            stable: { uses: 0, avgValue: 0 },
+          },
+          byBattleType: {
+            normal: { uses: 0, avgValue: 0 },
+            elite: { uses: 0, avgValue: 0 },
+            boss: { uses: 0, avgValue: 0 },
+          },
+          byTurn: new Map(),
+          frequentCardCombos: [],
+        },
+      });
+    }
+
+    return result;
   }
 
   /** 층 진행 분석 계산 */

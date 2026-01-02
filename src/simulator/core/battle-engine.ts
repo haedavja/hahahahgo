@@ -348,6 +348,7 @@ export class BattleEngine {
     const battleLog: string[] = [];
     const cardUsage: Record<string, number> = {};
     const comboStats: Record<string, number> = {};
+    const tokenStats: Record<string, number> = {};
 
     let turn = 0;
     let playerDamageDealt = 0;
@@ -547,6 +548,14 @@ export class BattleEngine {
 
     this.logEvent({ type: 'battle_end', turn, data: { winner, playerHp: player.hp, enemyHp: enemy.hp } });
 
+    // 토큰 통계 집계 (플레이어와 적이 적용받은 토큰 합산)
+    for (const [tokenId, stacks] of Object.entries(player.tokens)) {
+      tokenStats[tokenId] = (tokenStats[tokenId] || 0) + stacks;
+    }
+    for (const [tokenId, stacks] of Object.entries(enemy.tokens)) {
+      tokenStats[tokenId] = (tokenStats[tokenId] || 0) + stacks;
+    }
+
     return {
       winner,
       turns: turn,
@@ -554,9 +563,14 @@ export class BattleEngine {
       enemyDamageDealt,
       playerFinalHp: Math.max(0, player.hp),
       enemyFinalHp: Math.max(0, enemy.hp),
+      etherGained: 0,
+      goldChange: 0,
       battleLog,
+      events: this.replayLog,
       cardUsage,
       comboStats,
+      tokenStats,
+      timeline: [],
     };
   }
 
