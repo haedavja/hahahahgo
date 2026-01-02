@@ -346,6 +346,11 @@ export class RunSimulator {
     // 성장 상태 저장
     player.growth = growthSystem.getState();
 
+    // 런 진행 기록 시작 (Slay the Spire 스타일)
+    if (this.statsCollector) {
+      this.statsCollector.startRunProgression();
+    }
+
     const result: RunResult = {
       success: false,
       finalLayer: 0,
@@ -419,6 +424,19 @@ export class RunSimulator {
       result.totalGoldEarned += nodeResult.goldChange > 0 ? nodeResult.goldChange : 0;
       result.totalCardsGained += nodeResult.cardsGained.length;
 
+      // 층 진행 기록 (Slay the Spire 스타일)
+      if (this.statsCollector) {
+        this.statsCollector.recordFloorProgress({
+          floor: currentNode.layer,
+          nodeType: currentNode.type,
+          hp: player.hp,
+          maxHp: player.maxHp,
+          gold: player.gold,
+          deckSize: player.deck.length,
+          relicCount: player.relics.length,
+        });
+      }
+
       // 보스 클리어 시 종료
       if (currentNode.type === 'boss' && nodeResult.success) {
         break;
@@ -472,6 +490,19 @@ export class RunSimulator {
         gold: result.totalGoldEarned,
         deck: player.deck,
       });
+
+      // 런 진행 기록 종료 (Slay the Spire 스타일)
+      this.statsCollector.endRunProgression({
+        finalDeck: player.deck,
+        finalRelics: player.relics,
+      });
+
+      // 난이도별 통계 기록 (Hades Heat 스타일)
+      this.statsCollector.recordDifficultyRun(
+        config.difficulty,
+        result.success,
+        result.finalLayer
+      );
     }
 
     return result;
@@ -780,6 +811,14 @@ export class RunSimulator {
                 enemy.name || 'unknown'
               );
             }
+          }
+          // 전투 피해 기록 (런 진행용)
+          if (this.statsCollector) {
+            this.statsCollector.recordBattleDamage(
+              enemy.id,
+              battleResult.enemyDamageDealt,
+              node.layer
+            );
           }
         } else {
           // 전투 패배
@@ -1528,6 +1567,13 @@ export class RunSimulator {
       // 픽률 통계: 스킵 기록
       if (this.statsCollector) {
         this.statsCollector.recordCardPickSkipped(cardChoices);
+        // 카드 선택 컨텍스트 기록 (Slay the Spire 스타일)
+        this.statsCollector.recordCardChoice({
+          pickedCardId: null,
+          offeredCardIds: cardChoices,
+          floor: player.deck.length, // 현재 덱 크기를 층으로 근사
+          skipped: true,
+        });
       }
       return null;
     }
@@ -1538,6 +1584,13 @@ export class RunSimulator {
     // 픽률 통계: 선택 기록
     if (this.statsCollector) {
       this.statsCollector.recordCardPicked(selectedCard, cardChoices);
+      // 카드 선택 컨텍스트 기록 (Slay the Spire 스타일)
+      this.statsCollector.recordCardChoice({
+        pickedCardId: selectedCard,
+        offeredCardIds: cardChoices,
+        floor: player.deck.length,
+        skipped: false,
+      });
     }
 
     return selectedCard;
