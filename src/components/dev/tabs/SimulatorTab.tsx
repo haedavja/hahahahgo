@@ -420,8 +420,8 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
       lines.push('### 가장 많이 사용된 카드');
       lines.push('| 카드 | 사용 | 전투당 평균 | 피해 | 방어 |');
       lines.push('|------|------|------------|------|------|');
-      topPlayed.forEach(([, s]) => {
-        lines.push(`| ${s.cardName} | ${s.timesPlayed} | ${num(s.avgPlaysPerBattle)} | ${num(s.avgDamageDealt)} | ${num(s.avgBlockGained)} |`);
+      topPlayed.forEach(([cardId, s]) => {
+        lines.push(`| ${getCardName(cardId)} | ${s.timesPlayed} | ${num(s.avgPlaysPerBattle)} | ${num(s.avgDamageDealt)} | ${num(s.avgBlockGained)} |`);
       });
       lines.push('');
     }
@@ -434,8 +434,8 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
 
     if (neverUsed.length > 0) {
       lines.push('### 픽했지만 사용 안 한 카드');
-      neverUsed.forEach(([, s]) => {
-        lines.push(`- ${s.cardName}: ${s.neverPlayedRuns}런에서 미사용`);
+      neverUsed.forEach(([cardId, s]) => {
+        lines.push(`- ${getCardName(cardId)}: ${s.neverPlayedRuns}런에서 미사용`);
       });
       lines.push('');
     }
@@ -464,6 +464,67 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     }
   }
   lines.push('');
+
+  // ==================== 16a. 상징 통계 ====================
+  if (stats.relicStats && stats.relicStats.size > 0) {
+    lines.push('## 16a. 상징 통계');
+
+    // 가장 유용한 상징 (기여도 순)
+    const topRelics = Array.from(stats.relicStats.entries())
+      .filter(([, s]) => s.timesAcquired >= 2)
+      .sort((a, b) => b[1].contribution - a[1].contribution)
+      .slice(0, 10);
+
+    if (topRelics.length > 0) {
+      lines.push('### 상징별 기여도');
+      lines.push('| 상징 | 획득 | 보유시 승률 | 미보유시 승률 | 기여도 | 효과발동 |');
+      lines.push('|------|------|------------|--------------|--------|----------|');
+      topRelics.forEach(([, s]) => {
+        const sign = s.contribution > 0 ? '+' : '';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${pct(s.winRateWith)} | ${pct(s.winRateWithout)} | ${sign}${pct(s.contribution)} | ${s.effectTriggers} |`);
+      });
+      lines.push('');
+    }
+
+    // 가장 무용한 상징 (기여도 낮은 순)
+    const worstRelics = Array.from(stats.relicStats.entries())
+      .filter(([, s]) => s.timesAcquired >= 2 && s.contribution < 0)
+      .sort((a, b) => a[1].contribution - b[1].contribution)
+      .slice(0, 5);
+
+    if (worstRelics.length > 0) {
+      lines.push('### 승률에 부정적인 상징');
+      worstRelics.forEach(([, s]) => {
+        lines.push(`- ${getRelicNameLocal(s.relicId)}: 기여도 ${pct(s.contribution)}`);
+      });
+      lines.push('');
+    }
+
+    // 획득 출처별 통계
+    const sourceStats: Record<string, number> = {};
+    for (const [, s] of stats.relicStats) {
+      for (const [source, count] of Object.entries(s.acquiredFrom)) {
+        sourceStats[source] = (sourceStats[source] || 0) + count;
+      }
+    }
+    if (Object.keys(sourceStats).length > 0) {
+      const sourceNames: Record<string, string> = {
+        battle: '전투 보상',
+        shop: '상점 구매',
+        event: '이벤트',
+        dungeon: '던전',
+        boss: '보스',
+        starting: '시작 상징',
+      };
+      lines.push('### 상징 획득 출처');
+      Object.entries(sourceStats)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([source, count]) => {
+          lines.push(`- ${sourceNames[source] || source}: ${count}회`);
+        });
+      lines.push('');
+    }
+  }
 
   // ==================== 17. 난이도별 통계 (Hades Heat 스타일) ====================
   if (stats.difficultyStats && stats.difficultyStats.size > 0) {

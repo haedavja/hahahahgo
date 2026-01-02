@@ -502,6 +502,32 @@ export interface RunProgressionStats {
   finalRelics: string[];
 }
 
+/** 상징(Relic) 통계 */
+export interface RelicStats {
+  relicId: string;
+  relicName: string;
+  /** 획득 횟수 */
+  timesAcquired: number;
+  /** 획득 층 평균 */
+  avgAcquireFloor: number;
+  /** 획득 출처별 횟수 */
+  acquiredFrom: Record<string, number>;
+  /** 보유 시 런 승률 */
+  winRateWith: number;
+  /** 미보유 시 런 승률 */
+  winRateWithout: number;
+  /** 승률 기여도 (보유 - 미보유) */
+  contribution: number;
+  /** 효과 발동 횟수 */
+  effectTriggers: number;
+  /** 효과 발동당 평균 이득 (HP, 피해 등) */
+  avgEffectValue: number;
+  /** 해당 상징 보유 시 평균 도달 층 */
+  avgFloorReachedWith: number;
+  /** 해당 상징과 자주 함께 획득되는 상징 */
+  commonPairs: { relicId: string; frequency: number }[];
+}
+
 /** 기록 통계 (Hades/Balatro 스타일) */
 export interface RecordStats {
   /** 최장 연승 기록 */
@@ -570,6 +596,8 @@ export interface DetailedStats {
   cardDeepStats: Map<string, CardDeepStats>;
   /** 사망 통계 */
   deathStats: DeathStats;
+  /** 상징 통계 */
+  relicStats: Map<string, RelicStats>;
   /** 기록 통계 */
   recordStats: RecordStats;
   /** 난이도별 통계 (Hades Heat 스타일) */

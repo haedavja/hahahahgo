@@ -37,6 +37,7 @@ export type {
   CardDeepStats,
   DeathAnalysis,
   DeathStats,
+  RelicStats,
   RecordStats,
   DetailedStats,
   // 새 타입 (다른 게임 참고)
@@ -62,6 +63,7 @@ import type {
   CardDeepStats,
   DeathAnalysis,
   DeathStats,
+  RelicStats,
   RecordStats,
   ShopServiceStats,
   ItemUsageStats,
@@ -223,6 +225,12 @@ export class StatsCollector {
 
   // 층별 스냅샷 (현재 런)
   private currentFloorSnapshots: FloorProgressionData[] = [];
+
+  // 상징(Relic) 통계
+  private relicAcquisitions: Record<string, { floors: number[]; sources: Record<string, number> }> = {};
+  private relicEffectTriggers: Record<string, { count: number; totalValue: number }> = {};
+  private relicRunResults: { relics: string[]; success: boolean; floorReached: number }[] = [];
+  private relicLibrary: Record<string, { name: string }> = {};
 
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
@@ -610,6 +618,62 @@ export class StatsCollector {
         this.cardNeverPlayedRuns[cardId] = (this.cardNeverPlayedRuns[cardId] || 0) + 1;
       }
     }
+  }
+
+  /** 상징 라이브러리 설정 */
+  setRelicLibrary(library: Record<string, { name: string }>) {
+    this.relicLibrary = library;
+  }
+
+  /** 상징 획득 기록 */
+  recordRelicAcquired(data: {
+    relicId: string;
+    relicName?: string;
+    floor: number;
+    source: 'battle' | 'shop' | 'event' | 'dungeon' | 'boss' | 'starting';
+  }) {
+    const { relicId, relicName, floor, source } = data;
+
+    if (!this.relicAcquisitions[relicId]) {
+      this.relicAcquisitions[relicId] = { floors: [], sources: {} };
+    }
+
+    this.relicAcquisitions[relicId].floors.push(floor);
+    this.relicAcquisitions[relicId].sources[source] =
+      (this.relicAcquisitions[relicId].sources[source] || 0) + 1;
+
+    // 상징 라이브러리에 이름 저장
+    if (relicName && !this.relicLibrary[relicId]) {
+      this.relicLibrary[relicId] = { name: relicName };
+    }
+  }
+
+  /** 상징 효과 발동 기록 */
+  recordRelicEffectTrigger(data: {
+    relicId: string;
+    effectValue?: number; // HP 회복, 피해, 골드 등 수치
+  }) {
+    const { relicId, effectValue = 0 } = data;
+
+    if (!this.relicEffectTriggers[relicId]) {
+      this.relicEffectTriggers[relicId] = { count: 0, totalValue: 0 };
+    }
+
+    this.relicEffectTriggers[relicId].count++;
+    this.relicEffectTriggers[relicId].totalValue += effectValue;
+  }
+
+  /** 런 종료 시 상징 통계 기록 */
+  recordRelicRunEnd(data: {
+    relics: string[];
+    success: boolean;
+    floorReached: number;
+  }) {
+    this.relicRunResults.push({
+      relics: [...data.relics],
+      success: data.success,
+      floorReached: data.floorReached,
+    });
   }
 
   /** 상점 방문 기록 */
@@ -1155,6 +1219,7 @@ export class StatsCollector {
     const cardSynergyStats = this.calculateCardSynergyStats();
     const cardDeepStats = this.calculateCardDeepStats(cardContributionStats, cardSynergyStats);
     const deathStats = this.calculateDeathStats();
+    const relicStats = this.calculateRelicStats();
     const recordStats = this.calculateRecordStats();
 
     const difficultyStats = this.calculateDifficultyStats();
@@ -1180,6 +1245,7 @@ export class StatsCollector {
       cardSynergyStats,
       cardDeepStats,
       deathStats,
+      relicStats,
       recordStats,
       difficultyStats,
       recentRunProgressions: [...this.recentRunProgressions],
@@ -1406,9 +1472,9 @@ export class StatsCollector {
 
   /** 사망 통계 계산 */
   private calculateDeathStats(): DeathStats {
-    const totalDeaths = this.deathRecords.length;
-    const deathFloors = Object.values(this.deathsByFloor);
-    const avgDeathFloor = deathFloors.length > 0
+    // deathRecords는 최대 20개로 제한되므로, 실제 총 사망 수는 deathsByFloor 합계 사용
+    const totalDeaths = Object.values(this.deathsByFloor).reduce((sum, count) => sum + count, 0);
+    const avgDeathFloor = totalDeaths > 0
       ? Object.entries(this.deathsByFloor).reduce((sum, [floor, count]) => sum + Number(floor) * count, 0) / totalDeaths
       : 0;
 
@@ -1435,6 +1501,75 @@ export class StatsCollector {
       recentDeaths: [...this.deathRecords],
       deadliestEnemies,
     };
+  }
+
+  /** 상징 통계 계산 */
+  private calculateRelicStats(): Map<string, RelicStats> {
+    const result = new Map<string, RelicStats>();
+    const totalRuns = this.relicRunResults.length || 1;
+
+    // 모든 상징 ID 수집
+    const allRelicIds = new Set([
+      ...Object.keys(this.relicAcquisitions),
+      ...Object.keys(this.relicEffectTriggers),
+    ]);
+
+    for (const relicId of allRelicIds) {
+      const acquisitions = this.relicAcquisitions[relicId] || { floors: [], sources: {} };
+      const effectData = this.relicEffectTriggers[relicId] || { count: 0, totalValue: 0 };
+
+      // 보유 시 승률 vs 미보유 시 승률
+      const runsWithRelic = this.relicRunResults.filter(r => r.relics.includes(relicId));
+      const runsWithoutRelic = this.relicRunResults.filter(r => !r.relics.includes(relicId));
+
+      const winRateWith = runsWithRelic.length > 0
+        ? runsWithRelic.filter(r => r.success).length / runsWithRelic.length
+        : 0;
+      const winRateWithout = runsWithoutRelic.length > 0
+        ? runsWithoutRelic.filter(r => r.success).length / runsWithoutRelic.length
+        : 0;
+
+      // 평균 도달 층
+      const avgFloorReachedWith = runsWithRelic.length > 0
+        ? runsWithRelic.reduce((sum, r) => sum + r.floorReached, 0) / runsWithRelic.length
+        : 0;
+
+      // 평균 획득 층
+      const avgAcquireFloor = acquisitions.floors.length > 0
+        ? acquisitions.floors.reduce((a, b) => a + b, 0) / acquisitions.floors.length
+        : 0;
+
+      // 함께 자주 획득되는 상징
+      const pairCounts: Record<string, number> = {};
+      for (const run of runsWithRelic) {
+        for (const otherRelic of run.relics) {
+          if (otherRelic !== relicId) {
+            pairCounts[otherRelic] = (pairCounts[otherRelic] || 0) + 1;
+          }
+        }
+      }
+      const commonPairs = Object.entries(pairCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([id, frequency]) => ({ relicId: id, frequency }));
+
+      result.set(relicId, {
+        relicId,
+        relicName: this.relicLibrary[relicId]?.name || relicId,
+        timesAcquired: acquisitions.floors.length,
+        avgAcquireFloor,
+        acquiredFrom: { ...acquisitions.sources },
+        winRateWith,
+        winRateWithout,
+        contribution: winRateWith - winRateWithout,
+        effectTriggers: effectData.count,
+        avgEffectValue: effectData.count > 0 ? effectData.totalValue / effectData.count : 0,
+        avgFloorReachedWith,
+        commonPairs,
+      });
+    }
+
+    return result;
   }
 
   /** 상점 서비스 상세 통계 계산 */
@@ -1753,6 +1888,10 @@ export class StatsCollector {
     this.enemyEncounters = {};
     // 층별 스냅샷 초기화
     this.currentFloorSnapshots = [];
+    // 상징 통계 초기화
+    this.relicAcquisitions = {};
+    this.relicEffectTriggers = {};
+    this.relicRunResults = [];
     this.startTime = new Date();
   }
 }

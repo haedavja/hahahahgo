@@ -502,6 +502,13 @@ export class RunSimulator {
         finalRelics: player.relics,
       });
 
+      // 상징 런 통계 기록
+      this.statsCollector.recordRelicRunEnd({
+        relics: player.relics,
+        success: result.success,
+        floorReached: result.layerReached,
+      });
+
       // 난이도별 통계 기록 (Hades Heat 스타일)
       this.statsCollector.recordDifficultyRun(
         config.difficulty,
@@ -894,6 +901,15 @@ export class RunSimulator {
           const newRelic = getGlobalRandom().pick(availableRelics);
           player.relics.push(newRelic);
           result.relicsGained.push(newRelic);
+
+          // 상징 획득 통계 기록
+          if (this.statsCollector) {
+            this.statsCollector.recordRelicAcquired({
+              relicId: newRelic,
+              floor: node.layer,
+              source: isBoss ? 'boss' : 'battle',
+            });
+          }
         }
       }
     } else {
@@ -1134,6 +1150,15 @@ export class RunSimulator {
         if (relicId && !player.relics.includes(relicId)) {
           player.relics.push(relicId);
           result.relicsGained.push(relicId);
+
+          // 상징 획득 통계 기록
+          if (this.statsCollector) {
+            this.statsCollector.recordRelicAcquired({
+              relicId,
+              floor: node.layer,
+              source: 'event',
+            });
+          }
         }
       }
 
@@ -1259,6 +1284,15 @@ export class RunSimulator {
       // 아이템 획득 기록
       for (const itemId of itemsPurchased) {
         this.statsCollector.recordItemAcquired(itemId);
+      }
+
+      // 상징 획득 기록
+      for (const relicId of result.relicsGained) {
+        this.statsCollector.recordRelicAcquired({
+          relicId,
+          floor: node.layer,
+          source: 'shop',
+        });
       }
 
       // 상점 서비스 상세 기록
