@@ -551,6 +551,141 @@ export function analyzeEnemyBalance(stats: DetailedStats, thresholds: DynamicThr
 }
 
 /**
+ * 적 그룹 밸런스 분석
+ * - 그룹별 승률, 피해량 분석
+ * - 단독 vs 다수 출현 시 차이 분석
+ * - 혼합 그룹의 시너지 위협도 분석
+ */
+export function analyzeEnemyGroupBalance(stats: DetailedStats, thresholds: DynamicThresholds): Problem[] {
+  const problems: Problem[] = [];
+
+  // 그룹 통계가 없으면 빈 배열 반환
+  if (!stats.enemyGroupStats || stats.enemyGroupStats.size === 0) {
+    return problems;
+  }
+
+  for (const [groupId, groupStats] of stats.enemyGroupStats) {
+    if (groupStats.battles < 3) continue;
+
+    const winRate = groupStats.winRate;
+    const zScore = calculateZScore(winRate, thresholds.winRate.mean, thresholds.winRate.stdDev);
+    const confidence = calculateConfidence(groupStats.battles, 10);
+
+    // 그룹이 너무 어려움
+    if (zScore < -2) {
+      // 피해 기여도 분석
+      const topDamageDealer = groupStats.damageContribution.length > 0
+        ? groupStats.damageContribution.reduce((max, curr) => curr.percentage > max.percentage ? curr : max)
+        : null;
+
+      let reason = '';
+      if (groupStats.enemyCount >= 4) {
+        reason = `다수 적(${groupStats.enemyCount}마리)으로 인한 누적 피해`;
+      } else if (topDamageDealer && topDamageDealer.percentage > 0.6) {
+        reason = `${topDamageDealer.monsterId}가 피해의 ${(topDamageDealer.percentage * 100).toFixed(0)}% 담당`;
+      } else if (!groupStats.isHomogeneous) {
+        reason = '혼합 그룹 시너지로 인한 복합 위협';
+      } else {
+        reason = '그룹 총 HP/피해량 과다';
+      }
+
+      problems.push({
+        category: 'player_weakness',
+        description: `그룹 "${groupStats.groupName}" 승률 ${(winRate * 100).toFixed(1)}% (Z=${zScore.toFixed(2)}): ${reason}`,
+        severity: zScore < -3 ? 5 : zScore < -2.5 ? 4 : 3,
+        confidence,
+        relatedData: {
+          groupId,
+          groupName: groupStats.groupName,
+          enemyCount: groupStats.enemyCount,
+          composition: groupStats.composition,
+          winRate,
+          zScore,
+          avgDamageTaken: groupStats.avgDamageTaken,
+          damageContribution: groupStats.damageContribution,
+        },
+        methodology: '그룹 단위 Z-score 분석 + 피해 기여도',
+      });
+    } else if (zScore > 2) {
+      problems.push({
+        category: 'balance',
+        description: `그룹 "${groupStats.groupName}"이 너무 쉬움 (승률 ${(winRate * 100).toFixed(1)}%, Z=${zScore.toFixed(2)})`,
+        severity: 2,
+        confidence,
+        relatedData: { groupId, winRate, zScore },
+        methodology: '그룹 단위 Z-score 분석',
+      });
+    }
+
+    // 그룹 내 처치 순서 분석 - 특정 적이 항상 마지막까지 생존하면 문제
+    if (groupStats.killOrder.length >= 2) {
+      const lastKilled = groupStats.killOrder.reduce((max, curr) =>
+        curr.avgOrder > max.avgOrder ? curr : max
+      );
+      const firstKilled = groupStats.killOrder.reduce((min, curr) =>
+        curr.avgOrder < min.avgOrder ? curr : min
+      );
+
+      if (lastKilled.avgOrder - firstKilled.avgOrder > 1.5 && groupStats.enemyCount >= 3) {
+        problems.push({
+          category: 'design',
+          description: `그룹 "${groupStats.groupName}"에서 ${lastKilled.monsterId}가 항상 마지막까지 생존 (처치 순서 ${lastKilled.avgOrder.toFixed(1)})`,
+          severity: 2,
+          confidence: confidence * 0.8,
+          relatedData: { groupId, killOrder: groupStats.killOrder },
+          methodology: '처치 순서 분석',
+        });
+      }
+    }
+  }
+
+  // 개별 적의 컨텍스트별 통계 분석
+  for (const [enemyId, enemyStats] of stats.monsterStats) {
+    if (!enemyStats.contextStats) continue;
+
+    const { solo, withSameType, withMixedGroup } = enemyStats.contextStats;
+
+    // 단독 vs 다수 승률 차이가 큰 경우
+    if (solo.battles >= 3 && withSameType.battles >= 3) {
+      const soloWinRate = solo.winRate;
+      const groupWinRate = withSameType.winRate;
+      const diff = soloWinRate - groupWinRate;
+
+      if (Math.abs(diff) > 0.2) {
+        problems.push({
+          category: 'balance',
+          description: `${enemyId} 단독(${(soloWinRate * 100).toFixed(0)}%) vs 다수(${(groupWinRate * 100).toFixed(0)}%) 승률 차이 ${(Math.abs(diff) * 100).toFixed(0)}%p`,
+          severity: Math.abs(diff) > 0.3 ? 4 : 3,
+          confidence: calculateConfidence(Math.min(solo.battles, withSameType.battles), 5),
+          relatedData: { enemyId, soloWinRate, groupWinRate, diff },
+          methodology: '컨텍스트별 승률 비교',
+        });
+      }
+    }
+
+    // 혼합 그룹에서 특히 위협적인 경우
+    if (withMixedGroup.battles >= 3 && solo.battles >= 3) {
+      const mixedWinRate = withMixedGroup.winRate;
+      const soloWinRate = solo.winRate;
+
+      if (soloWinRate - mixedWinRate > 0.25) {
+        const partners = withMixedGroup.frequentPartners.slice(0, 2).map(p => p.monsterId).join(', ');
+        problems.push({
+          category: 'player_weakness',
+          description: `${enemyId}가 ${partners}와 함께 나올 때 승률 급락 (${(soloWinRate * 100).toFixed(0)}% → ${(mixedWinRate * 100).toFixed(0)}%)`,
+          severity: 4,
+          confidence: calculateConfidence(withMixedGroup.battles, 5),
+          relatedData: { enemyId, soloWinRate, mixedWinRate, partners: withMixedGroup.frequentPartners },
+          methodology: '혼합 그룹 시너지 분석',
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
  * 카드 밸런스 분석 (Supercell 4분면 + Slay the Spire 경쟁 분석)
  */
 export function analyzeCardBalance(stats: DetailedStats, thresholds: DynamicThresholds): Problem[] {
@@ -774,6 +909,7 @@ export function analyzeStats(stats: DetailedStats): AnalysisResult {
   // 2. 각 영역 분석
   const allProblems: Problem[] = [
     ...analyzeEnemyBalance(stats, thresholds),
+    ...analyzeEnemyGroupBalance(stats, thresholds),
     ...analyzeCardBalance(stats, thresholds),
     ...analyzeProgressionCurve(stats),
     ...analyzeSynergies(stats, thresholds),
@@ -1169,6 +1305,7 @@ export const StatsAnalyzer = {
   generateAnalysisGuidelines,
   // 개별 분석
   analyzeEnemyBalance,
+  analyzeEnemyGroupBalance,
   analyzeCardBalance,
   analyzeProgressionCurve,
   analyzeSynergies,

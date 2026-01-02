@@ -62,6 +62,100 @@ export interface MonsterBattleStats {
   avgHpRemainingOnWin: number;
   /** 주로 사용된 카드 TOP 5 */
   topCardsUsed: { cardId: string; count: number }[];
+  /** 출현 컨텍스트별 통계 (단독 vs 다수) */
+  contextStats: MonsterContextStats;
+}
+
+/** 적 출현 컨텍스트별 통계 */
+export interface MonsterContextStats {
+  /** 단독 출현 시 통계 */
+  solo: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+  };
+  /** 다수 출현 시 통계 (같은 종류) */
+  withSameType: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+    avgGroupSize: number;
+  };
+  /** 혼합 그룹 시 통계 (다른 종류와 함께) */
+  withMixedGroup: {
+    battles: number;
+    wins: number;
+    winRate: number;
+    avgDamageTaken: number;
+    avgTurns: number;
+    frequentPartners: { monsterId: string; count: number }[];
+  };
+}
+
+/** 적 그룹 전투 통계 */
+export interface EnemyGroupStats {
+  groupId: string;
+  groupName: string;
+  /** 그룹 구성 (적 ID 배열) */
+  composition: string[];
+  /** 적 수 */
+  enemyCount: number;
+  /** 티어 */
+  tier: number;
+  /** 보스 그룹 여부 */
+  isBoss: boolean;
+  /** 전투 횟수 */
+  battles: number;
+  /** 승리 횟수 */
+  wins: number;
+  /** 패배 횟수 */
+  losses: number;
+  /** 승률 */
+  winRate: number;
+  /** 평균 전투 턴 */
+  avgTurns: number;
+  /** 플레이어가 받은 평균 피해 */
+  avgDamageTaken: number;
+  /** 플레이어가 받은 최대 피해 */
+  maxDamageTaken: number;
+  /** 그룹 총 HP */
+  totalGroupHp: number;
+  /** 플레이어가 준 평균 피해 */
+  avgDamageDealt: number;
+  /** 승리 시 남은 HP 평균 */
+  avgHpRemainingOnWin: number;
+  /** 적별 피해 기여도 */
+  damageContribution: { monsterId: string; avgDamage: number; percentage: number }[];
+  /** 첫 처치 순서 (어떤 적이 먼저 죽는지) */
+  killOrder: { monsterId: string; avgOrder: number }[];
+  /** 출현 노드 범위 */
+  nodeRange: [number, number] | null;
+  /** 가장 효과적인 카드 TOP 5 */
+  effectiveCards: { cardId: string; winRateBoost: number }[];
+}
+
+/** 개별 적 피해 기록 (전투 내) */
+export interface IndividualEnemyDamageRecord {
+  /** 적 인스턴스 ID (전투 내 고유) */
+  instanceId: string;
+  /** 적 타입 ID */
+  monsterId: string;
+  /** 적 이름 */
+  monsterName: string;
+  /** 이 적이 플레이어에게 준 피해 */
+  damageDealt: number;
+  /** 이 적이 받은 피해 */
+  damageReceived: number;
+  /** 처치 순서 (1부터 시작, 0이면 생존) */
+  killOrder: number;
+  /** 생존 여부 */
+  survived: boolean;
+  /** 이 적이 사용한 카드들 */
+  cardsUsed: Record<string, number>;
 }
 
 /** 이벤트 통계 */
@@ -302,6 +396,28 @@ export interface BattleRecord {
   specialEffects: Record<string, number>;
   crossTriggers: number;
   combosTriggered: Record<string, number>;
+  /** 그룹 전투 정보 (다수 적 전투 시) */
+  groupInfo: BattleGroupInfo | null;
+}
+
+/** 전투 그룹 정보 */
+export interface BattleGroupInfo {
+  /** 그룹 ID (예: ghoul_duo, wildrat_swarm) */
+  groupId: string;
+  /** 그룹 이름 */
+  groupName: string;
+  /** 총 적 수 */
+  enemyCount: number;
+  /** 개별 적 피해 기록 */
+  individualEnemies: IndividualEnemyDamageRecord[];
+  /** 그룹 구성 (적 타입 ID 배열) */
+  composition: string[];
+  /** 동종 그룹 여부 (같은 타입만 있음) */
+  isHomogeneous: boolean;
+  /** 그룹 총 HP */
+  totalGroupHp: number;
+  /** 그룹 총 피해 (플레이어가 받음) */
+  totalGroupDamage: number;
 }
 
 /** AI 전략 통계 */
@@ -456,10 +572,15 @@ export interface DetailedStats {
   cardStats: Map<string, CardEffectStats>;
   /** 몬스터별 통계 */
   monsterStats: Map<string, MonsterBattleStats>;
+  /** 적 그룹별 통계 */
+  enemyGroupStats: Map<string, EnemyGroupStats>;
   /** 이벤트별 통계 */
   eventStats: Map<string, EventStats>;
   /** 런 전체 통계 */
-  runStats: RunStats;
+  runStats: RunStats & {
+    /** 난이도 (시뮬레이션 설정) */
+    difficulty?: number;
+  };
   /** 전투 기록 목록 */
   battleRecords: BattleRecord[];
   /** 카드 승급 통계 */
