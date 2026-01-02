@@ -10,6 +10,7 @@ export interface EnemyUnit {
   unitId: number;
   name: string;
   hp: number;
+  maxHp?: number;
   block?: number;
   [key: string]: unknown;
 }

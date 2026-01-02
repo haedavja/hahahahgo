@@ -10,6 +10,7 @@
 import { useCallback } from 'react';
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from '../utils/comboMultiplier';
 import type { Relic } from '../../../types/core';
+import type { ComboExplainResult } from '../../../types/systems';
 
 interface UseComboMultiplierCallbacksParams {
   orderedRelicList: string[];
@@ -29,7 +30,7 @@ interface ComboMultiplierCallbacks {
     includeFiveCard?: boolean,
     includeRefBook?: boolean,
     relicOrderOverride?: Relic[] | null
-  ) => string;
+  ) => ComboExplainResult;
 }
 
 /**

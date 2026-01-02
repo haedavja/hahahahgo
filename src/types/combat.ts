@@ -43,7 +43,7 @@ export type BattleState = SimpleBattleState & {
 /** 전투 참여자 (플레이어/적 공통) - TokenEntity 확장으로 토큰 함수와 호환 */
 export interface Combatant extends TokenEntity {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   tokens?: TokenState;
   vulnMult?: number;
@@ -361,6 +361,7 @@ export interface BattleAction {
   originalSpeed?: number;
   finalSpeed?: number;
   hasCrossed?: boolean;
+  [key: string]: unknown;
 }
 
 /** 배틀 참조 객체 */
@@ -784,6 +785,7 @@ export interface VictoryConditionResult {
 /** 전투 후 옵션 */
 export interface PostCombatOptions {
   type: 'victory' | 'defeat';
+  [key: string]: unknown;
 }
 
 /** 승리/패배용 적 */

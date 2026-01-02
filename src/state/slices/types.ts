@@ -292,6 +292,7 @@ export interface CardGrowthState {
   enhancementLevel: number;   // 강화 횟수 (1~5, 스탯 강화 적용용)
   specializationCount: number; // 특화 횟수
   traits: string[];           // 특화로 부여된 특성들
+  [key: string]: unknown;     // 확장 속성 허용
 }
 
 /** 빌드 슬라이스 상태 */

@@ -24,12 +24,13 @@
 
 export interface ComboCard {
   id?: string;
-  actionCost: number;
-  type: string;
+  actionCost?: number;
+  type?: string;
   traits?: string[];
   isGhost?: boolean;
   rarity?: CardRarity;
   category?: string;
+  [key: string]: unknown;
 }
 
 export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
@@ -48,13 +49,14 @@ export interface ComboResult {
   name: ComboName;
   multiplier: number;
   rank: number;
-  bonusKeys: Set<number> | null;
+  bonusKeys: Set<number> | null | undefined;
   description: string;
+  [key: string]: unknown;
 }
 
 export interface ComboCalculation {
   name: string;
-  bonusKeys: Set<number> | null;
+  bonusKeys?: Set<number> | null;
 }
 
 // ==================== 상수 ====================

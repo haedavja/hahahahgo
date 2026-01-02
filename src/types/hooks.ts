@@ -23,7 +23,7 @@ export type { NextTurnEffects, InsightBadge, DeflationInfo };
  */
 export interface BattleEntityState extends TokenEntity {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   tokens?: TokenState;
   // 선택적 전투 필드
@@ -64,7 +64,7 @@ export interface BattleUnitState {
   unitId?: number;
   id?: string;
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   tokens?: TokenState;
   name?: string;
@@ -85,9 +85,9 @@ export type PlaySoundFn = (frequency: number, duration: number) => void;
 export interface BattleRefValue {
   player?: BattleEntityState | null;
   enemy?: BattleEntityState | null;
-  queue?: Array<{ actor: 'player' | 'enemy'; card: Card; [key: string]: unknown }>;
+  queue?: Array<{ actor: 'player' | 'enemy'; card?: Card; [key: string]: unknown }>;
   qIndex?: number;
-  nextTurnEffects?: NextTurnEffects;
+  nextTurnEffects?: NextTurnEffects | null;
   frozenOrder?: number;
   pathosTurnEffects?: Record<string, unknown>;
   pathosNextCardEffects?: Record<string, unknown>;

@@ -19,7 +19,7 @@ interface Card {
   enhancementLevel?: number;
 }
 
-type CardUpgrades = Record<string, string>;
+type CardUpgrades = Record<string, string | unknown>;
 
 /**
  * 희귀도 배지 설정

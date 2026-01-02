@@ -179,7 +179,7 @@ export interface GroupedEnemyMember {
 /** HP바 플레이어 상태 */
 export interface HpBarPlayer {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   strength?: number;
   etherMultiplier?: number;
@@ -191,7 +191,7 @@ export interface HpBarPlayer {
 /** HP바 적 상태 */
 export interface HpBarEnemy {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   tokens?: TokenState;
   etherCapacity?: number;
@@ -593,7 +593,7 @@ export interface TooltipBattle {
 /** 예상 피해 플레이어 상태 */
 export interface ExpectedDamagePlayer {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   [key: string]: unknown;
 }
@@ -601,7 +601,7 @@ export interface ExpectedDamagePlayer {
 /** 예상 피해 적 상태 */
 export interface ExpectedDamageEnemy {
   hp: number;
-  maxHp: number;
+  maxHp?: number;
   block?: number;
   [key: string]: unknown;
 }

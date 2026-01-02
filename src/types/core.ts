@@ -121,6 +121,8 @@ export interface Card {
   onPlay?: (battle: unknown, tokenActions: BattleTokenActions) => void;
   // UI 확장 속성
   icon?: React.FC<{ size?: number; className?: string; strokeWidth?: number }>;
+  // 확장 속성 허용 (유연한 타입 호환)
+  [key: string]: unknown;
 }
 
 /** 카드 특성 정의 */
@@ -301,9 +303,10 @@ export interface TokenInstance {
 
 /** 토큰 상태 (유형별 분류) */
 export interface TokenState {
-  usage: TokenInstance[];
-  turn: TokenInstance[];
-  permanent: TokenInstance[];
+  usage?: TokenInstance[];
+  turn?: TokenInstance[];
+  permanent?: TokenInstance[];
+  [key: string]: TokenInstance[] | undefined;
 }
 
 /** 토큰이 있는 엔티티 */

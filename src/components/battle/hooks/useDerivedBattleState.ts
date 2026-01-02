@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 import { hasEnemyUnits } from '../utils/battleUtils';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { applyAgility } from '../../../lib/agilityUtils';
-import type { Token } from '../../../types/core';
+import type { TokenState } from '../../../types/core';
 
 interface EnemyUnit {
   unitId: number;
@@ -28,7 +28,7 @@ interface SelectedCard {
 }
 
 interface PlayerState {
-  tokens?: Token[];
+  tokens?: TokenState;
   [key: string]: unknown;
 }
 

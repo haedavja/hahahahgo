@@ -49,7 +49,7 @@ export type ComboCard = Card;
 /** 콤보 계산 결과 */
 export interface ComboCalculation {
   name: string;
-  bonusKeys: Set<number> | null;
+  bonusKeys?: Set<number> | null;
 }
 
 /** 콤보 배율 설명 결과 */
