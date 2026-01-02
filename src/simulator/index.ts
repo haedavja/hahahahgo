@@ -41,12 +41,55 @@
  * - GitHub Actions 연동
  */
 
-// ==================== Shared Types (Game/Simulator 공유) ====================
-export * from '../lib/types';
+// ==================== Core Types (시뮬레이터 표준 타입) ====================
+// game-types와 types에서 필요한 타입만 명시적으로 export
+export type {
+  // 카드 타입
+  CardType,
+  CardPriority,
+  CardCategory,
+  AppliedToken,
+  RequiredToken,
+  CrossBonus,
+  GameCard,
+  // 토큰 타입
+  TokenType,
+  TokenCategory,
+  TokenState,
+  // 적 타입
+  EnemyPassives,
+  EnemyUnit,
+  EnemyState,
+  // 플레이어 타입
+  CombatantState,
+  PlayerState,
+  // 전투 타입
+  TimelineCard,
+  GameBattleState,
+} from './core/game-types';
 
-// ==================== Core Types ====================
-export * from './core/types';
-export * from './core/game-types';
+export type {
+  // 시뮬레이션 타입
+  SimEntity,
+  SimPlayerState,
+  SimEnemyState,
+  BattleResult,
+  SimulationConfig,
+  SimulationResult,
+  SimulationSummary,
+  // 워커 타입
+  WorkerTask,
+  WorkerResult,
+  // 게임 상태
+  GameState,
+} from './core/types';
+
+// 값 export (상수, 클래스 등)
+export {
+  DEFAULT_CONSTANTS,
+  configureConstants,
+  getConstants,
+} from './core/battle-engine';
 
 // ==================== Parallel Processing ====================
 export { WorkerPool, runParallelSimulation, runQuickSimulation, type PoolOptions, type PoolStats } from './parallel/pool';
@@ -198,9 +241,17 @@ export {
 // ==================== Battle Engine ====================
 export {
   BattleEngine,
-  DamageCalculator,
-  ComboDetector,
-  TokenManager,
+  TOKENS,
+  COMBO_RANKS,
+  calculateDamage,
+  calculateBlock,
+  detectCombo,
+  type BattleEngineOptions,
+  type DamageContext,
+  type CardDefinition,
+  type CardEffects,
+  type ComboResult,
+  type TokenEffect,
 } from './core/battle-engine';
 
 // ==================== Timeline Battle Engine (NEW) ====================
@@ -259,7 +310,7 @@ export {
   removeToken,
   hasToken,
   getTokenStacks,
-  clearTokens,
+  clearToken,
   calculateAttackModifiers,
   calculateDefenseModifiers,
   calculateDamageTakenModifiers,
@@ -275,7 +326,7 @@ export {
   checkRevive,
   calculateEnergyModifier,
   calculateSpeedModifier,
-  type AttackModifiers,
+  type DamageModifiers,
   type DefenseModifiers,
   type DamageTakenModifiers,
 } from './core/token-system';
@@ -284,9 +335,8 @@ export {
 export {
   RelicSystemV2,
   getRelicSystemV2,
-  createRelicSystemV2,
+  resetRelicSystem,
   type RelicEffectResult,
-  type PassiveEffects,
 } from './core/relic-system-v2';
 
 // ==================== Game Data Sync ====================
@@ -325,16 +375,16 @@ export {
 
 // ==================== Combo Ether System ====================
 export {
-  processTurnEndEther,
   detectPokerCombo,
-  checkEtherBurst,
-  calculateComboMultiplier,
   calculateDeflation,
+  calculateTotalEther,
   COMBO_PRIORITIES,
-  BURST_THRESHOLD,
+  COMBO_MULTIPLIERS,
+  ETHER_THRESHOLD,
+  DEFLATION_RATE,
   type EtherGainResult,
-  type BurstResult,
-  type ComboType,
+  type ComboResult as ComboEtherResult,
+  type ComboCard,
 } from './core/combo-ether-system';
 
 // ==================== Hand Trait Processor ====================
@@ -342,13 +392,10 @@ export {
   collectNextTurnEffects,
   applyNextTurnEffects,
   generateNextHand,
-  processRepeatTrait,
-  processEscapeTrait,
-  processWarmupTrait,
-  processOblivionTrait,
-  processRuinTrait,
-  processExhaustTrait,
-  HAND_TRAITS,
+  processExhaust,
+  hasTrait,
+  hasSpecial,
+  resetNextTurnEffects,
   type NextTurnEffects as HandNextTurnEffects,
   type HandGenerationResult,
   type HandGenerationConfig,
@@ -458,7 +505,7 @@ export {
   printEnemyAnalysis,
   printPrediction,
   type ActionPattern,
-  type EnemyPattern,
+  type EnemyPattern as LearnedEnemyPattern,
   type PredictionResult,
   type EnemyAnalysis,
 } from './analysis/pattern-learning';
@@ -467,9 +514,12 @@ export {
 export {
   ReplayRecorder,
   ReplayPlayer,
+  ReplayStorage,
   generateReplayViewer,
-  type ReplayFrame,
+  playReplayInConsole,
   type ReplayData,
+  type ReplayEvent,
+  type StateSnapshot,
 } from './analysis/replay';
 
 // ==================== Meta Trend Analysis ====================
@@ -524,8 +574,8 @@ export {
   RewardCalculator,
   TrainingManager,
   createDefaultAgent,
-  type GameState,
-  type Action,
+  type GameState as RLGameState,
+  type Action as RLAction,
   type Experience,
   type QLearningConfig,
   type TrainingConfig,
