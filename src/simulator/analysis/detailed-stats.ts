@@ -315,6 +315,10 @@ export class StatsCollector {
 
     // 콤보 통계 집계 (발동 횟수, 승률, 에테르)
     if (result.comboStats) {
+      // 전체 콤보 발동 횟수 계산 (에테르 분배용)
+      const totalComboOccurrences = Object.values(result.comboStats).reduce((sum, count) => sum + count, 0);
+      const battleEther = result.etherGained || 0;
+
       for (const [comboName, count] of Object.entries(result.comboStats)) {
         this.comboTypeUsage[comboName] = (this.comboTypeUsage[comboName] || 0) + count;
         // 콤보가 발동된 전투 횟수와 승리 횟수 기록
@@ -322,8 +326,11 @@ export class StatsCollector {
         if (isWin) {
           this.comboTypeWins[comboName] = (this.comboTypeWins[comboName] || 0) + 1;
         }
-        // 에테르 획득량 기록
-        this.comboTypeEther[comboName] = (this.comboTypeEther[comboName] || 0) + (result.etherGained || 0);
+        // 에테르 획득량 기록 (콤보 발동 횟수에 비례하여 분배)
+        const comboEtherShare = totalComboOccurrences > 0
+          ? Math.round(battleEther * count / totalComboOccurrences)
+          : 0;
+        this.comboTypeEther[comboName] = (this.comboTypeEther[comboName] || 0) + comboEtherShare;
       }
     }
 

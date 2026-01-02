@@ -189,6 +189,27 @@ export class TimelineBattleEngine {
     this.cardCreation = new CardCreationSystem(this.cards);
   }
 
+  // ==================== 토큰 추적 헬퍼 ====================
+
+  /**
+   * 토큰 추가 및 통계 추적
+   * @param state 전투 상태 (tokenUsage 업데이트용)
+   * @param entity 토큰을 받을 엔티티 (player 또는 enemy)
+   * @param tokenId 토큰 ID
+   * @param stacks 스택 수
+   */
+  private addTokenTracked(
+    state: { tokenUsage?: Record<string, number> },
+    entity: { tokens: TokenState },
+    tokenId: string,
+    stacks: number = 1
+  ): void {
+    entity.tokens = addToken(entity.tokens, tokenId, stacks);
+    if (state.tokenUsage) {
+      state.tokenUsage[tokenId] = (state.tokenUsage[tokenId] || 0) + stacks;
+    }
+  }
+
   // ==================== 카드 강화 시스템 ====================
 
   /**
@@ -382,8 +403,8 @@ export class TimelineBattleEngine {
     if (this.config.enableAnomalies) {
       const valueDownTokens = getValueDownTokens();
       if (valueDownTokens > 0) {
-        state.player.tokens = addToken(state.player.tokens, 'dull', valueDownTokens);
-        state.player.tokens = addToken(state.player.tokens, 'shaken', valueDownTokens);
+        this.addTokenTracked(state, state.player, 'dull', valueDownTokens);
+        this.addTokenTracked(state, state.player, 'shaken', valueDownTokens);
         state.battleLog.push(`  ⚠️ 이변: 공격력/방어력 감소 토큰 ${valueDownTokens}개`);
       }
 
@@ -1483,14 +1504,14 @@ export class TimelineBattleEngine {
 
       // 배틀왈츠 Lv3: 검격 방어시 수세 획득
       if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing') {
-        state.player.tokens = addToken(state.player.tokens, 'guard', 1);
+        this.addTokenTracked(state, state.player, 'guard', 1);
         state.battleLog.push(`  🛡️ 배틀왈츠: 수세 +1`);
       }
     }
 
     // 배틀왈츠 Lv3: 검격 공격시 흐릿함 획득
     if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing' && card.damage && card.damage > 0) {
-      state.player.tokens = addToken(state.player.tokens, 'blur', 1);
+      this.addTokenTracked(state, state.player, 'blur', 1);
       state.battleLog.push(`  ✨ 배틀왈츠: 흐릿함 +1`);
     }
 
@@ -1517,13 +1538,13 @@ export class TimelineBattleEngine {
     if (card.appliedTokens) {
       for (const token of card.appliedTokens) {
         if (token.target === 'player') {
-          state.player.tokens = addToken(state.player.tokens, token.id, token.stacks || 1);
+          this.addTokenTracked(state, state.player, token.id, token.stacks || 1);
           state.battleLog.push(`  플레이어: ${token.id} +${token.stacks || 1}`);
         } else {
           // 면역 체크
           const immunityCheck = checkImmunity(state.enemy.tokens, token.id);
           if (!immunityCheck.blocked) {
-            state.enemy.tokens = addToken(state.enemy.tokens, token.id, token.stacks || 1);
+            this.addTokenTracked(state, state.enemy, token.id, token.stacks || 1);
             state.battleLog.push(`  적: ${token.id} +${token.stacks || 1}`);
           } else {
             state.enemy.tokens = immunityCheck.newTokens;
@@ -1588,12 +1609,12 @@ export class TimelineBattleEngine {
         const appliesTo = token.target === 'self' ? 'enemy' : token.target;
 
         if (appliesTo === 'enemy') {
-          state.enemy.tokens = addToken(state.enemy.tokens, token.id, token.stacks || 1);
+          this.addTokenTracked(state, state.enemy, token.id, token.stacks || 1);
         } else {
           // 면역 체크
           const immunityCheck = checkImmunity(state.player.tokens, token.id);
           if (!immunityCheck.blocked) {
-            state.player.tokens = addToken(state.player.tokens, token.id, token.stacks || 1);
+            this.addTokenTracked(state, state.player, token.id, token.stacks || 1);
           } else {
             state.player.tokens = immunityCheck.newTokens;
           }
@@ -1688,7 +1709,7 @@ export class TimelineBattleEngine {
         }
 
         if (finesseGain > 0) {
-          state.player.tokens = addToken(state.player.tokens, 'finesse', finesseGain);
+          this.addTokenTracked(state, state.player, 'finesse', finesseGain);
           state.battleLog.push(`  ✨ 기교 +${finesseGain}`);
         }
 
@@ -2360,7 +2381,7 @@ export class TimelineBattleEngine {
         state.battleLog.push(`  🛡️ ${effect.relicName}: ${e.block} 방어`);
       }
       if (e.strength && typeof e.strength === 'number') {
-        state.player.tokens = addToken(state.player.tokens, 'strength', e.strength);
+        this.addTokenTracked(state, state.player, 'strength', e.strength);
         state.battleLog.push(`  💪 ${effect.relicName}: 힘 +${e.strength}`);
       }
     }
