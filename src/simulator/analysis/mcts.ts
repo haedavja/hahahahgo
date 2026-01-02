@@ -141,25 +141,32 @@ export class MCTSEngine {
         maxHp: state.player.maxHp,
         block: state.player.block,
         energy: state.player.energy,
+        maxEnergy: state.player.maxEnergy,
         strength: state.player.strength,
         dexterity: state.player.dexterity,
+        etherPts: state.player.etherPts,
         hand: [...state.player.hand],
         deck: [...state.player.deck],
         discard: [...state.player.discard],
-        exhaust: [...state.player.exhaust],
+        exhaust: state.player.exhaust ? [...state.player.exhaust] : [],
         tokens: { ...state.player.tokens },
         relics: state.player.relics ? [...state.player.relics] : [],
       },
       enemy: {
         id: state.enemy.id,
+        name: state.enemy.name,
         hp: state.enemy.hp,
         maxHp: state.enemy.maxHp,
         block: state.enemy.block,
         strength: state.enemy.strength,
+        etherPts: state.enemy.etherPts,
+        deck: state.enemy.deck ? [...state.enemy.deck] : [],
+        cardsPerTurn: state.enemy.cardsPerTurn,
         tokens: { ...state.enemy.tokens },
       },
       turn: state.turn,
       phase: state.phase,
+      timeline: state.timeline ? [...state.timeline] : [],
     };
   }
 
@@ -484,41 +491,6 @@ export class MCTSEngine {
 
   // ==================== 유틸리티 ====================
 
-  private cloneState(state: GameState): GameState {
-    // 최적화된 깊은 복사 (JSON.parse/stringify보다 빠름)
-    return {
-      player: {
-        hp: state.player.hp,
-        maxHp: state.player.maxHp,
-        block: state.player.block,
-        strength: state.player.strength,
-        etherPts: state.player.etherPts,
-        tokens: { ...state.player.tokens },
-        deck: [...state.player.deck],
-        hand: [...state.player.hand],
-        discard: [...state.player.discard],
-        energy: state.player.energy,
-        maxEnergy: state.player.maxEnergy,
-        relics: [...state.player.relics],
-      },
-      enemy: {
-        hp: state.enemy.hp,
-        maxHp: state.enemy.maxHp,
-        block: state.enemy.block,
-        strength: state.enemy.strength,
-        etherPts: state.enemy.etherPts,
-        tokens: { ...state.enemy.tokens },
-        id: state.enemy.id,
-        name: state.enemy.name,
-        deck: [...state.enemy.deck],
-        cardsPerTurn: state.enemy.cardsPerTurn,
-      },
-      turn: state.turn,
-      phase: state.phase,
-      timeline: state.timeline.map(t => ({ ...t })),
-    };
-  }
-
   private shuffle<T>(array: T[]): void {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -613,6 +585,40 @@ export class MCTSPlayer {
     };
     this.engine = new MCTSEngine(this.options);
     log.info('MCTSPlayer initialized', { maxTurns: this.options.maxTurns });
+  }
+
+  private cloneState(state: GameState): GameState {
+    return {
+      player: {
+        hp: state.player.hp,
+        maxHp: state.player.maxHp,
+        block: state.player.block,
+        energy: state.player.energy,
+        maxEnergy: state.player.maxEnergy,
+        strength: state.player.strength,
+        etherPts: state.player.etherPts,
+        hand: [...state.player.hand],
+        deck: [...state.player.deck],
+        discard: [...state.player.discard],
+        tokens: { ...state.player.tokens },
+        relics: state.player.relics ? [...state.player.relics] : [],
+      },
+      enemy: {
+        id: state.enemy.id,
+        name: state.enemy.name,
+        hp: state.enemy.hp,
+        maxHp: state.enemy.maxHp,
+        block: state.enemy.block,
+        strength: state.enemy.strength,
+        etherPts: state.enemy.etherPts,
+        deck: state.enemy.deck ? [...state.enemy.deck] : [],
+        cardsPerTurn: state.enemy.cardsPerTurn,
+        tokens: { ...state.enemy.tokens },
+      },
+      turn: state.turn,
+      phase: state.phase,
+      timeline: state.timeline ? [...state.timeline] : [],
+    };
   }
 
   async playGame(
