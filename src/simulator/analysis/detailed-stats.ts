@@ -34,6 +34,9 @@ export type {
   CardPickStats,
   CardContributionStats,
   CardSynergyStats,
+  CardDeepStats,
+  DeathAnalysis,
+  DeathStats,
   RecordStats,
   DetailedStats,
   // 새 타입 (다른 게임 참고)
@@ -56,6 +59,9 @@ import type {
   CardPickStats,
   CardContributionStats,
   CardSynergyStats,
+  CardDeepStats,
+  DeathAnalysis,
+  DeathStats,
   RecordStats,
   ShopServiceStats,
   ItemUsageStats,
@@ -202,6 +208,22 @@ export class StatsCollector {
   private currentRunProgression: RunProgressionStats | null = null;
   private allCardChoices: CardChoiceContext[] = [];
 
+  // 카드 심층 분석 (전투당 사용 횟수 추적)
+  private cardPlayCounts: Record<string, number> = {}; // 카드별 총 사용 횟수
+  private cardBattleCounts: Record<string, number> = {}; // 카드가 포함된 전투 수
+  private cardNeverPlayedRuns: Record<string, number> = {}; // 한 번도 안 쓴 런 수
+  private currentRunCardPlays: Set<string> = new Set(); // 현재 런에서 사용한 카드
+
+  // 사망 분석
+  private deathRecords: DeathAnalysis[] = [];
+  private deathsByFloor: Record<number, number> = {};
+  private deathsByEnemy: Record<string, number> = {};
+  private deathsByCause: Record<string, number> = {};
+  private enemyEncounters: Record<string, number> = {}; // 적 조우 횟수 (사망률 계산용)
+
+  // 층별 스냅샷 (현재 런)
+  private currentFloorSnapshots: FloorProgressionData[] = [];
+
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
 
@@ -259,7 +281,15 @@ export class StatsCollector {
     // 카드 통계 업데이트
     for (const [cardId, uses] of Object.entries(result.cardUsage)) {
       this.updateCardStats(cardId, uses, isWin, result.events);
+
+      // 카드 심층 분석: 사용 횟수 기록
+      this.cardPlayCounts[cardId] = (this.cardPlayCounts[cardId] || 0) + uses;
+      this.cardBattleCounts[cardId] = (this.cardBattleCounts[cardId] || 0) + 1;
+      this.currentRunCardPlays.add(cardId);
     }
+
+    // 적 조우 횟수 기록 (사망률 계산용)
+    this.enemyEncounters[monster.id] = (this.enemyEncounters[monster.id] || 0) + 1;
 
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
@@ -477,6 +507,109 @@ export class StatsCollector {
     strategy?: string
   ) {
     this.recordRunExtended({ success, layer, battlesWon, gold, deckSize, deathCause, strategy });
+  }
+
+  /** 사망 분석 기록 */
+  recordDeath(data: {
+    floor: number;
+    enemyId: string;
+    enemyName: string;
+    finalHp: number;
+    overkillDamage: number;
+    turnsBeforeDeath: number;
+    lastHandCards: string[];
+    deck: string[];
+    relics: string[];
+    hpHistory: number[];
+  }) {
+    // 사망 원인 분류
+    let causeType: DeathAnalysis['causeType'] = 'attrition';
+    if (data.overkillDamage > 20) {
+      causeType = 'burst';
+    } else if (data.lastHandCards.length === 0) {
+      causeType = 'bad_hand';
+    } else if (data.turnsBeforeDeath > 10) {
+      causeType = 'resource_exhaustion';
+    }
+
+    // 덱 구성 분석
+    const deckComposition = {
+      attacks: 0,
+      skills: 0,
+      powers: 0,
+      total: data.deck.length,
+    };
+    for (const cardId of data.deck) {
+      const cardInfo = this.cardLibrary[cardId];
+      if (cardInfo) {
+        if (cardInfo.type === 'attack') deckComposition.attacks++;
+        else if (cardInfo.type === 'skill') deckComposition.skills++;
+        else if (cardInfo.type === 'power') deckComposition.powers++;
+      }
+    }
+
+    const deathAnalysis: DeathAnalysis = {
+      floor: data.floor,
+      enemyId: data.enemyId,
+      enemyName: data.enemyName,
+      causeType,
+      finalHp: data.finalHp,
+      overkillDamage: data.overkillDamage,
+      turnsBeforeDeath: data.turnsBeforeDeath,
+      lastHandCards: data.lastHandCards,
+      deckComposition,
+      relicsAtDeath: data.relics,
+      hpHistory: data.hpHistory,
+    };
+
+    // 최대 20개 유지
+    this.deathRecords.push(deathAnalysis);
+    if (this.deathRecords.length > 20) {
+      this.deathRecords.shift();
+    }
+
+    // 집계
+    this.deathsByFloor[data.floor] = (this.deathsByFloor[data.floor] || 0) + 1;
+    this.deathsByEnemy[data.enemyId] = (this.deathsByEnemy[data.enemyId] || 0) + 1;
+    this.deathsByCause[causeType] = (this.deathsByCause[causeType] || 0) + 1;
+  }
+
+  /** 층별 스냅샷 기록 */
+  recordFloorSnapshot(data: {
+    floor: number;
+    nodeType: string;
+    hp: number;
+    maxHp: number;
+    gold: number;
+    deckSize: number;
+    relicCount: number;
+  }) {
+    const snapshot: FloorProgressionData = {
+      floor: data.floor,
+      nodeType: data.nodeType,
+      hp: data.hp,
+      maxHp: data.maxHp,
+      gold: data.gold,
+      deckSize: data.deckSize,
+      relicCount: data.relicCount,
+    };
+    this.currentFloorSnapshots.push(snapshot);
+  }
+
+  /** 런 시작 시 초기화 */
+  startNewRun() {
+    this.currentRunCardPlays.clear();
+    this.currentFloorSnapshots = [];
+  }
+
+  /** 런 종료 시 카드 사용 통계 마무리 */
+  finalizeRunCardStats(deck: string[]) {
+    // 덱에 있었지만 한 번도 사용하지 않은 카드 기록
+    for (const cardId of deck) {
+      if (!this.currentRunCardPlays.has(cardId)) {
+        this.cardNeverPlayedRuns[cardId] = (this.cardNeverPlayedRuns[cardId] || 0) + 1;
+      }
+    }
   }
 
   /** 상점 방문 기록 */
@@ -1020,6 +1153,8 @@ export class StatsCollector {
     const cardPickStats = this.calculateCardPickStats();
     const cardContributionStats = this.calculateCardContributionStats();
     const cardSynergyStats = this.calculateCardSynergyStats();
+    const cardDeepStats = this.calculateCardDeepStats(cardContributionStats, cardSynergyStats);
+    const deathStats = this.calculateDeathStats();
     const recordStats = this.calculateRecordStats();
 
     const difficultyStats = this.calculateDifficultyStats();
@@ -1043,6 +1178,8 @@ export class StatsCollector {
       cardPickStats,
       cardContributionStats,
       cardSynergyStats,
+      cardDeepStats,
+      deathStats,
       recordStats,
       difficultyStats,
       recentRunProgressions: [...this.recentRunProgressions],
@@ -1205,6 +1342,98 @@ export class StatsCollector {
       smallestDeckClear: this.smallestDeckClear === Infinity ? 0 : this.smallestDeckClear,
       maxGoldHeld: this.maxGoldHeld,
       bossFlawlessCount: this.bossFlawlessCount,
+    };
+  }
+
+  /** 카드 심층 분석 통계 계산 */
+  private calculateCardDeepStats(
+    contributionStats: CardContributionStats,
+    synergyStats: CardSynergyStats
+  ): Map<string, CardDeepStats> {
+    const result = new Map<string, CardDeepStats>();
+    const totalBattles = this.battleRecords.length || 1;
+
+    // 모든 카드 ID 수집
+    const allCardIds = new Set([
+      ...Object.keys(this.cardPlayCounts),
+      ...Object.keys(this.cardsPicked),
+      ...Object.keys(this.cardsOffered),
+    ]);
+
+    for (const cardId of allCardIds) {
+      const cardInfo = this.cardLibrary[cardId] || { name: cardId, type: 'unknown' };
+      const timesPlayed = this.cardPlayCounts[cardId] || 0;
+      const battleCount = this.cardBattleCounts[cardId] || 0;
+      const cardStats = this.cardStats.get(cardId);
+
+      // 시너지 파트너 계산
+      const partners: { cardId: string; winRate: number; frequency: number }[] = [];
+      for (const [pair, frequency] of Object.entries(synergyStats.cardPairFrequency)) {
+        if (pair.includes(cardId) && frequency >= 2) {
+          const otherCardId = pair.replace(cardId, '').replace('_', '');
+          if (otherCardId && otherCardId !== cardId) {
+            partners.push({
+              cardId: otherCardId,
+              winRate: synergyStats.cardPairWinRate[pair] || 0,
+              frequency,
+            });
+          }
+        }
+      }
+
+      // 승률순 정렬
+      partners.sort((a, b) => b.winRate - a.winRate);
+
+      result.set(cardId, {
+        cardId,
+        cardName: cardInfo.name,
+        timesPicked: this.cardsPicked[cardId] || 0,
+        timesOffered: this.cardsOffered[cardId] || 0,
+        timesPlayed,
+        avgPlaysPerBattle: battleCount > 0 ? timesPlayed / battleCount : 0,
+        neverPlayedRuns: this.cardNeverPlayedRuns[cardId] || 0,
+        winRateWith: contributionStats.winRateWithCard[cardId] || 0,
+        winRateWithout: contributionStats.winRateWithoutCard[cardId] || 0,
+        avgDamageDealt: cardStats ? (cardStats.totalUses > 0 ? cardStats.totalDamage / cardStats.totalUses : 0) : 0,
+        avgBlockGained: cardStats ? (cardStats.totalUses > 0 ? cardStats.totalBlock / cardStats.totalUses : 0) : 0,
+        bestPartners: partners.slice(0, 5),
+        worstPartners: partners.slice(-5).reverse(),
+      });
+    }
+
+    return result;
+  }
+
+  /** 사망 통계 계산 */
+  private calculateDeathStats(): DeathStats {
+    const totalDeaths = this.deathRecords.length;
+    const deathFloors = Object.values(this.deathsByFloor);
+    const avgDeathFloor = deathFloors.length > 0
+      ? Object.entries(this.deathsByFloor).reduce((sum, [floor, count]) => sum + Number(floor) * count, 0) / totalDeaths
+      : 0;
+
+    // 가장 위험한 적 계산
+    const deadliestEnemies = Object.entries(this.deathsByEnemy)
+      .map(([enemyId, deaths]) => {
+        const encounters = this.enemyEncounters[enemyId] || deaths;
+        return {
+          enemyId,
+          enemyName: this.deathRecords.find(d => d.enemyId === enemyId)?.enemyName || enemyId,
+          deaths,
+          encounterRate: encounters > 0 ? deaths / encounters : 0,
+        };
+      })
+      .sort((a, b) => b.deaths - a.deaths)
+      .slice(0, 5);
+
+    return {
+      totalDeaths,
+      deathsByFloor: { ...this.deathsByFloor },
+      deathsByEnemy: { ...this.deathsByEnemy },
+      deathsByCause: { ...this.deathsByCause },
+      avgDeathFloor,
+      recentDeaths: [...this.deathRecords],
+      deadliestEnemies,
     };
   }
 
@@ -1511,6 +1740,19 @@ export class StatsCollector {
     this.recentRunProgressions = [];
     this.currentRunProgression = null;
     this.allCardChoices = [];
+    // 카드 심층 분석 초기화
+    this.cardPlayCounts = {};
+    this.cardBattleCounts = {};
+    this.cardNeverPlayedRuns = {};
+    this.currentRunCardPlays.clear();
+    // 사망 분석 초기화
+    this.deathRecords = [];
+    this.deathsByFloor = {};
+    this.deathsByEnemy = {};
+    this.deathsByCause = {};
+    this.enemyEncounters = {};
+    // 층별 스냅샷 초기화
+    this.currentFloorSnapshots = [];
     this.startTime = new Date();
   }
 }

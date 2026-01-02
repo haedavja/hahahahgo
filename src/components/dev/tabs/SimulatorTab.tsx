@@ -358,9 +358,92 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     }
   }
 
-  // ==================== 14. 기록 통계 ====================
+  // ==================== 14. 사망 분석 ====================
+  if (stats.deathStats && stats.deathStats.totalDeaths > 0) {
+    lines.push('## 14. 사망 분석');
+    lines.push(`- 총 사망: ${stats.deathStats.totalDeaths}회`);
+    lines.push(`- 평균 사망 층: ${num(stats.deathStats.avgDeathFloor)}`);
+    lines.push('');
+
+    // 층별 사망 분포
+    const floorDeaths = Object.entries(stats.deathStats.deathsByFloor).sort((a, b) => Number(a[0]) - Number(b[0]));
+    if (floorDeaths.length > 0) {
+      lines.push('### 층별 사망 분포');
+      lines.push('| 층 | 사망 수 | 비율 |');
+      lines.push('|----|--------|------|');
+      floorDeaths.forEach(([floor, deaths]) => {
+        const rate = stats.deathStats.totalDeaths > 0 ? deaths / stats.deathStats.totalDeaths : 0;
+        lines.push(`| ${floor} | ${deaths} | ${pct(rate)} |`);
+      });
+      lines.push('');
+    }
+
+    // 가장 위험한 적
+    if (stats.deathStats.deadliestEnemies && stats.deathStats.deadliestEnemies.length > 0) {
+      lines.push('### 가장 위험한 적');
+      lines.push('| 적 | 사망 수 | 사망률 |');
+      lines.push('|----|--------|--------|');
+      stats.deathStats.deadliestEnemies.forEach(enemy => {
+        lines.push(`| ${enemy.enemyName} | ${enemy.deaths} | ${pct(enemy.encounterRate)} |`);
+      });
+      lines.push('');
+    }
+
+    // 사망 원인별 분포
+    const causeDeaths = Object.entries(stats.deathStats.deathsByCause);
+    if (causeDeaths.length > 0) {
+      lines.push('### 사망 원인');
+      const causeNames: Record<string, string> = {
+        burst: '버스트 피해',
+        attrition: '지속 피해',
+        bad_hand: '나쁜 핸드',
+        resource_exhaustion: '자원 고갈',
+      };
+      causeDeaths.sort((a, b) => b[1] - a[1]).forEach(([cause, count]) => {
+        lines.push(`- ${causeNames[cause] || cause}: ${count}회`);
+      });
+      lines.push('');
+    }
+  }
+
+  // ==================== 15. 카드 심층 분석 ====================
+  if (stats.cardDeepStats && stats.cardDeepStats.size > 0) {
+    lines.push('## 15. 카드 심층 분석');
+
+    // 가장 많이 사용된 카드 (timesPlayed 기준)
+    const topPlayed = Array.from(stats.cardDeepStats.entries())
+      .filter(([, s]) => s.timesPlayed > 0)
+      .sort((a, b) => b[1].timesPlayed - a[1].timesPlayed)
+      .slice(0, 10);
+
+    if (topPlayed.length > 0) {
+      lines.push('### 가장 많이 사용된 카드');
+      lines.push('| 카드 | 사용 | 전투당 평균 | 피해 | 방어 |');
+      lines.push('|------|------|------------|------|------|');
+      topPlayed.forEach(([, s]) => {
+        lines.push(`| ${s.cardName} | ${s.timesPlayed} | ${num(s.avgPlaysPerBattle)} | ${num(s.avgDamageDealt)} | ${num(s.avgBlockGained)} |`);
+      });
+      lines.push('');
+    }
+
+    // 픽했지만 사용하지 않은 카드
+    const neverUsed = Array.from(stats.cardDeepStats.entries())
+      .filter(([, s]) => s.timesPicked >= 5 && s.neverPlayedRuns > 0)
+      .sort((a, b) => b[1].neverPlayedRuns - a[1].neverPlayedRuns)
+      .slice(0, 5);
+
+    if (neverUsed.length > 0) {
+      lines.push('### 픽했지만 사용 안 한 카드');
+      neverUsed.forEach(([, s]) => {
+        lines.push(`- ${s.cardName}: ${s.neverPlayedRuns}런에서 미사용`);
+      });
+      lines.push('');
+    }
+  }
+
+  // ==================== 16. 기록 통계 ====================
   if (stats.recordStats) {
-    lines.push('## 14. 기록');
+    lines.push('## 16. 기록');
     lines.push(`- 최장 연승: ${stats.recordStats.longestWinStreak}연승`);
     lines.push(`- 현재 연승: ${stats.recordStats.currentWinStreak}연승`);
     lines.push(`- 무피해 전투 승리: ${stats.recordStats.flawlessVictories}회`);
@@ -382,9 +465,9 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
   }
   lines.push('');
 
-  // ==================== 15. 난이도별 통계 (Hades Heat 스타일) ====================
+  // ==================== 17. 난이도별 통계 (Hades Heat 스타일) ====================
   if (stats.difficultyStats && stats.difficultyStats.size > 0) {
-    lines.push('## 15. 난이도별 통계');
+    lines.push('## 17. 난이도별 통계');
     lines.push('| 난이도 | 런 | 승리 | 승률 | 평균층 | 연승 |');
     lines.push('|--------|-----|------|------|--------|------|');
     Array.from(stats.difficultyStats.entries())
@@ -395,9 +478,9 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     lines.push('');
   }
 
-  // ==================== 16. 카드 선택 컨텍스트 (Slay the Spire 스타일) ====================
+  // ==================== 18. 카드 선택 컨텍스트 (Slay the Spire 스타일) ====================
   if (stats.allCardChoices && stats.allCardChoices.length > 0) {
-    lines.push('## 16. 카드 선택 분석');
+    lines.push('## 18. 카드 선택 분석');
 
     // 카드별로 경쟁 상황 분석
     const cardWinContext: Record<string, { picked: number; total: number; competitors: Record<string, number> }> = {};

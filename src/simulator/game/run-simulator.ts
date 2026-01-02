@@ -333,6 +333,11 @@ export class RunSimulator {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
 
+    // 통계 수집기 런 시작 초기화
+    if (this.statsCollector) {
+      this.statsCollector.startNewRun();
+    }
+
     // 피라미드 성장 시스템 초기화
     const growthSystem = createGrowthSystem(player.growth);
 
@@ -473,6 +478,13 @@ export class RunSimulator {
         deck: player.deck,
       });
 
+      // 난이도별 통계 기록
+      this.statsCollector.recordDifficultyRun(
+        config.difficulty,
+        result.success,
+        result.layerReached
+      );
+
       // 성장 통계 기록
       const growthState = player.growth as GrowthState | undefined;
       if (growthState) {
@@ -486,6 +498,9 @@ export class RunSimulator {
           finalLevel: growthState.pyramidLevel || 0,
         });
       }
+
+      // 카드 사용 통계 마무리
+      this.statsCollector.finalizeRunCardStats(player.deck);
     }
 
     return result;
@@ -539,6 +554,19 @@ export class RunSimulator {
 
     result.hpChange = player.hp - startHp;
     result.goldChange = player.gold - startGold;
+
+    // 층별 스냅샷 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordFloorSnapshot({
+        floor: node.layer,
+        nodeType: node.type,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        gold: player.gold,
+        deckSize: player.deck.length,
+        relicCount: player.relics.length,
+      });
+    }
 
     return result;
   }
@@ -839,6 +867,24 @@ export class RunSimulator {
     } else {
       result.success = false;
       result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
+
+      // 사망 분석 기록
+      if (this.statsCollector && totalBattleResult) {
+        const lastEnemy = enemies[enemies.length - 1] || { id: 'unknown', name: '알 수 없음' };
+        this.statsCollector.recordDeath({
+          floor: node.layer,
+          enemyId: lastEnemy.id,
+          enemyName: lastEnemy.name,
+          finalHp: 0,
+          overkillDamage: Math.abs(player.hp), // 초과 피해량
+          turnsBeforeDeath: totalBattleResult.turns,
+          lastHandCards: [], // 시뮬레이터에서는 핸드 정보 없음
+          deck: player.deck,
+          relics: player.relics,
+          hpHistory: [], // 시뮬레이터에서는 HP 히스토리 없음
+        });
+      }
+
       player.hp = 0;
     }
 

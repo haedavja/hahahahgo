@@ -364,6 +364,82 @@ export interface CardSynergyStats {
   topSynergies: { pair: string; frequency: number; winRate: number }[];
 }
 
+/** 카드 심층 분석 통계 */
+export interface CardDeepStats {
+  cardId: string;
+  cardName: string;
+  /** 픽된 횟수 */
+  timesPicked: number;
+  /** 제시된 횟수 */
+  timesOffered: number;
+  /** 실제 전투에서 사용된 횟수 */
+  timesPlayed: number;
+  /** 전투당 평균 사용 횟수 */
+  avgPlaysPerBattle: number;
+  /** 한 번도 사용되지 않은 런 수 */
+  neverPlayedRuns: number;
+  /** 해당 카드가 있을 때 승률 */
+  winRateWith: number;
+  /** 해당 카드가 없을 때 승률 */
+  winRateWithout: number;
+  /** 평균 피해량 */
+  avgDamageDealt: number;
+  /** 평균 방어량 */
+  avgBlockGained: number;
+  /** 최고 시너지 파트너 */
+  bestPartners: { cardId: string; winRate: number; frequency: number }[];
+  /** 최악 시너지 파트너 */
+  worstPartners: { cardId: string; winRate: number; frequency: number }[];
+}
+
+/** 사망 분석 */
+export interface DeathAnalysis {
+  /** 사망 층 */
+  floor: number;
+  /** 사망 원인 적 */
+  enemyId: string;
+  enemyName: string;
+  /** 사망 원인 분류 */
+  causeType: 'burst' | 'attrition' | 'bad_hand' | 'resource_exhaustion';
+  /** 최종 HP */
+  finalHp: number;
+  /** 초과 피해량 (오버킬) */
+  overkillDamage: number;
+  /** 사망 전 턴 수 */
+  turnsBeforeDeath: number;
+  /** 마지막 핸드 카드 */
+  lastHandCards: string[];
+  /** 덱 구성 */
+  deckComposition: {
+    attacks: number;
+    skills: number;
+    powers: number;
+    total: number;
+  };
+  /** 사망 시점 상징 */
+  relicsAtDeath: string[];
+  /** HP 히스토리 (최근 5턴) */
+  hpHistory: number[];
+}
+
+/** 사망 통계 집계 */
+export interface DeathStats {
+  /** 총 사망 횟수 */
+  totalDeaths: number;
+  /** 층별 사망 분포 */
+  deathsByFloor: Record<number, number>;
+  /** 적별 사망 횟수 */
+  deathsByEnemy: Record<string, number>;
+  /** 원인별 사망 횟수 */
+  deathsByCause: Record<string, number>;
+  /** 평균 사망 층 */
+  avgDeathFloor: number;
+  /** 최근 사망 분석 (최대 20개) */
+  recentDeaths: DeathAnalysis[];
+  /** 가장 위험한 적 TOP 5 */
+  deadliestEnemies: { enemyId: string; enemyName: string; deaths: number; encounterRate: number }[];
+}
+
 /** 층별 진행 데이터 (Slay the Spire 스타일) */
 export interface FloorProgressionData {
   /** 층 번호 */
@@ -490,6 +566,10 @@ export interface DetailedStats {
   cardContributionStats: CardContributionStats;
   /** 카드 시너지 통계 */
   cardSynergyStats: CardSynergyStats;
+  /** 카드 심층 분석 통계 */
+  cardDeepStats: Map<string, CardDeepStats>;
+  /** 사망 통계 */
+  deathStats: DeathStats;
   /** 기록 통계 */
   recordStats: RecordStats;
   /** 난이도별 통계 (Hades Heat 스타일) */
