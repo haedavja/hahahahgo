@@ -181,8 +181,7 @@
       "isBoss": true,
       "passives": {
         "veilAtStart": true,
-        "healPerTurn": 5,
-        "summonOnHalfHp": true
+        "healPerTurn": 5
       }
     }
   }
