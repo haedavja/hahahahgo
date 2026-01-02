@@ -24,6 +24,10 @@ import type {
 import { RelicSystemV2, getRelicSystemV2, type RelicEffectResult } from './relic-system-v2';
 import { AnomalySystem, getAnomalySystem } from './anomaly-system';
 import { getLogger } from './logger';
+import {
+  BASE_CRIT_CHANCE,
+  CRIT_MULTIPLIER,
+} from '../../lib/battleCalculations';
 
 // ==================== 상수 (설정 가능) ====================
 
@@ -40,8 +44,8 @@ export interface BattleConstants {
 
 export const DEFAULT_CONSTANTS: BattleConstants = {
   STUN_RANGE: 5,
-  CRIT_BASE_CHANCE: 0.05,
-  CRIT_MULTIPLIER: 2.0,
+  CRIT_BASE_CHANCE: BASE_CRIT_CHANCE,
+  CRIT_MULTIPLIER: CRIT_MULTIPLIER,
   FINISHER_MULTIPLIER: 2.0,        // finisher 특성 피해 배율
   CRUSH_BONUS_PER_HP_PERCENT: 0.5, // crush 특성: 잃은 HP 1%당 0.5% 추가 피해
   CROSS_MULTIPLIER: 1.5,           // cross 특성: 다른 타입 카드 후 피해 증가

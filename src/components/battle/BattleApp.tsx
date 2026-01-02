@@ -209,7 +209,7 @@ interface GameProps {
   liveInsight?: number;
 }
 
-function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }: GameProps): JSX.Element | null {
+const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }: GameProps): JSX.Element | null {
   // 스토어에서 필요한 추가 상태만 가져오기 (커스텀 훅으로 분리)
   const {
     playerTraits,
@@ -2499,7 +2499,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       />
     </div>
   );
-}
+});
 
 interface BattleAppProps {
   initialPlayer: BattlePayload['player'];

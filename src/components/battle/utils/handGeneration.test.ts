@@ -3,7 +3,7 @@
  * @description 핸드/덱 생성 테스트
  *
  * ## 테스트 대상
- * - shuffleArray: 배열 셔플 (Fisher-Yates)
+ * - shuffle: 배열 셔플 (Fisher-Yates)
  * - initializeDeck: 덱 초기화
  * - drawFromDeck: 덱에서 카드 드로우
  * - getDefaultStartingHand: 기본 시작 핸드
@@ -18,15 +18,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  shuffleArray,
   initializeDeck,
   drawFromDeck,
   getDefaultStartingHand,
   drawCharacterBuildHand
 } from './handGeneration';
+import { shuffle } from '../../../lib/randomUtils';
 
 describe('handGeneration', () => {
-  describe('shuffleArray', () => {
+  describe('shuffle', () => {
     beforeEach(() => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
     });
@@ -36,31 +36,31 @@ describe('handGeneration', () => {
     });
 
     it('빈 배열은 빈 배열을 반환해야 함', () => {
-      expect(shuffleArray([])).toEqual([]);
+      expect(shuffle([])).toEqual([]);
     });
 
     it('단일 요소 배열은 그대로 반환해야 함', () => {
-      expect(shuffleArray([1])).toEqual([1]);
+      expect(shuffle([1])).toEqual([1]);
     });
 
     it('원본 배열을 변경하지 않아야 함', () => {
       const original = [1, 2, 3, 4, 5];
       const copy = [...original];
-      shuffleArray(original);
+      shuffle(original);
 
       expect(original).toEqual(copy);
     });
 
     it('모든 요소가 포함되어야 함', () => {
       const original = [1, 2, 3, 4, 5];
-      const shuffled = shuffleArray(original);
+      const shuffled = shuffle(original);
 
       expect(shuffled.sort()).toEqual(original.sort());
     });
 
     it('새 배열을 반환해야 함', () => {
       const original = [1, 2, 3];
-      const shuffled = shuffleArray(original);
+      const shuffled = shuffle(original);
 
       expect(shuffled).not.toBe(original);
     });

@@ -5,7 +5,7 @@
  * 최적화: React.memo + 스타일 상수 추출
  */
 
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, lazy, Suspense } from 'react';
 import type { CSSProperties } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import type { GameStore } from '../../state/slices/types';
@@ -17,10 +17,12 @@ import {
   ItemsTab,
   EventTab,
   CardsTab,
-  SimulatorTab,
   BalanceTab
 } from './DevToolsTabs';
 import type { DevToolsTab as Tab } from '../../types';
+
+// Lazy load SimulatorTab to defer ~100KB of simulator code
+const SimulatorTab = lazy(() => import('./tabs/SimulatorTab'));
 
 // =====================
 // 스타일 상수
@@ -294,7 +296,9 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
           />
         )}
         {activeTab === 'simulator' && (
-          <SimulatorTab />
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading Simulator...</div>}>
+            <SimulatorTab />
+          </Suspense>
         )}
         {activeTab === 'balance' && (
           <BalanceTab />

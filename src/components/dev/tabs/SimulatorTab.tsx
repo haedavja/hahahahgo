@@ -70,7 +70,7 @@ const STYLES = {
 
 type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records';
 
-export const SimulatorTab = memo(function SimulatorTab() {
+const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
   const [difficulty, setDifficulty] = useState(1);
   const [strategy, setStrategy] = useState<'balanced' | 'aggressive' | 'defensive'>('balanced');
@@ -572,3 +572,5 @@ export const SimulatorTab = memo(function SimulatorTab() {
     </div>
   );
 });
+
+export default SimulatorTab;

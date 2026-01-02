@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출
  */
 
-import { FC, RefObject, memo } from 'react';
+import { FC, RefObject, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 
 // =====================
@@ -86,18 +86,21 @@ export const BattleLog: FC<BattleLogProps> = memo(({ phase, log, logContainerRef
     return null;
   }
 
+  // 필터링된 로그 메모이제이션
+  const filteredLog = useMemo(() => log.filter(shouldShowLogLine), [log]);
+
   return (
     <div style={CONTAINER_STYLE}>
       <div style={HEADER_STYLE}>
         🎮 전투 로그
       </div>
       <div ref={logContainerRef} style={LOG_CONTAINER_STYLE}>
-        {log.filter(shouldShowLogLine).map((line, i) => {
+        {filteredLog.map((line, i) => {
           const lineType = classifyLogLine(line);
           const color = getLogColor(lineType);
           return (
             <div
-              key={i}
+              key={`${i}-${line.substring(0, 20)}`}
               style={{
                 ...LOG_LINE_BASE_STYLE,
                 color,

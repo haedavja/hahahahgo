@@ -3,14 +3,21 @@
  * @description 타임라인 전투 엔진 상수 및 설정
  */
 
+// ==================== 공유 전투 상수 ====================
+
+export {
+  BASE_CRIT_CHANCE,
+  CRIT_MULTIPLIER,
+  VULNERABLE_MULTIPLIER,
+  WEAK_MULTIPLIER,
+} from '../../../lib/battleCalculations';
+
 // ==================== 기본 상수 ====================
 
 export const DEFAULT_MAX_SPEED = 30;
 export const DEFAULT_PLAYER_ENERGY = 6;
 export const DEFAULT_MAX_SUBMIT_CARDS = 5;
 export const DEFAULT_HAND_SIZE = 5;
-export const BASE_CRIT_CHANCE = 0.05;
-export const CRIT_MULTIPLIER = 2.0;
 
 // ==================== 전투 엔진 설정 ====================
 

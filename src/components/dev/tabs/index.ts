@@ -10,5 +10,5 @@ export { RelicsTab } from './RelicsTab';
 export { ItemsTab } from './ItemsTab';
 export { EventTab } from './EventTab';
 export { CardsTab } from './CardsTab';
-export { SimulatorTab } from './SimulatorTab';
+// SimulatorTab is lazy-loaded in DevTools.tsx, not exported here to enable code splitting
 export { BalanceTab } from './BalanceTab';

@@ -17,23 +17,11 @@ import type {
 import type { CardGrowthState } from '../../../state/slices/types';
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
-import { generateHandUid } from "../../../lib/randomUtils";
+import { generateHandUid, shuffle } from "../../../lib/randomUtils";
 import { getEnhancedCard, type EnhancedCardStats } from "../../../lib/cardEnhancementUtils";
 
 /** 카드 성장 상태 맵 타입 */
 type CardGrowthMap = Record<string, CardGrowthState | undefined>;
-
-/**
- * Fisher-Yates 셔플 알고리즘
- */
-export function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 /**
  * 카드에 강화 및 특화 효과 적용
@@ -172,7 +160,7 @@ export function initializeDeck(
     })
     .filter(Boolean) as HandCard[];
 
-  const shuffledOwned = shuffleArray(ownedCardObjs);
+  const shuffledOwned = shuffle(ownedCardObjs);
   const deck = [...subSpecialCards, ...shuffledOwned];
 
   return { deck, mainSpecialsHand };
@@ -222,7 +210,7 @@ export function drawFromDeck(
     const subSpecialsFromDiscard = currentDiscard.filter(card => card.__isSubSpecial);
     const normalCardsFromDiscard = currentDiscard.filter(card => !card.__isSubSpecial);
 
-    const shuffledNormal = shuffleArray(normalCardsFromDiscard);
+    const shuffledNormal = shuffle(normalCardsFromDiscard);
 
     currentDeck = [...currentDeck, ...subSpecialsFromDiscard, ...shuffledNormal];
     currentDiscard = [];

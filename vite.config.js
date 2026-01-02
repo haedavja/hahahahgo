@@ -34,10 +34,19 @@ export default defineConfig({
             './src/data/anomalies.ts',
             './src/data/tokens.ts',
           ],
-          // 던전 시스템 분리
-          'dungeon': [
+          // 던전 시스템 분리 (dungeonNodes 포함)
+          'dungeon-data': [
             './src/data/dungeonNodes.ts',
             './src/lib/dungeonChoices.ts',
+          ],
+          // 이벤트 데이터 분리 (newEvents는 크기가 크므로 별도 청크)
+          'event-data': [
+            './src/data/newEvents.ts',
+          ],
+          // 카드 강화 데이터 분리 (cardEnhancement는 크기가 크므로 별도 청크)
+          'enhancement-data': [
+            './src/lib/cardEnhancementData.ts',
+            './src/lib/cardEnhancementUtils.ts',
           ],
         },
       },

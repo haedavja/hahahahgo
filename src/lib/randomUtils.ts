@@ -37,10 +37,15 @@ export function generateTimestampUid(prefix: string): string {
 }
 
 /**
- * 배열 셔플 (Fisher-Yates 변형)
+ * 배열 셔플 (Fisher-Yates 알고리즘)
  * @param arr - 셔플할 배열
  * @returns 새로운 셔플된 배열
  */
 export function shuffle<T>(arr: readonly T[]): T[] {
-  return [...arr].sort(() => Math.random() - 0.5);
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
