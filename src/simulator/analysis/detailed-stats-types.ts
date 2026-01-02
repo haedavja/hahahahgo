@@ -1155,4 +1155,488 @@ export interface DetailedStats {
   pokerComboStats: PokerComboStats;
   /** 층 진행 분석 */
   floorProgressionAnalysis: FloorProgressionAnalysis;
+
+  // ==================== 영향력 분석 ====================
+
+  /** 이벤트 영향력 분석 */
+  eventImpactAnalysis: EventImpactAnalysis;
+  /** 상징 시너지 영향력 분석 */
+  relicSynergyImpactAnalysis: RelicSynergyImpactAnalysis;
+  /** AI 성장 선택 이유 분석 */
+  growthDecisionAnalysis: GrowthDecisionAnalysis;
+  /** 카드 선택 이유 분석 */
+  cardSelectionReasoningAnalysis: CardSelectionReasoningAnalysis;
+}
+
+// ==================== 이벤트 영향력 분석 ====================
+
+/** 이벤트 영향력 분석 */
+export interface EventImpactAnalysis {
+  /** 이벤트별 영향력 */
+  eventImpacts: Map<string, EventImpactStats>;
+  /** 가장 긍정적인 이벤트 TOP 5 */
+  mostBeneficialEvents: EventImpactRanking[];
+  /** 가장 부정적인 이벤트 TOP 5 */
+  mostDetrimentalEvents: EventImpactRanking[];
+  /** 이벤트 선택이 런 결과에 미친 영향 (전체) */
+  overallEventInfluence: {
+    /** 이벤트가 승리에 기여한 정도 (0-1) */
+    winContribution: number;
+    /** 이벤트가 패배에 기여한 정도 (0-1) */
+    lossContribution: number;
+    /** 가장 치명적인 이벤트 선택 */
+    mostFatalChoice: { eventId: string; choiceId: string; deathRate: number } | null;
+  };
+}
+
+/** 개별 이벤트 영향력 통계 */
+export interface EventImpactStats {
+  eventId: string;
+  eventName: string;
+  /** 발생 횟수 */
+  occurrences: number;
+  /** 이벤트 발생 후 런 승률 */
+  winRateAfterEvent: number;
+  /** 이벤트 스킵 시 런 승률 */
+  winRateWhenSkipped: number;
+  /** 순 영향력 (발생 후 승률 - 스킵 시 승률) */
+  netImpact: number;
+  /** 선택지별 영향력 */
+  choiceImpacts: EventChoiceImpact[];
+  /** 이벤트 후 생존 확률 (다음 3층까지) */
+  survivalProbability: number;
+  /** 이벤트로 인한 평균 자원 변화 */
+  avgResourceChanges: {
+    hp: number;
+    gold: number;
+    deckQuality: number; // 덱 품질 변화 추정
+    relicValue: number;  // 획득 상징 가치
+  };
+  /** 이벤트 후 패배까지 평균 층 수 */
+  avgFloorsToDeathAfter: number;
+  /** 이벤트가 직접적으로 패배를 유발한 횟수 (HP 부족 등) */
+  directDeathCount: number;
+}
+
+/** 이벤트 선택지 영향력 */
+export interface EventChoiceImpact {
+  choiceId: string;
+  choiceName: string;
+  /** 선택 횟수 */
+  timesChosen: number;
+  /** 이 선택 후 승률 */
+  winRateAfterChoice: number;
+  /** 다른 선택지 대비 승률 차이 */
+  winRateDifferential: number;
+  /** 이 선택이 최적이었던 비율 */
+  optimalChoiceRate: number;
+  /** 선택 이유 분포 */
+  reasonDistribution: Record<string, number>;
+  /** 결과별 분포 */
+  outcomeDistribution: {
+    positive: number;   // 좋은 결과
+    neutral: number;    // 보통
+    negative: number;   // 나쁜 결과
+    fatal: number;      // 치명적 (HP 0 또는 직접 패배)
+  };
+}
+
+/** 이벤트 영향력 순위 */
+export interface EventImpactRanking {
+  eventId: string;
+  eventName: string;
+  /** 순 영향력 */
+  netImpact: number;
+  /** Z-score (밸런스 이상치) */
+  zScore: number;
+  /** 권장 행동 */
+  recommendation: 'always_do' | 'situational' | 'avoid' | 'skip';
+  /** 최적 선택지 */
+  optimalChoice: string | null;
+}
+
+// ==================== 상징 시너지 영향력 분석 ====================
+
+/** 상징 시너지 영향력 분석 */
+export interface RelicSynergyImpactAnalysis {
+  /** 상징 조합별 시너지 */
+  synergyCombinations: Map<string, RelicSynergyStats>;
+  /** 가장 강력한 시너지 TOP 10 */
+  topSynergies: RelicSynergyRanking[];
+  /** 안티 시너지 (함께 있으면 안 좋은 조합) */
+  antiSynergies: RelicSynergyRanking[];
+  /** 상징 수에 따른 승률 곡선 */
+  relicCountImpact: {
+    count: number;
+    winRate: number;
+    avgValue: number;
+  }[];
+  /** 핵심 상징 (있으면 승률 급상승) */
+  coreRelics: CoreRelicStats[];
+  /** 상황별 상징 가치 */
+  contextualRelicValues: Map<string, ContextualRelicValue>;
+}
+
+/** 상징 시너지 통계 */
+export interface RelicSynergyStats {
+  /** 조합 키 (relicId1:relicId2 형태) */
+  combinationKey: string;
+  relicIds: string[];
+  relicNames: string[];
+  /** 함께 보유한 횟수 */
+  coOccurrences: number;
+  /** 함께 보유 시 승률 */
+  combinedWinRate: number;
+  /** 개별 보유 시 평균 승률 */
+  individualWinRate: number;
+  /** 시너지 효과 (조합 승률 - 개별 평균 승률) */
+  synergyBonus: number;
+  /** 조합 시 평균 효과 발동 횟수 증가 */
+  activationBoost: number;
+  /** 조합으로 인한 추가 가치 */
+  additionalValue: {
+    damageBoost: number;
+    survivalBoost: number;
+    resourceBoost: number;
+  };
+  /** 최적 획득 순서 */
+  optimalAcquisitionOrder: string[];
+}
+
+/** 상징 시너지 순위 */
+export interface RelicSynergyRanking {
+  combinationKey: string;
+  relicNames: string[];
+  /** 시너지 점수 (0-1) */
+  synergyScore: number;
+  /** 승률 증가 */
+  winRateBoost: number;
+  /** 획득 난이도 (희귀도 기반) */
+  acquisitionDifficulty: number;
+  /** 효율성 (시너지 / 난이도) */
+  efficiency: number;
+  /** 권장 상황 */
+  recommendedContext: string[];
+}
+
+/** 핵심 상징 통계 */
+export interface CoreRelicStats {
+  relicId: string;
+  relicName: string;
+  /** 보유 시 승률 */
+  winRateWith: number;
+  /** 미보유 시 승률 */
+  winRateWithout: number;
+  /** 핵심도 점수 (차이) */
+  coreScore: number;
+  /** 빌드 정의 상징 여부 (특정 전략 활성화) */
+  isBuildDefining: boolean;
+  /** 함께 가져가야 할 상징 */
+  mustHavePairs: string[];
+  /** 최적 획득 시점 (층) */
+  optimalAcquisitionFloor: number;
+}
+
+/** 상황별 상징 가치 */
+export interface ContextualRelicValue {
+  relicId: string;
+  /** 초반 가치 (층 1-5) */
+  earlyValue: number;
+  /** 중반 가치 (층 6-10) */
+  midValue: number;
+  /** 후반 가치 (층 11+) */
+  lateValue: number;
+  /** 전투 유형별 가치 */
+  valueByBattleType: {
+    normal: number;
+    elite: number;
+    boss: number;
+  };
+  /** 덱 유형별 가치 */
+  valueByDeckType: Record<string, number>;
+  /** 가치 변동 요인 */
+  valueFactors: string[];
+}
+
+// ==================== AI 성장 선택 이유 분석 ====================
+
+/** AI 성장 선택 이유 분석 */
+export interface GrowthDecisionAnalysis {
+  /** 성장 결정 기록 */
+  decisions: GrowthDecisionRecord[];
+  /** 스탯별 선택 이유 분포 */
+  reasonsByType: Record<string, Record<string, number>>;
+  /** 상황별 선택 패턴 */
+  contextualPatterns: GrowthContextPattern[];
+  /** 선택 정확도 (결과 기반 평가) */
+  decisionAccuracy: {
+    /** 올바른 선택 비율 (승리 런에서) */
+    correctChoiceRate: number;
+    /** 가장 자주 틀린 선택 */
+    commonMistakes: GrowthMistake[];
+    /** 상황별 정확도 */
+    accuracyByContext: Record<string, number>;
+  };
+  /** 최적 성장 경로 추천 */
+  optimalPaths: OptimalGrowthPath[];
+}
+
+/** 성장 결정 기록 */
+export interface GrowthDecisionRecord {
+  /** 결정 시점 층 */
+  floor: number;
+  /** 현재 스탯 상태 */
+  currentStats: Record<string, number>;
+  /** 선택한 스탯 */
+  chosenType: 'trait' | 'ethos' | 'pathos' | 'logos';
+  /** 선택한 구체적 스탯/스킬 */
+  chosenStat: string;
+  /** 제시된 선택지들 */
+  availableOptions: string[];
+  /** 선택 이유 */
+  reasons: GrowthDecisionReason[];
+  /** 선택 시 컨텍스트 */
+  context: GrowthDecisionContext;
+  /** 결과 (해당 런 결과) */
+  outcome: 'win' | 'loss';
+  /** 선택이 올바랐는지 (후행 분석) */
+  wasOptimal: boolean;
+}
+
+/** 성장 결정 이유 */
+export interface GrowthDecisionReason {
+  /** 이유 타입 */
+  type: 'synergy' | 'weakness_cover' | 'deck_complement' | 'relic_synergy' | 'current_situation' | 'long_term_plan';
+  /** 이유 설명 */
+  description: string;
+  /** 이유 가중치 (0-1) */
+  weight: number;
+  /** 관련 카드/상징 ID */
+  relatedItems?: string[];
+}
+
+/** 성장 결정 컨텍스트 */
+export interface GrowthDecisionContext {
+  /** 현재 HP 비율 */
+  hpRatio: number;
+  /** 현재 덱 구성 */
+  deckComposition: { attacks: number; skills: number; powers: number };
+  /** 보유 상징 */
+  relics: string[];
+  /** 최근 전투 결과 */
+  recentBattleResults: ('win' | 'loss')[];
+  /** 남은 보스까지 거리 */
+  floorsToNextBoss: number;
+}
+
+/** 성장 컨텍스트 패턴 */
+export interface GrowthContextPattern {
+  /** 패턴 이름 */
+  patternName: string;
+  /** 패턴 조건 */
+  conditions: Record<string, unknown>;
+  /** 이 패턴에서 선호되는 선택 */
+  preferredChoices: { stat: string; frequency: number; winRate: number }[];
+  /** 이 패턴의 최적 선택 */
+  optimalChoice: string;
+  /** 패턴 발생 빈도 */
+  frequency: number;
+}
+
+/** 성장 실수 분석 */
+export interface GrowthMistake {
+  /** 실수 유형 */
+  mistakeType: string;
+  /** 선택한 스탯 */
+  chosenStat: string;
+  /** 최적이었던 스탯 */
+  optimalStat: string;
+  /** 발생 횟수 */
+  occurrences: number;
+  /** 승률 손실 */
+  winRateLoss: number;
+  /** 실수 상황 설명 */
+  situationDescription: string;
+}
+
+/** 최적 성장 경로 */
+export interface OptimalGrowthPath {
+  /** 경로 이름 */
+  pathName: string;
+  /** 경로 단계 */
+  steps: { floor: number; stat: string; reason: string }[];
+  /** 이 경로의 승률 */
+  winRate: number;
+  /** 권장 상황 */
+  recommendedFor: string[];
+  /** 필요한 상징/카드 */
+  requirements: string[];
+}
+
+// ==================== 카드 선택 이유 분석 ====================
+
+/** 카드 선택 이유 분석 */
+export interface CardSelectionReasoningAnalysis {
+  /** 카드 선택 결정 기록 */
+  decisions: CardSelectionDecision[];
+  /** 카드별 선택 이유 분포 */
+  reasonsByCard: Map<string, Record<string, number>>;
+  /** 스킵 이유 분석 */
+  skipReasonAnalysis: SkipReasonAnalysis;
+  /** 선택 정확도 */
+  selectionAccuracy: {
+    /** 올바른 선택 비율 */
+    correctRate: number;
+    /** 자주 하는 실수 */
+    commonMistakes: CardSelectionMistake[];
+    /** 상황별 정확도 */
+    accuracyByContext: Record<string, number>;
+  };
+  /** 카드 가치 평가 */
+  cardValueAssessment: Map<string, CardValueAssessment>;
+  /** 상황별 최적 픽 가이드 */
+  optimalPickGuide: CardPickGuideEntry[];
+}
+
+/** 카드 선택 결정 */
+export interface CardSelectionDecision {
+  /** 선택 시점 층 */
+  floor: number;
+  /** 제시된 카드들 */
+  offeredCards: string[];
+  /** 선택한 카드 (null = 스킵) */
+  pickedCard: string | null;
+  /** 선택/스킵 이유들 */
+  reasons: CardSelectionReason[];
+  /** 선택 시 컨텍스트 */
+  context: CardSelectionContext;
+  /** 런 결과 */
+  runOutcome: 'win' | 'loss';
+  /** 이 선택이 최적이었는지 */
+  wasOptimal: boolean;
+  /** 실제로 사용된 횟수 (해당 런에서) */
+  timesUsedInRun: number;
+}
+
+/** 카드 선택 이유 */
+export interface CardSelectionReason {
+  /** 이유 타입 */
+  type:
+    | 'deck_synergy'        // 덱과 시너지
+    | 'missing_type'        // 부족한 타입 보충
+    | 'relic_synergy'       // 상징과 시너지
+    | 'current_weakness'    // 현재 약점 보완
+    | 'power_level'         // 단순 강함
+    | 'combo_potential'     // 콤보 가능성
+    | 'enemy_counter'       // 다가오는 적 대응
+    | 'skip_bloat'          // 덱 비대화 방지
+    | 'skip_redundant'      // 이미 충분
+    | 'skip_weak'           // 카드가 약함
+    | 'trait_synergy'       // 특성과 시너지
+    | 'ether_synergy';      // 에테르와 시너지
+  /** 이유 설명 */
+  description: string;
+  /** 이유 가중치 */
+  weight: number;
+  /** 관련 카드/상징 */
+  relatedItems?: string[];
+}
+
+/** 카드 선택 컨텍스트 */
+export interface CardSelectionContext {
+  /** 현재 층 */
+  floor: number;
+  /** 현재 덱 크기 */
+  deckSize: number;
+  /** 덱 구성 */
+  deckComposition: {
+    attacks: number;
+    skills: number;
+    powers: number;
+    byTrait: Record<string, number>;
+  };
+  /** HP 상태 */
+  hpRatio: number;
+  /** 보유 상징 */
+  relics: string[];
+  /** 최근 전투 어려움 정도 */
+  recentDifficulty: 'easy' | 'medium' | 'hard';
+  /** 다음 노드 타입 */
+  upcomingNodes: string[];
+}
+
+/** 스킵 이유 분석 */
+export interface SkipReasonAnalysis {
+  /** 총 스킵 횟수 */
+  totalSkips: number;
+  /** 이유별 분포 */
+  reasonDistribution: Record<string, number>;
+  /** 스킵 시 런 승률 */
+  winRateAfterSkip: number;
+  /** 스킵해야 했는데 안 한 경우 */
+  shouldHaveSkipped: {
+    cardId: string;
+    occurrences: number;
+    winRateLoss: number;
+  }[];
+  /** 스킵하지 말았어야 했는데 한 경우 */
+  shouldNotHaveSkipped: {
+    cardId: string;
+    occurrences: number;
+    winRateLoss: number;
+  }[];
+}
+
+/** 카드 선택 실수 */
+export interface CardSelectionMistake {
+  /** 실수 유형 */
+  mistakeType: 'picked_wrong' | 'missed_good' | 'should_skip' | 'should_not_skip';
+  /** 선택한 카드 */
+  pickedCard: string | null;
+  /** 최적이었던 카드 */
+  optimalCard: string | null;
+  /** 발생 횟수 */
+  occurrences: number;
+  /** 승률 손실 */
+  winRateLoss: number;
+  /** 상황 설명 */
+  situationDescription: string;
+}
+
+/** 카드 가치 평가 */
+export interface CardValueAssessment {
+  cardId: string;
+  cardName: string;
+  /** 기본 가치 (상황 무관) */
+  baseValue: number;
+  /** 상황별 가치 수정 */
+  contextModifiers: {
+    condition: string;
+    modifier: number;
+  }[];
+  /** 시너지 보너스 (특정 카드/상징 보유 시) */
+  synergyBonuses: {
+    itemId: string;
+    bonus: number;
+  }[];
+  /** 최적 픽 상황 */
+  optimalConditions: string[];
+  /** 스킵해야 할 상황 */
+  skipConditions: string[];
+}
+
+/** 카드 픽 가이드 */
+export interface CardPickGuideEntry {
+  /** 상황 설명 */
+  situation: string;
+  /** 상황 조건 */
+  conditions: Record<string, unknown>;
+  /** 추천 픽 순위 */
+  recommendedPicks: { cardId: string; priority: number; reason: string }[];
+  /** 피해야 할 픽 */
+  avoidPicks: { cardId: string; reason: string }[];
+  /** 스킵 권장 여부 */
+  shouldSkip: boolean;
+  /** 스킵 이유 */
+  skipReason?: string;
 }
