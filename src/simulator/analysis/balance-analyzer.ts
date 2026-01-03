@@ -81,7 +81,7 @@ export class BalanceAnalyzer {
     return {
       generatedAt: new Date(),
       totalRuns: this.stats.runStats.totalRuns,
-      overallWinRate: this.stats.runStats.winRate,
+      overallWinRate: this.stats.runStats.successRate,
       cardBalance,
       enemyBalance,
       floorDangerZones,
@@ -99,7 +99,7 @@ export class BalanceAnalyzer {
     const neverUsed: BalanceSuggestion[] = [];
 
     const { cardPickStats, cardContributionStats, cardDeepStats } = this.stats;
-    const avgWinRate = this.stats.runStats.winRate;
+    const avgWinRate = this.stats.runStats.successRate;
 
     for (const [cardId, deepStats] of cardDeepStats) {
       const pickRate = cardPickStats.pickRate[cardId] || 0;

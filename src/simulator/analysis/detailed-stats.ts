@@ -91,9 +91,12 @@ import type {
 
 // ==================== 통계 수집기 ====================
 
+import type { EnemyGroupStats } from './detailed-stats-types';
+
 export class StatsCollector {
   private cardStats: Map<string, CardEffectStats> = new Map();
   private monsterStats: Map<string, MonsterBattleStats> = new Map();
+  private enemyGroupStats: Map<string, EnemyGroupStats> = new Map();
   private eventStats: Map<string, EventStats> = new Map();
   private battleRecords: BattleRecord[] = [];
   private runResults: {
@@ -285,6 +288,7 @@ export class StatsCollector {
       specialEffects: {},
       crossTriggers: 0,
       combosTriggered: { ...result.comboStats },
+      groupInfo: null,
     };
 
     // 이벤트에서 특수효과 및 교차 횟수 추출
@@ -349,6 +353,7 @@ export class StatsCollector {
   private updateCardStats(cardId: string, uses: number, isWin: boolean, events: BattleEvent[]) {
     if (!this.cardStats.has(cardId)) {
       const cardInfo = this.cardLibrary[cardId] || { name: cardId, type: 'unknown' };
+      const defaultContextStats = { uses: 0, avgDamage: 0, avgBlock: 0, winRate: 0 };
       this.cardStats.set(cardId, {
         cardId,
         cardName: cardInfo.name,
@@ -363,6 +368,30 @@ export class StatsCollector {
         specialTriggers: {},
         crossTriggers: 0,
         winContribution: 0,
+        contextByHpState: {
+          critical: { ...defaultContextStats },
+          unstable: { ...defaultContextStats },
+          stable: { ...defaultContextStats },
+        },
+        contextByFloor: {
+          early: { ...defaultContextStats },
+          mid: { ...defaultContextStats },
+          late: { ...defaultContextStats },
+          byFloor: new Map(),
+        },
+        contextByEnemy: {
+          vsNormal: { ...defaultContextStats },
+          vsElite: { ...defaultContextStats },
+          vsBoss: { ...defaultContextStats },
+          vsMultiple: { ...defaultContextStats },
+          byEnemyType: new Map(),
+        },
+        contextByTurn: {
+          firstTurn: { ...defaultContextStats },
+          earlyTurns: { ...defaultContextStats },
+          midTurns: { ...defaultContextStats },
+          lateTurns: { ...defaultContextStats },
+        },
       });
     }
 
@@ -407,6 +436,7 @@ export class StatsCollector {
     result: BattleResult
   ) {
     if (!this.monsterStats.has(monster.id)) {
+      const defaultGroupStats = { battles: 0, wins: 0, winRate: 0, avgDamageTaken: 0, avgTurns: 0 };
       this.monsterStats.set(monster.id, {
         monsterId: monster.id,
         monsterName: monster.name,
@@ -423,6 +453,11 @@ export class StatsCollector {
         avgDamageDealt: 0,
         avgHpRemainingOnWin: 0,
         topCardsUsed: [],
+        contextStats: {
+          solo: { ...defaultGroupStats },
+          withSameType: { ...defaultGroupStats, avgGroupSize: 0 },
+          withMixedGroup: { ...defaultGroupStats, frequentPartners: [] },
+        },
       });
     }
 
@@ -1276,6 +1311,7 @@ export class StatsCollector {
       endTime: new Date(),
       cardStats: this.cardStats,
       monsterStats: this.monsterStats,
+      enemyGroupStats: this.enemyGroupStats,
       eventStats: this.eventStats,
       runStats,
       battleRecords: this.battleRecords,

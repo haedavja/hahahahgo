@@ -283,10 +283,10 @@ export function exportSummaryJSON(stats: DetailedStats): object {
   return {
     summary: {
       totalRuns: runStats.totalRuns,
-      winRate: runStats.winRate,
-      avgFloorReached: runStats.avgFloorReached,
-      totalBattles: runStats.totalBattles,
-      battleWinRate: runStats.battleWinRate,
+      winRate: runStats.successRate,
+      avgFloorReached: runStats.avgLayerReached,
+      totalBattles: Math.round(runStats.avgBattlesWon * runStats.totalRuns),
+      avgBattlesWon: runStats.avgBattlesWon,
     },
     deathAnalysis: {
       totalDeaths: deathStats.totalDeaths,

@@ -26,6 +26,7 @@ function createSampleLog(overrides: Partial<GameBattleLog> = {}): GameBattleLog 
       turns: 5,
       playerFinalHp: 80,
       playerMaxHp: 100,
+      enemyFinalHp: 0,
       playerDamageDealt: 40,
       enemyDamageDealt: 20,
     },
@@ -135,6 +136,7 @@ describe('BattleLogCollector', () => {
         turns: 3,
         playerFinalHp: 90,
         playerMaxHp: 100,
+        enemyFinalHp: 0,
         playerDamageDealt: 40,
         enemyDamageDealt: 10,
       }
@@ -157,6 +159,7 @@ describe('BattleLogCollector', () => {
           turns: i + 1,
           playerFinalHp: 100 - i * 10,
           playerMaxHp: 100,
+          enemyFinalHp: 0,
           playerDamageDealt: 40 + i * 5,
           enemyDamageDealt: i * 10,
         }
@@ -177,6 +180,7 @@ describe('BattleLogCollector', () => {
         turns: 1,
         playerFinalHp: 100,
         playerMaxHp: 100,
+        enemyFinalHp: 0,
         playerDamageDealt: 40,
         enemyDamageDealt: 0,
       }
@@ -197,6 +201,7 @@ describe('BattleLogCollector', () => {
         turns: 1,
         playerFinalHp: 100,
         playerMaxHp: 100,
+        enemyFinalHp: 0,
         playerDamageDealt: 40,
         enemyDamageDealt: 0,
       }
@@ -222,6 +227,7 @@ describe('BattleLogCollector', () => {
         turns: 1,
         playerFinalHp: 100,
         playerMaxHp: 100,
+        enemyFinalHp: 0,
         playerDamageDealt: 40,
         enemyDamageDealt: 0,
       },
@@ -272,19 +278,19 @@ describe('Log Collection and Validation Integration', () => {
       ['strike', 'strike', 'strike', 'shoot', 'shoot'],
       [],
       'ghoul',
-      { victory: true, turns: 4, playerFinalHp: 85, playerMaxHp: 100, playerDamageDealt: 40, enemyDamageDealt: 15 }
+      { victory: true, turns: 4, playerFinalHp: 85, playerMaxHp: 100, enemyFinalHp: 0, playerDamageDealt: 40, enemyDamageDealt: 15 }
     );
     BattleLogCollector.recordBattle(
       ['strike', 'strike', 'shoot', 'shoot'],
       [],
       'marauder',
-      { victory: true, turns: 3, playerFinalHp: 95, playerMaxHp: 100, playerDamageDealt: 20, enemyDamageDealt: 5 }
+      { victory: true, turns: 3, playerFinalHp: 95, playerMaxHp: 100, enemyFinalHp: 0, playerDamageDealt: 20, enemyDamageDealt: 5 }
     );
     BattleLogCollector.recordBattle(
       ['strike', 'strike', 'strike'],
       [],
       'deserter',
-      { victory: false, turns: 8, playerFinalHp: 0, playerMaxHp: 100, playerDamageDealt: 50, enemyDamageDealt: 100 }
+      { victory: false, turns: 8, playerFinalHp: 0, playerMaxHp: 100, enemyFinalHp: 30, playerDamageDealt: 50, enemyDamageDealt: 100 }
     );
 
     const logs = BattleLogCollector.getLogs();
@@ -302,7 +308,7 @@ describe('Log Collection and Validation Integration', () => {
       ['strike'],
       [],
       'ghoul',
-      { victory: true, turns: 10, playerFinalHp: 50, playerMaxHp: 100, playerDamageDealt: 40, enemyDamageDealt: 50 }
+      { victory: true, turns: 10, playerFinalHp: 50, playerMaxHp: 100, enemyFinalHp: 0, playerDamageDealt: 40, enemyDamageDealt: 50 }
     );
 
     const validator = new BattleLogValidator();
@@ -325,6 +331,7 @@ describe('Accuracy Score Calculation', () => {
         turns: 5,
         playerFinalHp: 90,
         playerMaxHp: 100,
+        enemyFinalHp: 0,
         playerDamageDealt: 40,
         enemyDamageDealt: 10,
       },
@@ -347,6 +354,7 @@ describe('Accuracy Score Calculation', () => {
         turns: 3,
         playerFinalHp: 0,
         playerMaxHp: 100,
+        enemyFinalHp: 30,
         playerDamageDealt: 20,
         enemyDamageDealt: 100,
       },

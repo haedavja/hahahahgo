@@ -262,6 +262,8 @@ export interface EnemyGroupStats {
   nodeRange: [number, number] | null;
   /** 가장 효과적인 카드 TOP 5 */
   effectiveCards: { cardId: string; winRateBoost: number }[];
+  /** 동종 그룹 여부 (모든 적이 같은 타입) */
+  isHomogeneous: boolean;
 }
 
 /** 개별 적 피해 기록 (전투 내) */
