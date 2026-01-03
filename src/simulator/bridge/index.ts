@@ -24,6 +24,7 @@ export {
   getDetailedStats,
   getCardStats,
   getEnemyStats,
+  invalidateStatsCache,
   StatsBridge,
 } from './stats-bridge';
 
@@ -32,6 +33,7 @@ export type {
   GameEnemyInfo,
   GamePlayerInfo,
   AdaptedBattleResult,
+  SimplifiedStats,
 } from './stats-bridge';
 
 export {

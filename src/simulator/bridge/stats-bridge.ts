@@ -237,7 +237,16 @@ export function recordGameBattle(
 export function recordRunStart(deck: string[], relics: string[] = []): void {
   try {
     const stats = getStatsCollector();
-    stats.recordRunStart({ deck, relics });
+    stats.startNewRun();
+
+    // 시작 상징들 기록
+    for (const relicId of relics) {
+      stats.recordRelicAcquired({
+        relicId,
+        floor: 0,
+        source: 'starting',
+      });
+    }
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Run started with deck:', deck.length, 'cards');
@@ -258,12 +267,29 @@ export function recordRunEnd(
 ): void {
   try {
     const stats = getStatsCollector();
-    stats.recordRunEnd({
+
+    // 카드 사용 통계 마무리
+    stats.finalizeRunCardStats(finalDeck);
+
+    // 런 결과 기록
+    stats.recordRunComplete({
       success,
-      floor: finalFloor,
+      battlesWon: finalFloor, // floor를 전투 수로 근사
+      deckSize: finalDeck.length,
+      gold: 0,
       deck: finalDeck,
-      relics: finalRelics,
     });
+
+    // 기본 런 기록도 추가
+    stats.recordRun(
+      success,
+      finalFloor, // layer
+      finalFloor, // battlesWon
+      0, // gold
+      finalDeck.length,
+      success ? undefined : 'defeat',
+      undefined
+    );
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Run ended:', {
@@ -287,7 +313,22 @@ export function recordCardPick(
 ): void {
   try {
     const stats = getStatsCollector();
-    stats.recordCardPick(cardId, offeredCards, context);
+
+    // 제공된 카드 기록
+    stats.recordCardOffered(offeredCards);
+
+    // 선택한 카드 기록
+    stats.recordCardPicked(cardId, offeredCards);
+
+    // 층 정보가 있으면 선택 컨텍스트도 기록
+    if (context.floor !== undefined) {
+      stats.recordCardChoice({
+        pickedCardId: cardId,
+        offeredCardIds: offeredCards,
+        floor: context.floor,
+        skipped: false,
+      });
+    }
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Card picked:', cardId, 'from', offeredCards);
@@ -306,7 +347,19 @@ export function recordRelicAcquired(
 ): void {
   try {
     const stats = getStatsCollector();
-    stats.recordRelicAcquired(relicId, context);
+
+    // source 타입 변환
+    const validSources = ['battle', 'shop', 'event', 'dungeon', 'boss', 'starting'] as const;
+    type SourceType = typeof validSources[number];
+    const source = (context.source && validSources.includes(context.source as SourceType))
+      ? (context.source as SourceType)
+      : 'event';
+
+    stats.recordRelicAcquired({
+      relicId,
+      floor: context.floor ?? 1,
+      source,
+    });
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Relic acquired:', relicId);
@@ -322,11 +375,17 @@ export function recordRelicAcquired(
 export function recordCardUpgrade(
   cardId: string,
   newLevel: number,
-  context: { floor?: number } = {}
+  context: { floor?: number; cost?: number } = {}
 ): void {
   try {
     const stats = getStatsCollector();
-    stats.recordCardUpgrade(cardId, newLevel, context);
+
+    // 상점 서비스로 강화 기록
+    stats.recordShopService({
+      type: 'upgrade',
+      cost: context.cost ?? 0,
+      cardId,
+    });
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Card upgraded:', cardId, 'to level', newLevel);
@@ -338,20 +397,80 @@ export function recordCardUpgrade(
 
 // ==================== 통계 조회 ====================
 
+/** 간소화된 통계 인터페이스 */
+export interface SimplifiedStats {
+  battles: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgTurns: number;
+  avgDamageDealt: number;
+  avgDamageTaken: number;
+  totalDamageDealt: number;
+  totalRuns: number;
+  successfulRuns: number;
+}
+
+/** 캐시된 상세 통계 */
+let cachedDetailedStats: ReturnType<StatsCollector['finalize']> | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5000; // 5초
+
 /**
- * 현재 통계 가져오기
+ * 현재 통계 가져오기 (간소화된 버전)
  */
-export function getCurrentStats() {
-  const stats = getStatsCollector();
-  return stats.getStats();
+export function getCurrentStats(): SimplifiedStats {
+  const detailed = getDetailedStats();
+
+  // battleRecords에서 전투 통계 계산
+  const battleRecords = detailed.battleRecords || [];
+  const battles = battleRecords.length;
+  const wins = battleRecords.filter(r => r.winner === 'player').length;
+  const losses = battles - wins;
+
+  // 평균 계산
+  const totalTurns = battleRecords.reduce((sum, r) => sum + (r.turns || 0), 0);
+  const totalDamageDealt = battleRecords.reduce((sum, r) => sum + (r.playerDamageDealt || 0), 0);
+  const totalDamageTaken = battleRecords.reduce((sum, r) => sum + (r.enemyDamageDealt || 0), 0);
+
+  return {
+    battles,
+    wins,
+    losses,
+    winRate: battles > 0 ? wins / battles : 0,
+    avgTurns: battles > 0 ? totalTurns / battles : 0,
+    avgDamageDealt: battles > 0 ? totalDamageDealt / battles : 0,
+    avgDamageTaken: battles > 0 ? totalDamageTaken / battles : 0,
+    totalDamageDealt,
+    totalRuns: detailed.runStats?.totalRuns || 0,
+    successfulRuns: detailed.runStats?.successfulRuns || 0,
+  };
 }
 
 /**
- * 상세 통계 가져오기
+ * 상세 통계 가져오기 (캐시 사용)
  */
-export function getDetailedStats() {
+export function getDetailedStats(): ReturnType<StatsCollector['finalize']> {
+  const now = Date.now();
+
+  // 캐시가 유효하면 반환
+  if (cachedDetailedStats && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedDetailedStats;
+  }
+
   const stats = getStatsCollector();
-  return stats.getDetailedStats();
+  cachedDetailedStats = stats.finalize();
+  cacheTimestamp = now;
+
+  return cachedDetailedStats;
+}
+
+/**
+ * 통계 캐시 무효화
+ */
+export function invalidateStatsCache(): void {
+  cachedDetailedStats = null;
+  cacheTimestamp = 0;
 }
 
 /**
