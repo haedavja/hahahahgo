@@ -650,17 +650,24 @@ export function generateReport(): string {
 
     if (lastVerification.summary.criticalFailures > 0) {
       report += '\n🚨 크리티컬 이슈:\n';
-      lastVerification.checks
-        .filter(c => !c.passed && c.severity === 'critical')
-        .forEach(c => {
+      const checks = lastVerification.checks;
+      for (let i = 0; i < checks.length; i++) {
+        const c = checks[i];
+        if (!c.passed && c.severity === 'critical') {
           report += `   - ${c.name}: ${c.message}\n`;
-        });
+        }
+      }
     }
   }
 
   if (history.length > 1) {
-    const scores = history.slice(-10).map(h => h.summary.syncScore);
-    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const startIdx = Math.max(0, history.length - 10);
+    let scoreSum = 0;
+    const count = history.length - startIdx;
+    for (let i = startIdx; i < history.length; i++) {
+      scoreSum += history[i].summary.syncScore;
+    }
+    const avgScore = scoreSum / count;
     report += `\n📉 최근 10회 평균 점수: ${avgScore.toFixed(1)}/100\n`;
   }
 
