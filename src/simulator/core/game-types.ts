@@ -286,6 +286,7 @@ export interface PlayerState extends CombatantState {
   deck: string[];
   discard: string[];
   relics: string[];
+  items?: string[];               // 소모성 아이템 목록
   insight: number;
   // 특성 시스템 관련
   repeatCards?: string[];         // 다음 턴 손패 확정 등장
@@ -297,6 +298,9 @@ export interface PlayerState extends CombatantState {
   repeatTimelineNext?: boolean;   // 다음 턴 타임라인 반복 (르 송쥬)
   blockPerCardExecution?: number; // 카드 실행마다 방어력 획득
   repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
+  // 아이템 시스템
+  etherMultiplier?: number;       // 에테르 획득 배율 (아이템 효과)
+  frozenTurns?: number;           // 적 타임라인 동결 턴 수
   // 호환성 필드
   etherPts?: number;              // 에테르 포인트 (리듀서 호환)
   cardEnhancements?: Record<string, number>; // 카드 강화 정보

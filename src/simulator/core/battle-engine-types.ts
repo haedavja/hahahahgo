@@ -20,6 +20,7 @@ export interface BattleEngineConfig {
   enableCrits: boolean;
   enableCombos: boolean;
   enableRelics: boolean;
+  enableItems: boolean;
   enableAnomalies: boolean;
   enableTimeline: boolean;
   verbose: boolean;
@@ -33,6 +34,7 @@ export const DEFAULT_CONFIG: BattleEngineConfig = {
   enableCrits: true,
   enableCombos: true,
   enableRelics: true,
+  enableItems: true,
   enableAnomalies: true,
   enableTimeline: true,
   verbose: false,

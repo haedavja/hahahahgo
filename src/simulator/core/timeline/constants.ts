@@ -32,6 +32,8 @@ export interface BattleEngineConfig {
   enableCombos: boolean;
   /** 상징 시스템 활성화 */
   enableRelics: boolean;
+  /** 아이템 시스템 활성화 */
+  enableItems: boolean;
   /** 이변 시스템 활성화 */
   enableAnomalies: boolean;
   /** 타임라인 시스템 활성화 */
@@ -48,6 +50,7 @@ export const DEFAULT_CONFIG: BattleEngineConfig = {
   enableCrits: true,
   enableCombos: true,
   enableRelics: true,
+  enableItems: true,
   enableAnomalies: true,
   enableTimeline: true,
   verbose: false,

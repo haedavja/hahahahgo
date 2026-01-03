@@ -50,6 +50,7 @@ import {
   enforceMinFinesse,
 } from './token-system';
 import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
+import { getItemSystem, ItemSystem, applyItemEffect } from './item-system';
 import {
   getAnomalySystem,
   activateGameAnomaly,
@@ -171,6 +172,7 @@ export class TimelineBattleEngine {
   private traits: Record<string, { id: string; name: string; type: 'positive' | 'negative'; weight: number; description: string }>;
   private config: BattleEngineConfig;
   private relicSystem: RelicSystemV2;
+  private itemSystem: ItemSystem;
   private respondAI: RespondAI;
   private cardCreation: CardCreationSystem;
   private events: BattleEvent[] = [];
@@ -186,6 +188,7 @@ export class TimelineBattleEngine {
     this.cards = syncAllCards();
     this.traits = syncAllTraits();
     this.relicSystem = getRelicSystemV2();
+    this.itemSystem = getItemSystem();
     this.respondAI = new RespondAI(this.cards);
     this.cardCreation = new CardCreationSystem(this.cards);
   }
@@ -284,13 +287,15 @@ export class TimelineBattleEngine {
    * @param enemy 적 상태
    * @param anomalyId 이변 ID 또는 다중 이변 설정 (보스 전투용)
    * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
+   * @param playerItems 플레이어 아이템 (선택사항)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
     anomalyId?: string | { id: string; level?: number }[],
-    cardEnhancements?: Record<string, number>
+    cardEnhancements?: Record<string, number>,
+    playerItems?: string[]
   ): BattleResult {
     this.events = [];
 
@@ -305,12 +310,17 @@ export class TimelineBattleEngine {
     this.buildEnhancedCardCache();
 
     // 플레이어 초기화
-    const player = this.initializePlayer(playerDeck, playerRelics);
+    const player = this.initializePlayer(playerDeck, playerRelics, playerItems);
 
     // 상징 초기화
     if (this.config.enableRelics) {
       this.relicSystem.initializeRelics(playerRelics);
       this.applyPassiveRelics(player);
+    }
+
+    // 아이템 시스템 초기화
+    if (this.config.enableItems) {
+      this.itemSystem.resetBattleState();
     }
 
     // 이변 초기화 (기존 시뮬레이터 이변)
@@ -627,6 +637,11 @@ export class TimelineBattleEngine {
   // ==================== 대응 단계 ====================
 
   private executeRespondPhase(state: GameBattleState): void {
+    // 아이템 사용 (대응단계에서 전투용 아이템 사용)
+    if (this.config.enableItems && state.player.items && state.player.items.length > 0) {
+      this.processItemUsage(state, 'respond');
+    }
+
     // 타임라인 분석
     const analysis = this.respondAI.analyzeTimeline(state);
 
@@ -662,6 +677,39 @@ export class TimelineBattleEngine {
 
     // 교차 재계산
     this.checkCrossings(state);
+  }
+
+  /**
+   * 아이템 사용 처리
+   */
+  private processItemUsage(state: GameBattleState, phase: string): void {
+    if (!state.player.items || state.player.items.length === 0) return;
+
+    // AI가 사용할 아이템 선택
+    const itemToUse = this.itemSystem.selectItemToUse(
+      state.player.items,
+      state.player,
+      state.enemy,
+      phase
+    );
+
+    if (itemToUse) {
+      const result = this.itemSystem.useItem(itemToUse, state.player, state.enemy, state);
+      if (result) {
+        // 아이템 효과 적용
+        applyItemEffect(result, state.player, state.enemy, state);
+
+        // 아이템 인벤토리에서 제거
+        const itemIndex = state.player.items.indexOf(itemToUse);
+        if (itemIndex >= 0) {
+          state.player.items.splice(itemIndex, 1);
+        }
+
+        // 로그
+        const item = this.itemSystem.getItem(itemToUse);
+        state.battleLog.push(`  📦 ${item?.icon || '🎁'} ${result.itemName} 사용: ${result.effects.message}`);
+      }
+    }
   }
 
   private applyPlayerResponse(state: GameBattleState, decision: ResponseDecision): void {
@@ -2508,7 +2556,7 @@ export class TimelineBattleEngine {
 
   // ==================== 유틸리티 ====================
 
-  private initializePlayer(deck: string[], relics: string[]): PlayerState {
+  private initializePlayer(deck: string[], relics: string[], items?: string[]): PlayerState {
     const passives = this.relicSystem.getPassiveEffects();
 
     return {
@@ -2527,6 +2575,7 @@ export class TimelineBattleEngine {
       deck: [...deck],
       discard: [],
       relics: [...relics],
+      items: items ? [...items] : [],
       insight: 0,
     };
   }
