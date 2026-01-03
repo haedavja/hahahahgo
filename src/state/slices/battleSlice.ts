@@ -12,6 +12,7 @@ import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
 import { applyCombatEndEffects } from '../../lib/relicEffects';
 import { updateStats } from '../metaProgress';
+import { recordGameBattle, recordRunEnd } from '../../simulator/bridge/stats-bridge';
 import {
   BATTLE_CARDS,
   resolveEnemyDeck,
@@ -153,6 +154,52 @@ export const createBattleActions: SliceCreator = (set) => ({
         finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
       } catch (error) {
         if (import.meta.env.DEV) console.error('Error applying combat end effects:', error);
+      }
+
+      // 시뮬레이터 통계 시스템에 전투 결과 기록
+      try {
+        const enemyInfo = state.activeBattle.enemyInfo;
+        const battleLog = state.activeBattle.simulation?.lines ?? [];
+
+        recordGameBattle(
+          {
+            result: resultLabel as 'victory' | 'defeat',
+            playerHp: finalPlayerHp,
+            deltaEther: 0,
+          },
+          {
+            nodeId: state.activeBattle.nodeId,
+            kind: state.activeBattle.kind,
+            damageDealt: outcome.damageDealt || 0,
+            damageTaken: outcome.damageTaken || 0,
+            battleLog,
+          },
+          {
+            id: enemyInfo?.id,
+            name: enemyInfo?.name || state.activeBattle.label || 'Unknown',
+            tier: enemyInfo?.tier,
+            isBoss: enemyInfo?.isBoss,
+            emoji: enemyInfo?.emoji,
+          },
+          {
+            hp: finalPlayerHp,
+            maxHp: newMaxHp,
+            deck: state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            relics: state.relics?.map(r => r.id) || [],
+          }
+        );
+
+        // 패배 시 런 종료 기록
+        if (resultLabel === 'defeat' && finalPlayerHp <= 0) {
+          recordRunEnd(
+            false,
+            1, // TODO: 실제 floor 정보 연결
+            state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            state.relics?.map(r => r.id) || []
+          );
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.error('[StatsBridge] Error recording battle:', error);
       }
 
       return {
