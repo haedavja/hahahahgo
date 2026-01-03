@@ -658,8 +658,9 @@ export {
   type FrustrationPoint,
   type PlayerExperiencePrediction,
   type BalanceInsightReport,
-  // 특성/성장/승급 분석 타입
-  type TraitBalanceAnalysis,
+  // 카드 특성/성장/승급 분석 타입
+  type CardTraitAnalysis,
+  type GrowthStatAnalysis,
   type GrowthPathAnalysis,
   type UpgradeBalanceAnalysis,
 } from './analysis/balance-insights';

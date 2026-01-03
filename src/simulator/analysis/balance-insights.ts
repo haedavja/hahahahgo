@@ -222,8 +222,8 @@ export interface PlayerExperiencePrediction {
   improvementPriorities: string[];
 }
 
-/** 특성/스탯 밸런스 분석 */
-export interface TraitBalanceAnalysis {
+/** 성장 스탯 밸런스 분석 (에토스/파토스/로고스 시스템) */
+export interface GrowthStatAnalysis {
   /** 스탯별 승률 기여도 */
   statContributions: {
     statName: string;
@@ -248,6 +248,56 @@ export interface TraitBalanceAnalysis {
     contributionGap: number;
   }[];
   /** 스탯 다양성 */
+  diversityScore: number;
+  /** 권장사항 */
+  recommendations: BalanceRecommendation[];
+}
+
+/** 카드 특성(Trait) 밸런스 분석 */
+export interface CardTraitAnalysis {
+  /** 특성별 통계 */
+  traitStats: {
+    traitId: string;
+    traitName: string;
+    /** 해당 특성 보유 카드 수 (픽된 것 기준) */
+    cardCount: number;
+    /** 해당 특성 카드 픽률 평균 */
+    avgPickRate: number;
+    /** 해당 특성 카드 승률 평균 */
+    avgWinRate: number;
+    /** 해당 특성 카드 기여도 평균 */
+    avgContribution: number;
+    /** 해당 특성 카드 전투당 사용 횟수 평균 */
+    avgPlaysPerBattle: number;
+    /** 평가 */
+    rating: 'overpowered' | 'balanced' | 'underpowered' | 'unused';
+  }[];
+  /** 특성 시너지 분석 */
+  traitSynergies: {
+    trait1: string;
+    trait2: string;
+    /** 함께 픽된 횟수 */
+    coOccurrences: number;
+    /** 함께 있을 때 승률 */
+    combinedWinRate: number;
+    /** 시너지 효과 */
+    synergyBonus: number;
+  }[];
+  /** 과잉 강화 특성 (너프 후보) */
+  overpoweredTraits: {
+    traitId: string;
+    traitName: string;
+    avgContribution: number;
+    suggestion: string;
+  }[];
+  /** 약한 특성 (버프 후보) */
+  underpoweredTraits: {
+    traitId: string;
+    traitName: string;
+    avgContribution: number;
+    suggestion: string;
+  }[];
+  /** 특성 다양성 */
   diversityScore: number;
   /** 권장사항 */
   recommendations: BalanceRecommendation[];
@@ -350,8 +400,10 @@ export interface BalanceInsightReport {
   diversity: DiversityMetrics;
   /** 플레이어 경험 예측 */
   playerExperience: PlayerExperiencePrediction;
-  /** 특성 밸런스 분석 */
-  traitBalance: TraitBalanceAnalysis;
+  /** 카드 특성 밸런스 분석 */
+  cardTraitAnalysis: CardTraitAnalysis;
+  /** 성장 스탯 밸런스 분석 */
+  growthStatAnalysis: GrowthStatAnalysis;
   /** 성장 경로 분석 */
   growthPaths: GrowthPathAnalysis;
   /** 승급 밸런스 분석 */
@@ -384,14 +436,16 @@ export class BalanceInsightAnalyzer {
     const mustPicks = this.detectMustPicks();
     const diversity = this.analyzeDiversity();
     const playerExperience = this.predictPlayerExperience(bottlenecks);
-    const traitBalance = this.analyzeTraitBalance();
+    const cardTraitAnalysis = this.analyzeCardTraits();
+    const growthStatAnalysis = this.analyzeGrowthStatBalance();
     const growthPaths = this.analyzeGrowthPaths();
     const upgradeBalance = this.analyzeUpgradeBalance();
 
-    // 특성/승급 분석에서 나온 권장사항도 포함
+    // 카드 특성/성장/승급 분석에서 나온 권장사항도 포함
     const allRecommendations = [
       ...recommendations,
-      ...traitBalance.recommendations,
+      ...cardTraitAnalysis.recommendations,
+      ...growthStatAnalysis.recommendations,
     ];
 
     const criticalIssues = allRecommendations.filter(r => r.priority === 'critical').length;
@@ -412,7 +466,8 @@ export class BalanceInsightAnalyzer {
       mustPicks,
       diversity,
       playerExperience,
-      traitBalance,
+      cardTraitAnalysis,
+      growthStatAnalysis,
       growthPaths,
       upgradeBalance,
       summary: {
@@ -1398,29 +1453,60 @@ export class BalanceInsightAnalyzer {
     }
     lines.push('');
 
-    // 특성 밸런스
-    lines.push('## 🧬 특성 밸런스');
-    const tb = report.traitBalance;
-    if (tb.statContributions.length > 0) {
+    // 카드 특성 분석
+    lines.push('## 🎴 카드 특성 밸런스');
+    const ct = report.cardTraitAnalysis;
+    if (ct.traitStats.length > 0) {
+      lines.push('### 특성별 통계');
+      for (const trait of ct.traitStats.slice(0, 10)) {
+        const ratingIcon = trait.rating === 'overpowered' ? '🔴' :
+                          trait.rating === 'underpowered' ? '🟡' :
+                          trait.rating === 'unused' ? '⚪' : '🟢';
+        lines.push(`- ${ratingIcon} **${trait.traitName}** (${trait.cardCount}장): 기여도 ${trait.avgContribution >= 0 ? '+' : ''}${(trait.avgContribution * 100).toFixed(1)}%, 픽률 ${(trait.avgPickRate * 100).toFixed(0)}%`);
+      }
+      lines.push(`- 특성 다양성: ${(ct.diversityScore * 100).toFixed(0)}%`);
+      lines.push('');
+    }
+
+    if (ct.overpoweredTraits.length > 0) {
+      lines.push('### ⚠️ 과잉 강화 특성');
+      for (const trait of ct.overpoweredTraits) {
+        lines.push(`- **${trait.traitName}**: +${(trait.avgContribution * 100).toFixed(0)}% → ${trait.suggestion}`);
+      }
+      lines.push('');
+    }
+
+    if (ct.underpoweredTraits.length > 0) {
+      lines.push('### 📉 약한 특성');
+      for (const trait of ct.underpoweredTraits) {
+        lines.push(`- **${trait.traitName}**: ${(trait.avgContribution * 100).toFixed(0)}% → ${trait.suggestion}`);
+      }
+      lines.push('');
+    }
+
+    // 성장 스탯 분석
+    lines.push('## 🧬 성장 스탯 밸런스');
+    const gs = report.growthStatAnalysis;
+    if (gs.statContributions.length > 0) {
       lines.push('### 스탯별 승률 기여도');
-      for (const stat of tb.statContributions.slice(0, 8)) {
+      for (const stat of gs.statContributions.slice(0, 8)) {
         const ratingIcon = stat.rating === 'overpowered' ? '🔴' :
                           stat.rating === 'underpowered' ? '🟡' :
                           stat.rating === 'unused' ? '⚪' : '🟢';
         lines.push(`- ${ratingIcon} **${stat.statName}**: ${stat.winCorrelation >= 0 ? '+' : ''}${(stat.winCorrelation * 100).toFixed(1)}% (투자 ${stat.avgInvestment.toFixed(1)}회)`);
       }
-      lines.push(`- 다양성 점수: ${(tb.diversityScore * 100).toFixed(0)}%`);
+      lines.push(`- 다양성 점수: ${(gs.diversityScore * 100).toFixed(0)}%`);
       lines.push('');
     }
     lines.push('### 철학 분기 밸런스');
-    lines.push(`- **에토스**: 평균 레벨 ${tb.philosophyBalance.ethos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.ethos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.ethos.winCorrelation * 100).toFixed(1)}%`);
-    lines.push(`- **파토스**: 평균 레벨 ${tb.philosophyBalance.pathos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.pathos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.pathos.winCorrelation * 100).toFixed(1)}%`);
-    lines.push(`- **로고스**: 평균 레벨 ${tb.philosophyBalance.logos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.logos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.logos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push(`- **에토스**: 평균 레벨 ${gs.philosophyBalance.ethos.avgLevel.toFixed(1)}, 승률 영향 ${gs.philosophyBalance.ethos.winCorrelation >= 0 ? '+' : ''}${(gs.philosophyBalance.ethos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push(`- **파토스**: 평균 레벨 ${gs.philosophyBalance.pathos.avgLevel.toFixed(1)}, 승률 영향 ${gs.philosophyBalance.pathos.winCorrelation >= 0 ? '+' : ''}${(gs.philosophyBalance.pathos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push(`- **로고스**: 평균 레벨 ${gs.philosophyBalance.logos.avgLevel.toFixed(1)}, 승률 영향 ${gs.philosophyBalance.logos.winCorrelation >= 0 ? '+' : ''}${(gs.philosophyBalance.logos.winCorrelation * 100).toFixed(1)}%`);
     lines.push('');
 
-    if (tb.mustHaveStats.length > 0) {
+    if (gs.mustHaveStats.length > 0) {
       lines.push('### ⚠️ 필수 스탯 감지');
-      for (const stat of tb.mustHaveStats) {
+      for (const stat of gs.mustHaveStats) {
         lines.push(`- **${stat.statName}**: 기여도 차이 +${(stat.contributionGap * 100).toFixed(0)}%`);
       }
       lines.push('');
@@ -1475,16 +1561,16 @@ export class BalanceInsightAnalyzer {
     return lines.join('\n');
   }
 
-  // ==================== 특성/성장/승급 분석 ====================
+  // ==================== 카드 특성/성장/승급 분석 ====================
 
   /**
-   * 특성 밸런스 분석
+   * 성장 스탯 밸런스 분석 (에토스/파토스/로고스 시스템)
    */
-  analyzeTraitBalance(): TraitBalanceAnalysis {
+  analyzeGrowthStatBalance(): GrowthStatAnalysis {
     const { growthStats } = this.stats;
     const recommendations: BalanceRecommendation[] = [];
-    const statContributions: TraitBalanceAnalysis['statContributions'] = [];
-    const mustHaveStats: TraitBalanceAnalysis['mustHaveStats'] = [];
+    const statContributions: GrowthStatAnalysis['statContributions'] = [];
+    const mustHaveStats: GrowthStatAnalysis['mustHaveStats'] = [];
 
     // 스탯별 분석
     const allStats = Object.keys(growthStats.statInvestments);
@@ -1578,6 +1664,199 @@ export class BalanceInsightAnalyzer {
       statContributions: statContributions.sort((a, b) => b.winCorrelation - a.winCorrelation),
       philosophyBalance,
       mustHaveStats,
+      diversityScore,
+      recommendations,
+    };
+  }
+
+  /**
+   * 카드 특성(Trait) 밸런스 분석
+   */
+  analyzeCardTraits(): CardTraitAnalysis {
+    const { cardDeepStats, cardContributionStats, cardPickStats, cardStats } = this.stats;
+    const recommendations: BalanceRecommendation[] = [];
+
+    // 특성별 카드 그룹화
+    const traitCardMap: Map<string, {
+      cardId: string;
+      cardName: string;
+      pickRate: number;
+      winRate: number;
+      contribution: number;
+      playsPerBattle: number;
+    }[]> = new Map();
+
+    // 특성 이름 매핑 (한글)
+    const traitNames: Record<string, string> = {
+      advance: '전진',
+      knockback: '밀어내기',
+      crush: '분쇄',
+      chain: '연쇄',
+      cross: '교차',
+      repeat: '반복',
+      warmup: '몸풀기',
+      exhaust: '탈진',
+      vanish: '소멸',
+      stubborn: '고집',
+      last: '최후',
+      robber: '강탈',
+      ruin: '파탄',
+      oblivion: '망각',
+      outcast: '이단',
+      general: '장군',
+      followup: '추격',
+      finisher: '마무리',
+      multiTarget: '다중대상',
+      stun: '기절',
+      strongbone: '강골',
+      weakbone: '약골',
+      destroyer: '파괴자',
+      slaughter: '학살',
+      pinnacle: '절정',
+      cooperation: '협동',
+      swift: '신속',
+      slow: '느림',
+      mastery: '숙련',
+      boredom: '권태',
+      escape: '탈출',
+      double_edge: '양날',
+      training: '훈련',
+      leisure: '여유',
+      strain: '무리',
+    };
+
+    // 카드 데이터에서 특성 추출 (cardStats에서 traits 정보 확인)
+    for (const [cardId, deepStats] of cardDeepStats) {
+      const cardData = cardStats.get(cardId);
+      const pickRate = cardPickStats.pickRate[cardId] || 0;
+      const contribution = cardContributionStats.contribution[cardId] || 0;
+
+      // cardStats에서 특성 정보 추출 시도
+      // 특성 정보가 없으면 specialTriggers에서 추론
+      const traits: string[] = [];
+      if (cardData?.specialTriggers) {
+        for (const trigger of Object.keys(cardData.specialTriggers)) {
+          if (traitNames[trigger]) {
+            traits.push(trigger);
+          }
+        }
+      }
+
+      // 특성별로 분류
+      for (const trait of traits) {
+        if (!traitCardMap.has(trait)) {
+          traitCardMap.set(trait, []);
+        }
+        traitCardMap.get(trait)!.push({
+          cardId,
+          cardName: deepStats.cardName,
+          pickRate,
+          winRate: deepStats.winRateWith,
+          contribution,
+          playsPerBattle: deepStats.avgPlaysPerBattle,
+        });
+      }
+    }
+
+    // 특성별 통계 계산
+    const traitStats: CardTraitAnalysis['traitStats'] = [];
+    for (const [traitId, cards] of traitCardMap) {
+      if (cards.length === 0) continue;
+
+      const avgPickRate = cards.reduce((sum, c) => sum + c.pickRate, 0) / cards.length;
+      const avgWinRate = cards.reduce((sum, c) => sum + c.winRate, 0) / cards.length;
+      const avgContribution = cards.reduce((sum, c) => sum + c.contribution, 0) / cards.length;
+      const avgPlaysPerBattle = cards.reduce((sum, c) => sum + c.playsPerBattle, 0) / cards.length;
+
+      // 평가
+      let rating: 'overpowered' | 'balanced' | 'underpowered' | 'unused' = 'balanced';
+      if (avgContribution > 0.15) {
+        rating = 'overpowered';
+      } else if (avgContribution < -0.1) {
+        rating = 'underpowered';
+      } else if (avgPickRate < 0.1) {
+        rating = 'unused';
+      }
+
+      traitStats.push({
+        traitId,
+        traitName: traitNames[traitId] || traitId,
+        cardCount: cards.length,
+        avgPickRate,
+        avgWinRate,
+        avgContribution,
+        avgPlaysPerBattle,
+        rating,
+      });
+    }
+
+    // 정렬 (기여도 순)
+    traitStats.sort((a, b) => b.avgContribution - a.avgContribution);
+
+    // 과잉 강화 특성
+    const overpoweredTraits = traitStats
+      .filter(t => t.rating === 'overpowered')
+      .map(t => ({
+        traitId: t.traitId,
+        traitName: t.traitName,
+        avgContribution: t.avgContribution,
+        suggestion: `${t.traitName} 특성 효과 20-30% 약화 또는 비용 증가 고려`,
+      }));
+
+    // 약한 특성
+    const underpoweredTraits = traitStats
+      .filter(t => t.rating === 'underpowered')
+      .map(t => ({
+        traitId: t.traitId,
+        traitName: t.traitName,
+        avgContribution: t.avgContribution,
+        suggestion: `${t.traitName} 특성 효과 강화 또는 추가 시너지 부여 고려`,
+      }));
+
+    // 권장사항 생성
+    for (const op of overpoweredTraits) {
+      recommendations.push({
+        targetId: op.traitId,
+        targetName: op.traitName,
+        targetType: 'card',
+        priority: op.avgContribution > 0.25 ? 'critical' : 'warning',
+        issueType: 'overpowered_trait',
+        issue: `${op.traitName} 특성 카드들의 평균 기여도 +${(op.avgContribution * 100).toFixed(0)}%`,
+        actionType: 'nerf',
+        suggestion: op.suggestion,
+        metrics: { avgContribution: `+${(op.avgContribution * 100).toFixed(1)}%` },
+        confidence: 0.7,
+      });
+    }
+
+    for (const up of underpoweredTraits) {
+      recommendations.push({
+        targetId: up.traitId,
+        targetName: up.traitName,
+        targetType: 'card',
+        priority: 'watch',
+        issueType: 'underpowered_trait',
+        issue: `${up.traitName} 특성 카드들의 평균 기여도 ${(up.avgContribution * 100).toFixed(0)}%`,
+        actionType: 'buff',
+        suggestion: up.suggestion,
+        metrics: { avgContribution: `${(up.avgContribution * 100).toFixed(1)}%` },
+        confidence: 0.6,
+      });
+    }
+
+    // 특성 시너지 분석 (간단히)
+    const traitSynergies: CardTraitAnalysis['traitSynergies'] = [];
+    // TODO: 더 정교한 시너지 분석 추가 가능
+
+    // 다양성 점수
+    const traitUsage = traitStats.map(t => t.cardCount);
+    const diversityScore = 1 - this.calculateGini(traitUsage);
+
+    return {
+      traitStats,
+      traitSynergies,
+      overpoweredTraits,
+      underpoweredTraits,
       diversityScore,
       recommendations,
     };

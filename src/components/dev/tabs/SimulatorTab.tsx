@@ -2100,13 +2100,63 @@ const SimulatorTab = memo(function SimulatorTab() {
                         )}
                       </div>
 
-                      {/* 특성(Trait) 밸런스 */}
-                      <h5 style={{ margin: '16px 0 8px 0', color: '#ec4899' }}>🧬 특성 밸런스</h5>
+                      {/* 카드 특성(Trait) 분석 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#a855f7' }}>🎴 카드 특성 밸런스</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        {/* 특성별 통계 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>특성별 승률 기여도</div>
+                          {report.cardTraitAnalysis.traitStats.slice(0, 6).map((trait, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{trait.traitName} ({trait.cardCount}장)</span>
+                              <span style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                color: trait.rating === 'overpowered' ? '#ef4444' :
+                                       trait.rating === 'balanced' ? '#22c55e' :
+                                       trait.rating === 'underpowered' ? '#f59e0b' : '#64748b'
+                              }}>
+                                {trait.avgContribution >= 0 ? '+' : ''}{(trait.avgContribution * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          ))}
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
+                            특성 다양성: {(report.cardTraitAnalysis.diversityScore * 100).toFixed(0)}%
+                          </div>
+                        </div>
+
+                        {/* 특성 밸런스 경고 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>특성 밸런스 이슈</div>
+                          {report.cardTraitAnalysis.overpoweredTraits.length > 0 && (
+                            <div style={{ marginBottom: '8px' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 'bold' }}>🔴 과잉 강화</div>
+                              {report.cardTraitAnalysis.overpoweredTraits.slice(0, 3).map((t, i) => (
+                                <div key={i} style={{ fontSize: '0.75rem', color: '#f87171' }}>{t.traitName}: +{(t.avgContribution * 100).toFixed(0)}%</div>
+                              ))}
+                            </div>
+                          )}
+                          {report.cardTraitAnalysis.underpoweredTraits.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 'bold' }}>🟡 약한 특성</div>
+                              {report.cardTraitAnalysis.underpoweredTraits.slice(0, 3).map((t, i) => (
+                                <div key={i} style={{ fontSize: '0.75rem', color: '#fbbf24' }}>{t.traitName}: {(t.avgContribution * 100).toFixed(0)}%</div>
+                              ))}
+                            </div>
+                          )}
+                          {report.cardTraitAnalysis.overpoweredTraits.length === 0 && report.cardTraitAnalysis.underpoweredTraits.length === 0 && (
+                            <div style={{ fontSize: '0.8rem', color: '#22c55e' }}>✓ 특성 밸런스 양호</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 성장 스탯 밸런스 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#ec4899' }}>🧬 성장 스탯 밸런스</h5>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                         {/* 스탯별 기여도 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>스탯별 승률 기여도</div>
-                          {report.traitBalance.statContributions.slice(0, 6).map((stat, i) => (
+                          {report.growthStatAnalysis.statContributions.slice(0, 6).map((stat, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                               <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{stat.statName}</span>
                               <span style={{
@@ -2121,7 +2171,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                             </div>
                           ))}
                           <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
-                            다양성 점수: {(report.traitBalance.diversityScore * 100).toFixed(0)}%
+                            다양성 점수: {(report.growthStatAnalysis.diversityScore * 100).toFixed(0)}%
                           </div>
                         </div>
 
@@ -2129,9 +2179,9 @@ const SimulatorTab = memo(function SimulatorTab() {
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>철학 분기 밸런스</div>
                           {[
-                            { name: '에토스', data: report.traitBalance.philosophyBalance.ethos, color: '#3b82f6' },
-                            { name: '파토스', data: report.traitBalance.philosophyBalance.pathos, color: '#ef4444' },
-                            { name: '로고스', data: report.traitBalance.philosophyBalance.logos, color: '#22c55e' },
+                            { name: '에토스', data: report.growthStatAnalysis.philosophyBalance.ethos, color: '#3b82f6' },
+                            { name: '파토스', data: report.growthStatAnalysis.philosophyBalance.pathos, color: '#ef4444' },
+                            { name: '로고스', data: report.growthStatAnalysis.philosophyBalance.logos, color: '#22c55e' },
                           ].map((phil, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.8rem', color: phil.color, fontWeight: 'bold' }}>{phil.name}</span>
@@ -2147,10 +2197,10 @@ const SimulatorTab = memo(function SimulatorTab() {
                       </div>
 
                       {/* 필수 스탯 경고 */}
-                      {report.traitBalance.mustHaveStats.length > 0 && (
+                      {report.growthStatAnalysis.mustHaveStats.length > 0 && (
                         <div style={{ padding: '10px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #ec4899' }}>
                           <div style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 'bold', marginBottom: '4px' }}>⚠️ 필수 스탯 감지</div>
-                          {report.traitBalance.mustHaveStats.map((stat, i) => (
+                          {report.growthStatAnalysis.mustHaveStats.map((stat, i) => (
                             <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
                               {stat.statName}: 기여도 +{(stat.contributionGap * 100).toFixed(0)}% (보유 {(stat.winRateWith * 100).toFixed(0)}% vs 미보유 {(stat.winRateWithout * 100).toFixed(0)}%)
                             </div>
