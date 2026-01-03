@@ -423,6 +423,40 @@ export class StatsCollector {
       }
     }
 
+    // 아이템 효과 통계 집계 (배틀 엔진에서 받은 itemEffectStats를 itemEffects에 병합)
+    if (result.itemEffectStats) {
+      for (const [itemId, effectRecord] of Object.entries(result.itemEffectStats)) {
+        // itemEffects 초기화
+        if (!this.itemEffects[itemId]) {
+          this.itemEffects[itemId] = {
+            timesUsed: 0,
+            totalHpHealed: 0,
+            totalDamage: 0,
+            totalGoldGained: 0,
+            specialEffects: {},
+          };
+        }
+        const record = this.itemEffects[itemId];
+        record.timesUsed += effectRecord.count;
+        record.totalDamage += effectRecord.totalDamage;
+        record.totalHpHealed += effectRecord.totalHealing;
+
+        // 추가 효과들을 specialEffects에 기록
+        if (effectRecord.totalBlock > 0) {
+          record.specialEffects['block'] = (record.specialEffects['block'] || 0) + effectRecord.totalBlock;
+        }
+        if (effectRecord.totalEther > 0) {
+          record.specialEffects['ether'] = (record.specialEffects['ether'] || 0) + effectRecord.totalEther;
+        }
+        // otherEffects도 병합
+        if (effectRecord.otherEffects) {
+          for (const [key, value] of Object.entries(effectRecord.otherEffects)) {
+            record.specialEffects[key] = (record.specialEffects[key] || 0) + value;
+          }
+        }
+      }
+    }
+
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
   }
