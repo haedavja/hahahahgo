@@ -58,6 +58,13 @@ export interface SpecialPenalties {
   mapRisk?: number;         // 맵 위험도 증가
 }
 
+/** 전투 수정자 타입 */
+export interface CombatModifier {
+  enemyHp?: number;         // 적 HP 배율 (0.5 = 절반)
+  playerDamage?: number;    // 플레이어 피해 배율
+  enemyDamage?: number;     // 적 피해 배율
+}
+
 export interface EventChoice {
   id: string;
   label: string;
@@ -75,8 +82,15 @@ export interface EventChoice {
   failurePenalties?: Record<string, number> & SpecialPenalties;
   // 전투 트리거
   combatTrigger?: boolean;
-  combatRewards?: Record<string, number>;
+  combatRewards?: Record<string, number> & { hpRestore?: string };
   combatId?: string;
+  combatModifier?: CombatModifier;
+  // 시간제 전투
+  timedCombat?: boolean;
+  combatSuccessRewards?: Record<string, number> & SpecialRewards;
+  combatFailurePenalties?: Record<string, number> & SpecialPenalties;
+  // 즉사
+  instantKill?: boolean;
   // 카드 액션
   cardAction?: CardAction;
   // 스탯 체크 (성공/실패 분기)
@@ -147,6 +161,8 @@ export interface EventOutcome {
   deckReset?: boolean;      // 덱 초기화 여부
   allCardsUpgraded?: boolean; // 전체 카드 승급 여부
   combatTriggered?: boolean;  // 전투 발생 여부
+  timedCombatResult?: { triggered: boolean; success: boolean }; // 시간제 전투 결과
+  hpRestored?: boolean;       // 체력 완전 회복 여부
   probabilityRoll?: { rolled: boolean; success: boolean }; // 확률 결과
   statCheckResult?: { checked: boolean; success: boolean; stat: string; required: number }; // 스탯 체크 결과
 }
@@ -330,6 +346,8 @@ export class EventSimulator {
     let deckReset = false;
     let allCardsUpgraded = false;
     let combatTriggered = false;
+    let lastTimedCombatResult: { triggered: boolean; success: boolean } | undefined;
+    let hpRestored = false;
     let lastProbabilityRoll: { rolled: boolean; success: boolean } | undefined;
     let lastStatCheckResult: { checked: boolean; success: boolean; stat: string; required: number } | undefined;
     let maxIterations = 10; // 무한루프 방지
@@ -376,6 +394,8 @@ export class EventSimulator {
             onDeckReset: () => deckReset = true,
             onAllCardsUpgraded: () => allCardsUpgraded = true,
             onCombatTriggered: () => combatTriggered = true,
+            onTimedCombatResult: (result) => lastTimedCombatResult = result,
+            onHpRestored: () => hpRestored = true,
             onProbabilityRoll: (roll) => lastProbabilityRoll = roll,
             onStatCheckResult: (result) => lastStatCheckResult = result,
           });
@@ -411,6 +431,8 @@ export class EventSimulator {
         onDeckReset: () => deckReset = true,
         onAllCardsUpgraded: () => allCardsUpgraded = true,
         onCombatTriggered: () => combatTriggered = true,
+        onTimedCombatResult: (result) => lastTimedCombatResult = result,
+        onHpRestored: () => hpRestored = true,
         onProbabilityRoll: (roll) => lastProbabilityRoll = roll,
         onStatCheckResult: (result) => lastStatCheckResult = result,
       });
@@ -444,6 +466,8 @@ export class EventSimulator {
       deckReset: deckReset || undefined,
       allCardsUpgraded: allCardsUpgraded || undefined,
       combatTriggered: combatTriggered || undefined,
+      timedCombatResult: lastTimedCombatResult,
+      hpRestored: hpRestored || undefined,
       probabilityRoll: lastProbabilityRoll,
       statCheckResult: lastStatCheckResult,
     };
@@ -463,6 +487,8 @@ export class EventSimulator {
       onDeckReset: () => void;
       onAllCardsUpgraded: () => void;
       onCombatTriggered: () => void;
+      onTimedCombatResult: (result: { triggered: boolean; success: boolean }) => void;
+      onHpRestored: () => void;
       onProbabilityRoll: (roll: { rolled: boolean; success: boolean }) => void;
       onStatCheckResult: (result: { checked: boolean; success: boolean; stat: string; required: number }) => void;
     }
@@ -490,6 +516,12 @@ export class EventSimulator {
     }
     if (effects.combatTriggered) {
       handlers.onCombatTriggered();
+    }
+    if (effects.timedCombatResult) {
+      handlers.onTimedCombatResult(effects.timedCombatResult);
+    }
+    if (effects.hpRestored) {
+      handlers.onHpRestored();
     }
     if (effects.probabilityRoll) {
       handlers.onProbabilityRoll(effects.probabilityRoll);
@@ -521,6 +553,8 @@ export class EventSimulator {
     deckReset?: boolean;
     allCardsUpgraded?: boolean;
     combatTriggered?: boolean;
+    timedCombatResult?: { triggered: boolean; success: boolean };
+    hpRestored?: boolean;
     probabilityRoll?: { rolled: boolean; success: boolean };
     relicsGained?: string[];
     cardsGained?: string[];
@@ -599,14 +633,59 @@ export class EventSimulator {
       };
     }
 
-    // 3. 전투 트리거 처리
+    // 3. 즉사 처리
+    if (choice.instantKill) {
+      // 즉사는 전투 없이 즉시 승리 (보상 적용)
+      specialEffects.combatTriggered = true;
+      if (choice.combatRewards) {
+        this.applyCombatRewards(choice.combatRewards, finalResources, resourceChanges, specialEffects);
+      }
+      return {
+        resourceChanges,
+        finalResources,
+        description: choice.resultDescription || '',
+        specialEffects,
+      };
+    }
+
+    // 4. 시간제 전투 처리
+    if (choice.timedCombat) {
+      specialEffects.combatTriggered = true;
+      // 시간제 전투는 일반 전투보다 어려움 (기본 60% 성공률)
+      const timedCombatRate = (config?.combatWinRate ?? 0.75) * 0.8;
+      const success = getGlobalRandom().chance(timedCombatRate);
+      specialEffects.timedCombatResult = { triggered: true, success };
+
+      if (success && choice.combatSuccessRewards) {
+        this.applyRewards(choice.combatSuccessRewards, finalResources, resourceChanges, specialEffects);
+      } else if (!success && choice.combatFailurePenalties) {
+        this.applyPenalties(choice.combatFailurePenalties, finalResources, resourceChanges, specialEffects, config);
+      }
+
+      return {
+        resourceChanges,
+        finalResources,
+        description: choice.resultDescription || '',
+        specialEffects,
+      };
+    }
+
+    // 5. 일반 전투 트리거 처리
     if (choice.combatTrigger) {
       specialEffects.combatTriggered = true;
-      const combatWinRate = config?.combatWinRate ?? 0.75;
+      let combatWinRate = config?.combatWinRate ?? 0.75;
+
+      // combatModifier 적용 (적 HP가 낮으면 승률 증가)
+      if (choice.combatModifier?.enemyHp) {
+        // 적 HP 50%면 승률 25% 증가
+        const hpModifier = 1 - choice.combatModifier.enemyHp;
+        combatWinRate = Math.min(1, combatWinRate + (hpModifier * 0.5));
+      }
+
       const won = getGlobalRandom().chance(combatWinRate);
 
       if (won && choice.combatRewards) {
-        this.applyRewards(choice.combatRewards as Record<string, number>, finalResources, resourceChanges, specialEffects);
+        this.applyCombatRewards(choice.combatRewards, finalResources, resourceChanges, specialEffects);
       }
 
       return {
@@ -762,6 +841,36 @@ export class EventSimulator {
         resourceChanges.maxHp = (resourceChanges.maxHp || 0) + value;
         finalResources.maxHp += value;
       } else if (!EventSimulator.SPECIAL_KEYS.has(key) && typeof value === 'number') {
+        resourceChanges[key] = (resourceChanges[key] || 0) + value;
+        const currentValue = getResourceValue(finalResources, key);
+        setResourceValue(finalResources, key, currentValue + value);
+      }
+    }
+  }
+
+  /**
+   * 전투 보상 적용 헬퍼 (hpRestore 지원)
+   */
+  private applyCombatRewards(
+    rewards: Record<string, unknown> & { hpRestore?: string },
+    finalResources: PlayerResources,
+    resourceChanges: Record<string, number>,
+    specialEffects: typeof EventSimulator.SpecialEffectsType
+  ): void {
+    for (const [key, value] of Object.entries(rewards)) {
+      if (key === 'hpRestore' && value === 'full') {
+        // 체력 완전 회복
+        const healAmount = finalResources.maxHp - finalResources.hp;
+        resourceChanges.hp = (resourceChanges.hp || 0) + healAmount;
+        finalResources.hp = finalResources.maxHp;
+        specialEffects.hpRestored = true;
+      } else if (key === 'relic' || key === 'relic2') {
+        if (!specialEffects.relicsGained) specialEffects.relicsGained = [];
+        specialEffects.relicsGained.push(String(value));
+      } else if (key === 'card' || key === 'card2') {
+        if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+        specialEffects.cardsGained.push(String(value));
+      } else if (!EventSimulator.SPECIAL_KEYS.has(key) && key !== 'hpRestore' && typeof value === 'number') {
         resourceChanges[key] = (resourceChanges[key] || 0) + value;
         const currentValue = getResourceValue(finalResources, key);
         setResourceValue(finalResources, key, currentValue + value);
