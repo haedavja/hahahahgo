@@ -669,7 +669,7 @@ type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card
 
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
-  const [difficulty, setDifficulty] = useState(3); // 기본 난이도 3 (도달층 분산 확보)
+  const [difficulty, setDifficulty] = useState(1); // 기본 난이도 1 (실제 게임과 동일)
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStrategy, setCurrentStrategy] = useState<StrategyType | null>(null);
@@ -799,8 +799,8 @@ const SimulatorTab = memo(function SimulatorTab() {
           </div>
           <div>
             <label style={STYLES.label}>난이도</label>
-            <input type="number" min={1} max={5} value={difficulty}
-              onChange={e => setDifficulty(Math.min(5, Math.max(1, parseInt(e.target.value) || 1)))}
+            <input type="number" min={1} max={20} value={difficulty}
+              onChange={e => setDifficulty(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
               style={STYLES.input} disabled={isRunning} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
