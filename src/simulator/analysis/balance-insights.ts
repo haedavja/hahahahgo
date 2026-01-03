@@ -1799,7 +1799,7 @@ export class BalanceInsightAnalyzer {
 
     for (const card of cardUpgradeEfficiency) {
       const contribution = cardContributionStats.contribution[card.cardId] || 0;
-      const expectedUpgrades = contribution > avgContribution
+      const expectedUpgrades = contribution > avgContribution && avgContribution > 0
         ? avgUpgradeCount * (contribution / avgContribution)
         : avgUpgradeCount * 0.5;
 
