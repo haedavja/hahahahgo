@@ -883,7 +883,8 @@ export class RunSimulator {
             player.relics,
             enemy,
             config.anomalyId, // 이변 ID 전달
-            cardEnhancements // 카드 강화 레벨 전달
+            cardEnhancements, // 카드 강화 레벨 전달
+            player.items // 아이템 전달
           );
         } else {
           // 폴백: 확률 기반 시뮬레이션
@@ -1729,7 +1730,8 @@ export class RunSimulator {
           dungeonPlayerState.relics,
           enemy,
           config.anomalyId,
-          cardEnhancements
+          cardEnhancements,
+          dungeonPlayerState.items // 아이템 전달
         );
 
         const won = battleResult.winner === 'player';
