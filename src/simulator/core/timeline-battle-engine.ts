@@ -24,6 +24,7 @@ import type {
   BattleEvent,
   BattleResult,
   TokenState,
+  EffectValueRecord,
 } from './game-types';
 import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
 import {
@@ -192,6 +193,41 @@ export class TimelineBattleEngine {
   // ==================== 토큰 추적 헬퍼 ====================
 
   /**
+   * 효과값 기록 헬퍼
+   */
+  private recordEffectValue(
+    effectsMap: Record<string, EffectValueRecord> | undefined,
+    id: string,
+    effect: { damage?: number; block?: number; heal?: number; ether?: number; other?: Record<string, number> }
+  ): void {
+    if (!effectsMap) return;
+
+    if (!effectsMap[id]) {
+      effectsMap[id] = {
+        count: 0,
+        totalDamage: 0,
+        totalBlock: 0,
+        totalHealing: 0,
+        totalEther: 0,
+        otherEffects: {},
+      };
+    }
+
+    const record = effectsMap[id];
+    record.count++;
+    record.totalDamage += effect.damage || 0;
+    record.totalBlock += effect.block || 0;
+    record.totalHealing += effect.heal || 0;
+    record.totalEther += effect.ether || 0;
+
+    if (effect.other) {
+      for (const [key, value] of Object.entries(effect.other)) {
+        record.otherEffects[key] = (record.otherEffects[key] || 0) + value;
+      }
+    }
+  }
+
+  /**
    * 토큰 추가 및 통계 추적
    * @param state 전투 상태 (tokenUsage 업데이트용)
    * @param entity 토큰을 받을 엔티티 (player 또는 enemy)
@@ -329,6 +365,9 @@ export class TimelineBattleEngine {
       enemyDamageDealt: 0,
       cardUsage: {},
       tokenUsage: {},
+      tokenEffects: {},
+      itemEffects: {},
+      relicEffects: {},
       comboUsageCount: {},
     };
 
@@ -1855,6 +1894,42 @@ export class TimelineBattleEngine {
         `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${totalHits > 1 ? ` (${hit + 1}/${totalHits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
       );
 
+      // 토큰 효과 추적 (첫 타격에서만 기록)
+      if (hit === 0 && state.tokenEffects) {
+        // 공격 토큰 효과 기록
+        const baseDamage = card.damage || 0;
+        const bonusDamage = actualDamage - baseDamage;
+        if (bonusDamage > 0) {
+          // 힘 토큰
+          if (attackMods.damageBonus > 0) {
+            this.recordEffectValue(state.tokenEffects, 'strength', { damage: attackMods.damageBonus });
+          }
+          // 공세/공격 토큰 (배율 기반 보너스)
+          const multBonus = baseDamage * (attackMods.attackMultiplier - 1);
+          if (multBonus > 0) {
+            if (hasToken(attackerState.tokens, 'offensePlus')) {
+              this.recordEffectValue(state.tokenEffects, 'offensePlus', { damage: multBonus });
+            } else if (hasToken(attackerState.tokens, 'offense')) {
+              this.recordEffectValue(state.tokenEffects, 'offense', { damage: multBonus });
+            }
+            if (hasToken(attackerState.tokens, 'attackPlus')) {
+              this.recordEffectValue(state.tokenEffects, 'attackPlus', { damage: multBonus });
+            } else if (hasToken(attackerState.tokens, 'attack')) {
+              this.recordEffectValue(state.tokenEffects, 'attack', { damage: multBonus });
+            }
+          }
+        }
+        // 회피 토큰
+        if (defenseMods.dodgeChance > 0) {
+          if (hasToken(defenderState.tokens, 'blur')) {
+            this.recordEffectValue(state.tokenEffects, 'blur', { other: { dodgeChance: defenseMods.dodgeChance } });
+          }
+          if (hasToken(defenderState.tokens, 'evasion')) {
+            this.recordEffectValue(state.tokenEffects, 'evasion', { other: { dodgeChance: defenseMods.dodgeChance } });
+          }
+        }
+      }
+
       // 토큰 소모
       // 공격 토큰은 첫 타격에만 소모 (멀티히트 시 한 번만)
       // 피해 수신 토큰은 매 타격마다 소모 (회피 등)
@@ -1965,6 +2040,33 @@ export class TimelineBattleEngine {
 
     // 방어력 적용
     actorState.block += block;
+
+    // 토큰 효과 추적
+    if (state.tokenEffects) {
+      const baseBlock = card.block || 0;
+      const bonusBlock = block - baseBlock;
+      if (bonusBlock > 0) {
+        // 힘 토큰 (방어에도 보너스)
+        const strengthBonus = getTokenStacks(actorState.tokens, 'strength');
+        if (strengthBonus > 0) {
+          this.recordEffectValue(state.tokenEffects, 'strength', { block: strengthBonus });
+        }
+        // 수세/방어 토큰 (배율 기반 보너스)
+        const multBonus = baseBlock * (defenseMods.defenseMultiplier - 1);
+        if (multBonus > 0) {
+          if (hasToken(actorState.tokens, 'guardPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'guardPlus', { block: multBonus });
+          } else if (hasToken(actorState.tokens, 'guard')) {
+            this.recordEffectValue(state.tokenEffects, 'guard', { block: multBonus });
+          }
+          if (hasToken(actorState.tokens, 'defensePlus')) {
+            this.recordEffectValue(state.tokenEffects, 'defensePlus', { block: multBonus });
+          } else if (hasToken(actorState.tokens, 'defense')) {
+            this.recordEffectValue(state.tokenEffects, 'defense', { block: multBonus });
+          }
+        }
+      }
+    }
 
     // 토큰 소모
     if (actor === 'player') {
@@ -2504,6 +2606,9 @@ export class TimelineBattleEngine {
       cardUsage: state.cardUsage || {},
       comboStats: state.comboUsageCount || {},
       tokenStats: state.tokenUsage || {},
+      tokenEffectStats: state.tokenEffects || {},
+      itemEffectStats: state.itemEffects || {},
+      relicEffectStats: state.relicEffects || {},
       timeline: state.timeline,
     };
   }

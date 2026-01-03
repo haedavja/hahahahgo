@@ -193,6 +193,7 @@ export class StatsCollector {
   private comboTypeBattles: Record<string, number> = {};
   private comboTypeEther: Record<string, number> = {};
   private tokenTypeUsage: Record<string, number> = {};
+  private tokenEffectTotals: Record<string, { count: number; totalValue: number }> = {};
 
   // 카드 픽률 통계 (Slay the Spire 스타일)
   private cardsOffered: Record<string, number> = {};
@@ -404,6 +405,21 @@ export class StatsCollector {
     if (result.tokenStats) {
       for (const [tokenId, count] of Object.entries(result.tokenStats)) {
         this.tokenTypeUsage[tokenId] = (this.tokenTypeUsage[tokenId] || 0) + count;
+      }
+    }
+
+    // 토큰 효과 통계 집계
+    if (result.tokenEffectStats) {
+      for (const [tokenId, effectRecord] of Object.entries(result.tokenEffectStats)) {
+        if (!this.tokenEffectTotals[tokenId]) {
+          this.tokenEffectTotals[tokenId] = { count: 0, totalValue: 0 };
+        }
+        const record = this.tokenEffectTotals[tokenId];
+        record.count += effectRecord.count;
+        // 총 효과값 = 피해 + 방어 + 회복 + 에테르
+        const totalEffect = effectRecord.totalDamage + effectRecord.totalBlock +
+                           effectRecord.totalHealing + effectRecord.totalEther;
+        record.totalValue += totalEffect;
       }
     }
 
@@ -2142,21 +2158,27 @@ export class StatsCollector {
     for (const [tokenId, count] of Object.entries(this.tokenTypeUsage)) {
       if (count === 0) continue;
 
+      // 토큰 효과 데이터 가져오기
+      const effectData = this.tokenEffectTotals[tokenId];
+      const effectCount = effectData?.count || 0;
+      const totalValue = effectData?.totalValue || 0;
+      const avgValuePerUse = effectCount > 0 ? totalValue / effectCount : 0;
+
       result.set(tokenId, {
         tokenId,
         tokenName: tokenId, // 토큰 라이브러리가 없으므로 ID 사용
         category: 'neutral',
         timesAcquired: count,
-        timesUsed: count,
-        usageRate: 1.0,
+        timesUsed: effectCount || count,
+        usageRate: effectCount > 0 ? effectCount / count : 1.0,
         timesExpired: 0,
         effectStats: {
-          totalDamage: 0,
+          totalDamage: totalValue, // 간소화: 총 효과값
           totalBlock: 0,
           totalHealing: 0,
           totalEtherGained: 0,
           specialEffects: {},
-          avgValuePerUse: 0,
+          avgValuePerUse,
         },
         contextStats: {
           byHpState: {

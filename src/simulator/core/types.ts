@@ -49,6 +49,16 @@ export interface SimEnemyState extends SimEntity {
 
 // ==================== 전투 결과 ====================
 
+/** 효과값 추적 (토큰/아이템/상징 등의 실제 효과 기록) */
+export interface EffectValueRecord {
+  count: number;
+  totalDamage: number;
+  totalBlock: number;
+  totalHealing: number;
+  totalEther: number;
+  otherEffects: Record<string, number>;
+}
+
 export interface BattleResult {
   winner: 'player' | 'enemy' | 'draw';
   turns: number;
@@ -61,6 +71,9 @@ export interface BattleResult {
   cardUsage: Record<string, number>;
   comboStats: Record<string, number>;
   tokenStats?: Record<string, number>;
+  tokenEffectStats?: Record<string, EffectValueRecord>;
+  itemEffectStats?: Record<string, EffectValueRecord>;
+  relicEffectStats?: Record<string, EffectValueRecord>;
   events?: unknown[];
   timeline?: unknown[];
   goldChange?: number;

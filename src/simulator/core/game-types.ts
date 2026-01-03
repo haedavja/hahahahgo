@@ -17,6 +17,22 @@ export interface AppliedToken {
   stacks?: number;
 }
 
+/** 효과값 추적 (토큰/아이템/상징 등의 실제 효과 기록) */
+export interface EffectValueRecord {
+  /** 사용/발동 횟수 */
+  count: number;
+  /** 총 피해 기여량 */
+  totalDamage: number;
+  /** 총 방어 기여량 */
+  totalBlock: number;
+  /** 총 회복량 */
+  totalHealing: number;
+  /** 총 에테르 획득량 */
+  totalEther: number;
+  /** 기타 효과 (키: 효과명, 값: 누적값) */
+  otherEffects: Record<string, number>;
+}
+
 export interface RequiredToken {
   id: string;
   stacks: number;
@@ -357,6 +373,9 @@ export interface GameBattleState {
   // 통계 추적
   cardUsage?: Record<string, number>;         // 카드별 사용 횟수
   tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
+  tokenEffects?: Record<string, EffectValueRecord>;  // 토큰별 효과값 추적
+  itemEffects?: Record<string, EffectValueRecord>;   // 아이템별 효과값 추적
+  relicEffects?: Record<string, EffectValueRecord>;  // 상징별 효과값 추적
   // 에테르 콤보 시스템
   comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
   currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
@@ -440,6 +459,9 @@ export interface BattleResult {
   cardUsage: Record<string, number>;
   comboStats: Record<string, number>;
   tokenStats: Record<string, number>;
+  tokenEffectStats?: Record<string, EffectValueRecord>;  // 토큰별 효과값
+  itemEffectStats?: Record<string, EffectValueRecord>;   // 아이템별 효과값
+  relicEffectStats?: Record<string, EffectValueRecord>;  // 상징별 효과값
   timeline: TimelineCard[];
   victory?: boolean;
   battleId?: string;
@@ -463,4 +485,10 @@ export interface SimulationSummary {
   avgEtherGained: number;
   cardEfficiency: Record<string, { uses: number; avgDamage: number }>;
   tokenUsage: Record<string, number>;
+  /** 토큰별 효과 통계 (사용 횟수, 평균 효과값) */
+  tokenEffectSummary?: Record<string, { count: number; avgEffect: number }>;
+  /** 아이템별 효과 통계 */
+  itemEffectSummary?: Record<string, { count: number; avgEffect: number }>;
+  /** 상징별 효과 통계 */
+  relicEffectSummary?: Record<string, { count: number; avgEffect: number }>;
 }
