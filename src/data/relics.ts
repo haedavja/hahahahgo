@@ -645,6 +645,192 @@ export const RELICS = {
     },
   },
 
+  // ==================== 이벤트 전용 상징 ====================
+  // 이벤트에서만 획득 가능한 특별한 상징들
+
+  bloodPactSeal: {
+    id: 'bloodPactSeal',
+    name: '피의 계약인',
+    emoji: '🩸',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: '피해를 입을 때마다 힘 2 획득. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_DAMAGE_TAKEN',
+      strength: 2,
+    },
+  },
+
+  soulForge: {
+    id: 'soulForge',
+    name: '영혼의 용광로',
+    emoji: '🔥',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ETHER],
+    description: '카드가 소멸될 때마다 에테르 100pt 획득. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_CARD_EXHAUST',
+      etherGain: 100,
+    },
+  },
+
+  soulFragment: {
+    id: 'soulFragment',
+    name: '영혼 파편',
+    emoji: '👻',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ENERGY, RELIC_TAGS.HP],
+    description: '최대 HP가 낮을수록 행동력 증가. HP 50% 이하시 +1, 25% 이하시 +2. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      conditionalEnergy: {
+        hpThreshold50: 1,
+        hpThreshold25: 2,
+      },
+    },
+  },
+
+  voidHeart: {
+    id: 'voidHeart',
+    name: '공허의 심장',
+    emoji: '🖤',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH, RELIC_TAGS.DEFENSE],
+    description: 'HP가 30% 이하일 때 피해량 50% 증가, 받는 피해 30% 감소. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      lowHpBonus: {
+        threshold: 0.3,
+        damageBonus: 0.5,
+        damageReduction: 0.3,
+      },
+    },
+  },
+
+  forbiddenPower: {
+    id: 'forbiddenPower',
+    name: '금단의 힘',
+    emoji: '⚡',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: '힘 +3. 매 전투마다 HP 5 손실. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      strength: 3,
+      combatDamage: 5,
+    },
+  },
+
+  forbiddenWisdom: {
+    id: 'forbiddenWisdom',
+    name: '금단의 지혜',
+    emoji: '📖',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.DRAW],
+    description: '매 턴 카드 1장 추가 드로우. 덱 크기 -3. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      drawPerTurn: 1,
+      deckSizePenalty: 3,
+    },
+  },
+
+  deathsEmbrace: {
+    id: 'deathsEmbrace',
+    name: '죽음의 포옹',
+    emoji: '💀',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.HP, RELIC_TAGS.STRENGTH],
+    description: 'HP 1로 전투 시작. 대신 힘 +5, 첫 턴 무적. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_COMBAT_START',
+      setHp: 1,
+      strength: 5,
+      grantInvincible: 1,
+    },
+  },
+
+  phoenixFeather: {
+    id: 'phoenixFeather',
+    name: '불사조의 깃털',
+    emoji: '🪶',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.HP, RELIC_TAGS.HEAL],
+    description: '치명상 시 HP 50%로 부활 (1회). (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_DEATH',
+      revive: true,
+      reviveHpPercent: 0.5,
+      usesPerRun: 1,
+    },
+  },
+
+  phoenixAsh: {
+    id: 'phoenixAsh',
+    name: '불사조의 재',
+    emoji: '🔥',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: 'HP가 낮을수록 피해량 증가. HP 1%당 피해량 +1%. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      lowHpDamageScaling: true,
+    },
+  },
+
+  abyssalCore: {
+    id: 'abyssalCore',
+    name: '심연의 핵',
+    emoji: '🌀',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ETHER, RELIC_TAGS.STRENGTH],
+    description: '콤보 배수 +5. 매 턴 HP 3 손실. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      comboMultiplierBonus: 5,
+      hpLossPerTurn: 3,
+    },
+  },
+
+  timeloop: {
+    id: 'timeloop',
+    name: '시간의 고리',
+    emoji: '⏰',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '전투 시작 시 타임라인 2칸 먼저 시작. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_COMBAT_START',
+      timelineAdvance: 2,
+    },
+  },
+
+  paradoxShard: {
+    id: 'paradoxShard',
+    name: '역설의 파편',
+    emoji: '💎',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ENERGY],
+    description: '첫 턴 행동력 +2. 마지막 턴 행동력 +2. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      firstTurnEnergy: 2,
+      lastTurnEnergy: 2,
+    },
+  },
+
   // ==================== 전설 등급 ====================
   // 추가예정
 };

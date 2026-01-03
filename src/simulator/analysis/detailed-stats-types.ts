@@ -1168,6 +1168,13 @@ export interface DetailedStats {
   growthDecisionAnalysis: GrowthDecisionAnalysis;
   /** 카드 선택 이유 분석 */
   cardSelectionReasoningAnalysis: CardSelectionReasoningAnalysis;
+
+  // ==================== 게임 요소 영향도 분석 ====================
+
+  /** 게임 요소별 영향도 분석 (카드/상징/아이템/성장/승급/이벤트/상점/던전/전투 비교) */
+  elementImpactAnalysis: ElementImpactAnalysis;
+  /** 노드 타입별 가치 비교 */
+  nodeTypeValueComparison: Map<string, NodeTypeValueComparison>;
 }
 
 // ==================== 이벤트 영향력 분석 ====================
@@ -1641,4 +1648,146 @@ export interface CardPickGuideEntry {
   shouldSkip: boolean;
   /** 스킵 이유 */
   skipReason?: string;
+}
+
+// ==================== 게임 요소별 영향도 분석 ====================
+
+/** 게임 요소 카테고리 */
+export type GameElementCategory =
+  | 'cards'      // 카드 (덱 빌딩)
+  | 'relics'     // 상징
+  | 'items'      // 아이템
+  | 'growth'     // 성장 (특성/에토스)
+  | 'upgrades'   // 승급
+  | 'events'     // 이벤트
+  | 'shops'      // 상점
+  | 'dungeons'   // 던전
+  | 'combats';   // 전투
+
+/** 게임 요소별 영향도 분석 */
+export interface ElementImpactAnalysis {
+  /** 각 요소 카테고리별 통계 */
+  categories: Map<GameElementCategory, ElementCategoryStats>;
+  /** 요소 간 상대적 가치 비교 */
+  comparativeValue: ElementComparativeValue;
+  /** 전략별 요소 활용도 */
+  strategyUsage: Map<string, StrategyElementUsage>;
+  /** 요소별 최적화 제안 */
+  optimizationSuggestions: ElementOptimizationSuggestion[];
+}
+
+/** 개별 요소 카테고리 통계 */
+export interface ElementCategoryStats {
+  /** 카테고리 ID */
+  category: GameElementCategory;
+  /** 카테고리명 (한글) */
+  categoryName: string;
+  /** 총 획득/발생 횟수 */
+  totalOccurrences: number;
+  /** 런당 평균 획득/발생 */
+  avgPerRun: number;
+  /** 이 요소 사용 시 승률 */
+  winRateWithElement: number;
+  /** 이 요소 미사용 시 승률 */
+  winRateWithoutElement: number;
+  /** 승률 기여도 (차이) */
+  winRateContribution: number;
+  /** 평균 층 도달 기여도 */
+  avgFloorContribution: number;
+  /** 골드 효율 (투자 대비 효과) */
+  goldEfficiency: number;
+  /** HP 영향 (양수: 회복, 음수: 손실) */
+  avgHpImpact: number;
+  /** 전투 턴 감소 기여도 */
+  avgTurnReduction: number;
+  /** 상위 기여 항목 TOP 5 */
+  topContributors: ElementContributor[];
+  /** 하위 기여 항목 BOTTOM 5 */
+  bottomContributors: ElementContributor[];
+}
+
+/** 개별 요소 기여도 */
+export interface ElementContributor {
+  /** 요소 ID */
+  id: string;
+  /** 요소명 */
+  name: string;
+  /** 획득/사용 횟수 */
+  occurrences: number;
+  /** 승률 기여도 */
+  winRateContribution: number;
+  /** 평균 효과 */
+  avgEffect: number;
+}
+
+/** 요소 간 상대적 가치 비교 */
+export interface ElementComparativeValue {
+  /** 전투 1회 대비 가치 (1.0 = 전투 1회와 동등) */
+  valuePerCombat: Record<GameElementCategory, number>;
+  /** 골드 100당 가치 */
+  valuePer100Gold: Record<GameElementCategory, number>;
+  /** HP 10당 가치 */
+  valuePer10Hp: Record<GameElementCategory, number>;
+  /** 요소별 ROI (투자 대비 수익) */
+  roi: Record<GameElementCategory, number>;
+  /** 권장 투자 우선순위 */
+  recommendedPriority: GameElementCategory[];
+}
+
+/** 전략별 요소 활용도 */
+export interface StrategyElementUsage {
+  /** 전략 ID */
+  strategyId: string;
+  /** 전략명 */
+  strategyName: string;
+  /** 요소별 활용 빈도 */
+  usageFrequency: Record<GameElementCategory, number>;
+  /** 요소별 효과 */
+  elementEffectiveness: Record<GameElementCategory, number>;
+  /** 최적 요소 조합 */
+  optimalCombination: GameElementCategory[];
+  /** 과소활용 요소 */
+  underutilizedElements: GameElementCategory[];
+  /** 과다활용 요소 */
+  overutilizedElements: GameElementCategory[];
+}
+
+/** 요소 최적화 제안 */
+export interface ElementOptimizationSuggestion {
+  /** 제안 우선순위 */
+  priority: number;
+  /** 대상 요소 */
+  targetElement: GameElementCategory;
+  /** 제안 유형 */
+  suggestionType: 'buff' | 'nerf' | 'rework' | 'rebalance';
+  /** 제안 내용 */
+  description: string;
+  /** 예상 효과 */
+  expectedImpact: string;
+  /** 관련 데이터 */
+  supportingData: {
+    currentValue: number;
+    targetValue: number;
+    affectedItems: string[];
+  };
+}
+
+/** 노드 타입별 가치 비교 */
+export interface NodeTypeValueComparison {
+  /** 노드 타입 */
+  nodeType: string;
+  /** 발생 횟수 */
+  occurrences: number;
+  /** 평균 골드 획득 */
+  avgGoldGain: number;
+  /** 평균 HP 변화 */
+  avgHpChange: number;
+  /** 평균 카드 획득 */
+  avgCardsGained: number;
+  /** 평균 상징 획득 */
+  avgRelicsGained: number;
+  /** 승률 기여도 */
+  winRateContribution: number;
+  /** 전투 1회 대비 가치 */
+  combatEquivalentValue: number;
 }

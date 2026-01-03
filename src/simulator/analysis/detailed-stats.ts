@@ -46,6 +46,15 @@ export type {
   DifficultyStats,
   RunProgressionStats,
   GrowthPathStats,
+  // 게임 요소 영향도 분석 타입
+  GameElementCategory,
+  ElementImpactAnalysis,
+  ElementCategoryStats,
+  ElementContributor,
+  ElementComparativeValue,
+  StrategyElementUsage,
+  ElementOptimizationSuggestion,
+  NodeTypeValueComparison,
 } from './detailed-stats-types';
 
 import type {
@@ -87,6 +96,11 @@ import type {
   RelicSynergyImpactAnalysis,
   GrowthDecisionAnalysis,
   CardSelectionReasoningAnalysis,
+  // 게임 요소 영향도 분석 타입
+  ElementImpactAnalysis,
+  ElementCategoryStats,
+  NodeTypeValueComparison,
+  GameElementCategory,
 } from './detailed-stats-types';
 
 // ==================== 통계 수집기 ====================
