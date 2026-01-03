@@ -845,7 +845,7 @@ export class BalanceInsightAnalyzer {
           winRateWith: deepStats.winRateWith,
           winRateWithout: deepStats.winRateWithout,
           contributionGap: contribution,
-          acquisitionRate: runsWithCard / this.stats.runStats.totalRuns,
+          acquisitionRate: runsWithCard / Math.max(1, this.stats.runStats.totalRuns),
           riskLevel,
           issue: `이 카드 없이는 승률이 ${(contribution * 100).toFixed(0)}% 감소`,
           suggestions: [
@@ -873,7 +873,7 @@ export class BalanceInsightAnalyzer {
           winRateWith: stats.winRateWith,
           winRateWithout: stats.winRateWithout,
           contributionGap: stats.contribution,
-          acquisitionRate: stats.timesAcquired / this.stats.runStats.totalRuns,
+          acquisitionRate: stats.timesAcquired / Math.max(1, this.stats.runStats.totalRuns),
           riskLevel,
           issue: `이 상징 없이는 승률이 ${(stats.contribution * 100).toFixed(0)}% 감소`,
           suggestions: [

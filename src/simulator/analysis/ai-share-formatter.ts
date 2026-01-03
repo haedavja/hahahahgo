@@ -244,7 +244,7 @@ export function formatRunStatsForAI(
     const sorted = Object.entries(stats.deathCauses)
       .sort((a, b) => b[1] - a[1]);
     for (const [cause, count] of sorted) {
-      const rate = count / stats.totalRuns;
+      const rate = count / Math.max(1, stats.totalRuns);
       lines.push(`- ${cause}: ${count} (${pct(rate)})`);
     }
   }
