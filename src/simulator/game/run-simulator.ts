@@ -1104,15 +1104,8 @@ export class RunSimulator {
         itemsToUse.push({ itemId, specialEffect: 'maxEnergy' });
       }
 
-      // 폭발물(데미지): HP 50% 이하에서 적극 사용
-      if (item.effect.type === 'damage' && (hpRatio < 0.5 || isDifficultBattle)) {
-        itemsToUse.push({ itemId, specialEffect: 'damage' });
-      }
-
-      // 빙결 장치: 보스전에서 카드 무력화
-      if (item.effect.type === 'cardFreeze' && isDifficultBattle) {
-        itemsToUse.push({ itemId, specialEffect: 'cardFreeze' });
-      }
+      // 폭발물(damage)과 빙결 장치(cardFreeze)는 전투 중에 사용해야 함
+      // battle engine의 processItemUsage에서 처리됨
 
       // 최대 아이템 수 제한
       if (itemsToUse.length >= maxItems) break;
