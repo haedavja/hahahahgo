@@ -63,13 +63,14 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
   // ==================== 2. 몬스터 통계 ====================
   if (stats.monsterStats.size > 0) {
     lines.push('### 2. 몬스터 전투');
-    lines.push('| 몬스터 | 전투 | 승률 | 평균턴 |');
-    lines.push('|--------|------|------|--------|');
+    lines.push('| 몬스터 | 전투 | 승률 | 평균턴 | 평균피해 |');
+    lines.push('|--------|------|------|--------|----------|');
     Array.from(stats.monsterStats.entries())
       .sort((a, b) => b[1].battles - a[1].battles)
       .slice(0, 10)
       .forEach(([id, m]) => {
-        lines.push(`| ${getMonsterName(id)} | ${m.battles} | ${pct(m.winRate)} | ${num(m.avgTurns)} |`);
+        const avgDmg = m.avgDamageTaken !== undefined ? num(m.avgDamageTaken) : '-';
+        lines.push(`| ${getMonsterName(id)} | ${m.battles} | ${pct(m.winRate)} | ${num(m.avgTurns)} | ${avgDmg} |`);
       });
     lines.push('');
   }
