@@ -483,6 +483,10 @@ export class TimelineBattleEngine {
     if (burnResult.damage > 0) {
       state.player.hp -= burnResult.damage;
       state.battleLog.push(`🔥 화상 피해: ${burnResult.damage}`);
+      // 화상 피해량 추적 (부정적 토큰이므로 피해를 기록)
+      if (state.tokenEffects) {
+        this.recordEffectValue(state.tokenEffects, 'burn', { damage: burnResult.damage });
+      }
     }
 
     if (state.player.hp <= 0 || state.enemy.hp <= 0) return;
@@ -1772,6 +1776,15 @@ export class TimelineBattleEngine {
       // 회피 체크
       if (defenseMods.dodgeChance > 0 && Math.random() < defenseMods.dodgeChance) {
         state.battleLog.push(`  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name} → 회피!`);
+        // 회피로 피한 피해량 추적
+        if (state.tokenEffects) {
+          if (hasToken(defenderState.tokens, 'blur')) {
+            this.recordEffectValue(state.tokenEffects, 'blur', { damage: damage });
+          }
+          if (hasToken(defenderState.tokens, 'evasion')) {
+            this.recordEffectValue(state.tokenEffects, 'evasion', { damage: damage });
+          }
+        }
         if (attacker === 'player') {
           state.enemy.tokens = consumeDamageTakenTokens(state.enemy.tokens);
         } else {
@@ -1919,15 +1932,7 @@ export class TimelineBattleEngine {
             }
           }
         }
-        // 회피 토큰
-        if (defenseMods.dodgeChance > 0) {
-          if (hasToken(defenderState.tokens, 'blur')) {
-            this.recordEffectValue(state.tokenEffects, 'blur', { other: { dodgeChance: defenseMods.dodgeChance } });
-          }
-          if (hasToken(defenderState.tokens, 'evasion')) {
-            this.recordEffectValue(state.tokenEffects, 'evasion', { other: { dodgeChance: defenseMods.dodgeChance } });
-          }
-        }
+        // 회피 토큰은 실제 회피 성공 시에만 추적 (위 회피 체크 블록에서 처리)
       }
 
       // 토큰 소모
@@ -1954,6 +1959,10 @@ export class TimelineBattleEngine {
           attackerState.hp -= counterResult.damage;
           defenderState.tokens = counterResult.newDefenderTokens;
           state.battleLog.push(`  ⚔️ 반격: ${counterResult.damage} 피해`);
+          // 반격 피해량 추적
+          if (state.tokenEffects) {
+            this.recordEffectValue(state.tokenEffects, 'counter', { damage: counterResult.damage });
+          }
         }
       }
 
@@ -1964,6 +1973,10 @@ export class TimelineBattleEngine {
           attackerState.hp -= counterShotResult.damage;
           defenderState.tokens = counterShotResult.newDefenderTokens;
           state.battleLog.push(`  🔫 대응사격: ${counterShotResult.damage} 피해`);
+          // 대응사격 피해량 추적
+          if (state.tokenEffects) {
+            this.recordEffectValue(state.tokenEffects, 'counterShot', { damage: counterShotResult.damage });
+          }
 
           // 룰렛 체크 (건카타 Lv2: 탄걸림 확률 감소)
           const reduceJam = attacker === 'enemy' && !!state.growthBonuses?.logosEffects?.reduceJamChance;
