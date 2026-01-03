@@ -1212,8 +1212,8 @@ export class ComprehensiveAnalyzer {
       const dangerousMoves = Object.entries(actionCounts)
         .map(([action, count]) => ({
           action,
-          avgDamage: stats.avgDamageDealt / Object.keys(actionCounts).length,
-          frequency: count / enemyBattles.length,
+          avgDamage: stats.avgDamageDealt / Math.max(1, Object.keys(actionCounts).length),
+          frequency: count / Math.max(1, enemyBattles.length),
         }))
         .sort((a, b) => b.frequency - a.frequency)
         .slice(0, 3);

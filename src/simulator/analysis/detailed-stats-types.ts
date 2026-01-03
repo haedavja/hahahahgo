@@ -1149,8 +1149,6 @@ export interface DetailedStats {
 
   // ==================== 신규 상세 통계 ====================
 
-  /** 상징별 통계 */
-  relicStats: Map<string, RelicStats>;
   /** 토큰별 통계 */
   tokenStats: Map<string, TokenStats>;
   /** 포커 콤보 통계 */

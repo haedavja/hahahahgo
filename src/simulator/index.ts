@@ -721,7 +721,7 @@ export {
   formatCacheStats,
   withCache,
   type CacheAdapter,
-  type CacheStats,
+  type CacheStats as SimCacheStats,
   type CacheConfig,
 } from './cache';
 
