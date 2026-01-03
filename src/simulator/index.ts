@@ -644,6 +644,22 @@ export {
   type ComprehensiveReportData,
 } from './analysis/ai-share-formatter';
 
+// ==================== Balance Insights (NEW) ====================
+export {
+  BalanceInsightAnalyzer,
+  createBalanceInsightAnalyzer,
+  type BalanceRecommendation,
+  type BalancePriority,
+  type ActionType,
+  type BottleneckAnalysis,
+  type MustPickDetection,
+  type DiversityMetrics,
+  type PatchComparison,
+  type FrustrationPoint,
+  type PlayerExperiencePrediction,
+  type BalanceInsightReport,
+} from './analysis/balance-insights';
+
 // ==================== Caching Layer ====================
 export {
   MemoryCache,

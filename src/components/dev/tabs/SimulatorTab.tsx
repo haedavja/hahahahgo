@@ -11,6 +11,7 @@ import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 import { analyzeStats, generateAnalysisGuidelines } from '../../../simulator/analysis/stats-analysis-framework';
+import { BalanceInsightAnalyzer, type BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
 
 // 전략 타입 및 레이블
 type StrategyType = 'balanced' | 'aggressive' | 'defensive';
@@ -665,7 +666,7 @@ const STYLES = {
   scrollBox: { maxHeight: '300px', overflowY: 'auto' } as CSSProperties,
 } as const;
 
-type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records' | 'difficulty' | 'cardChoice' | 'recentRuns' | 'growth' | 'aiStrategy' | 'upgrade' | 'analysis';
+type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records' | 'difficulty' | 'cardChoice' | 'recentRuns' | 'growth' | 'aiStrategy' | 'upgrade' | 'analysis' | 'insights';
 
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
@@ -802,6 +803,7 @@ const SimulatorTab = memo(function SimulatorTab() {
     { id: 'recentRuns', label: '런진행' },
     { id: 'records', label: '기록' },
     { id: 'analysis', label: '🔍분석' },
+    { id: 'insights', label: '⚖️인사이트' },
   ];
 
   return (
@@ -1809,6 +1811,294 @@ const SimulatorTab = memo(function SimulatorTab() {
                           </div>
                         </>
                       )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* 밸런스 인사이트 */}
+            {activeStatTab === 'insights' && (
+              <>
+                <h4 style={{ margin: '0 0 12px 0', color: '#10b981' }}>⚖️ 밸런스 인사이트</h4>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  액션 가능한 밸런스 권장사항, 병목 구간 분석, 필수픽 감지, 다양성 지표
+                </p>
+                {(() => {
+                  const analyzer = new BalanceInsightAnalyzer(stats);
+                  const report = analyzer.generateReport();
+                  return (
+                    <>
+                      {/* 요약 카드 */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>건강도 점수</div>
+                          <div style={{
+                            fontSize: '1.5rem',
+                            fontWeight: 'bold',
+                            color: report.summary.healthScore >= 70 ? '#22c55e' : report.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {report.summary.healthScore}/100
+                          </div>
+                        </div>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>긴급 이슈</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>
+                            {report.summary.criticalIssues}개
+                          </div>
+                        </div>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>주의 이슈</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
+                            {report.summary.warningIssues}개
+                          </div>
+                        </div>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>난이도 평가</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                            {report.playerExperience.overallDifficulty === 'balanced' ? '균형' :
+                             report.playerExperience.overallDifficulty === 'too_easy' ? '너무 쉬움' :
+                             report.playerExperience.overallDifficulty === 'easy' ? '쉬움' :
+                             report.playerExperience.overallDifficulty === 'hard' ? '어려움' : '매우 어려움'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 최우선 과제 */}
+                      {report.summary.topPriorities.length > 0 && (
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
+                          <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>🎯 최우선 과제</h5>
+                          {report.summary.topPriorities.map((p, i) => (
+                            <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>
+                              {i + 1}. {p}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 긴급 조치 필요 (critical) */}
+                      {report.recommendations.filter(r => r.priority === 'critical').length > 0 && (
+                        <>
+                          <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>🔴 긴급 조치 필요</h5>
+                          <div style={STYLES.scrollBox}>
+                            {report.recommendations.filter(r => r.priority === 'critical').map((rec, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: '4px solid #ef4444' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.targetName}</span>
+                                  <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#dc2626', borderRadius: '4px', color: '#fff' }}>{rec.targetType}</span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#f87171', marginBottom: '4px' }}>{rec.issue}</div>
+                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>💡 {rec.suggestion}</div>
+                                {rec.estimatedImpact && (
+                                  <div style={{ fontSize: '0.75rem', color: '#06b6d4' }}>
+                                    예상 영향: 승률 {rec.estimatedImpact > 0 ? '+' : ''}{(rec.estimatedImpact * 100).toFixed(1)}%
+                                  </div>
+                                )}
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                                  신뢰도: {(rec.confidence * 100).toFixed(0)}%
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 주의 필요 (warning) */}
+                      {report.recommendations.filter(r => r.priority === 'warning').length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🟡 주의 필요</h5>
+                          <div style={STYLES.scrollBox}>
+                            {report.recommendations.filter(r => r.priority === 'warning').slice(0, 8).map((rec, i) => (
+                              <div key={i} style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', marginBottom: '6px', borderLeft: '3px solid #f59e0b' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.targetName}</span>
+                                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{rec.issueType}</span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>{rec.issue} → {rec.suggestion}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 필수픽 경고 */}
+                      {report.mustPicks.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#ec4899' }}>⚠️ 필수픽 감지</h5>
+                          <div style={STYLES.scrollBox}>
+                            {report.mustPicks.map((mp, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${mp.riskLevel === 'extreme' ? '#ef4444' : mp.riskLevel === 'high' ? '#f59e0b' : '#fbbf24'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#f472b6' }}>{mp.targetName}</span>
+                                  <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: mp.riskLevel === 'extreme' ? '#dc2626' : '#d97706', borderRadius: '4px', color: '#fff' }}>
+                                    {mp.riskLevel === 'extreme' ? '극심' : mp.riskLevel === 'high' ? '높음' : '보통'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#e2e8f0', marginBottom: '4px' }}>
+                                  보유 승률 <span style={{ color: '#22c55e' }}>{(mp.winRateWith * 100).toFixed(1)}%</span> vs 미보유 <span style={{ color: '#ef4444' }}>{(mp.winRateWithout * 100).toFixed(1)}%</span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                                  기여도 차이: +{(mp.contributionGap * 100).toFixed(1)}%
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 병목 구간 */}
+                      {report.bottlenecks.length > 0 && (
+                        <>
+                          <h5 style={{ margin: '16px 0 8px 0', color: '#a855f7' }}>🚧 병목 구간</h5>
+                          <div style={STYLES.scrollBox}>
+                            {report.bottlenecks.slice(0, 5).map((bn, i) => (
+                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${bn.severity === 'critical' ? '#ef4444' : bn.severity === 'high' ? '#f59e0b' : '#8b5cf6'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#c084fc' }}>{bn.floor}층</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>
+                                    사망률 {(bn.deathRate * 100).toFixed(1)}% (평균의 {bn.deathRateMultiplier.toFixed(1)}배)
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#e2e8f0', marginBottom: '4px' }}>
+                                  주요 원인: <span style={{ color: '#f59e0b' }}>{bn.primaryCause.enemyName}</span> ({(bn.primaryCause.deathContribution * 100).toFixed(0)}%)
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{bn.causeAnalysis}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '4px' }}>
+                                  제안: {bn.suggestions[0]}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 다양성 지표 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#06b6d4' }}>📊 다양성 지표</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>카드 다양성</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>Gini 계수</span>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              color: report.diversity.card.giniCoefficient < 0.4 ? '#22c55e' : report.diversity.card.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
+                            }}>
+                              {report.diversity.card.giniCoefficient.toFixed(3)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>상위 10% 점유율</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(report.diversity.card.top10PercentShare * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>미사용 카드</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{report.diversity.card.unusedCount}개</span>
+                          </div>
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '4px 8px',
+                            background: report.diversity.card.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : report.diversity.card.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            color: report.diversity.card.healthRating === 'healthy' ? '#22c55e' : report.diversity.card.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {report.diversity.card.healthRating === 'healthy' ? '✅ 건강' : report.diversity.card.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
+                          </div>
+                        </div>
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>상징 다양성</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>Gini 계수</span>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              color: report.diversity.relic.giniCoefficient < 0.4 ? '#22c55e' : report.diversity.relic.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
+                            }}>
+                              {report.diversity.relic.giniCoefficient.toFixed(3)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>상위 10% 점유율</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(report.diversity.relic.top10PercentShare * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>미사용 상징</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{report.diversity.relic.unusedCount}개</span>
+                          </div>
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '4px 8px',
+                            background: report.diversity.relic.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : report.diversity.relic.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            color: report.diversity.relic.healthRating === 'healthy' ? '#22c55e' : report.diversity.relic.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {report.diversity.relic.healthRating === 'healthy' ? '✅ 건강' : report.diversity.relic.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 메타 티어 */}
+                      {report.diversity.card.tierDistribution.filter(t => t.cards.length > 0).length > 0 && (
+                        <>
+                          <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>🏆 메타 티어</h5>
+                          <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
+                            {report.diversity.card.tierDistribution.filter(t => t.cards.length > 0).map((tier, i) => (
+                              <div key={i} style={{ marginBottom: '8px' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: '32px',
+                                  fontWeight: 'bold',
+                                  color: tier.tier === 'S' ? '#ef4444' : tier.tier === 'A' ? '#f59e0b' : tier.tier === 'B' ? '#22c55e' : tier.tier === 'C' ? '#3b82f6' : '#64748b'
+                                }}>
+                                  {tier.tier}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>
+                                  {tier.cards.slice(0, 6).join(', ')}{tier.cards.length > 6 ? ` 외 ${tier.cards.length - 6}개` : ''}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* 플레이어 경험 예측 */}
+                      <h5 style={{ margin: '0 0 8px 0', color: '#8b5cf6' }}>🎮 플레이어 경험 예측</h5>
+                      <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>난이도 점수</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#8b5cf6' }}>{report.playerExperience.difficultyScore}/10</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>신규 이탈률</div>
+                            <div style={{
+                              fontSize: '1.25rem',
+                              fontWeight: 'bold',
+                              color: report.playerExperience.newPlayerDropoutRate > 0.5 ? '#ef4444' : '#22c55e'
+                            }}>
+                              {(report.playerExperience.newPlayerDropoutRate * 100).toFixed(0)}%
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>숙련자 만족도</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#22c55e' }}>
+                              {report.playerExperience.veteranSatisfactionScore}/10
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0', padding: '8px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '6px' }}>
+                          {report.playerExperience.overallAssessment}
+                        </div>
+                        {report.playerExperience.improvementPriorities.length > 0 && (
+                          <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#22c55e' }}>
+                            개선 우선순위: {report.playerExperience.improvementPriorities.join(' → ')}
+                          </div>
+                        )}
+                      </div>
                     </>
                   );
                 })()}
