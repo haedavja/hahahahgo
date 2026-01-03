@@ -16,6 +16,23 @@ const log = getLogger('EventSimulator');
 
 // ==================== 타입 정의 ====================
 
+/** 카드 액션 타입 */
+export interface CardAction {
+  lose?: number;            // 카드 N장 잃기
+  gain?: number;            // 카드 N장 얻기 (잃은 것과 교환)
+  select?: number;          // 카드 N장 선택 획득
+  selectAny?: number;       // 아무 카드나 N장 선택
+  gainRandom?: number;      // 랜덤 카드 N장 획득
+  loseRandom?: number;      // 랜덤 카드 N장 잃기
+}
+
+/** 스탯 체크 타입 */
+export interface StatCheck {
+  strength?: number;        // 힘 체크
+  agility?: number;         // 민첩 체크
+  insight?: number;         // 통찰 체크
+}
+
 /** 특수 보상 타입 */
 export interface SpecialRewards {
   relic?: string;           // 상징 획득
@@ -60,6 +77,11 @@ export interface EventChoice {
   combatTrigger?: boolean;
   combatRewards?: Record<string, number>;
   combatId?: string;
+  // 카드 액션
+  cardAction?: CardAction;
+  // 스탯 체크 (성공/실패 분기)
+  statCheck?: StatCheck;
+  successNextStage?: string;    // 스탯 체크 성공 시 다음 단계
 }
 
 export interface EventStage {
@@ -120,10 +142,13 @@ export interface EventOutcome {
   cardsGained?: string[];   // 획득한 카드
   relicsGained?: string[];  // 획득한 상징
   cardsRemoved?: number;    // 제거된 카드 수
+  cardsLost?: number;       // cardAction으로 잃은 카드 수
+  cardsSelected?: number;   // cardAction으로 선택 획득한 카드 수
   deckReset?: boolean;      // 덱 초기화 여부
   allCardsUpgraded?: boolean; // 전체 카드 승급 여부
   combatTriggered?: boolean;  // 전투 발생 여부
   probabilityRoll?: { rolled: boolean; success: boolean }; // 확률 결과
+  statCheckResult?: { checked: boolean; success: boolean; stat: string; required: number }; // 스탯 체크 결과
 }
 
 export interface EventAnalysis {
@@ -273,6 +298,8 @@ export class EventSimulator {
   /**
    * 단일 이벤트 시뮬레이션 (다단계 이벤트 완전 처리)
    * - 확률 기반 이벤트 지원
+   * - 스탯 체크 지원
+   * - 카드 액션 지원
    * - 특수 효과 (HP%, 카드 제거, 전체 강화 등) 지원
    * - 전투 트리거 지원
    */
@@ -298,10 +325,13 @@ export class EventSimulator {
     let cardsGained: string[] = [];
     let relicsGained: string[] = [];
     let cardsRemoved = 0;
+    let cardsLost = 0;
+    let cardsSelected = 0;
     let deckReset = false;
     let allCardsUpgraded = false;
     let combatTriggered = false;
     let lastProbabilityRoll: { rolled: boolean; success: boolean } | undefined;
+    let lastStatCheckResult: { checked: boolean; success: boolean; stat: string; required: number } | undefined;
     let maxIterations = 10; // 무한루프 방지
 
     while (maxIterations-- > 0) {
@@ -338,24 +368,22 @@ export class EventSimulator {
           lastChoiceName = fallback.label;
 
           // 특수 효과 수집
-          if (outcome.specialEffects.relicsGained) {
-            relicsGained.push(...outcome.specialEffects.relicsGained);
-          }
-          if (outcome.specialEffects.cardsGained) {
-            cardsGained.push(...outcome.specialEffects.cardsGained);
-          }
-          if (outcome.specialEffects.cardsRemoved) {
-            cardsRemoved += outcome.specialEffects.cardsRemoved;
-          }
-          if (outcome.specialEffects.deckReset) deckReset = true;
-          if (outcome.specialEffects.allCardsUpgraded) allCardsUpgraded = true;
-          if (outcome.specialEffects.combatTriggered) combatTriggered = true;
-          if (outcome.specialEffects.probabilityRoll) {
-            lastProbabilityRoll = outcome.specialEffects.probabilityRoll;
-          }
+          this.collectSpecialEffects(outcome.specialEffects, {
+            relicsGained, cardsGained,
+            onCardsRemoved: (n) => cardsRemoved += n,
+            onCardsLost: (n) => cardsLost += n,
+            onCardsSelected: (n) => cardsSelected += n,
+            onDeckReset: () => deckReset = true,
+            onAllCardsUpgraded: () => allCardsUpgraded = true,
+            onCombatTriggered: () => combatTriggered = true,
+            onProbabilityRoll: (roll) => lastProbabilityRoll = roll,
+            onStatCheckResult: (result) => lastStatCheckResult = result,
+          });
 
-          if (fallback.nextStage) {
-            currentStage = fallback.nextStage;
+          // 다음 단계 결정 (overrideNextStage 우선)
+          const nextStage = outcome.specialEffects.overrideNextStage || fallback.nextStage;
+          if (nextStage) {
+            currentStage = nextStage;
             continue;
           }
         }
@@ -375,25 +403,22 @@ export class EventSimulator {
       lastChoiceName = selectedChoice.label;
 
       // 특수 효과 수집
-      if (outcome.specialEffects.relicsGained) {
-        relicsGained.push(...outcome.specialEffects.relicsGained);
-      }
-      if (outcome.specialEffects.cardsGained) {
-        cardsGained.push(...outcome.specialEffects.cardsGained);
-      }
-      if (outcome.specialEffects.cardsRemoved) {
-        cardsRemoved += outcome.specialEffects.cardsRemoved;
-      }
-      if (outcome.specialEffects.deckReset) deckReset = true;
-      if (outcome.specialEffects.allCardsUpgraded) allCardsUpgraded = true;
-      if (outcome.specialEffects.combatTriggered) combatTriggered = true;
-      if (outcome.specialEffects.probabilityRoll) {
-        lastProbabilityRoll = outcome.specialEffects.probabilityRoll;
-      }
+      this.collectSpecialEffects(outcome.specialEffects, {
+        relicsGained, cardsGained,
+        onCardsRemoved: (n) => cardsRemoved += n,
+        onCardsLost: (n) => cardsLost += n,
+        onCardsSelected: (n) => cardsSelected += n,
+        onDeckReset: () => deckReset = true,
+        onAllCardsUpgraded: () => allCardsUpgraded = true,
+        onCombatTriggered: () => combatTriggered = true,
+        onProbabilityRoll: (roll) => lastProbabilityRoll = roll,
+        onStatCheckResult: (result) => lastStatCheckResult = result,
+      });
 
-      // 다음 단계가 있으면 계속, 없으면 종료
-      if (selectedChoice.nextStage) {
-        currentStage = selectedChoice.nextStage;
+      // 다음 단계 결정 (overrideNextStage 우선)
+      const nextStage = outcome.specialEffects.overrideNextStage || selectedChoice.nextStage;
+      if (nextStage) {
+        currentStage = nextStage;
       } else if (selectedChoice.nextEvent) {
         // 다른 이벤트로 연결되는 경우는 여기서 종료 (별도 처리 필요)
         break;
@@ -414,11 +439,64 @@ export class EventSimulator {
       cardsGained,
       relicsGained,
       cardsRemoved: cardsRemoved > 0 ? cardsRemoved : undefined,
+      cardsLost: cardsLost > 0 ? cardsLost : undefined,
+      cardsSelected: cardsSelected > 0 ? cardsSelected : undefined,
       deckReset: deckReset || undefined,
       allCardsUpgraded: allCardsUpgraded || undefined,
       combatTriggered: combatTriggered || undefined,
       probabilityRoll: lastProbabilityRoll,
+      statCheckResult: lastStatCheckResult,
     };
+  }
+
+  /**
+   * 특수 효과 수집 헬퍼
+   */
+  private collectSpecialEffects(
+    effects: typeof EventSimulator.SpecialEffectsType,
+    handlers: {
+      relicsGained: string[];
+      cardsGained: string[];
+      onCardsRemoved: (n: number) => void;
+      onCardsLost: (n: number) => void;
+      onCardsSelected: (n: number) => void;
+      onDeckReset: () => void;
+      onAllCardsUpgraded: () => void;
+      onCombatTriggered: () => void;
+      onProbabilityRoll: (roll: { rolled: boolean; success: boolean }) => void;
+      onStatCheckResult: (result: { checked: boolean; success: boolean; stat: string; required: number }) => void;
+    }
+  ): void {
+    if (effects.relicsGained) {
+      handlers.relicsGained.push(...effects.relicsGained);
+    }
+    if (effects.cardsGained) {
+      handlers.cardsGained.push(...effects.cardsGained);
+    }
+    if (effects.cardsRemoved) {
+      handlers.onCardsRemoved(effects.cardsRemoved);
+    }
+    if (effects.cardsLost) {
+      handlers.onCardsLost(effects.cardsLost);
+    }
+    if (effects.cardsSelected) {
+      handlers.onCardsSelected(effects.cardsSelected);
+    }
+    if (effects.deckReset) {
+      handlers.onDeckReset();
+    }
+    if (effects.allCardsUpgraded) {
+      handlers.onAllCardsUpgraded();
+    }
+    if (effects.combatTriggered) {
+      handlers.onCombatTriggered();
+    }
+    if (effects.probabilityRoll) {
+      handlers.onProbabilityRoll(effects.probabilityRoll);
+    }
+    if (effects.statCheckResult) {
+      handlers.onStatCheckResult(effects.statCheckResult);
+    }
   }
 
   /**
@@ -437,8 +515,23 @@ export class EventSimulator {
     'setHp', 'removeCards', 'removeHalfDeck', 'resetDeck', 'mapRisk'
   ]);
 
+  /** 특수 효과 결과 타입 */
+  private static readonly SpecialEffectsType = {} as {
+    cardsRemoved?: number;
+    deckReset?: boolean;
+    allCardsUpgraded?: boolean;
+    combatTriggered?: boolean;
+    probabilityRoll?: { rolled: boolean; success: boolean };
+    relicsGained?: string[];
+    cardsGained?: string[];
+    cardsLost?: number;
+    cardsSelected?: number;
+    statCheckResult?: { checked: boolean; success: boolean; stat: string; required: number };
+    overrideNextStage?: string;  // statCheck 성공 시 다음 단계 오버라이드
+  };
+
   /**
-   * 선택 실행 (자원 추적 포함) - 확률 및 특수 효과 지원
+   * 선택 실행 (자원 추적 포함) - 확률, 스탯체크, 카드액션 및 특수 효과 지원
    */
   private executeChoiceWithTracking(
     choice: EventChoice,
@@ -448,29 +541,46 @@ export class EventSimulator {
     resourceChanges: Record<string, number>;
     finalResources: PlayerResources;
     description: string;
-    specialEffects: {
-      cardsRemoved?: number;
-      deckReset?: boolean;
-      allCardsUpgraded?: boolean;
-      combatTriggered?: boolean;
-      probabilityRoll?: { rolled: boolean; success: boolean };
-      relicsGained?: string[];
-      cardsGained?: string[];
-    };
+    specialEffects: typeof EventSimulator.SpecialEffectsType;
   } {
     const resourceChanges: Record<string, number> = {};
     const finalResources = { ...currentResources };
-    const specialEffects: {
-      cardsRemoved?: number;
-      deckReset?: boolean;
-      allCardsUpgraded?: boolean;
-      combatTriggered?: boolean;
-      probabilityRoll?: { rolled: boolean; success: boolean };
-      relicsGained?: string[];
-      cardsGained?: string[];
-    } = {};
+    const specialEffects: typeof EventSimulator.SpecialEffectsType = {};
 
-    // 1. 확률 기반 이벤트 처리
+    // 1. 스탯 체크 처리 (성공/실패 분기)
+    if (choice.statCheck) {
+      const checkResult = this.performStatCheck(choice.statCheck, config?.stats);
+      specialEffects.statCheckResult = checkResult;
+
+      if (checkResult.success) {
+        // 성공 시: 성공 보상 적용 + 성공 다음 단계로 이동
+        if (choice.successRewards) {
+          this.applyRewards(choice.successRewards, finalResources, resourceChanges, specialEffects);
+        }
+        if (choice.successNextStage) {
+          specialEffects.overrideNextStage = choice.successNextStage;
+        }
+      } else {
+        // 실패 시: 실패 패널티 적용
+        if (choice.failurePenalties) {
+          this.applyPenalties(choice.failurePenalties, finalResources, resourceChanges, specialEffects, config);
+        }
+      }
+
+      // 카드 액션은 스탯 체크 결과와 별개로 처리
+      if (choice.cardAction) {
+        this.applyCardAction(choice.cardAction, specialEffects, config);
+      }
+
+      return {
+        resourceChanges,
+        finalResources,
+        description: choice.resultDescription || '',
+        specialEffects,
+      };
+    }
+
+    // 2. 확률 기반 이벤트 처리
     if (choice.probability !== undefined) {
       const success = getGlobalRandom().chance(choice.probability);
       specialEffects.probabilityRoll = { rolled: true, success };
@@ -489,7 +599,7 @@ export class EventSimulator {
       };
     }
 
-    // 2. 전투 트리거 처리
+    // 3. 전투 트리거 처리
     if (choice.combatTrigger) {
       specialEffects.combatTriggered = true;
       const combatWinRate = config?.combatWinRate ?? 0.75;
@@ -507,7 +617,7 @@ export class EventSimulator {
       };
     }
 
-    // 3. 비용 적용
+    // 4. 비용 적용
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
         if (resource === 'hpPercent') {
@@ -523,14 +633,19 @@ export class EventSimulator {
       }
     }
 
-    // 4. 보상 적용
+    // 5. 보상 적용
     if (choice.rewards) {
       this.applyRewards(choice.rewards, finalResources, resourceChanges, specialEffects);
     }
 
-    // 5. 패널티 적용
+    // 6. 패널티 적용
     if (choice.penalties) {
       this.applyPenalties(choice.penalties, finalResources, resourceChanges, specialEffects, config);
+    }
+
+    // 7. 카드 액션 적용
+    if (choice.cardAction) {
+      this.applyCardAction(choice.cardAction, specialEffects, config);
     }
 
     return {
@@ -542,13 +657,93 @@ export class EventSimulator {
   }
 
   /**
+   * 스탯 체크 수행
+   */
+  private performStatCheck(
+    statCheck: StatCheck,
+    stats?: PlayerStats
+  ): { checked: boolean; success: boolean; stat: string; required: number } {
+    const playerStats = stats || { strength: 0, agility: 0, insight: 0 };
+
+    // 체크할 스탯 찾기 (첫 번째 스탯만 체크)
+    for (const [stat, required] of Object.entries(statCheck)) {
+      if (required !== undefined) {
+        const playerValue = getStatValue(playerStats, stat);
+        const success = playerValue >= required;
+        return { checked: true, success, stat, required };
+      }
+    }
+
+    return { checked: false, success: true, stat: '', required: 0 };
+  }
+
+  /**
+   * 카드 액션 적용
+   */
+  private applyCardAction(
+    cardAction: CardAction,
+    specialEffects: typeof EventSimulator.SpecialEffectsType,
+    config?: EventSimulationConfig
+  ): void {
+    const deckSize = config?.deck?.length || 10;
+
+    // 카드 잃기
+    if (cardAction.lose) {
+      specialEffects.cardsLost = (specialEffects.cardsLost || 0) + cardAction.lose;
+      specialEffects.cardsRemoved = (specialEffects.cardsRemoved || 0) + cardAction.lose;
+    }
+
+    // 랜덤 카드 잃기
+    if (cardAction.loseRandom) {
+      specialEffects.cardsLost = (specialEffects.cardsLost || 0) + cardAction.loseRandom;
+      specialEffects.cardsRemoved = (specialEffects.cardsRemoved || 0) + cardAction.loseRandom;
+    }
+
+    // 카드 얻기 (교환)
+    if (cardAction.gain) {
+      specialEffects.cardsSelected = (specialEffects.cardsSelected || 0) + cardAction.gain;
+      if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+      for (let i = 0; i < cardAction.gain; i++) {
+        specialEffects.cardsGained.push('random');
+      }
+    }
+
+    // 카드 선택 획득
+    if (cardAction.select) {
+      specialEffects.cardsSelected = (specialEffects.cardsSelected || 0) + cardAction.select;
+      if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+      for (let i = 0; i < cardAction.select; i++) {
+        specialEffects.cardsGained.push('selected');
+      }
+    }
+
+    // 아무 카드나 선택
+    if (cardAction.selectAny) {
+      specialEffects.cardsSelected = (specialEffects.cardsSelected || 0) + cardAction.selectAny;
+      if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+      for (let i = 0; i < cardAction.selectAny; i++) {
+        specialEffects.cardsGained.push('any');
+      }
+    }
+
+    // 랜덤 카드 획득
+    if (cardAction.gainRandom) {
+      specialEffects.cardsSelected = (specialEffects.cardsSelected || 0) + cardAction.gainRandom;
+      if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+      for (let i = 0; i < cardAction.gainRandom; i++) {
+        specialEffects.cardsGained.push('random');
+      }
+    }
+  }
+
+  /**
    * 보상 적용 헬퍼
    */
   private applyRewards(
     rewards: Record<string, unknown>,
     finalResources: PlayerResources,
     resourceChanges: Record<string, number>,
-    specialEffects: { relicsGained?: string[]; cardsGained?: string[]; allCardsUpgraded?: boolean }
+    specialEffects: typeof EventSimulator.SpecialEffectsType
   ): void {
     for (const [key, value] of Object.entries(rewards)) {
       if (key === 'relic' || key === 'relic2') {
@@ -581,7 +776,7 @@ export class EventSimulator {
     penalties: Record<string, unknown>,
     finalResources: PlayerResources,
     resourceChanges: Record<string, number>,
-    specialEffects: { cardsRemoved?: number; deckReset?: boolean },
+    specialEffects: typeof EventSimulator.SpecialEffectsType,
     config?: EventSimulationConfig
   ): void {
     for (const [key, value] of Object.entries(penalties)) {
