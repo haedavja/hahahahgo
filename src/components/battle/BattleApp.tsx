@@ -170,6 +170,7 @@ import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUti
 import { createReducerEnemyState } from "../../state/battleHelpers";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { DefeatOverlay } from "./ui/DefeatOverlay";
+import { RunSummaryOverlay } from "./ui/RunSummaryOverlay";
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 import { distributeUnitDamage, type EnemyUnit } from "./utils/unitDamageDistribution";
@@ -2424,9 +2425,13 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           setDevForceAllCards={setDevForceAllCards}
         />
       )}
-      {/* 패배 시 중앙 오버레이 */}
+      {/* 패배 시 런 요약 오버레이 */}
       {postCombatOptions?.type === 'defeat' && (
-        <DefeatOverlay onExit={handleExitToMap} />
+        <RunSummaryOverlay result="defeat" onExit={handleExitToMap} />
+      )}
+      {/* 보스 승리 시 런 요약 오버레이 */}
+      {postCombatOptions?.type === 'victory' && isBoss && (
+        <RunSummaryOverlay result="victory" onExit={handleExitToMap} />
       )}
 
       {/* 하단 고정 손패 영역 */}
