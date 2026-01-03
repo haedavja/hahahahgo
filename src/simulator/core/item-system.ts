@@ -236,8 +236,8 @@ export class ItemSystem {
       if (energyItem) return energyItem;
     }
 
-    // 3. 적 체력이 낮으면 폭발물
-    if (enemy.hp < enemy.maxHp * 0.2) {
+    // 3. 폭발물: 적 체력 50% 이하면 적극 사용
+    if (enemy.hp < enemy.maxHp * 0.5) {
       const damageItem = usableItems.find(id => {
         const item = this.getItem(id);
         return item?.effect.type === 'damage';
@@ -245,7 +245,16 @@ export class ItemSystem {
       if (damageItem) return damageItem;
     }
 
-    // 4. 대응단계면 에테르 증폭제
+    // 4. 빙결 장치: 대응단계에서 적 카드가 많으면 사용
+    if (phase === 'respond') {
+      const freezeItem = usableItems.find(id => {
+        const item = this.getItem(id);
+        return item?.effect.type === 'cardFreeze';
+      });
+      if (freezeItem) return freezeItem;
+    }
+
+    // 5. 대응단계면 에테르 증폭제
     if (phase === 'respond') {
       const etherItem = usableItems.find(id => {
         const item = this.getItem(id);
@@ -254,7 +263,7 @@ export class ItemSystem {
       if (etherItem) return etherItem;
     }
 
-    // 5. 그 외에는 첫 번째 아이템 사용
+    // 6. 그 외에는 첫 번째 아이템 사용
     return usableItems[0];
   }
 }
