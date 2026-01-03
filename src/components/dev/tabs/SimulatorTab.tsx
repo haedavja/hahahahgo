@@ -47,6 +47,7 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
   lines.push(`- 평균 전투 승리: ${num(stats.runStats.avgBattlesWon)}`);
   lines.push(`- 평균 골드: ${num(stats.runStats.avgGoldEarned)}`);
   lines.push(`- 평균 덱 크기: ${num(stats.runStats.avgFinalDeckSize)}`);
+  lines.push(`- 평균 상징 수: ${num(stats.runStats.avgFinalRelicCount)}`);
   lines.push('');
 
   // 사망 원인
@@ -578,12 +579,12 @@ function formatStatsForAI(statsByStrategy: StatsByStrategy, config: { runCount: 
 
   // 전략별 요약 비교 테이블
   lines.push('## 전략 비교 요약');
-  lines.push('| 전략 | 승률 | 평균 도달 층 | 평균 덱 크기 | 평균 골드 |');
-  lines.push('|------|------|--------------|--------------|-----------|');
+  lines.push('| 전략 | 승률 | 평균 도달 층 | 평균 덱 크기 | 평균 상징 | 평균 골드 |');
+  lines.push('|------|------|--------------|--------------|-----------|-----------|');
   ALL_STRATEGIES.forEach(strategy => {
     const stats = statsByStrategy[strategy];
     if (stats) {
-      lines.push(`| ${STRATEGY_LABELS[strategy]} | ${pct(stats.runStats.successRate)} | ${stats.runStats.avgLayerReached.toFixed(1)} | ${stats.runStats.avgFinalDeckSize.toFixed(1)} | ${stats.runStats.avgGoldEarned.toFixed(0)} |`);
+      lines.push(`| ${STRATEGY_LABELS[strategy]} | ${pct(stats.runStats.successRate)} | ${stats.runStats.avgLayerReached.toFixed(1)} | ${stats.runStats.avgFinalDeckSize.toFixed(1)} | ${stats.runStats.avgFinalRelicCount.toFixed(1)} | ${stats.runStats.avgGoldEarned.toFixed(0)} |`);
     }
   });
   lines.push('');
@@ -1011,6 +1012,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 전투 승리</div><div style={STYLES.statValue}>{(stats.runStats.avgBattlesWon ?? 0).toFixed(1)}</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 골드 획득</div><div style={STYLES.statValue}>{(stats.runStats.avgGoldEarned ?? 0).toFixed(0)}G</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 덱 크기</div><div style={STYLES.statValue}>{(stats.runStats.avgFinalDeckSize ?? 0).toFixed(1)}장</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 상징 수</div><div style={STYLES.statValue}>{(stats.runStats.avgFinalRelicCount ?? 0).toFixed(1)}개</div></div>
                 </div>
               </>
             )}
