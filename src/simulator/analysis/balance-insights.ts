@@ -222,6 +222,116 @@ export interface PlayerExperiencePrediction {
   improvementPriorities: string[];
 }
 
+/** 특성/스탯 밸런스 분석 */
+export interface TraitBalanceAnalysis {
+  /** 스탯별 승률 기여도 */
+  statContributions: {
+    statName: string;
+    avgInvestment: number;
+    winCorrelation: number;
+    /** 해당 스탯 집중 투자 시 승률 */
+    focusedWinRate: number;
+    /** 평가 */
+    rating: 'overpowered' | 'balanced' | 'underpowered' | 'unused';
+  }[];
+  /** 에토스/파토스/로고스 밸런스 */
+  philosophyBalance: {
+    ethos: { avgLevel: number; winCorrelation: number };
+    pathos: { avgLevel: number; winCorrelation: number };
+    logos: { avgLevel: number; winCorrelation: number };
+  };
+  /** 필수 스탯 감지 */
+  mustHaveStats: {
+    statName: string;
+    winRateWith: number;
+    winRateWithout: number;
+    contributionGap: number;
+  }[];
+  /** 스탯 다양성 */
+  diversityScore: number;
+  /** 권장사항 */
+  recommendations: BalanceRecommendation[];
+}
+
+/** 성장 경로 분석 */
+export interface GrowthPathAnalysis {
+  /** 최적 경로 TOP 5 */
+  optimalPaths: {
+    path: string;
+    count: number;
+    winRate: number;
+    avgFinalLevel: number;
+    description: string;
+  }[];
+  /** 위험 경로 (승률 낮은) */
+  riskyPaths: {
+    path: string;
+    count: number;
+    winRate: number;
+    issue: string;
+    suggestion: string;
+  }[];
+  /** 경로 다양성 */
+  pathDiversity: {
+    uniquePaths: number;
+    giniCoefficient: number;
+    healthRating: 'healthy' | 'imbalanced' | 'critical';
+  };
+  /** 로고스 효과 활용도 */
+  logosUsage: {
+    effectName: string;
+    activations: number;
+    winRateWith: number;
+    utilization: number; // 0-1, 얼마나 효과적으로 활용되는지
+  }[];
+}
+
+/** 승급 밸런스 분석 */
+export interface UpgradeBalanceAnalysis {
+  /** 총 승급 통계 */
+  overall: {
+    totalUpgrades: number;
+    avgUpgradesPerRun: number;
+    upgradeWinCorrelation: number;
+    optimalUpgradeCount: number;
+  };
+  /** 카드별 승급 효율 */
+  cardUpgradeEfficiency: {
+    cardId: string;
+    cardName: string;
+    upgradeCount: number;
+    /** 승급 후 승률 변화 */
+    winRateBoost: number;
+    /** 승급 우선순위 (1=최우선) */
+    priorityRank: number;
+    /** 평가 */
+    rating: 'must_upgrade' | 'high_value' | 'moderate' | 'low_value' | 'waste';
+  }[];
+  /** 과다 승급 카드 (가치 대비 많이 승급) */
+  overUpgraded: {
+    cardId: string;
+    cardName: string;
+    upgradeCount: number;
+    actualValue: number;
+    suggestion: string;
+  }[];
+  /** 과소 승급 카드 (가치 대비 적게 승급) */
+  underUpgraded: {
+    cardId: string;
+    cardName: string;
+    upgradeCount: number;
+    potentialValue: number;
+    suggestion: string;
+  }[];
+  /** 승급 우선순위 권장 */
+  priorityRecommendations: {
+    rank: number;
+    cardName: string;
+    reason: string;
+    expectedImpact: number;
+  }[];
+}
+
 /** 밸런스 인사이트 전체 리포트 */
 export interface BalanceInsightReport {
   /** 생성 시간 */
@@ -240,6 +350,12 @@ export interface BalanceInsightReport {
   diversity: DiversityMetrics;
   /** 플레이어 경험 예측 */
   playerExperience: PlayerExperiencePrediction;
+  /** 특성 밸런스 분석 */
+  traitBalance: TraitBalanceAnalysis;
+  /** 성장 경로 분석 */
+  growthPaths: GrowthPathAnalysis;
+  /** 승급 밸런스 분석 */
+  upgradeBalance: UpgradeBalanceAnalysis;
   /** 요약 */
   summary: {
     criticalIssues: number;
@@ -268,12 +384,21 @@ export class BalanceInsightAnalyzer {
     const mustPicks = this.detectMustPicks();
     const diversity = this.analyzeDiversity();
     const playerExperience = this.predictPlayerExperience(bottlenecks);
+    const traitBalance = this.analyzeTraitBalance();
+    const growthPaths = this.analyzeGrowthPaths();
+    const upgradeBalance = this.analyzeUpgradeBalance();
 
-    const criticalIssues = recommendations.filter(r => r.priority === 'critical').length;
-    const warningIssues = recommendations.filter(r => r.priority === 'warning').length;
-    const healthScore = this.calculateHealthScore(recommendations, diversity, bottlenecks);
+    // 특성/승급 분석에서 나온 권장사항도 포함
+    const allRecommendations = [
+      ...recommendations,
+      ...traitBalance.recommendations,
+    ];
 
-    const topPriorities = recommendations
+    const criticalIssues = allRecommendations.filter(r => r.priority === 'critical').length;
+    const warningIssues = allRecommendations.filter(r => r.priority === 'warning').length;
+    const healthScore = this.calculateHealthScore(allRecommendations, diversity, bottlenecks);
+
+    const topPriorities = allRecommendations
       .filter(r => r.priority === 'critical' || r.priority === 'warning')
       .slice(0, 5)
       .map(r => `${r.targetName}: ${r.issue}`);
@@ -282,11 +407,14 @@ export class BalanceInsightAnalyzer {
       generatedAt: new Date(),
       totalRuns: this.stats.runStats.totalRuns,
       overallWinRate: this.stats.runStats.successRate,
-      recommendations,
+      recommendations: allRecommendations,
       bottlenecks,
       mustPicks,
       diversity,
       playerExperience,
+      traitBalance,
+      growthPaths,
+      upgradeBalance,
       summary: {
         criticalIssues,
         warningIssues,
@@ -1270,6 +1398,391 @@ export class BalanceInsightAnalyzer {
     }
 
     return lines.join('\n');
+  }
+
+  // ==================== 특성/성장/승급 분석 ====================
+
+  /**
+   * 특성 밸런스 분석
+   */
+  analyzeTraitBalance(): TraitBalanceAnalysis {
+    const { growthStats } = this.stats;
+    const recommendations: BalanceRecommendation[] = [];
+    const statContributions: TraitBalanceAnalysis['statContributions'] = [];
+    const mustHaveStats: TraitBalanceAnalysis['mustHaveStats'] = [];
+
+    // 스탯별 분석
+    const allStats = Object.keys(growthStats.statInvestments);
+    const totalInvestments = growthStats.totalInvestments || 1;
+    const avgWinRate = this.stats.runStats.successRate;
+
+    for (const statName of allStats) {
+      const investment = growthStats.statInvestments[statName] || 0;
+      const avgInvestment = investment / Math.max(1, this.stats.runStats.totalRuns);
+      const winCorrelation = growthStats.statWinCorrelation[statName] || 0;
+
+      // 해당 스탯 집중 투자 시 승률 추정 (상관관계 기반)
+      const focusedWinRate = avgWinRate + (winCorrelation * 0.3);
+
+      // 평가 결정
+      let rating: 'overpowered' | 'balanced' | 'underpowered' | 'unused' = 'balanced';
+      if (investment === 0) {
+        rating = 'unused';
+      } else if (winCorrelation > 0.2) {
+        rating = 'overpowered';
+      } else if (winCorrelation < -0.1) {
+        rating = 'underpowered';
+      }
+
+      statContributions.push({
+        statName,
+        avgInvestment,
+        winCorrelation,
+        focusedWinRate: Math.max(0, Math.min(1, focusedWinRate)),
+        rating,
+      });
+
+      // OP 스탯 권장사항
+      if (rating === 'overpowered' && winCorrelation > 0.25) {
+        recommendations.push({
+          targetId: statName,
+          targetName: statName,
+          targetType: 'card', // 'trait'가 없으므로 card로 대체
+          priority: winCorrelation > 0.35 ? 'critical' : 'warning',
+          issueType: 'overpowered_trait',
+          issue: `${statName} 스탯이 승률에 과도한 영향 (+${(winCorrelation * 100).toFixed(0)}%)`,
+          actionType: 'nerf',
+          suggestion: `${statName} 효과 20-30% 감소 또는 비용 증가 고려`,
+          metrics: {
+            avgInvestment: avgInvestment.toFixed(2),
+            winCorrelation: `+${(winCorrelation * 100).toFixed(1)}%`,
+          },
+          confidence: this.calculateConfidence(investment),
+        });
+
+        mustHaveStats.push({
+          statName,
+          winRateWith: Math.min(1, avgWinRate + winCorrelation),
+          winRateWithout: Math.max(0, avgWinRate - winCorrelation * 0.5),
+          contributionGap: winCorrelation,
+        });
+      }
+
+      // 약한 스탯 권장사항
+      if (rating === 'underpowered' && winCorrelation < -0.15) {
+        recommendations.push({
+          targetId: statName,
+          targetName: statName,
+          targetType: 'card',
+          priority: 'watch',
+          issueType: 'underpowered_trait',
+          issue: `${statName} 스탯 투자가 오히려 승률 감소 (${(winCorrelation * 100).toFixed(0)}%)`,
+          actionType: 'buff',
+          suggestion: `${statName} 효과 강화 또는 시너지 추가 고려`,
+          metrics: {
+            avgInvestment: avgInvestment.toFixed(2),
+            winCorrelation: `${(winCorrelation * 100).toFixed(1)}%`,
+          },
+          confidence: this.calculateConfidence(investment),
+        });
+      }
+    }
+
+    // 에토스/파토스/로고스 밸런스
+    const philosophyBalance = {
+      ethos: this.analyzePhilosophyBranch(growthStats.ethosInvestments, growthStats.statWinCorrelation),
+      pathos: this.analyzePhilosophyBranch(growthStats.pathosInvestments, growthStats.statWinCorrelation),
+      logos: this.analyzePhilosophyBranch(growthStats.logosInvestments, growthStats.statWinCorrelation),
+    };
+
+    // 다양성 점수 계산
+    const investmentRates = allStats.map(s => (growthStats.statInvestments[s] || 0) / totalInvestments);
+    const diversityScore = 1 - this.calculateGini(investmentRates);
+
+    return {
+      statContributions: statContributions.sort((a, b) => b.winCorrelation - a.winCorrelation),
+      philosophyBalance,
+      mustHaveStats,
+      diversityScore,
+      recommendations,
+    };
+  }
+
+  /**
+   * 철학 분기 분석 헬퍼
+   */
+  private analyzePhilosophyBranch(
+    investments: Record<string, number>,
+    correlations: Record<string, number>
+  ): { avgLevel: number; winCorrelation: number } {
+    const keys = Object.keys(investments);
+    if (keys.length === 0) {
+      return { avgLevel: 0, winCorrelation: 0 };
+    }
+
+    const totalInvestment = Object.values(investments).reduce((a, b) => a + b, 0);
+    const avgLevel = totalInvestment / Math.max(1, this.stats.runStats.totalRuns);
+
+    // 해당 분기 스탯들의 평균 상관관계
+    const relatedCorrelations = keys
+      .map(k => correlations[k] || 0)
+      .filter(c => c !== 0);
+    const winCorrelation = relatedCorrelations.length > 0
+      ? relatedCorrelations.reduce((a, b) => a + b, 0) / relatedCorrelations.length
+      : 0;
+
+    return { avgLevel, winCorrelation };
+  }
+
+  /**
+   * 성장 경로 분석
+   */
+  analyzeGrowthPaths(): GrowthPathAnalysis {
+    const { growthStats } = this.stats;
+    const pathStats = growthStats.growthPathStats || [];
+
+    // 최적 경로 (승률 높은 순)
+    const sortedByWinRate = [...pathStats]
+      .filter(p => p.count >= 5)
+      .sort((a, b) => b.winRate - a.winRate);
+
+    const optimalPaths = sortedByWinRate.slice(0, 5).map(p => ({
+      path: p.path,
+      count: p.count,
+      winRate: p.winRate,
+      avgFinalLevel: p.avgFinalLevel,
+      description: this.describeGrowthPath(p.path, p.winRate),
+    }));
+
+    // 위험 경로 (승률 낮은 순)
+    const riskyPaths = sortedByWinRate
+      .slice(-5)
+      .reverse()
+      .filter(p => p.winRate < this.stats.runStats.successRate * 0.7)
+      .map(p => ({
+        path: p.path,
+        count: p.count,
+        winRate: p.winRate,
+        issue: `평균 승률(${(this.stats.runStats.successRate * 100).toFixed(0)}%)보다 ${((this.stats.runStats.successRate - p.winRate) * 100).toFixed(0)}% 낮음`,
+        suggestion: this.suggestPathImprovement(p.path),
+      }));
+
+    // 경로 다양성
+    const pathCounts = pathStats.map(p => p.count);
+    const uniquePaths = pathStats.length;
+    const giniCoefficient = this.calculateGini(pathCounts);
+    const healthRating: 'healthy' | 'imbalanced' | 'critical' =
+      giniCoefficient < 0.4 ? 'healthy' :
+      giniCoefficient < 0.6 ? 'imbalanced' : 'critical';
+
+    // 로고스 효과 활용도
+    const logosUsage = this.analyzeLogosUsage();
+
+    return {
+      optimalPaths,
+      riskyPaths,
+      pathDiversity: {
+        uniquePaths,
+        giniCoefficient,
+        healthRating,
+      },
+      logosUsage,
+    };
+  }
+
+  /**
+   * 성장 경로 설명 생성
+   */
+  private describeGrowthPath(path: string, winRate: number): string {
+    const parts = path.split('→');
+    const firstFocus = parts[0] || '없음';
+
+    if (winRate > 0.7) {
+      return `${firstFocus} 우선 투자로 높은 승률 달성. 안정적인 경로.`;
+    } else if (winRate > 0.5) {
+      return `${firstFocus} 시작, 균형 잡힌 성장. 무난한 경로.`;
+    } else {
+      return `${firstFocus} 시작 경로. 개선 여지 있음.`;
+    }
+  }
+
+  /**
+   * 경로 개선 제안 생성
+   */
+  private suggestPathImprovement(path: string): string {
+    const parts = path.split('→');
+    if (parts.length < 2) {
+      return '더 다양한 스탯에 투자 고려';
+    }
+
+    // 가장 성공적인 경로와 비교
+    const { growthStats } = this.stats;
+    const bestPath = (growthStats.growthPathStats || [])
+      .filter(p => p.count >= 5)
+      .sort((a, b) => b.winRate - a.winRate)[0];
+
+    if (bestPath) {
+      const bestParts = bestPath.path.split('→');
+      return `${bestParts[0]} 우선 투자 경로가 더 효과적 (승률 +${((bestPath.winRate - this.stats.runStats.successRate) * 100).toFixed(0)}%)`;
+    }
+
+    return '초반 방어력/공격력 밸런스 조정 고려';
+  }
+
+  /**
+   * 로고스 효과 활용도 분석
+   */
+  private analyzeLogosUsage(): GrowthPathAnalysis['logosUsage'] {
+    const { growthStats } = this.stats;
+    const logosActivations = growthStats.logosActivations || {};
+    const result: GrowthPathAnalysis['logosUsage'] = [];
+
+    for (const [effectName, activations] of Object.entries(logosActivations)) {
+      // 활용도 계산 (전투당 평균 발동 횟수 기반)
+      const avgBattles = this.stats.runStats.avgBattlesWon * this.stats.runStats.totalRuns;
+      const utilization = Math.min(1, activations / Math.max(1, avgBattles) * 10);
+
+      result.push({
+        effectName,
+        activations,
+        winRateWith: this.stats.runStats.successRate, // 실제로는 더 정교한 계산 필요
+        utilization,
+      });
+    }
+
+    return result.sort((a, b) => b.activations - a.activations);
+  }
+
+  /**
+   * 승급 밸런스 분석
+   */
+  analyzeUpgradeBalance(): UpgradeBalanceAnalysis {
+    const { upgradeStats, shopServiceStats, cardDeepStats, cardContributionStats } = this.stats;
+    const cardUpgradeEfficiency: UpgradeBalanceAnalysis['cardUpgradeEfficiency'] = [];
+    const overUpgraded: UpgradeBalanceAnalysis['overUpgraded'] = [];
+    const underUpgraded: UpgradeBalanceAnalysis['underUpgraded'] = [];
+
+    // 전체 승급 통계
+    const overall = {
+      totalUpgrades: upgradeStats.totalUpgrades,
+      avgUpgradesPerRun: upgradeStats.avgUpgradesPerRun,
+      upgradeWinCorrelation: upgradeStats.upgradeWinCorrelation,
+      optimalUpgradeCount: this.calculateOptimalUpgradeCount(),
+    };
+
+    // 카드별 승급 효율 분석
+    const upgradedCards = { ...upgradeStats.upgradesByCard, ...shopServiceStats.upgradedCards };
+    const cardEfficiencyMap: Map<string, { value: number; count: number }> = new Map();
+
+    for (const [cardId, upgradeCount] of Object.entries(upgradedCards)) {
+      if (upgradeCount === 0) continue;
+
+      const deepStats = cardDeepStats.get(cardId);
+      const contribution = cardContributionStats.contribution[cardId] || 0;
+
+      if (!deepStats) continue;
+
+      // 승급 효율 = 기여도 / 승급 횟수 (승급당 가치)
+      const efficiency = contribution / Math.max(1, upgradeCount);
+      cardEfficiencyMap.set(cardId, { value: efficiency, count: upgradeCount });
+
+      // 승률 부스트 추정
+      const winRateBoost = contribution * (upgradeCount > 0 ? 0.1 : 0);
+
+      // 평가 결정
+      let rating: 'must_upgrade' | 'high_value' | 'moderate' | 'low_value' | 'waste';
+      if (contribution > 0.2) {
+        rating = 'must_upgrade';
+      } else if (contribution > 0.1) {
+        rating = 'high_value';
+      } else if (contribution > 0) {
+        rating = 'moderate';
+      } else if (contribution > -0.1) {
+        rating = 'low_value';
+      } else {
+        rating = 'waste';
+      }
+
+      cardUpgradeEfficiency.push({
+        cardId,
+        cardName: deepStats.cardName,
+        upgradeCount,
+        winRateBoost,
+        priorityRank: 0, // 나중에 정렬 후 설정
+        rating,
+      });
+    }
+
+    // 우선순위 순위 부여
+    cardUpgradeEfficiency.sort((a, b) => b.winRateBoost - a.winRateBoost);
+    cardUpgradeEfficiency.forEach((c, i) => { c.priorityRank = i + 1; });
+
+    // 과다/과소 승급 분석
+    const avgUpgradeCount = overall.avgUpgradesPerRun;
+    const avgContribution = Array.from(cardContributionStats.contribution.values())
+      .reduce((a, b) => a + b, 0) / Math.max(1, cardDeepStats.size);
+
+    for (const card of cardUpgradeEfficiency) {
+      const contribution = cardContributionStats.contribution[card.cardId] || 0;
+      const expectedUpgrades = contribution > avgContribution
+        ? avgUpgradeCount * (contribution / avgContribution)
+        : avgUpgradeCount * 0.5;
+
+      if (card.upgradeCount > expectedUpgrades * 1.5 && contribution < 0.05) {
+        overUpgraded.push({
+          cardId: card.cardId,
+          cardName: card.cardName,
+          upgradeCount: card.upgradeCount,
+          actualValue: contribution,
+          suggestion: `${card.cardName} 승급 횟수 줄이고 다른 카드 승급 권장`,
+        });
+      }
+
+      if (card.upgradeCount < expectedUpgrades * 0.5 && contribution > 0.15) {
+        underUpgraded.push({
+          cardId: card.cardId,
+          cardName: card.cardName,
+          upgradeCount: card.upgradeCount,
+          potentialValue: contribution,
+          suggestion: `${card.cardName} 우선 승급 권장 (기여도 +${(contribution * 100).toFixed(0)}%)`,
+        });
+      }
+    }
+
+    // 승급 우선순위 권장
+    const priorityRecommendations = cardUpgradeEfficiency
+      .filter(c => c.rating === 'must_upgrade' || c.rating === 'high_value')
+      .slice(0, 5)
+      .map((c, i) => ({
+        rank: i + 1,
+        cardName: c.cardName,
+        reason: c.rating === 'must_upgrade'
+          ? '필수 승급 대상 (높은 승률 기여)'
+          : '높은 가치 (승급 효율 우수)',
+        expectedImpact: c.winRateBoost,
+      }));
+
+    return {
+      overall,
+      cardUpgradeEfficiency: cardUpgradeEfficiency.slice(0, 20), // 상위 20개만
+      overUpgraded,
+      underUpgraded,
+      priorityRecommendations,
+    };
+  }
+
+  /**
+   * 최적 승급 횟수 계산
+   */
+  private calculateOptimalUpgradeCount(): number {
+    const { upgradeStats } = this.stats;
+    // 승률과 승급 횟수의 상관관계가 양수면 더 많이 승급해야 함
+    if (upgradeStats.upgradeWinCorrelation > 0.1) {
+      return Math.ceil(upgradeStats.avgUpgradesPerRun * 1.3);
+    } else if (upgradeStats.upgradeWinCorrelation < -0.1) {
+      return Math.floor(upgradeStats.avgUpgradesPerRun * 0.7);
+    }
+    return Math.round(upgradeStats.avgUpgradesPerRun);
   }
 }
 

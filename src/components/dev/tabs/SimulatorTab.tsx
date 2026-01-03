@@ -2099,6 +2099,178 @@ const SimulatorTab = memo(function SimulatorTab() {
                           </div>
                         )}
                       </div>
+
+                      {/* 특성(Trait) 밸런스 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#ec4899' }}>🧬 특성 밸런스</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        {/* 스탯별 기여도 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>스탯별 승률 기여도</div>
+                          {report.traitBalance.statContributions.slice(0, 6).map((stat, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{stat.statName}</span>
+                              <span style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                color: stat.rating === 'overpowered' ? '#ef4444' :
+                                       stat.rating === 'balanced' ? '#22c55e' :
+                                       stat.rating === 'underpowered' ? '#f59e0b' : '#64748b'
+                              }}>
+                                {stat.winCorrelation >= 0 ? '+' : ''}{(stat.winCorrelation * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          ))}
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
+                            다양성 점수: {(report.traitBalance.diversityScore * 100).toFixed(0)}%
+                          </div>
+                        </div>
+
+                        {/* 철학 분기 밸런스 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>철학 분기 밸런스</div>
+                          {[
+                            { name: '에토스', data: report.traitBalance.philosophyBalance.ethos, color: '#3b82f6' },
+                            { name: '파토스', data: report.traitBalance.philosophyBalance.pathos, color: '#ef4444' },
+                            { name: '로고스', data: report.traitBalance.philosophyBalance.logos, color: '#22c55e' },
+                          ].map((phil, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '0.8rem', color: phil.color, fontWeight: 'bold' }}>{phil.name}</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>평균 레벨: {phil.data.avgLevel.toFixed(1)}</div>
+                                <div style={{ fontSize: '0.75rem', color: phil.data.winCorrelation > 0 ? '#22c55e' : '#ef4444' }}>
+                                  승률: {phil.data.winCorrelation >= 0 ? '+' : ''}{(phil.data.winCorrelation * 100).toFixed(1)}%
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 필수 스탯 경고 */}
+                      {report.traitBalance.mustHaveStats.length > 0 && (
+                        <div style={{ padding: '10px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #ec4899' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 'bold', marginBottom: '4px' }}>⚠️ 필수 스탯 감지</div>
+                          {report.traitBalance.mustHaveStats.map((stat, i) => (
+                            <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
+                              {stat.statName}: 기여도 +{(stat.contributionGap * 100).toFixed(0)}% (보유 {(stat.winRateWith * 100).toFixed(0)}% vs 미보유 {(stat.winRateWithout * 100).toFixed(0)}%)
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 성장 경로 분석 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#14b8a6' }}>🌱 성장 경로 분석</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        {/* 최적 경로 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>최적 성장 경로 TOP 5</div>
+                          {report.growthPaths.optimalPaths.length > 0 ? (
+                            report.growthPaths.optimalPaths.map((path, i) => (
+                              <div key={i} style={{ marginBottom: '8px', padding: '6px', background: 'rgba(20, 184, 166, 0.1)', borderRadius: '4px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#5eead4', fontWeight: 'bold' }}>{i + 1}. {path.path}</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>{(path.winRate * 100).toFixed(0)}%</span>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{path.description}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>데이터 부족</div>
+                          )}
+                        </div>
+
+                        {/* 위험 경로 */}
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>위험 성장 경로</div>
+                          {report.growthPaths.riskyPaths.length > 0 ? (
+                            report.growthPaths.riskyPaths.map((path, i) => (
+                              <div key={i} style={{ marginBottom: '8px', padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#f87171' }}>{path.path}</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{(path.winRate * 100).toFixed(0)}%</span>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{path.issue}</div>
+                                <div style={{ fontSize: '0.7rem', color: '#22c55e' }}>💡 {path.suggestion}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>위험 경로 없음</div>
+                          )}
+                          <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#64748b' }}>
+                            경로 다양성: {report.growthPaths.pathDiversity.uniquePaths}개 고유 경로,
+                            Gini: {report.growthPaths.pathDiversity.giniCoefficient.toFixed(3)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 승급 밸런스 분석 */}
+                      <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>⬆️ 승급 밸런스</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>총 승급</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#f59e0b' }}>{report.upgradeBalance.overall.totalUpgrades}</div>
+                        </div>
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>런당 평균</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#e2e8f0' }}>{report.upgradeBalance.overall.avgUpgradesPerRun.toFixed(1)}</div>
+                        </div>
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>승률 상관</div>
+                          <div style={{
+                            fontSize: '1.25rem',
+                            fontWeight: 'bold',
+                            color: report.upgradeBalance.overall.upgradeWinCorrelation > 0 ? '#22c55e' : '#ef4444'
+                          }}>
+                            {report.upgradeBalance.overall.upgradeWinCorrelation >= 0 ? '+' : ''}
+                            {(report.upgradeBalance.overall.upgradeWinCorrelation * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>최적 횟수</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#3b82f6' }}>{report.upgradeBalance.overall.optimalUpgradeCount}</div>
+                        </div>
+                      </div>
+
+                      {/* 승급 우선순위 권장 */}
+                      {report.upgradeBalance.priorityRecommendations.length > 0 && (
+                        <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>🎯 승급 우선순위 권장</div>
+                          {report.upgradeBalance.priorityRecommendations.map((rec, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>
+                                {rec.rank}. {rec.cardName}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rec.reason}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 과다/과소 승급 경고 */}
+                      {(report.upgradeBalance.overUpgraded.length > 0 || report.upgradeBalance.underUpgraded.length > 0) && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          {report.upgradeBalance.overUpgraded.length > 0 && (
+                            <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 'bold', marginBottom: '4px' }}>⬇️ 과다 승급 (비효율)</div>
+                              {report.upgradeBalance.overUpgraded.slice(0, 3).map((card, i) => (
+                                <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
+                                  {card.cardName} ({card.upgradeCount}회) - {card.suggestion}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {report.upgradeBalance.underUpgraded.length > 0 && (
+                            <div style={{ padding: '10px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#4ade80', fontWeight: 'bold', marginBottom: '4px' }}>⬆️ 과소 승급 (기회손실)</div>
+                              {report.upgradeBalance.underUpgraded.slice(0, 3).map((card, i) => (
+                                <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
+                                  {card.cardName} ({card.upgradeCount}회) - {card.suggestion}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   );
                 })()}
