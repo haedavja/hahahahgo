@@ -96,6 +96,15 @@ const COMBAT_REWARD_CARDS = [
 // 상징 풀 (엘리트/보스 보상용) - 이제 전체 RELICS에서 동적으로 선택
 // const REWARD_RELICS = ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor']; // 레거시
 
+// 상징 등급별 가중치 (legendary는 보스에서만, dev는 제외)
+const RELIC_RARITY_WEIGHTS: Record<string, number> = {
+  common: 50,
+  rare: 30,
+  special: 15,
+  legendary: 0,  // 일반 보상에서는 제외 (보스 전용)
+  dev: 0,        // 개발자 전용 제외
+};
+
 // ==================== 타입 정의 ====================
 
 export interface PlayerRunState {
@@ -959,22 +968,45 @@ export class RunSimulator {
         }
       }
 
-      // 엘리트/보스 상징 획득 (전체 상징 풀에서 선택)
-      if ((isElite || isBoss) && getGlobalRandom().chance(0.5)) {
+      // 보스 상징 획득: legendary 확정 획득
+      if (isBoss) {
         const allRelicIds = Object.keys(this.relicLibrary);
         const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
         if (availableRelics.length > 0) {
-          const newRelic = getGlobalRandom().pick(availableRelics);
-          player.relics.push(newRelic);
-          result.relicsGained.push(newRelic);
+          const newRelic = this.selectLegendaryRelic(availableRelics);
+          if (newRelic) {
+            player.relics.push(newRelic);
+            result.relicsGained.push(newRelic);
 
-          // 상징 획득 통계 기록
-          if (this.statsCollector) {
-            this.statsCollector.recordRelicAcquired({
-              relicId: newRelic,
-              floor: node.layer,
-              source: isBoss ? 'boss' : 'battle',
-            });
+            // 상징 획득 통계 기록
+            if (this.statsCollector) {
+              this.statsCollector.recordRelicAcquired({
+                relicId: newRelic,
+                floor: node.layer,
+                source: 'boss',
+              });
+            }
+          }
+        }
+      }
+      // 엘리트 상징 획득: 등급별 가중치 적용 (legendary 제외), 50% 확률
+      else if (isElite && getGlobalRandom().chance(0.5)) {
+        const allRelicIds = Object.keys(this.relicLibrary);
+        const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
+        if (availableRelics.length > 0) {
+          const newRelic = this.selectRelicByRarity(availableRelics, false);
+          if (newRelic) {
+            player.relics.push(newRelic);
+            result.relicsGained.push(newRelic);
+
+            // 상징 획득 통계 기록
+            if (this.statsCollector) {
+              this.statsCollector.recordRelicAcquired({
+                relicId: newRelic,
+                floor: node.layer,
+                source: 'battle',
+              });
+            }
           }
         }
       }
@@ -1792,6 +1824,85 @@ export class RunSimulator {
         relicsGained: dungeonResult.relicsGained || [],
       });
     }
+  }
+
+  /**
+   * 등급별 가중치를 적용하여 상징 선택
+   * @param availableRelics 획득 가능한 상징 ID 배열
+   * @param includeLegendary legendary 등급 포함 여부 (보스 전용)
+   * @returns 선택된 상징 ID 또는 null
+   */
+  private selectRelicByRarity(
+    availableRelics: string[],
+    includeLegendary: boolean = false
+  ): string | null {
+    if (availableRelics.length === 0) return null;
+
+    // 등급별로 상징 분류
+    const relicsByRarity: Record<string, string[]> = {};
+    for (const relicId of availableRelics) {
+      const relic = this.relicLibrary[relicId];
+      const rarity = relic?.rarity || 'common';
+      if (!relicsByRarity[rarity]) {
+        relicsByRarity[rarity] = [];
+      }
+      relicsByRarity[rarity].push(relicId);
+    }
+
+    // 가중치 계산 (해당 등급의 상징이 있는 경우만)
+    const weightedPool: { relicId: string; weight: number }[] = [];
+    for (const [rarity, relicIds] of Object.entries(relicsByRarity)) {
+      let weight = RELIC_RARITY_WEIGHTS[rarity] || 0;
+
+      // legendary는 includeLegendary가 true일 때만 포함
+      if (rarity === 'legendary' && !includeLegendary) {
+        weight = 0;
+      }
+
+      if (weight > 0) {
+        // 각 상징에 동일한 가중치 부여 (등급 가중치 / 해당 등급 상징 수)
+        const perRelicWeight = weight / relicIds.length;
+        for (const relicId of relicIds) {
+          weightedPool.push({ relicId, weight: perRelicWeight });
+        }
+      }
+    }
+
+    if (weightedPool.length === 0) return null;
+
+    // 가중치 기반 랜덤 선택
+    const totalWeight = weightedPool.reduce((sum, item) => sum + item.weight, 0);
+    let roll = getGlobalRandom().next() * totalWeight;
+
+    for (const item of weightedPool) {
+      roll -= item.weight;
+      if (roll <= 0) {
+        return item.relicId;
+      }
+    }
+
+    // 폴백: 마지막 항목 반환
+    return weightedPool[weightedPool.length - 1].relicId;
+  }
+
+  /**
+   * 보스 전용: legendary 상징 선택
+   * @param availableRelics 획득 가능한 상징 ID 배열
+   * @returns legendary 상징 ID 또는 null (없으면 일반 선택)
+   */
+  private selectLegendaryRelic(availableRelics: string[]): string | null {
+    // legendary 상징만 필터링
+    const legendaryRelics = availableRelics.filter(relicId => {
+      const relic = this.relicLibrary[relicId];
+      return relic?.rarity === 'legendary';
+    });
+
+    if (legendaryRelics.length > 0) {
+      return getGlobalRandom().pick(legendaryRelics);
+    }
+
+    // legendary가 없으면 등급별 가중치로 선택 (legendary 포함)
+    return this.selectRelicByRarity(availableRelics, true);
   }
 
   /**
