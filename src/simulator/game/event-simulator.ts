@@ -16,17 +16,50 @@ const log = getLogger('EventSimulator');
 
 // ==================== 타입 정의 ====================
 
+/** 특수 보상 타입 */
+export interface SpecialRewards {
+  relic?: string;           // 상징 획득
+  relic2?: string;          // 추가 상징
+  card?: string;            // 카드 획득
+  card2?: string;           // 추가 카드
+  trait?: string;           // 특성 획득
+  upgradeAllCards?: boolean; // 모든 카드 승급
+  fullHeal?: boolean;       // 체력 전체 회복
+  maxHp?: number;           // 최대 HP 증가
+}
+
+/** 특수 패널티 타입 */
+export interface SpecialPenalties {
+  maxHpPercent?: number;    // 최대 HP의 N% 감소
+  maxHp?: number;           // 최대 HP 고정 감소
+  hpPercent?: number;       // 현재 HP의 N% 손실
+  setHp?: number;           // HP를 특정 값으로 설정
+  removeCards?: number;     // 덱에서 N장 제거
+  removeHalfDeck?: boolean; // 덱 절반 제거
+  resetDeck?: boolean;      // 덱 초기화
+  card?: string;            // 저주 카드 추가
+  mapRisk?: number;         // 맵 위험도 증가
+}
+
 export interface EventChoice {
   id: string;
   label: string;
   cost?: Record<string, number>;
-  rewards?: Record<string, number>;
-  penalties?: Record<string, number>;
+  rewards?: Record<string, number> & SpecialRewards;
+  penalties?: Record<string, number> & SpecialPenalties;
   statRequirement?: { [stat: string]: number };
   nextStage?: string;
   nextEvent?: string;
   resultDescription?: string;
   openShop?: string;
+  // 확률 기반 이벤트
+  probability?: number;
+  successRewards?: Record<string, number> & SpecialRewards;
+  failurePenalties?: Record<string, number> & SpecialPenalties;
+  // 전투 트리거
+  combatTrigger?: boolean;
+  combatRewards?: Record<string, number>;
+  combatId?: string;
 }
 
 export interface EventStage {
@@ -65,6 +98,12 @@ export interface EventSimulationConfig {
   stats: PlayerStats;
   strategy: 'greedy' | 'safe' | 'balanced' | 'random';
   allowNegativeResources?: boolean;
+  /** 현재 덱 (카드 제거/초기화에 사용) */
+  deck?: string[];
+  /** 강화된 카드 목록 */
+  upgradedCards?: string[];
+  /** 전투 승률 (0-1, 전투 트리거 이벤트용) */
+  combatWinRate?: number;
 }
 
 export interface EventOutcome {
@@ -80,6 +119,11 @@ export interface EventOutcome {
   description: string;
   cardsGained?: string[];   // 획득한 카드
   relicsGained?: string[];  // 획득한 상징
+  cardsRemoved?: number;    // 제거된 카드 수
+  deckReset?: boolean;      // 덱 초기화 여부
+  allCardsUpgraded?: boolean; // 전체 카드 승급 여부
+  combatTriggered?: boolean;  // 전투 발생 여부
+  probabilityRoll?: { rolled: boolean; success: boolean }; // 확률 결과
 }
 
 export interface EventAnalysis {
@@ -228,6 +272,9 @@ export class EventSimulator {
 
   /**
    * 단일 이벤트 시뮬레이션 (다단계 이벤트 완전 처리)
+   * - 확률 기반 이벤트 지원
+   * - 특수 효과 (HP%, 카드 제거, 전체 강화 등) 지원
+   * - 전투 트리거 지원
    */
   simulateEvent(
     eventId: string,
@@ -250,6 +297,11 @@ export class EventSimulator {
     let lastChoiceName = '';
     let cardsGained: string[] = [];
     let relicsGained: string[] = [];
+    let cardsRemoved = 0;
+    let deckReset = false;
+    let allCardsUpgraded = false;
+    let combatTriggered = false;
+    let lastProbabilityRoll: { rolled: boolean; success: boolean } | undefined;
     let maxIterations = 10; // 무한루프 방지
 
     while (maxIterations-- > 0) {
@@ -278,16 +330,29 @@ export class EventSimulator {
         // 선택 불가능하면 무비용 선택지 찾기
         const fallback = choices.find(c => !c.cost && !c.statRequirement);
         if (fallback) {
-          const outcome = this.executeChoiceWithTracking(fallback, currentResources);
+          const outcome = this.executeChoiceWithTracking(fallback, currentResources, config);
           this.mergeResourceChanges(accumulatedChanges, outcome.resourceChanges);
           currentResources = outcome.finalResources;
           if (outcome.description) finalDescription = outcome.description;
           lastChoiceId = fallback.id;
           lastChoiceName = fallback.label;
 
-          // 카드/상징 보상 수집
-          if (fallback.rewards?.card) cardsGained.push(String(fallback.rewards.card));
-          if (fallback.rewards?.relic) relicsGained.push(String(fallback.rewards.relic));
+          // 특수 효과 수집
+          if (outcome.specialEffects.relicsGained) {
+            relicsGained.push(...outcome.specialEffects.relicsGained);
+          }
+          if (outcome.specialEffects.cardsGained) {
+            cardsGained.push(...outcome.specialEffects.cardsGained);
+          }
+          if (outcome.specialEffects.cardsRemoved) {
+            cardsRemoved += outcome.specialEffects.cardsRemoved;
+          }
+          if (outcome.specialEffects.deckReset) deckReset = true;
+          if (outcome.specialEffects.allCardsUpgraded) allCardsUpgraded = true;
+          if (outcome.specialEffects.combatTriggered) combatTriggered = true;
+          if (outcome.specialEffects.probabilityRoll) {
+            lastProbabilityRoll = outcome.specialEffects.probabilityRoll;
+          }
 
           if (fallback.nextStage) {
             currentStage = fallback.nextStage;
@@ -301,17 +366,30 @@ export class EventSimulator {
       const selectedChoice = this.selectByStrategy(selectableChoices, currentConfig);
       choiceHistory.push(selectedChoice.id);
 
-      // 선택 실행
-      const outcome = this.executeChoiceWithTracking(selectedChoice, currentResources);
+      // 선택 실행 (config 전달)
+      const outcome = this.executeChoiceWithTracking(selectedChoice, currentResources, config);
       this.mergeResourceChanges(accumulatedChanges, outcome.resourceChanges);
       currentResources = outcome.finalResources;
       if (outcome.description) finalDescription = outcome.description;
       lastChoiceId = selectedChoice.id;
       lastChoiceName = selectedChoice.label;
 
-      // 카드/상징 보상 수집
-      if (selectedChoice.rewards?.card) cardsGained.push(String(selectedChoice.rewards.card));
-      if (selectedChoice.rewards?.relic) relicsGained.push(String(selectedChoice.rewards.relic));
+      // 특수 효과 수집
+      if (outcome.specialEffects.relicsGained) {
+        relicsGained.push(...outcome.specialEffects.relicsGained);
+      }
+      if (outcome.specialEffects.cardsGained) {
+        cardsGained.push(...outcome.specialEffects.cardsGained);
+      }
+      if (outcome.specialEffects.cardsRemoved) {
+        cardsRemoved += outcome.specialEffects.cardsRemoved;
+      }
+      if (outcome.specialEffects.deckReset) deckReset = true;
+      if (outcome.specialEffects.allCardsUpgraded) allCardsUpgraded = true;
+      if (outcome.specialEffects.combatTriggered) combatTriggered = true;
+      if (outcome.specialEffects.probabilityRoll) {
+        lastProbabilityRoll = outcome.specialEffects.probabilityRoll;
+      }
 
       // 다음 단계가 있으면 계속, 없으면 종료
       if (selectedChoice.nextStage) {
@@ -335,6 +413,11 @@ export class EventSimulator {
       description: finalDescription,
       cardsGained,
       relicsGained,
+      cardsRemoved: cardsRemoved > 0 ? cardsRemoved : undefined,
+      deckReset: deckReset || undefined,
+      allCardsUpgraded: allCardsUpgraded || undefined,
+      combatTriggered: combatTriggered || undefined,
+      probabilityRoll: lastProbabilityRoll,
     };
   }
 
@@ -347,51 +430,210 @@ export class EventSimulator {
     }
   }
 
+  /** 특수 효과 무시할 키 목록 */
+  private static readonly SPECIAL_KEYS = new Set([
+    'card', 'relic', 'relic2', 'card2', 'trait',
+    'upgradeAllCards', 'fullHeal', 'maxHpPercent', 'hpPercent',
+    'setHp', 'removeCards', 'removeHalfDeck', 'resetDeck', 'mapRisk'
+  ]);
+
   /**
-   * 선택 실행 (자원 추적 포함)
+   * 선택 실행 (자원 추적 포함) - 확률 및 특수 효과 지원
    */
   private executeChoiceWithTracking(
     choice: EventChoice,
-    currentResources: PlayerResources
-  ): { resourceChanges: Record<string, number>; finalResources: PlayerResources; description: string } {
+    currentResources: PlayerResources,
+    config?: EventSimulationConfig
+  ): {
+    resourceChanges: Record<string, number>;
+    finalResources: PlayerResources;
+    description: string;
+    specialEffects: {
+      cardsRemoved?: number;
+      deckReset?: boolean;
+      allCardsUpgraded?: boolean;
+      combatTriggered?: boolean;
+      probabilityRoll?: { rolled: boolean; success: boolean };
+      relicsGained?: string[];
+      cardsGained?: string[];
+    };
+  } {
     const resourceChanges: Record<string, number> = {};
     const finalResources = { ...currentResources };
+    const specialEffects: {
+      cardsRemoved?: number;
+      deckReset?: boolean;
+      allCardsUpgraded?: boolean;
+      combatTriggered?: boolean;
+      probabilityRoll?: { rolled: boolean; success: boolean };
+      relicsGained?: string[];
+      cardsGained?: string[];
+    } = {};
 
-    // 비용 적용
+    // 1. 확률 기반 이벤트 처리
+    if (choice.probability !== undefined) {
+      const success = getGlobalRandom().chance(choice.probability);
+      specialEffects.probabilityRoll = { rolled: true, success };
+
+      if (success && choice.successRewards) {
+        this.applyRewards(choice.successRewards, finalResources, resourceChanges, specialEffects);
+      } else if (!success && choice.failurePenalties) {
+        this.applyPenalties(choice.failurePenalties, finalResources, resourceChanges, specialEffects, config);
+      }
+
+      return {
+        resourceChanges,
+        finalResources,
+        description: choice.resultDescription || '',
+        specialEffects,
+      };
+    }
+
+    // 2. 전투 트리거 처리
+    if (choice.combatTrigger) {
+      specialEffects.combatTriggered = true;
+      const combatWinRate = config?.combatWinRate ?? 0.75;
+      const won = getGlobalRandom().chance(combatWinRate);
+
+      if (won && choice.combatRewards) {
+        this.applyRewards(choice.combatRewards as Record<string, number>, finalResources, resourceChanges, specialEffects);
+      }
+
+      return {
+        resourceChanges,
+        finalResources,
+        description: choice.resultDescription || '',
+        specialEffects,
+      };
+    }
+
+    // 3. 비용 적용
     if (choice.cost) {
       for (const [resource, amount] of Object.entries(choice.cost)) {
-        resourceChanges[resource] = -(amount as number);
-        const currentValue = getResourceValue(finalResources, resource);
-        setResourceValue(finalResources, resource, currentValue - (amount as number));
+        if (resource === 'hpPercent') {
+          // HP 퍼센트 비용
+          const hpLoss = Math.floor(finalResources.hp * ((amount as number) / 100));
+          resourceChanges.hp = (resourceChanges.hp || 0) - hpLoss;
+          finalResources.hp -= hpLoss;
+        } else if (!EventSimulator.SPECIAL_KEYS.has(resource)) {
+          resourceChanges[resource] = (resourceChanges[resource] || 0) - (amount as number);
+          const currentValue = getResourceValue(finalResources, resource);
+          setResourceValue(finalResources, resource, currentValue - (amount as number));
+        }
       }
     }
 
-    // 보상 적용
+    // 4. 보상 적용
     if (choice.rewards) {
-      for (const [resource, amount] of Object.entries(choice.rewards)) {
-        if (resource === 'card' || resource === 'relic') continue; // 별도 처리
-        resourceChanges[resource] = (resourceChanges[resource] || 0) + (amount as number);
-        const currentValue = getResourceValue(finalResources, resource);
-        setResourceValue(finalResources, resource, currentValue + (amount as number));
-      }
+      this.applyRewards(choice.rewards, finalResources, resourceChanges, specialEffects);
     }
 
-    // 패널티 적용 (penalties 필드)
-    const penalties = choice.penalties;
-    if (penalties) {
-      for (const [resource, amount] of Object.entries(penalties)) {
-        if (resource === 'card') continue; // 저주 카드 등 별도 처리
-        resourceChanges[resource] = (resourceChanges[resource] || 0) - (amount as number);
-        const currentValue = getResourceValue(finalResources, resource);
-        setResourceValue(finalResources, resource, currentValue - (amount as number));
-      }
+    // 5. 패널티 적용
+    if (choice.penalties) {
+      this.applyPenalties(choice.penalties, finalResources, resourceChanges, specialEffects, config);
     }
 
     return {
       resourceChanges,
       finalResources,
       description: choice.resultDescription || '',
+      specialEffects,
     };
+  }
+
+  /**
+   * 보상 적용 헬퍼
+   */
+  private applyRewards(
+    rewards: Record<string, unknown>,
+    finalResources: PlayerResources,
+    resourceChanges: Record<string, number>,
+    specialEffects: { relicsGained?: string[]; cardsGained?: string[]; allCardsUpgraded?: boolean }
+  ): void {
+    for (const [key, value] of Object.entries(rewards)) {
+      if (key === 'relic' || key === 'relic2') {
+        if (!specialEffects.relicsGained) specialEffects.relicsGained = [];
+        specialEffects.relicsGained.push(String(value));
+      } else if (key === 'card' || key === 'card2') {
+        if (!specialEffects.cardsGained) specialEffects.cardsGained = [];
+        specialEffects.cardsGained.push(String(value));
+      } else if (key === 'upgradeAllCards' && value === true) {
+        specialEffects.allCardsUpgraded = true;
+      } else if (key === 'fullHeal' && value === true) {
+        const healAmount = finalResources.maxHp - finalResources.hp;
+        resourceChanges.hp = (resourceChanges.hp || 0) + healAmount;
+        finalResources.hp = finalResources.maxHp;
+      } else if (key === 'maxHp' && typeof value === 'number') {
+        resourceChanges.maxHp = (resourceChanges.maxHp || 0) + value;
+        finalResources.maxHp += value;
+      } else if (!EventSimulator.SPECIAL_KEYS.has(key) && typeof value === 'number') {
+        resourceChanges[key] = (resourceChanges[key] || 0) + value;
+        const currentValue = getResourceValue(finalResources, key);
+        setResourceValue(finalResources, key, currentValue + value);
+      }
+    }
+  }
+
+  /**
+   * 패널티 적용 헬퍼
+   */
+  private applyPenalties(
+    penalties: Record<string, unknown>,
+    finalResources: PlayerResources,
+    resourceChanges: Record<string, number>,
+    specialEffects: { cardsRemoved?: number; deckReset?: boolean },
+    config?: EventSimulationConfig
+  ): void {
+    for (const [key, value] of Object.entries(penalties)) {
+      if (key === 'maxHpPercent' && typeof value === 'number') {
+        // 최대 HP의 N% 영구 감소
+        const maxHpLoss = Math.floor(finalResources.maxHp * (value / 100));
+        resourceChanges.maxHp = (resourceChanges.maxHp || 0) - maxHpLoss;
+        finalResources.maxHp -= maxHpLoss;
+        // 현재 HP가 최대 HP를 초과하지 않도록
+        if (finalResources.hp > finalResources.maxHp) {
+          resourceChanges.hp = (resourceChanges.hp || 0) - (finalResources.hp - finalResources.maxHp);
+          finalResources.hp = finalResources.maxHp;
+        }
+      } else if (key === 'maxHp' && typeof value === 'number') {
+        // 최대 HP 고정 감소
+        resourceChanges.maxHp = (resourceChanges.maxHp || 0) - value;
+        finalResources.maxHp -= value;
+        if (finalResources.hp > finalResources.maxHp) {
+          resourceChanges.hp = (resourceChanges.hp || 0) - (finalResources.hp - finalResources.maxHp);
+          finalResources.hp = finalResources.maxHp;
+        }
+      } else if (key === 'hpPercent' && typeof value === 'number') {
+        // 현재 HP의 N% 손실
+        const hpLoss = Math.floor(finalResources.hp * (value / 100));
+        resourceChanges.hp = (resourceChanges.hp || 0) - hpLoss;
+        finalResources.hp -= hpLoss;
+      } else if (key === 'setHp' && typeof value === 'number') {
+        // HP를 특정 값으로 설정
+        const hpChange = value - finalResources.hp;
+        resourceChanges.hp = (resourceChanges.hp || 0) + hpChange;
+        finalResources.hp = value;
+      } else if (key === 'removeCards' && typeof value === 'number') {
+        // 덱에서 N장 제거
+        specialEffects.cardsRemoved = (specialEffects.cardsRemoved || 0) + value;
+      } else if (key === 'removeHalfDeck' && value === true) {
+        // 덱 절반 제거
+        const deckSize = config?.deck?.length || 10;
+        specialEffects.cardsRemoved = (specialEffects.cardsRemoved || 0) + Math.floor(deckSize / 2);
+      } else if (key === 'resetDeck' && value === true) {
+        // 덱 초기화
+        specialEffects.deckReset = true;
+      } else if (key === 'card') {
+        // 저주 카드 - 별도 처리 (여기서는 무시)
+      } else if (key === 'mapRisk') {
+        // 맵 위험도 - 별도 처리 (여기서는 무시)
+      } else if (!EventSimulator.SPECIAL_KEYS.has(key) && typeof value === 'number') {
+        // 일반 리소스 패널티
+        resourceChanges[key] = (resourceChanges[key] || 0) - value;
+        const currentValue = getResourceValue(finalResources, key);
+        setResourceValue(finalResources, key, currentValue - value);
+      }
+    }
   }
 
   /**
