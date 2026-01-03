@@ -262,7 +262,8 @@ function updateSessionStats(event: CollectedEvent): void {
       break;
 
     case 'damage_taken':
-      if (event.actor === 'player') {
+      // 적이 플레이어에게 피해를 줄 때 (actor === 'enemy', target === 'player')
+      if (event.data.target === 'player') {
         state.currentSession.damageTaken += (event.data.amount as number) || 0;
       }
       break;
