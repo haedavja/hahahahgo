@@ -218,6 +218,9 @@ export function recordGameBattle(
     // 통계 기록
     stats.recordBattle(adapted, monster, recordContext);
 
+    // 캐시 무효화 (새 데이터 반영)
+    invalidateStatsCache();
+
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Battle recorded:', {
         result: adapted.winner,
@@ -422,16 +425,25 @@ const CACHE_TTL = 5000; // 5초
 export function getCurrentStats(): SimplifiedStats {
   const detailed = getDetailedStats();
 
-  // battleRecords에서 전투 통계 계산
+  // battleRecords에서 전투 통계 계산 (단일 순회로 최적화)
   const battleRecords = detailed.battleRecords || [];
   const battles = battleRecords.length;
-  const wins = battleRecords.filter(r => r.winner === 'player').length;
-  const losses = battles - wins;
 
-  // 평균 계산
-  const totalTurns = battleRecords.reduce((sum, r) => sum + (r.turns || 0), 0);
-  const totalDamageDealt = battleRecords.reduce((sum, r) => sum + (r.playerDamageDealt || 0), 0);
-  const totalDamageTaken = battleRecords.reduce((sum, r) => sum + (r.enemyDamageDealt || 0), 0);
+  // 단일 순회로 모든 통계 계산
+  let wins = 0;
+  let totalTurns = 0;
+  let totalDamageDealt = 0;
+  let totalDamageTaken = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const record = battleRecords[i];
+    if (record.winner === 'player') wins++;
+    totalTurns += record.turns || 0;
+    totalDamageDealt += record.playerDamageDealt || 0;
+    totalDamageTaken += record.enemyDamageDealt || 0;
+  }
+
+  const losses = battles - wins;
 
   return {
     battles,

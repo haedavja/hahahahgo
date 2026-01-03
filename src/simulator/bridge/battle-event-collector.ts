@@ -7,7 +7,6 @@
  */
 
 import { captureBattleSnapshot, runVerification, recordSyncError } from './stats-verifier';
-import { getStatsCollector, recordCardPick } from './stats-bridge';
 import type { BattleSnapshot } from './stats-verifier';
 
 // ==================== 타입 정의 ====================

@@ -6,8 +6,7 @@
  * 자동으로 데이터 일관성을 검증합니다.
  */
 
-import { getStatsCollector, getCurrentStats } from './stats-bridge';
-import type { StatsCollector } from '../analysis/stats';
+import { getCurrentStats } from './stats-bridge';
 
 // ==================== 타입 정의 ====================
 
@@ -417,10 +416,25 @@ export function runVerification(
     ...verifyCompleteness(),
   ];
 
-  const passed = allChecks.filter(c => c.passed).length;
-  const failed = allChecks.filter(c => !c.passed && c.severity !== 'warning').length;
-  const warnings = allChecks.filter(c => !c.passed && c.severity === 'warning').length;
-  const critical = allChecks.filter(c => !c.passed && c.severity === 'critical').length;
+  // 단일 순회로 통계 계산 (최적화)
+  let passed = 0;
+  let failed = 0;
+  let warnings = 0;
+  let critical = 0;
+
+  for (let i = 0; i < allChecks.length; i++) {
+    const check = allChecks[i];
+    if (check.passed) {
+      passed++;
+    } else if (check.severity === 'warning') {
+      warnings++;
+    } else if (check.severity === 'critical') {
+      critical++;
+      failed++;
+    } else {
+      failed++;
+    }
+  }
 
   // 동기화 점수 계산 (0-100)
   const totalWeight = allChecks.length;
