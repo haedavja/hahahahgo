@@ -263,10 +263,64 @@ export class StatsCollector {
     this.cardLibrary = library;
   }
 
+  // ==================== 컨텍스트 분류 헬퍼 ====================
+
+  /** HP 상태 분류 (critical: <30%, unstable: 30-60%, stable: >60%) */
+  private getHpState(currentHp: number, maxHp: number): 'critical' | 'unstable' | 'stable' {
+    const ratio = maxHp > 0 ? currentHp / maxHp : 1;
+    if (ratio < 0.3) return 'critical';
+    if (ratio < 0.6) return 'unstable';
+    return 'stable';
+  }
+
+  /** 층 범위 분류 (early: 1-5, mid: 6-10, late: 11+) */
+  private getFloorRange(floor: number): 'early' | 'mid' | 'late' {
+    if (floor <= 5) return 'early';
+    if (floor <= 10) return 'mid';
+    return 'late';
+  }
+
+  /** 적 유형 분류 */
+  private getEnemyType(monster: { isBoss?: boolean; isElite?: boolean }): 'normal' | 'elite' | 'boss' {
+    if (monster.isBoss) return 'boss';
+    if (monster.isElite) return 'elite';
+    return 'normal';
+  }
+
+  /** 턴 범위 분류 */
+  private getTurnRange(turn: number): 'firstTurn' | 'earlyTurns' | 'midTurns' | 'lateTurns' {
+    if (turn === 1) return 'firstTurn';
+    if (turn <= 3) return 'earlyTurns';
+    if (turn <= 6) return 'midTurns';
+    return 'lateTurns';
+  }
+
+  /** 컨텍스트 통계 업데이트 헬퍼 */
+  private updateContextStats(
+    ctx: { uses: number; avgDamage: number; avgBlock: number; winRate: number },
+    uses: number,
+    damage: number,
+    block: number,
+    isWin: boolean
+  ) {
+    const prevUses = ctx.uses;
+    const prevWins = Math.round(ctx.winRate * prevUses);
+
+    ctx.uses += uses;
+
+    // 누적 평균 계산 (이전 평균 * 이전 횟수 + 새 값) / 새 횟수
+    if (ctx.uses > 0) {
+      ctx.avgDamage = (ctx.avgDamage * prevUses + damage) / ctx.uses;
+      ctx.avgBlock = (ctx.avgBlock * prevUses + block) / ctx.uses;
+      ctx.winRate = (prevWins + (isWin ? uses : 0)) / ctx.uses;
+    }
+  }
+
   /** 전투 결과 기록 */
   recordBattle(
     result: BattleResult,
-    monster: { id: string; name: string; tier?: number; isBoss?: boolean; isElite?: boolean }
+    monster: { id: string; name: string; tier?: number; isBoss?: boolean; isElite?: boolean },
+    context?: { floor?: number; playerMaxHp?: number }
   ) {
     const battleId = `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const isWin = result.winner === 'player';
@@ -304,9 +358,17 @@ export class StatsCollector {
 
     this.battleRecords.push(record);
 
+    // 컨텍스트 정보 계산
+    const battleContext = {
+      hpState: this.getHpState(result.playerFinalHp, context?.playerMaxHp ?? 100),
+      floorRange: this.getFloorRange(context?.floor ?? 1),
+      enemyType: this.getEnemyType(monster),
+      turns: result.turns,
+    };
+
     // 카드 통계 업데이트
     for (const [cardId, uses] of Object.entries(result.cardUsage)) {
-      this.updateCardStats(cardId, uses, isWin, result.events);
+      this.updateCardStats(cardId, uses, isWin, result.events, battleContext);
 
       // 카드 심층 분석: 사용 횟수 기록
       this.cardPlayCounts[cardId] = (this.cardPlayCounts[cardId] || 0) + uses;
@@ -350,7 +412,18 @@ export class StatsCollector {
   }
 
   /** 카드 통계 업데이트 */
-  private updateCardStats(cardId: string, uses: number, isWin: boolean, events: BattleEvent[]) {
+  private updateCardStats(
+    cardId: string,
+    uses: number,
+    isWin: boolean,
+    events: BattleEvent[],
+    battleContext?: {
+      hpState: 'critical' | 'unstable' | 'stable';
+      floorRange: 'early' | 'mid' | 'late';
+      enemyType: 'normal' | 'elite' | 'boss';
+      turns: number;
+    }
+  ) {
     if (!this.cardStats.has(cardId)) {
       const cardInfo = this.cardLibrary[cardId] || { name: cardId, type: 'unknown' };
       const defaultContextStats = { uses: 0, avgDamage: 0, avgBlock: 0, winRate: 0 };
@@ -404,13 +477,19 @@ export class StatsCollector {
     }
 
     // 이벤트에서 피해량/방어량/특수효과 추출
+    let cardDamage = 0;
+    let cardBlock = 0;
     for (const event of events) {
       if (event.cardId === cardId) {
         if (event.type === 'damage_dealt' && event.actor === 'player') {
-          stats.totalDamage += event.value || 0;
+          const dmg = event.value || 0;
+          stats.totalDamage += dmg;
+          cardDamage += dmg;
         }
         if (event.type === 'block_gained' && event.actor === 'player') {
-          stats.totalBlock += event.value || 0;
+          const blk = event.value || 0;
+          stats.totalBlock += blk;
+          cardBlock += blk;
         }
         if (event.type === 'cross_triggered') {
           stats.crossTriggers++;
@@ -422,11 +501,24 @@ export class StatsCollector {
       }
     }
 
+    // 컨텍스트별 통계 업데이트
+    if (battleContext) {
+      this.updateContextStats(stats.contextByHpState[battleContext.hpState], uses, cardDamage, cardBlock, isWin);
+      this.updateContextStats(stats.contextByFloor[battleContext.floorRange], uses, cardDamage, cardBlock, isWin);
+
+      const enemyContextKey = `vs${battleContext.enemyType.charAt(0).toUpperCase()}${battleContext.enemyType.slice(1)}` as 'vsNormal' | 'vsElite' | 'vsBoss';
+      this.updateContextStats(stats.contextByEnemy[enemyContextKey], uses, cardDamage, cardBlock, isWin);
+
+      const turnRange = this.getTurnRange(battleContext.turns);
+      this.updateContextStats(stats.contextByTurn[turnRange], uses, cardDamage, cardBlock, isWin);
+    }
+
     // 평균 계산
     if (stats.totalUses > 0) {
       stats.avgDamage = stats.totalDamage / stats.totalUses;
       stats.avgBlock = stats.totalBlock / stats.totalUses;
-      stats.winContribution = stats.usesInWins / (stats.usesInWins + stats.usesInLosses);
+      const totalWinLoss = stats.usesInWins + stats.usesInLosses;
+      stats.winContribution = totalWinLoss > 0 ? stats.usesInWins / totalWinLoss : 0;
     }
   }
 
