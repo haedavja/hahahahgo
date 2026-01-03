@@ -1057,6 +1057,8 @@ export interface RelicStats {
   avgEffectValue: number;
   /** 해당 상징 보유 시 평균 도달 층 */
   avgFloorReachedWith: number;
+  /** 해당 상징 보유 시 평균 HP 잔여율 (0~1) */
+  avgHpWithRelic: number;
   /** 해당 상징과 자주 함께 획득되는 상징 */
   commonPairs: { relicId: string; frequency: number }[];
 }

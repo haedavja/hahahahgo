@@ -194,33 +194,51 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
       lines.push('');
     }
 
-    // 5.5 평균 획득 층 (빠른 획득 상징)
+    // 5.5 평균 획득 층 (빠른 획득 상징) + 천장 효과 감지
     const earlyRelics = allRelics
       .filter(([, s]) => s.timesAcquired >= 3 && s.avgAcquireFloor > 0)
       .sort((a, b) => a[1].avgAcquireFloor - b[1].avgAcquireFloor)
       .slice(0, 10);
     if (earlyRelics.length > 0) {
-      lines.push('#### 5.5 평균 획득 층 (빠른 획득 순)');
-      // 진단 정보: 전체 평균 도달층
       const globalAvgLayer = stats.runStats.avgLayerReached ?? 0;
-      lines.push(`*(기준 평균 도달층: ${globalAvgLayer.toFixed(2)})*`);
-      lines.push('');
-      lines.push('| 상징 | 평균획득층 | 획득횟수 | 보유시도달층 | 도달층기여 |');
-      lines.push('|------|------------|----------|--------------|------------|');
-      earlyRelics.forEach(([, s]) => {
-        // avgFloorReachedWith가 0보다 클 때만 유효한 데이터로 처리
-        const hasValidData = Number.isFinite(s.avgFloorReachedWith) && s.avgFloorReachedWith > 0;
-        let floorContribStr = '-';
-        let avgFloorStr = '-';
-        if (hasValidData) {
-          avgFloorStr = s.avgFloorReachedWith.toFixed(2);
-          const avgLayer = Number.isFinite(stats.runStats.avgLayerReached) ? stats.runStats.avgLayerReached : 0;
-          const floorContrib = s.avgFloorReachedWith - avgLayer;
-          const sign = floorContrib > 0 ? '+' : '';
-          floorContribStr = `${sign}${floorContrib.toFixed(2)}`;
-        }
-        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${avgFloorStr} | ${floorContribStr} |`);
-      });
+      const maxLayer = 11; // 최대 층
+      const isCeilingEffect = globalAvgLayer >= maxLayer - 0.5; // 10.5 이상이면 천장 효과
+
+      lines.push('#### 5.5 상징 획득 분석');
+
+      if (isCeilingEffect) {
+        // 천장 효과: 승률 기여도로 대체
+        lines.push(`*(⚠️ 천장 효과 감지: 평균 도달층 ${globalAvgLayer.toFixed(1)}/${maxLayer} - 승률 기여도로 표시)*`);
+        lines.push('');
+        lines.push('| 상징 | 평균획득층 | 획득횟수 | 보유승률 | 승률기여 |');
+        lines.push('|------|------------|----------|----------|----------|');
+        earlyRelics.forEach(([, s]) => {
+          const winRateStr = `${(s.winRateWith * 100).toFixed(1)}%`;
+          const contrib = s.contribution * 100;
+          const sign = contrib > 0 ? '+' : '';
+          const contribStr = `${sign}${contrib.toFixed(1)}%`;
+          lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${winRateStr} | ${contribStr} |`);
+        });
+      } else {
+        // 정상 분포: 도달층 기여도 표시
+        lines.push(`*(기준 평균 도달층: ${globalAvgLayer.toFixed(2)})*`);
+        lines.push('');
+        lines.push('| 상징 | 평균획득층 | 획득횟수 | 보유시도달층 | 도달층기여 |');
+        lines.push('|------|------------|----------|--------------|------------|');
+        earlyRelics.forEach(([, s]) => {
+          const hasValidData = Number.isFinite(s.avgFloorReachedWith) && s.avgFloorReachedWith > 0;
+          let floorContribStr = '-';
+          let avgFloorStr = '-';
+          if (hasValidData) {
+            avgFloorStr = s.avgFloorReachedWith.toFixed(2);
+            const avgLayer = Number.isFinite(stats.runStats.avgLayerReached) ? stats.runStats.avgLayerReached : 0;
+            const floorContrib = s.avgFloorReachedWith - avgLayer;
+            const sign = floorContrib > 0 ? '+' : '';
+            floorContribStr = `${sign}${floorContrib.toFixed(2)}`;
+          }
+          lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${avgFloorStr} | ${floorContribStr} |`);
+        });
+      }
       lines.push('');
     }
   }
@@ -651,7 +669,7 @@ type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card
 
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
-  const [difficulty, setDifficulty] = useState(1);
+  const [difficulty, setDifficulty] = useState(3); // 기본 난이도 3 (도달층 분산 확보)
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStrategy, setCurrentStrategy] = useState<StrategyType | null>(null);

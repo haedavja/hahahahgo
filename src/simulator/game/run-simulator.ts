@@ -507,6 +507,7 @@ export class RunSimulator {
         relics: player.relics,
         success: result.success,
         floorReached: result.finalLayer,
+        hpPercent: player.maxHp > 0 ? player.hp / player.maxHp : 0,
       });
 
       // 난이도별 통계 기록 (Hades Heat 스타일)

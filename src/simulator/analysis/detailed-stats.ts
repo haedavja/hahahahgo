@@ -243,7 +243,7 @@ export class StatsCollector {
   // 상징(Relic) 통계
   private relicAcquisitions: Record<string, { floors: number[]; sources: Record<string, number> }> = {};
   private relicEffectTriggers: Record<string, { count: number; totalValue: number }> = {};
-  private relicRunResults: { relics: string[]; success: boolean; floorReached: number }[] = [];
+  private relicRunResults: { relics: string[]; success: boolean; floorReached: number; hpPercent: number }[] = [];
   private relicLibrary: Record<string, { name: string }> = {};
 
   private startTime: Date = new Date();
@@ -710,11 +710,13 @@ export class StatsCollector {
     relics: string[];
     success: boolean;
     floorReached: number;
+    hpPercent?: number;
   }) {
     this.relicRunResults.push({
       relics: [...data.relics],
       success: data.success,
       floorReached: data.floorReached,
+      hpPercent: data.hpPercent ?? 0,
     });
   }
 
@@ -1588,6 +1590,11 @@ export class StatsCollector {
         ? runsWithRelic.reduce((sum, r) => sum + r.floorReached, 0) / runsWithRelic.length
         : 0;
 
+      // 평균 HP 잔여율
+      const avgHpWithRelic = runsWithRelic.length > 0
+        ? runsWithRelic.reduce((sum, r) => sum + r.hpPercent, 0) / runsWithRelic.length
+        : 0;
+
       // 평균 획득 층
       const avgAcquireFloor = acquisitions.floors.length > 0
         ? acquisitions.floors.reduce((a, b) => a + b, 0) / acquisitions.floors.length
@@ -1619,6 +1626,7 @@ export class StatsCollector {
         effectTriggers: effectData.count,
         avgEffectValue: effectData.count > 0 ? effectData.totalValue / effectData.count : 0,
         avgFloorReachedWith,
+        avgHpWithRelic,
         commonPairs,
       });
     }
