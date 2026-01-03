@@ -665,6 +665,52 @@ export {
   type UpgradeBalanceAnalysis,
 } from './analysis/balance-insights';
 
+// ==================== Comprehensive Analytics (종합 분석 시스템) ====================
+export {
+  ComprehensiveAnalyzer,
+  generateComprehensiveReport,
+} from './analysis/comprehensive-analytics';
+
+export type {
+  // 런 진행 분석
+  FloorDeathRateAnalysis,
+  FloorDeckStateAnalysis,
+  CardPickTimingAnalysis,
+  BossWinRateAnalysis,
+  CardRemovalAnalysis,
+  RunProgressionAnalysis,
+  // 시너지 분석
+  DeckArchetype,
+  TripleCardSynergy,
+  RelicCardSynergy,
+  PokerHandEfficiency,
+  SynergyAnalysis,
+  // 경제/자원 분석
+  EtherEfficiencyAnalysis,
+  ShopPatternAnalysis,
+  HPCurveAnalysis,
+  RiskRewardAnalysis,
+  EconomyAnalysis,
+  // 플레이 스타일 분석
+  AggressionMetrics,
+  DefenseMetrics,
+  InitiativeAnalysis,
+  DeckCyclingAnalysis,
+  PlayStyleAnalysis,
+  // 난이도 진행
+  WinStreakAnalysis,
+  DifficultyLevelAnalysis,
+  PlayerGrowthCurve,
+  DifficultyProgressionAnalysis,
+  // 적 패턴 분석
+  EnemyBehaviorPattern,
+  EnemyReactionAnalysis,
+  EnemyCounterAnalysis,
+  EnemyPatternAnalysis,
+  // 종합 리포트
+  ComprehensiveAnalyticsReport,
+} from './analysis/advanced-analytics-types';
+
 // ==================== Caching Layer ====================
 export {
   MemoryCache,
