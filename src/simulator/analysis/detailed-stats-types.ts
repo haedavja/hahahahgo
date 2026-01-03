@@ -332,6 +332,8 @@ export interface RunStats {
   avgGoldEarned: number;
   /** 평균 최종 덱 크기 */
   avgFinalDeckSize: number;
+  /** 평균 최종 상징 수 */
+  avgFinalRelicCount: number;
   /** 사망 원인 분포 */
   deathCauses: Record<string, number>;
   /** 층별 사망 분포 */

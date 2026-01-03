@@ -119,6 +119,7 @@ export class StatsCollector {
     battlesWon: number;
     gold: number;
     deckSize: number;
+    relicCount: number;
     deathCause?: string;
     strategy?: string;
     upgradedCards?: string[];
@@ -723,6 +724,7 @@ export class StatsCollector {
     battlesWon: number;
     gold: number;
     deckSize: number;
+    relicCount?: number;
     deathCause?: string;
     strategy?: string;
     upgradedCards?: string[];
@@ -731,7 +733,7 @@ export class StatsCollector {
     growthLevel?: number;
     eventsCompleted?: number;
   }) {
-    this.runResults.push(data);
+    this.runResults.push({ ...data, relicCount: data.relicCount ?? 0 });
 
     // 카드 승급 통계 업데이트
     if (data.upgradedCards) {
@@ -759,10 +761,11 @@ export class StatsCollector {
     battlesWon: number,
     gold: number,
     deckSize: number,
+    relicCount: number = 0,
     deathCause?: string,
     strategy?: string
   ) {
-    this.recordRunExtended({ success, layer, battlesWon, gold, deckSize, deathCause, strategy });
+    this.recordRunExtended({ success, layer, battlesWon, gold, deckSize, relicCount, deathCause, strategy });
   }
 
   /** 사망 분석 기록 */
@@ -2048,6 +2051,9 @@ export class StatsCollector {
         : 0,
       avgFinalDeckSize: total > 0
         ? this.runResults.reduce((sum, r) => sum + r.deckSize, 0) / total
+        : 0,
+      avgFinalRelicCount: total > 0
+        ? this.runResults.reduce((sum, r) => sum + r.relicCount, 0) / total
         : 0,
       deathCauses,
       deathByLayer,

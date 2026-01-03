@@ -93,10 +93,8 @@ const COMBAT_REWARD_CARDS = [
   'strike', 'deflect', 'quarte', 'octave', 'breach'
 ];
 
-// 상징 풀 (엘리트/보스 보상용)
-const REWARD_RELICS = [
-  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
-];
+// 상징 풀 (엘리트/보스 보상용) - 이제 전체 RELICS에서 동적으로 선택
+// const REWARD_RELICS = ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor']; // 레거시
 
 // ==================== 타입 정의 ====================
 
@@ -242,6 +240,7 @@ export class RunSimulator {
   private enemyLibrary: EnemyDefinition[] = [];
   private enemyGroupLibrary: EnemyGroup[] = [];
   private itemLibrary: Record<string, Item> = {};
+  private relicLibrary: Record<string, { id: string; rarity?: string }> = {}; // 전체 상징 풀
   private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
   private useEnhancedBattle: boolean = true; // 향상된 전투 시스템 사용
   private statsCollector: StatsCollector | null = null; // 상세 통계 수집기
@@ -328,6 +327,8 @@ export class RunSimulator {
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
       this.shopSimulator.loadRelicData(RELICS as any);
+      this.dungeonSimulator.loadRelicData(RELICS as Record<string, { id: string; rarity?: string }>);
+      this.relicLibrary = RELICS as Record<string, { id: string; rarity?: string }>;
 
       // 적 데이터 로드
       const { ENEMIES, ENEMY_GROUPS } = await import('../../components/battle/battleData');
@@ -519,6 +520,7 @@ export class RunSimulator {
         battlesWon: result.battlesWon,
         gold: result.totalGoldEarned,
         deckSize: player.deck.length,
+        relicCount: player.relics.length,
         deathCause: result.deathCause,
         strategy: config.strategy,
         upgradedCards: player.upgradedCards,
@@ -957,9 +959,10 @@ export class RunSimulator {
         }
       }
 
-      // 엘리트/보스 상징 획득
+      // 엘리트/보스 상징 획득 (전체 상징 풀에서 선택)
       if ((isElite || isBoss) && getGlobalRandom().chance(0.5)) {
-        const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
+        const allRelicIds = Object.keys(this.relicLibrary);
+        const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
         if (availableRelics.length > 0) {
           const newRelic = getGlobalRandom().pick(availableRelics);
           player.relics.push(newRelic);

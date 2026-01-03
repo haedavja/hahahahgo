@@ -176,6 +176,7 @@ export class StatsReporter {
     lines.push(`  평균 전투 승리: ${rs.avgBattlesWon.toFixed(1)}`);
     lines.push(`  평균 골드 획득: ${rs.avgGoldEarned.toFixed(0)}`);
     lines.push(`  평균 덱 크기: ${rs.avgFinalDeckSize.toFixed(1)}`);
+    lines.push(`  평균 상징 수: ${rs.avgFinalRelicCount.toFixed(1)}`);
 
     if (Object.keys(rs.deathCauses).length > 0) {
       lines.push('');

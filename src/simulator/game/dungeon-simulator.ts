@@ -24,10 +24,8 @@ const DUNGEON_CARD_REWARDS = [
   'defensive_stance', 'disrupt'
 ];
 
-// 던전에서 획득 가능한 상징 풀 (희귀)
-const DUNGEON_RELIC_REWARDS = [
-  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
-];
+// 던전에서 획득 가능한 상징 풀 (희귀) - 이제 전체 RELICS에서 동적으로 선택
+// const DUNGEON_RELIC_REWARDS = ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor']; // 레거시
 
 // ==================== 타입 정의 ====================
 
@@ -157,8 +155,30 @@ const DEFAULT_GENERATION_CONFIG: DungeonGenerationConfig = {
 // ==================== 던전 시뮬레이터 ====================
 
 export class DungeonSimulator {
+  private relicLibrary: Record<string, { id: string; rarity?: string }> = {};
+
   constructor() {
     log.info('DungeonSimulator initialized');
+  }
+
+  /**
+   * 상징 데이터 로드 (전체 풀에서 선택하기 위해)
+   */
+  loadRelicData(relics: Record<string, { id: string; rarity?: string }>): void {
+    this.relicLibrary = relics;
+    log.info('DungeonSimulator: Relic library loaded', { count: Object.keys(relics).length });
+  }
+
+  /**
+   * 사용 가능한 상징 풀 반환
+   */
+  private getAvailableRelics(): string[] {
+    const relicIds = Object.keys(this.relicLibrary);
+    // 풀백: 데이터가 로드되지 않은 경우 기본값 사용
+    if (relicIds.length === 0) {
+      return ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'];
+    }
+    return relicIds;
   }
 
   // ==================== 던전 생성 ====================
@@ -520,9 +540,12 @@ export class DungeonSimulator {
 
       // 희귀 보물 상자는 상징도 제공 (25% 확률)
       if (obj.quality === 'rare' && rng.chance(0.25)) {
-        const randomRelic = rng.pick(DUNGEON_RELIC_REWARDS);
-        relicsGained.push(randomRelic);
-        player.relics.push(randomRelic);
+        const availableRelics = this.getAvailableRelics().filter(r => !player.relics.includes(r));
+        if (availableRelics.length > 0) {
+          const randomRelic = rng.pick(availableRelics);
+          relicsGained.push(randomRelic);
+          player.relics.push(randomRelic);
+        }
       }
     }
 
