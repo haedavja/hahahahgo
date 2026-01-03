@@ -41,6 +41,8 @@ export interface Item {
   usableIn: ItemUsableIn;
   duration?: ItemDuration;
   effect: ItemEffect;
+  /** 상점 전용 아이템 플래그 */
+  shopOnly?: boolean;
 }
 
 export const ITEMS: Record<string, Item> = {
@@ -308,6 +310,78 @@ export const ITEMS: Record<string, Item> = {
     usableIn: 'any',
     duration: 'node',
     effect: { type: 'statBoost', stat: 'insight', value: 5 }
+  },
+
+  // ==================== 상점 전용 아이템 ====================
+  // shopOnly: true - 상점에서만 구매 가능한 가성비 좋은 아이템
+
+  'merchant-potion': {
+    id: 'merchant-potion',
+    name: '상인의 비약',
+    icon: '🧪',
+    description: '체력 40% 회복 + 힘 +3 (1노드). 가성비 좋은 만능 물약.',
+    tier: 1,
+    usableIn: 'any',
+    duration: 'node',
+    effect: { type: 'healPercent', value: 40 },
+    shopOnly: true
+  },
+
+  'gold-tonic': {
+    id: 'gold-tonic',
+    name: '황금 강장제',
+    icon: '✨',
+    description: '모든 능력치 +2 (1노드). 상점 전용 프리미엄 물약.',
+    tier: 2,
+    usableIn: 'any',
+    duration: 'node',
+    effect: { type: 'statBoost', stat: 'strength', value: 2 },
+    shopOnly: true
+  },
+
+  'traders-bomb': {
+    id: 'traders-bomb',
+    name: '상인의 폭탄',
+    icon: '💥',
+    description: '즉시 적에게 80만큼 피해. 일반 폭발물보다 강력.',
+    tier: 1,
+    usableIn: 'combat',
+    effect: { type: 'damage', value: 80 },
+    shopOnly: true
+  },
+
+  'premium-shield': {
+    id: 'premium-shield',
+    name: '프리미엄 방패',
+    icon: '🛡️',
+    description: '방어력 +15 (1노드). 고급 방어 아이템.',
+    tier: 2,
+    usableIn: 'combat',
+    duration: 'node',
+    effect: { type: 'defense', value: 15 },
+    shopOnly: true
+  },
+
+  'ether-battery': {
+    id: 'ether-battery',
+    name: '에테르 배터리',
+    icon: '🔋',
+    description: '에테르 150 즉시 흡수. 대용량 에테르 저장소.',
+    tier: 2,
+    usableIn: 'combat',
+    effect: { type: 'etherSteal', value: 150 },
+    shopOnly: true
+  },
+
+  'traders-energizer': {
+    id: 'traders-energizer',
+    name: '상인의 각성제',
+    icon: '⚡',
+    description: '이번 턴 행동력 +3. 최대 행동력 +1.',
+    tier: 2,
+    usableIn: 'combat',
+    effect: { type: 'turnEnergy', value: 3 },
+    shopOnly: true
   }
 };
 

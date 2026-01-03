@@ -831,6 +831,126 @@ export const RELICS = {
     },
   },
 
+  // ==================== 상점 전용 상징 ====================
+  // shopOnly: true - 상점에서만 구매 가능한 가성비 좋은 상징
+
+  merchantsBadge: {
+    id: 'merchantsBadge',
+    name: '상인의 배지',
+    emoji: '🏅',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점에서 모든 물품 10% 추가 할인. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      shopDiscount: 0.10,
+    },
+  },
+
+  goldPurse: {
+    id: 'goldPurse',
+    name: '황금 주머니',
+    emoji: '👝',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '전투 승리 시 골드 +5. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_COMBAT_WIN',
+      bonusGold: 5,
+    },
+  },
+
+  bargainingChip: {
+    id: 'bargainingChip',
+    name: '흥정 토큰',
+    emoji: '🎰',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 물품 1개를 무료로 획득 (1회 사용 후 소멸). (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_SHOP_VISIT',
+      freeItem: 1,
+      usesPerRun: 1,
+    },
+  },
+
+  vipCard: {
+    id: 'vipCard',
+    name: 'VIP 카드',
+    emoji: '💳',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 방문 시 항상 VIP 할인(15%) 적용. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      permanentVIP: true,
+      shopDiscount: 0.15,
+    },
+  },
+
+  investmentToken: {
+    id: 'investmentToken',
+    name: '투자 증서',
+    emoji: '📈',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '층 이동 시 보유 골드의 5% 이자 획득. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_FLOOR_CHANGE',
+      goldInterestRate: 0.05,
+    },
+  },
+
+  merchantsEye: {
+    id: 'merchantsEye',
+    name: '상인의 눈',
+    emoji: '👁️',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.UTILITY, RELIC_TAGS.INSIGHT],
+    description: '상점에서 모든 물품의 가치를 확인 가능. 구매 시 추가로 랜덤 아이템 1개 획득. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_SHOP_PURCHASE',
+      revealValues: true,
+      bonusItem: 1,
+    },
+  },
+
+  merchantsPact: {
+    id: 'merchantsPact',
+    name: '상인의 계약',
+    emoji: '📜',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 새로고침이 무료. 판매 가격 20% 증가. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      freeReroll: true,
+      sellPriceBonus: 0.20,
+    },
+  },
+
+  goldenScale: {
+    id: 'goldenScale',
+    name: '황금 저울',
+    emoji: '⚖️',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점에서 구매/판매 가격이 동일. 모든 상점 할인 2배. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      equalBuySell: true,
+      doubleDiscounts: true,
+    },
+  },
+
   // ==================== 전설 등급 ====================
   // 추가예정
 };

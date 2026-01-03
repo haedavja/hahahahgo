@@ -91,31 +91,32 @@ export interface ShopAnalysis {
 
 // ==================== 상수 ====================
 
+// 가격 인하된 새 가격 체계 (shop.ts와 동기화)
 const RELIC_PRICES: Record<RelicRarity, number> = {
-  common: 60,
-  rare: 120,
-  special: 200,
-  legendary: 350,
+  common: 50,      // 60 → 50 (17% 인하)
+  rare: 100,       // 120 → 100 (17% 인하)
+  special: 160,    // 200 → 160 (20% 인하)
+  legendary: 280,  // 350 → 280 (20% 인하)
 };
 
 const CARD_PRICES: Record<CardRarity, number> = {
-  common: 15,
-  rare: 30,
-  special: 50,
-  legendary: 80,
+  common: 12,      // 15 → 12 (20% 인하)
+  rare: 25,        // 30 → 25 (17% 인하)
+  special: 45,     // 50 → 45 (10% 인하)
+  legendary: 70,   // 80 → 70 (13% 인하)
 };
 
 const ITEM_PRICES: Record<ItemTier, number> = {
-  1: 25,
-  2: 50,
+  1: 20,           // 25 → 20 (20% 인하)
+  2: 40,           // 50 → 40 (20% 인하)
 };
 
 const SERVICE_PRICES: Record<ServiceId, number> = {
-  healSmall: 30,
-  healFull: 80,
-  removeCard: 50,
-  upgradeCard: 75,
-  reroll: 15,
+  healSmall: 22,   // 30 → 22 (27% 인하)
+  healFull: 60,    // 80 → 60 (25% 인하)
+  removeCard: 40,  // 50 → 40 (20% 인하)
+  upgradeCard: 55, // 75 → 55 (27% 인하)
+  reroll: 10,      // 15 → 10 (33% 인하)
 };
 
 const MERCHANT_CONFIGS: Record<MerchantType, {
