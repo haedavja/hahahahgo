@@ -553,6 +553,17 @@ export class TimelineBattleEngine {
           state.player.ether += etherResult.etherResult.finalGain;
           state.battleLog.push(`  ⚡ 에테르 +${etherResult.etherResult.finalGain} (${etherResult.etherResult.comboName})`);
 
+          // 콤보 상징 효과 (에테르 결정, 포커칩, 목장갑, 총알 등)
+          if (this.config.enableRelics) {
+            const comboEffects = this.relicSystem.processCombo(
+              state.player,
+              etherResult.etherResult.comboName,
+              etherResult.etherResult.finalGain,
+              etherResult.etherResult.comboRank || 0
+            );
+            this.applyRelicEffects(state, comboEffects);
+          }
+
           // 버스트 발동 시
           if (etherResult.burstResult.triggered) {
             state.battleLog.push(`  ${etherResult.burstResult.message}`);
@@ -1916,7 +1927,22 @@ export class TimelineBattleEngine {
 
       // 흡혈 처리
       if (attackMods.lifesteal > 0 && actualDamage > 0) {
-        const healAmount = Math.floor(actualDamage * attackMods.lifesteal);
+        let healAmount = Math.floor(actualDamage * attackMods.lifesteal);
+
+        // 마고의 피: 회복량 50% 증가
+        if (this.config.enableRelics && attacker === 'player') {
+          const healEffects = this.relicSystem.processHeal(attackerState as PlayerState, healAmount);
+          for (const effect of healEffects) {
+            if (effect.effects.heal) {
+              healAmount += effect.effects.heal;
+              state.battleLog.push(`  🎁 ${effect.relicName}: 추가 회복 +${effect.effects.heal}`);
+              if (state.relicEffects) {
+                this.recordEffectValue(state.relicEffects, effect.relicId, { healing: effect.effects.heal });
+              }
+            }
+          }
+        }
+
         attackerState.hp = Math.min(attackerState.maxHp, attackerState.hp + healAmount);
         state.battleLog.push(`  💚 흡수: ${healAmount} 회복`);
       }
@@ -2516,25 +2542,83 @@ export class TimelineBattleEngine {
     }
   }
 
-  private applyRelicEffects(state: GameBattleState, effects: { effects: Record<string, unknown>; relicName: string }[]): void {
+  private applyRelicEffects(state: GameBattleState, effects: { effects: Record<string, unknown>; relicName: string; relicId?: string }[]): void {
     for (const effect of effects) {
       const e = effect.effects as Record<string, number | undefined>;
+      const relicKey = effect.relicId || effect.relicName;
 
       if (e.heal && typeof e.heal === 'number') {
         state.player.hp = Math.min(state.player.maxHp, state.player.hp + e.heal);
         state.battleLog.push(`  🎁 ${effect.relicName}: ${e.heal} 회복`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { healing: e.heal });
+        }
       }
       if (e.damage && typeof e.damage === 'number') {
         state.player.hp -= e.damage;
         state.battleLog.push(`  💔 ${effect.relicName}: ${e.damage} 피해`);
+        // 상징 효과 추적 (자해 피해는 음수로 기록)
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { damage: -e.damage });
+        }
       }
       if (e.block && typeof e.block === 'number') {
         state.player.block += e.block;
         state.battleLog.push(`  🛡️ ${effect.relicName}: ${e.block} 방어`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { block: e.block });
+        }
       }
       if (e.strength && typeof e.strength === 'number') {
         this.addTokenTracked(state, state.player, 'strength', e.strength);
         state.battleLog.push(`  💪 ${effect.relicName}: 힘 +${e.strength}`);
+        // 상징 효과 추적 (힘은 기타 효과로 기록)
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { strength: e.strength } });
+        }
+      }
+      if (e.agility && typeof e.agility === 'number') {
+        this.addTokenTracked(state, state.player, 'agility', e.agility);
+        state.battleLog.push(`  🏃 ${effect.relicName}: 민첩 +${e.agility}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { agility: e.agility } });
+        }
+      }
+      if (e.energy && typeof e.energy === 'number') {
+        state.player.energy += e.energy;
+        state.battleLog.push(`  ⚡ ${effect.relicName}: 에너지 +${e.energy}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { energy: e.energy } });
+        }
+      }
+      if (e.maxHp && typeof e.maxHp === 'number') {
+        state.player.maxHp += e.maxHp;
+        state.player.hp += e.maxHp;
+        state.battleLog.push(`  ❤️ ${effect.relicName}: 최대체력 +${e.maxHp}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { healing: e.maxHp, other: { maxHp: e.maxHp } });
+        }
+      }
+      if (e.draw && typeof e.draw === 'number') {
+        this.drawCards(state.player, e.draw, state);
+        state.battleLog.push(`  🃏 ${effect.relicName}: 카드 ${e.draw}장 드로우`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { draw: e.draw } });
+        }
+      }
+      if (e.etherBonus && typeof e.etherBonus === 'number') {
+        state.player.ether = (state.player.ether || 0) + e.etherBonus;
+        state.battleLog.push(`  💎 ${effect.relicName}: 에테르 +${e.etherBonus}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { ether: e.etherBonus });
+        }
       }
     }
   }

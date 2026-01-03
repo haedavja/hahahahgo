@@ -54,6 +54,7 @@ export interface EtherGainResult {
   deflationMultiplier: number;
   finalGain: number;
   comboName: string;
+  comboRank: number;  // 콤보 등급 (1=하이카드 ~ 8=파이브카드)
   breakdown: string[];
 }
 
@@ -426,6 +427,7 @@ export function calculateTotalEther(
       deflationMultiplier: 0,
       finalGain: 0,
       comboName: '없음',
+      comboRank: 0,
       breakdown,
     };
   }
@@ -453,6 +455,7 @@ export function calculateTotalEther(
       deflationMultiplier: 1,
       finalGain: 0,
       comboName: '없음',
+      comboRank: 0,
       breakdown,
     };
   }
@@ -514,6 +517,7 @@ export function calculateTotalEther(
     deflationMultiplier,
     finalGain,
     comboName: combo.name,
+    comboRank: combo.rank,
     breakdown,
   };
 }
