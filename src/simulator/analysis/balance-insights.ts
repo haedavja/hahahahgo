@@ -1396,6 +1396,81 @@ export class BalanceInsightAnalyzer {
         lines.push(`1. ${p}`);
       }
     }
+    lines.push('');
+
+    // 특성 밸런스
+    lines.push('## 🧬 특성 밸런스');
+    const tb = report.traitBalance;
+    if (tb.statContributions.length > 0) {
+      lines.push('### 스탯별 승률 기여도');
+      for (const stat of tb.statContributions.slice(0, 8)) {
+        const ratingIcon = stat.rating === 'overpowered' ? '🔴' :
+                          stat.rating === 'underpowered' ? '🟡' :
+                          stat.rating === 'unused' ? '⚪' : '🟢';
+        lines.push(`- ${ratingIcon} **${stat.statName}**: ${stat.winCorrelation >= 0 ? '+' : ''}${(stat.winCorrelation * 100).toFixed(1)}% (투자 ${stat.avgInvestment.toFixed(1)}회)`);
+      }
+      lines.push(`- 다양성 점수: ${(tb.diversityScore * 100).toFixed(0)}%`);
+      lines.push('');
+    }
+    lines.push('### 철학 분기 밸런스');
+    lines.push(`- **에토스**: 평균 레벨 ${tb.philosophyBalance.ethos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.ethos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.ethos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push(`- **파토스**: 평균 레벨 ${tb.philosophyBalance.pathos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.pathos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.pathos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push(`- **로고스**: 평균 레벨 ${tb.philosophyBalance.logos.avgLevel.toFixed(1)}, 승률 영향 ${tb.philosophyBalance.logos.winCorrelation >= 0 ? '+' : ''}${(tb.philosophyBalance.logos.winCorrelation * 100).toFixed(1)}%`);
+    lines.push('');
+
+    if (tb.mustHaveStats.length > 0) {
+      lines.push('### ⚠️ 필수 스탯 감지');
+      for (const stat of tb.mustHaveStats) {
+        lines.push(`- **${stat.statName}**: 기여도 차이 +${(stat.contributionGap * 100).toFixed(0)}%`);
+      }
+      lines.push('');
+    }
+
+    // 성장 경로 분석
+    lines.push('## 🌱 성장 경로 분석');
+    const gp = report.growthPaths;
+    if (gp.optimalPaths.length > 0) {
+      lines.push('### 최적 경로 TOP 5');
+      for (const path of gp.optimalPaths) {
+        lines.push(`- **${path.path}**: 승률 ${(path.winRate * 100).toFixed(0)}% (${path.count}회)`);
+      }
+      lines.push('');
+    }
+    if (gp.riskyPaths.length > 0) {
+      lines.push('### 위험 경로');
+      for (const path of gp.riskyPaths) {
+        lines.push(`- **${path.path}**: 승률 ${(path.winRate * 100).toFixed(0)}% - ${path.issue}`);
+      }
+      lines.push('');
+    }
+    lines.push(`- 고유 경로 수: ${gp.pathDiversity.uniquePaths}개`);
+    lines.push(`- Gini 계수: ${gp.pathDiversity.giniCoefficient.toFixed(3)} (${gp.pathDiversity.healthRating === 'healthy' ? '✅ 건강' : gp.pathDiversity.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'})`);
+    lines.push('');
+
+    // 승급 밸런스
+    lines.push('## ⬆️ 승급 밸런스');
+    const ub = report.upgradeBalance;
+    lines.push(`- 총 승급: ${ub.overall.totalUpgrades}회`);
+    lines.push(`- 런당 평균: ${ub.overall.avgUpgradesPerRun.toFixed(1)}회`);
+    lines.push(`- 승률 상관: ${ub.overall.upgradeWinCorrelation >= 0 ? '+' : ''}${(ub.overall.upgradeWinCorrelation * 100).toFixed(0)}%`);
+    lines.push(`- 권장 승급 횟수: ${ub.overall.optimalUpgradeCount}회`);
+    lines.push('');
+
+    if (ub.priorityRecommendations.length > 0) {
+      lines.push('### 승급 우선순위');
+      for (const rec of ub.priorityRecommendations) {
+        lines.push(`${rec.rank}. **${rec.cardName}**: ${rec.reason}`);
+      }
+      lines.push('');
+    }
+
+    if (ub.underUpgraded.length > 0) {
+      lines.push('### 과소 승급 (기회손실)');
+      for (const card of ub.underUpgraded.slice(0, 3)) {
+        lines.push(`- **${card.cardName}**: ${card.suggestion}`);
+      }
+      lines.push('');
+    }
 
     return lines.join('\n');
   }
@@ -1719,7 +1794,7 @@ export class BalanceInsightAnalyzer {
 
     // 과다/과소 승급 분석
     const avgUpgradeCount = overall.avgUpgradesPerRun;
-    const avgContribution = Array.from(cardContributionStats.contribution.values())
+    const avgContribution = Object.values(cardContributionStats.contribution)
       .reduce((a, b) => a + b, 0) / Math.max(1, cardDeepStats.size);
 
     for (const card of cardUpgradeEfficiency) {
