@@ -122,12 +122,37 @@ export interface PlayerRunState {
   traits?: string[];
 }
 
+/**
+ * 난이도 수정자 (Hades Heat / StS Ascension 스타일)
+ * 각 값은 배율 또는 보너스로 적용됨
+ */
+export interface DifficultyModifiers {
+  /** 적 HP 배율 (기본 1.0) */
+  enemyHpMultiplier?: number;
+  /** 적 공격력 배율 (기본 1.0) */
+  enemyDamageMultiplier?: number;
+  /** 적 속도 보너스 (기본 0) */
+  enemySpeedBonus?: number;
+  /** 시작 최대 HP 배율 (기본 1.0) */
+  startingHpMultiplier?: number;
+  /** 휴식 회복 배율 (기본 1.0) */
+  restHealMultiplier?: number;
+  /** 골드 획득 배율 (기본 1.0) */
+  goldMultiplier?: number;
+  /** 상점 가격 배율 (기본 1.0) */
+  shopPriceMultiplier?: number;
+  /** 시작 저주 카드 수 (기본 0) */
+  startingCurseCards?: number;
+  /** 이변 레벨 보너스 (기본 0) */
+  anomalyLevelBonus?: number;
+}
+
 export interface RunConfig {
   /** 초기 플레이어 상태 */
   initialPlayer: PlayerRunState;
   /** 맵 설정 */
   mapLayers?: number;
-  /** 난이도 */
+  /** 난이도 (레거시: HP 배율만 적용) */
   difficulty: number;
   /** 전략 */
   strategy: RunStrategy;
@@ -139,6 +164,8 @@ export interface RunConfig {
   anomalyId?: string;
   /** 맵 위험도 (이변 레벨 계산용, 0-4) */
   mapRisk?: number;
+  /** 난이도 수정자 (세부 옵션) */
+  difficultyModifiers?: DifficultyModifiers;
 }
 
 export type RunStrategy = 'aggressive' | 'defensive' | 'balanced' | 'speedrun' | 'treasure_hunter';
@@ -332,6 +359,21 @@ export class RunSimulator {
   simulateRun(config: RunConfig): RunResult {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
+
+    // 시작 HP 배율 적용
+    const startingHpMult = config.difficultyModifiers?.startingHpMultiplier ?? 1;
+    if (startingHpMult !== 1) {
+      player.maxHp = Math.floor(player.maxHp * startingHpMult);
+      player.hp = Math.min(player.hp, player.maxHp);
+    }
+
+    // 시작 저주 카드 추가
+    const curseCount = config.difficultyModifiers?.startingCurseCards ?? 0;
+    if (curseCount > 0) {
+      for (let i = 0; i < curseCount; i++) {
+        player.deck.push('curse_weakness'); // 기본 저주 카드
+      }
+    }
 
     // 통계 수집기 런 시작 초기화
     if (this.statsCollector) {
@@ -767,11 +809,29 @@ export class RunSimulator {
     const enemies = this.selectEnemyGroup(node.type, node.layer);
 
     // 난이도에 따른 적 강화
-    if (difficulty > 1) {
-      const hpMultiplier = 1 + (difficulty - 1) * 0.15; // 난이도당 15% HP 증가
-      for (const enemy of enemies) {
+    const mods = config.difficultyModifiers || {};
+    // HP 배율: 레거시 difficulty + 커스텀 수정자
+    const baseHpMult = difficulty > 1 ? 1 + (difficulty - 1) * 0.15 : 1;
+    const hpMultiplier = baseHpMult * (mods.enemyHpMultiplier ?? 1);
+    // 공격력 배율
+    const damageMultiplier = mods.enemyDamageMultiplier ?? 1;
+    // 속도 보너스
+    const speedBonus = mods.enemySpeedBonus ?? 0;
+
+    for (const enemy of enemies) {
+      // HP 적용
+      if (hpMultiplier !== 1) {
         enemy.hp = Math.floor(enemy.hp * hpMultiplier);
         enemy.maxHp = enemy.hp;
+      }
+      // 공격력 적용 (카드 데미지 스케일링)
+      if (damageMultiplier !== 1 && enemy.deck) {
+        // 적의 덱 카드 공격력 증가는 전투 엔진에서 처리
+        (enemy as EnemyState & { damageMultiplier?: number }).damageMultiplier = damageMultiplier;
+      }
+      // 속도 보너스 적용
+      if (speedBonus !== 0) {
+        enemy.speed = (enemy.speed || 0) + speedBonus;
       }
     }
 
@@ -881,9 +941,10 @@ export class RunSimulator {
       result.success = true;
       result.details = `전투 승리 vs ${displayName} (${totalBattleResult.turns}턴)`;
 
-      // 보상 (적 수에 비례)
+      // 보상 (적 수에 비례, 난이도 수정자 적용)
+      const goldMult = config.difficultyModifiers?.goldMultiplier ?? 1;
       const baseGold = 15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0);
-      const goldReward = Math.floor(baseGold * (1 + (enemies.length - 1) * 0.3));
+      const goldReward = Math.floor(baseGold * (1 + (enemies.length - 1) * 0.3) * goldMult);
       player.gold += goldReward;
 
       // 카드 보상: 3장 중 1장 선택 (게임과 동일)
@@ -1304,12 +1365,28 @@ export class RunSimulator {
   ): void {
     const inventory = this.shopSimulator.generateShopInventory('shop');
 
+    // 상점 가격 배율 적용
+    const priceMult = config.difficultyModifiers?.shopPriceMultiplier ?? 1;
+
     // 전략 기반 카드 필터링
     const filteredCards = this.filterShopCards(inventory.cards, player, config.strategy);
 
+    // 가격 배율 적용
+    const priceAdjustedCards = priceMult !== 1
+      ? filteredCards.map(c => ({ ...c, price: Math.floor((c.price || 0) * priceMult) }))
+      : filteredCards;
+    const priceAdjustedRelics = priceMult !== 1
+      ? inventory.relics.map(r => ({ ...r, price: Math.floor((r.price || 0) * priceMult) }))
+      : inventory.relics;
+    const priceAdjustedItems = priceMult !== 1
+      ? inventory.items.map(i => ({ ...i, price: Math.floor((i.price || 0) * priceMult) }))
+      : inventory.items;
+
     const filteredInventory = {
       ...inventory,
-      cards: filteredCards,
+      cards: priceAdjustedCards,
+      relics: priceAdjustedRelics,
+      items: priceAdjustedItems,
     };
 
     const shopConfig: ShopSimulationConfig = {
@@ -1515,11 +1592,15 @@ export class RunSimulator {
       }
     }
 
+    // 휴식 회복 배율 적용
+    const restHealMult = config.difficultyModifiers?.restHealMultiplier ?? 1;
+
     if (action === 'heal') {
-      // 힐: 최대 HP의 30% 회복
-      const healAmount = Math.floor(player.maxHp * 0.3);
+      // 힐: 최대 HP의 30% 회복 (난이도 수정자 적용)
+      const baseHeal = player.maxHp * 0.3;
+      const healAmount = Math.floor(baseHeal * restHealMult);
       player.hp = Math.min(player.maxHp, player.hp + healAmount);
-      result.details = `휴식: ${healAmount} HP 회복`;
+      result.details = `휴식: ${healAmount} HP 회복${restHealMult < 1 ? ` (회복량 ${Math.round(restHealMult * 100)}%)` : ''}`;
     } else if (action === 'upgrade') {
       // 강화: 아직 강화되지 않은 카드 중 하나 선택
       const upgradableCards = player.deck.filter(cardId =>
@@ -1535,13 +1616,15 @@ export class RunSimulator {
           result.details = `휴식: ${cardToUpgrade} 카드 강화`;
         } else {
           // 강화할 카드가 없으면 힐
-          const healAmount = Math.floor(player.maxHp * 0.3);
+          const baseHeal = player.maxHp * 0.3;
+          const healAmount = Math.floor(baseHeal * restHealMult);
           player.hp = Math.min(player.maxHp, player.hp + healAmount);
           result.details = `휴식: ${healAmount} HP 회복 (강화 가능 카드 없음)`;
         }
       } else {
         // 모든 카드가 이미 강화됨 - 힐로 대체
-        const healAmount = Math.floor(player.maxHp * 0.3);
+        const baseHeal = player.maxHp * 0.3;
+        const healAmount = Math.floor(baseHeal * restHealMult);
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         result.details = `휴식: ${healAmount} HP 회복 (모든 카드 강화됨)`;
       }

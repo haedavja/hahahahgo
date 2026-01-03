@@ -682,6 +682,16 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [activeStrategyTab, setActiveStrategyTab] = useState<StrategyType>('balanced');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
 
+  // 난이도 수정자 상태 (Hades Heat / StS Ascension 스타일)
+  const [showAdvancedDifficulty, setShowAdvancedDifficulty] = useState(false);
+  const [enemyDamageMult, setEnemyDamageMult] = useState(1.0);
+  const [startingHpMult, setStartingHpMult] = useState(1.0);
+  const [restHealMult, setRestHealMult] = useState(1.0);
+  const [goldMult, setGoldMult] = useState(1.0);
+  const [shopPriceMult, setShopPriceMult] = useState(1.0);
+  const [enemySpeedBonus, setEnemySpeedBonus] = useState(0);
+  const [startingCurseCards, setStartingCurseCards] = useState(0);
+
   // 현재 선택된 전략의 통계
   const stats = statsByStrategy[activeStrategyTab];
   const hasAnyStats = statsByStrategy.balanced !== null || statsByStrategy.aggressive !== null || statsByStrategy.defensive !== null;
@@ -743,7 +753,17 @@ const SimulatorTab = memo(function SimulatorTab() {
               relics: [], items: [], upgradedCards: []
             },
             difficulty,
-            strategy
+            strategy,
+            // 난이도 수정자 (Hades Heat / StS Ascension 스타일)
+            difficultyModifiers: {
+              enemyDamageMultiplier: enemyDamageMult,
+              startingHpMultiplier: startingHpMult,
+              restHealMultiplier: restHealMult,
+              goldMultiplier: goldMult,
+              shopPriceMultiplier: shopPriceMult,
+              enemySpeedBonus: enemySpeedBonus,
+              startingCurseCards: startingCurseCards,
+            }
           });
 
           completedRuns++;
@@ -761,7 +781,7 @@ const SimulatorTab = memo(function SimulatorTab() {
     } finally {
       setIsRunning(false);
     }
-  }, [runCount, difficulty]);
+  }, [runCount, difficulty, enemyDamageMult, startingHpMult, restHealMult, goldMult, shopPriceMult, enemySpeedBonus, startingCurseCards]);
 
   const statTabs: { id: StatTab; label: string }[] = [
     { id: 'run', label: '런' },
@@ -808,7 +828,103 @@ const SimulatorTab = memo(function SimulatorTab() {
               총 {runCount * 3}런 (3전략 × {runCount}런)
             </span>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowAdvancedDifficulty(!showAdvancedDifficulty)}
+              style={{
+                padding: '4px 8px',
+                background: showAdvancedDifficulty ? '#4f46e5' : '#374151',
+                border: '1px solid #6366f1',
+                borderRadius: '4px',
+                color: '#e5e7eb',
+                fontSize: '0.75rem',
+                cursor: 'pointer'
+              }}
+              disabled={isRunning}
+            >
+              ⚙️ 고급 난이도
+            </button>
+          </div>
         </div>
+
+        {/* 고급 난이도 설정 (Hades Heat / StS Ascension 스타일) */}
+        {showAdvancedDifficulty && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '12px',
+            marginBottom: '12px',
+            padding: '12px',
+            background: 'rgba(99, 102, 241, 0.1)',
+            borderRadius: '8px',
+            border: '1px solid rgba(99, 102, 241, 0.3)'
+          }}>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>적 공격력 배율</label>
+              <input type="number" min={0.5} max={3} step={0.1} value={enemyDamageMult}
+                onChange={e => setEnemyDamageMult(Math.min(3, Math.max(0.5, parseFloat(e.target.value) || 1)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                ({Math.round(enemyDamageMult * 100)}%)
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>시작 HP 배율</label>
+              <input type="number" min={0.3} max={1.5} step={0.1} value={startingHpMult}
+                onChange={e => setStartingHpMult(Math.min(1.5, Math.max(0.3, parseFloat(e.target.value) || 1)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                ({Math.round(startingHpMult * 100)}%)
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>휴식 회복 배율</label>
+              <input type="number" min={0.2} max={1.5} step={0.1} value={restHealMult}
+                onChange={e => setRestHealMult(Math.min(1.5, Math.max(0.2, parseFloat(e.target.value) || 1)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                ({Math.round(restHealMult * 100)}%)
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>골드 획득 배율</label>
+              <input type="number" min={0.3} max={2} step={0.1} value={goldMult}
+                onChange={e => setGoldMult(Math.min(2, Math.max(0.3, parseFloat(e.target.value) || 1)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                ({Math.round(goldMult * 100)}%)
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>상점 가격 배율</label>
+              <input type="number" min={0.5} max={3} step={0.1} value={shopPriceMult}
+                onChange={e => setShopPriceMult(Math.min(3, Math.max(0.5, parseFloat(e.target.value) || 1)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                ({Math.round(shopPriceMult * 100)}%)
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>적 속도 보너스</label>
+              <input type="number" min={0} max={10} step={1} value={enemySpeedBonus}
+                onChange={e => setEnemySpeedBonus(Math.min(10, Math.max(0, parseInt(e.target.value) || 0)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                +{enemySpeedBonus}
+              </span>
+            </div>
+            <div>
+              <label style={{ ...STYLES.label, fontSize: '0.7rem' }}>시작 저주카드</label>
+              <input type="number" min={0} max={5} step={1} value={startingCurseCards}
+                onChange={e => setStartingCurseCards(Math.min(5, Math.max(0, parseInt(e.target.value) || 0)))}
+                style={{ ...STYLES.input, width: '80px' }} disabled={isRunning} />
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px' }}>
+                {startingCurseCards}장
+              </span>
+            </div>
+          </div>
+        )}
+
         <button onClick={runSimulation} style={isRunning ? STYLES.buttonRunning : STYLES.button} disabled={isRunning}>
           {isRunning
             ? `${currentStrategy ? STRATEGY_LABELS[currentStrategy] : ''} 전략 시뮬레이션 중... ${progress}%`
