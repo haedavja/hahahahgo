@@ -457,6 +457,21 @@ export class StatsCollector {
       }
     }
 
+    // 상징 효과 통계 집계 (배틀 엔진에서 받은 relicEffectStats를 relicEffectTriggers에 병합)
+    if (result.relicEffectStats) {
+      for (const [relicId, effectRecord] of Object.entries(result.relicEffectStats)) {
+        if (!this.relicEffectTriggers[relicId]) {
+          this.relicEffectTriggers[relicId] = { count: 0, totalValue: 0 };
+        }
+        const record = this.relicEffectTriggers[relicId];
+        record.count += effectRecord.count;
+        // 총 효과값 = 피해 + 방어 + 회복 + 에테르
+        const totalEffect = effectRecord.totalDamage + effectRecord.totalBlock +
+                           effectRecord.totalHealing + effectRecord.totalEther;
+        record.totalValue += totalEffect;
+      }
+    }
+
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
   }
