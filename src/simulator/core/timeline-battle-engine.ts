@@ -1729,9 +1729,15 @@ export class TimelineBattleEngine {
         damage = Math.floor(damage * CRIT_MULTIPLIER);
       } else if (this.config.enableCrits) {
         const critChance = BASE_CRIT_CHANCE + (attackMods.critBoost / 100);
+        const damageBeforeCrit = damage;
         isCrit = Math.random() < critChance;
         if (isCrit) {
           damage = Math.floor(damage * CRIT_MULTIPLIER);
+          // crit_boost 토큰 효과 추적 (치명타 발생 시 보너스 피해)
+          if (state.tokenEffects && attackMods.critBoost > 0 && hasToken(attackerState.tokens, 'crit_boost')) {
+            const critBonusDamage = damage - damageBeforeCrit;
+            this.recordEffectValue(state.tokenEffects, 'crit_boost', { damage: critBonusDamage });
+          }
         }
       }
 
@@ -1794,7 +1800,22 @@ export class TimelineBattleEngine {
       }
 
       // 피해 증폭 (허약 등)
+      const damageBeforeVuln = damage;
       damage = Math.floor(damage * damageTakenMods.damageMultiplier);
+      // vulnerable/weak 토큰 효과 추적 (받는 피해 증가)
+      if (state.tokenEffects && damageTakenMods.damageMultiplier > 1) {
+        const vulnBonusDamage = damage - damageBeforeVuln;
+        if (hasToken(defenderState.tokens, 'vulnerablePlus')) {
+          this.recordEffectValue(state.tokenEffects, 'vulnerablePlus', { damage: vulnBonusDamage });
+        } else if (hasToken(defenderState.tokens, 'vulnerable')) {
+          this.recordEffectValue(state.tokenEffects, 'vulnerable', { damage: vulnBonusDamage });
+        }
+        if (hasToken(defenderState.tokens, 'weakPlus')) {
+          this.recordEffectValue(state.tokenEffects, 'weakPlus', { damage: vulnBonusDamage });
+        } else if (hasToken(defenderState.tokens, 'weak')) {
+          this.recordEffectValue(state.tokenEffects, 'weak', { damage: vulnBonusDamage });
+        }
+      }
 
       // 이변: 취약 (받는 피해 증가)
       if (this.config.enableAnomalies && attacker === 'enemy') {
@@ -2076,6 +2097,22 @@ export class TimelineBattleEngine {
             this.recordEffectValue(state.tokenEffects, 'defensePlus', { block: multBonus });
           } else if (hasToken(actorState.tokens, 'defense')) {
             this.recordEffectValue(state.tokenEffects, 'defense', { block: multBonus });
+          }
+        }
+      }
+      // shaken/exposed 토큰 효과 추적 (방어력 감소)
+      if (defenseMods.defenseMultiplier < 1) {
+        const lostBlock = Math.floor(baseBlock * (1 - defenseMods.defenseMultiplier));
+        if (lostBlock > 0) {
+          if (hasToken(actorState.tokens, 'shakenPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'shakenPlus', { block: -lostBlock });
+          } else if (hasToken(actorState.tokens, 'shaken')) {
+            this.recordEffectValue(state.tokenEffects, 'shaken', { block: -lostBlock });
+          }
+          if (hasToken(actorState.tokens, 'exposedPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'exposedPlus', { block: -lostBlock });
+          } else if (hasToken(actorState.tokens, 'exposed')) {
+            this.recordEffectValue(state.tokenEffects, 'exposed', { block: -lostBlock });
           }
         }
       }
