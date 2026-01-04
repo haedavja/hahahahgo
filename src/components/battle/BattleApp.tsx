@@ -1675,7 +1675,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
       }
     }
 
-    if (hasTrait(a.card, 'stun' as unknown as import("../../types/core").CardTrait)) {
+    if (hasTrait(a.card, 'stun')) {
       const { updatedQueue, stunEvent } = processStunEffect({
         action: a as unknown as never,
         queue: currentBattle.queue,
