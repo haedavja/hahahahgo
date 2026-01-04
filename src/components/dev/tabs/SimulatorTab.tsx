@@ -13,6 +13,13 @@ import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 import type { SkillLevel } from '../../../simulator/core/battle-engine-types';
 import { analyzeStats, generateAnalysisGuidelines } from '../../../simulator/analysis/stats-analysis-framework';
 import { BalanceInsightAnalyzer, type BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
+import {
+  STATS_COLORS,
+  TABLE_STYLE,
+  TH_STYLE,
+  TD_STYLE,
+  SECTION_BOX_STYLE,
+} from '../../stats';
 
 // 전략 타입 및 레이블
 type StrategyType = 'balanced' | 'aggressive' | 'defensive';
@@ -666,26 +673,26 @@ function getCardEffectStr(id: string): string {
   return effects.join(', ') || '-';
 }
 
-// 스타일 상수
+// 스타일 상수 (공용 스타일 + 시뮬레이터 전용 스타일)
 const STYLES = {
-  sectionHeader: { marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' } as CSSProperties,
-  sectionBox: { padding: '16px', background: '#0f172a', borderRadius: '8px', marginBottom: '16px' } as CSSProperties,
+  sectionHeader: { marginTop: 0, color: STATS_COLORS.value, fontSize: '1.125rem' } as CSSProperties,
+  sectionBox: SECTION_BOX_STYLE,
   label: { display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#cbd5e1' } as CSSProperties,
-  input: { width: '80px', padding: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
-  select: { flex: 1, padding: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
-  button: { padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer' } as CSSProperties,
+  input: { width: '80px', padding: '8px', background: STATS_COLORS.background, border: `1px solid ${STATS_COLORS.border}`, borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
+  select: { flex: 1, padding: '8px', background: STATS_COLORS.background, border: `1px solid ${STATS_COLORS.border}`, borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as CSSProperties,
+  button: { padding: '8px 16px', background: STATS_COLORS.info, border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer' } as CSSProperties,
   buttonRunning: { padding: '8px 16px', background: '#64748b', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'not-allowed' } as CSSProperties,
   statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' } as CSSProperties,
-  statItem: { padding: '8px', background: '#1e293b', borderRadius: '6px', fontSize: '0.875rem' } as CSSProperties,
-  statLabel: { color: '#94a3b8', fontSize: '0.75rem' } as CSSProperties,
-  statValue: { color: '#fbbf24', fontWeight: 'bold', fontSize: '1rem' } as CSSProperties,
-  progressBar: { height: '4px', background: '#334155', borderRadius: '2px', marginTop: '8px', overflow: 'hidden' } as CSSProperties,
-  progressFill: { height: '100%', background: '#3b82f6', transition: 'width 0.2s' } as CSSProperties,
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' } as CSSProperties,
-  th: { textAlign: 'left', padding: '6px 8px', background: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155' } as CSSProperties,
-  td: { padding: '6px 8px', borderBottom: '1px solid #334155', color: '#e2e8f0' } as CSSProperties,
-  tabButton: { padding: '6px 12px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '2px solid transparent' } as CSSProperties,
-  tabButtonActive: { padding: '6px 12px', background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '2px solid #3b82f6', fontWeight: 'bold' } as CSSProperties,
+  statItem: { padding: '8px', background: STATS_COLORS.background, borderRadius: '6px', fontSize: '0.875rem' } as CSSProperties,
+  statLabel: { color: STATS_COLORS.label, fontSize: '0.75rem' } as CSSProperties,
+  statValue: { color: STATS_COLORS.value, fontWeight: 'bold', fontSize: '1rem' } as CSSProperties,
+  progressBar: { height: '4px', background: STATS_COLORS.border, borderRadius: '2px', marginTop: '8px', overflow: 'hidden' } as CSSProperties,
+  progressFill: { height: '100%', background: STATS_COLORS.info, transition: 'width 0.2s' } as CSSProperties,
+  table: TABLE_STYLE,
+  th: TH_STYLE,
+  td: TD_STYLE,
+  tabButton: { padding: '6px 12px', background: 'transparent', border: 'none', color: STATS_COLORS.label, cursor: 'pointer', fontSize: '0.8rem', borderBottom: '2px solid transparent' } as CSSProperties,
+  tabButtonActive: { padding: '6px 12px', background: 'transparent', border: 'none', color: STATS_COLORS.info, cursor: 'pointer', fontSize: '0.8rem', borderBottom: `2px solid ${STATS_COLORS.info}`, fontWeight: 'bold' } as CSSProperties,
   scrollBox: { maxHeight: '300px', overflowY: 'auto' } as CSSProperties,
 } as const;
 

@@ -9,6 +9,19 @@ import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/sta
 import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
 import { BalanceInsightAnalyzer } from '../../../simulator/analysis/balance-insights';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats-types';
+import {
+  StatRow,
+  SectionTitle,
+  STATS_COLORS,
+  TAB_CONTAINER_STYLE,
+  getTabStyle,
+  COPY_BUTTON_STYLE,
+  SECTION_TITLE_STYLE,
+  STAT_ROW_STYLE,
+  STAT_LABEL_STYLE,
+  STAT_VALUE_STYLE,
+  getWinRateColor,
+} from '../../stats';
 
 type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record' | 'dungeon' | 'item' | 'growth' | 'advanced';
 
@@ -54,56 +67,6 @@ const MODAL_CONTENT_STYLE: CSSProperties = {
   overflow: 'auto',
   color: '#e2e8f0',
   minWidth: '500px',
-};
-
-const TAB_CONTAINER_STYLE: CSSProperties = {
-  display: 'flex',
-  gap: '4px',
-  marginBottom: '16px',
-  flexWrap: 'wrap',
-};
-
-const TAB_STYLE: CSSProperties = {
-  padding: '6px 12px',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '12px',
-  fontWeight: 'bold',
-};
-
-const STAT_ROW_STYLE: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  padding: '8px 0',
-  borderBottom: '1px solid #334155',
-};
-
-const STAT_LABEL_STYLE: CSSProperties = {
-  color: '#94a3b8',
-};
-
-const STAT_VALUE_STYLE: CSSProperties = {
-  fontWeight: 'bold',
-  color: '#fbbf24',
-};
-
-const SECTION_TITLE_STYLE: CSSProperties = {
-  margin: '16px 0 8px',
-  fontSize: '14px',
-};
-
-const COPY_BUTTON_STYLE: CSSProperties = {
-  marginTop: '16px',
-  padding: '10px 20px',
-  background: '#3b82f6',
-  border: 'none',
-  borderRadius: '6px',
-  color: '#fff',
-  fontSize: '14px',
-  fontWeight: 'bold',
-  cursor: 'pointer',
-  width: '100%',
 };
 
 const CLOSE_BUTTON_STYLE: CSSProperties = {
@@ -179,11 +142,7 @@ export const StatsWidget = memo(function StatsWidget() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    ...TAB_STYLE,
-                    background: activeTab === tab.id ? '#3b82f6' : '#475569',
-                    color: activeTab === tab.id ? '#fff' : '#94a3b8',
-                  }}
+                  style={getTabStyle(activeTab === tab.id)}
                 >
                   {tab.emoji} {tab.label}
                 </button>
@@ -915,24 +874,7 @@ function AdvancedTab({ detailed }: { detailed: DetailedStats }) {
   );
 }
 
-// ==================== 헬퍼 컴포넌트/함수 ====================
-
-function StatRow({
-  label,
-  value,
-  valueColor,
-}: {
-  label: string;
-  value: React.ReactNode;
-  valueColor?: string;
-}) {
-  return (
-    <div style={STAT_ROW_STYLE}>
-      <span style={STAT_LABEL_STYLE}>{label}</span>
-      <span style={{ ...STAT_VALUE_STYLE, color: valueColor || '#fbbf24' }}>{value}</span>
-    </div>
-  );
-}
+// ==================== 헬퍼 함수 ====================
 
 function translateDeathCause(cause: string): string {
   const translations: Record<string, string> = {
