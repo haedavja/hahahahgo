@@ -96,29 +96,45 @@ function sleep(ms) {
 async function notionFetch(method, url, body) {
   const token = process.env.NOTION_TOKEN;
   if (!token) throw new Error("NOTION_TOKEN이 설정되어 있지 않습니다. (.env.local 권장)");
-  const resp = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Notion-Version": NOTION_VERSION,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Notion-Version": NOTION_VERSION,
+    "Content-Type": "application/json",
+  };
 
-  const text = await resp.text();
-  let json;
-  try {
-    json = text ? JSON.parse(text) : null;
-  } catch {
-    json = null;
+  const maxAttempts = 8;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const text = await resp.text();
+    let json;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+
+    if (resp.status === 429) {
+      const ra = resp.headers.get("retry-after");
+      const raSec = ra ? Number(ra) : NaN;
+      const waitMs = Number.isFinite(raSec) && raSec > 0 ? Math.ceil(raSec * 1000) : Math.min(15000, 900 * attempt * attempt);
+      console.log(`[Notion 429] rate limited. wait ${waitMs}ms (attempt ${attempt}/${maxAttempts})`);
+      await sleep(waitMs);
+      continue;
+    }
+
+    if (!resp.ok) {
+      const msg = json?.message || json?.error || text || `${resp.status}`;
+      throw new Error(`[Notion ${resp.status}] ${msg}`);
+    }
+    return json;
   }
 
-  if (!resp.ok) {
-    const msg = json?.message || json?.error || text || `${resp.status}`;
-    throw new Error(`[Notion ${resp.status}] ${msg}`);
-  }
-  return json;
+  throw new Error("[Notion 429] rate limited. too many retries.");
 }
 
 async function getMe() {
