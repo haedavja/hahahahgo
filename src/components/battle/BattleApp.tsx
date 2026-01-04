@@ -1982,6 +1982,12 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     actions.setFixedOrder(newFixedOrder);
   }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth]);
 
+  // 카드 이름 + 업그레이드 배지 렌더링 (메모이제이션)
+  const memoizedRenderNameWithBadge = useCallback(
+    (card: Card, defaultColor?: string) => renderNameWithBadge(card, cardUpgrades, defaultColor),
+    [cardUpgrades]
+  );
+
   // 키보드 단축키 처리
   useKeyboardShortcuts({
     battle,
@@ -2446,7 +2452,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         showCardTraitTooltip={showCardTraitTooltip as unknown as (card: Card, element: Element | null) => void}
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
-        renderNameWithBadge={(card, defaultColor) => renderNameWithBadge(card, cardUpgrades, defaultColor)}
+        renderNameWithBadge={memoizedRenderNameWithBadge}
         fixedOrder={(fixedOrder ?? undefined) as unknown as HandAction[] | undefined}
         moveUp={moveUp}
         moveDown={moveDown}
