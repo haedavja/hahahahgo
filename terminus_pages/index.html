@@ -491,6 +491,8 @@
         UNSORTED: "미분류",
       };
 
+      const DOMAIN_ORDER = ["세계관", "소설", "게임"];
+
       function normalizeLayer(value) {
         const raw = String(value || "").trim().toUpperCase();
         if (!raw) return null;
@@ -741,6 +743,7 @@
 
         for (const n of raw.nodes || []) {
           if (n.type === "root" || n.type === "domain") {
+            if (n.type === "domain" && state.domainFilter !== "ALL" && n.domain !== state.domainFilter) continue;
             visibleNodeIds.add(n.id);
             baseNodes.push(upsertCachedNode(n));
             continue;
@@ -1553,6 +1556,110 @@
         return null;
       }
 
+      function applyAnchors(graphData) {
+        if (!graphData) return;
+        const nodes = graphData.nodes || [];
+        const shouldAnchor = state.mode === "territory" && Boolean(state.mindmapLayout);
+
+        for (const n of nodes) {
+          if (!n) continue;
+          if (!shouldAnchor && (n.fx != null || n.fy != null)) {
+            delete n.fx;
+            delete n.fy;
+          }
+        }
+
+        if (!shouldAnchor) return;
+
+        const density = state.density || "normal";
+        const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+
+        const root = nodes.find((n) => n.type === "root");
+        if (root) {
+          root.fx = 0;
+          root.fy = 0;
+        }
+
+        const domains = nodes.filter((n) => n.type === "domain");
+        const domainByName = new Map();
+        for (const d of domains) {
+          const name = String(d.domain || d.label || "");
+          domainByName.set(name, d);
+        }
+
+        const domainCenters = new Map();
+        const ringR1 = Math.floor(320 * mult);
+        const ordered = DOMAIN_ORDER.filter((n) => domainByName.has(n));
+        const fallback = domains
+          .map((d) => String(d.domain || d.label || ""))
+          .filter((n) => n && !ordered.includes(n))
+          .sort((a, b) => a.localeCompare(b, "ko"));
+        const allDomainNames = ordered.concat(fallback);
+
+        for (let i = 0; i < allDomainNames.length; i++) {
+          const name = allDomainNames[i];
+          const node = domainByName.get(name);
+          if (!node) continue;
+          const angle = -Math.PI / 2 + (i / Math.max(1, allDomainNames.length)) * Math.PI * 2;
+          const x = Math.cos(angle) * ringR1;
+          const y = Math.sin(angle) * ringR1;
+          node.fx = x;
+          node.fy = y;
+          domainCenters.set(name, { x, y });
+        }
+
+        const cats = nodes.filter((n) => n.type === "category");
+        const catsByDomain = new Map();
+        for (const c of cats) {
+          const dn = String(c.domain || "");
+          if (!catsByDomain.has(dn)) catsByDomain.set(dn, []);
+          catsByDomain.get(dn).push(c);
+        }
+
+        for (const [dn, list] of catsByDomain.entries()) {
+          const center = domainCenters.get(dn);
+          if (!center) continue;
+
+          const sorted = list
+            .slice()
+            .sort((a, b) => String(a.categoryName || a.baseLabel || a.label || "").localeCompare(String(b.categoryName || b.baseLabel || b.label || ""), "ko"));
+
+          const perRing = 16;
+          const ringCount = Math.max(1, Math.ceil(sorted.length / perRing));
+          const baseR2 = Math.floor((210 + Math.min(110, sorted.length * 4)) * mult);
+          const ringStep = Math.floor(70 * mult);
+
+          for (let idx = 0; idx < sorted.length; idx++) {
+            const ring = Math.floor(idx / perRing);
+            const inRing = idx % perRing;
+            const count = Math.min(perRing, sorted.length - ring * perRing);
+            const angle = (inRing / Math.max(1, count)) * Math.PI * 2;
+            const r = baseR2 + ring * ringStep;
+            const x = center.x + Math.cos(angle) * r;
+            const y = center.y + Math.sin(angle) * r;
+            sorted[idx].fx = x;
+            sorted[idx].fy = y;
+          }
+        }
+
+        // item/기타 노드는 자유롭게 두고(링크로만 끌려오게), 이전 고정값이 남지 않도록 정리
+        for (const n of nodes) {
+          if (!n) continue;
+          if (n.type === "item") {
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+          if (n.type !== "root" && n.type !== "domain" && n.type !== "category" && n.type !== "item") {
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+        }
+      }
+
       function applyForces(graphData) {
         if (!graphData) return;
 
@@ -1573,6 +1680,7 @@
           link.distance((l) => {
             if (l.type === "relation") return 28;
             if (l.type === "transition") return 36;
+            if (state.mode === "territory") return Math.floor(linkDistance * (state.mindmapLayout ? 1.65 : 1.25));
             return linkDistance;
           });
         }
@@ -1833,6 +1941,7 @@
 
         const graphData = computeGraphData();
         if (!graphData) return;
+        applyAnchors(graphData);
         const byId = computeById(graphData);
 
         if (state.selectedNodeId && !byId.has(String(state.selectedNodeId))) state.selectedNodeId = null;
