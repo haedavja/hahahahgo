@@ -161,6 +161,18 @@ export const createBattleActions: SliceCreator = (set) => ({
         const enemyInfo = state.activeBattle.enemyInfo;
         const battleLog = state.activeBattle.simulation?.lines ?? [];
 
+        // HP 차이로 피해량 계산 (시뮬레이터 방식)
+        const initialPlayerHp = state.playerHp; // 전투 시작 시 플레이어 HP
+        const totalEnemyHp = state.activeBattle.totalEnemyHp || 0; // 적 총 HP
+
+        // 플레이어가 가한 피해 = 적 초기 HP - 적 최종 HP (승리 시 0)
+        const calculatedDamageDealt = resultLabel === 'victory'
+          ? totalEnemyHp
+          : Math.max(0, totalEnemyHp - (outcome.enemyRemainingHp || totalEnemyHp));
+
+        // 플레이어가 받은 피해 = 초기 HP - 최종 HP
+        const calculatedDamageTaken = Math.max(0, initialPlayerHp - finalPlayerHp);
+
         recordGameBattle(
           {
             result: resultLabel as 'victory' | 'defeat',
@@ -171,8 +183,8 @@ export const createBattleActions: SliceCreator = (set) => ({
           {
             nodeId: state.activeBattle.nodeId,
             kind: state.activeBattle.kind,
-            damageDealt: outcome.damageDealt || 0,
-            damageTaken: outcome.damageTaken || 0,
+            damageDealt: outcome.damageDealt || calculatedDamageDealt,
+            damageTaken: outcome.damageTaken || calculatedDamageTaken,
             battleLog,
             isEtherVictory: outcome.isEtherVictory,
           },

@@ -493,6 +493,16 @@ export class StatsCollector {
 
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
+
+    // 연승 기록 업데이트 (개별 전투 승리 시에도 업데이트)
+    if (isWin) {
+      this.currentWinStreak++;
+      if (this.currentWinStreak > this.longestWinStreak) {
+        this.longestWinStreak = this.currentWinStreak;
+      }
+    } else {
+      this.currentWinStreak = 0;
+    }
   }
 
   /** 카드 통계 업데이트 */
