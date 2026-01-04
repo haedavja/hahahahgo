@@ -30,6 +30,7 @@ interface EnemyState {
 
 interface PostCombatOptions {
   type?: 'victory' | 'defeat';
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }
 
@@ -45,7 +46,7 @@ interface UseBattleSyncEffectsParams {
 
   // 승리 자동 결과
   postCombatOptions: PostCombatOptions | null;
-  notifyBattleResult: (outcome: 'victory' | 'defeat') => void;
+  notifyBattleResult: (outcome: 'victory' | 'defeat', isEtherVictory?: boolean) => void;
 
   // 타겟 유닛 자동 전환
   hasMultipleUnits: boolean;
@@ -97,7 +98,7 @@ export function useBattleSyncEffects(params: UseBattleSyncEffectsParams): void {
   // 승리 시에만 자동으로 결과 전송 (패배 시에는 사용자가 버튼 클릭 후 나감)
   useEffect(() => {
     if (postCombatOptions?.type === 'victory') {
-      notifyBattleResult(postCombatOptions.type);
+      notifyBattleResult(postCombatOptions.type, postCombatOptions.isEtherVictory);
     }
   }, [postCombatOptions, notifyBattleResult]);
 

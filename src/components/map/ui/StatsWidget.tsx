@@ -244,12 +244,14 @@ function formatStatsForCopy(
     lines.push('');
     lines.push('## 몬스터별 통계');
     const sortedMonsters = Array.from(detailed.monsterStats.entries())
-      .sort((a, b) => b[1].encounters - a[1].encounters)
+      .sort((a, b) => (b[1].battles || 0) - (a[1].battles || 0))
       .slice(0, 10);
 
     for (const [id, data] of sortedMonsters) {
-      const winRate = data.encounters > 0 ? ((data.wins / data.encounters) * 100).toFixed(1) : '0';
-      lines.push(`- ${id}: ${data.encounters}전 ${data.wins}승 (${winRate}%)`);
+      const battleCount = data.battles || 0;
+      const winRate = battleCount > 0 ? ((data.wins / battleCount) * 100).toFixed(1) : '0';
+      const displayName = data.monsterName || id;
+      lines.push(`- ${displayName}: ${battleCount}전 ${data.wins}승 (${winRate}%)`);
     }
   }
 

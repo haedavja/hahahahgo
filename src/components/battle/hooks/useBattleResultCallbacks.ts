@@ -42,7 +42,7 @@ interface UseBattleResultCallbacksParams {
 }
 
 interface BattleResultCallbacks {
-  notifyBattleResult: (resultType: string) => void;
+  notifyBattleResult: (resultType: string, isEtherVictory?: boolean) => void;
   closeCharacterSheet: () => void;
   handleExitToMap: () => void;
 }
@@ -61,17 +61,19 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
     actions
   } = params;
 
-  const notifyBattleResult = useCallback((resultType: string) => {
+  const notifyBattleResult = useCallback((resultType: string, isEtherVictoryOverride?: boolean) => {
     if (!resultType || resultSentRef.current) return;
     const finalEther = (player.etherPts as number);
     const delta = finalEther - ((initialEtherRef.current as number) ?? 0);
+    // isEtherVictoryOverride가 명시적으로 전달되면 사용, 아니면 postCombatOptions에서 가져옴
+    const isEtherVictory = isEtherVictoryOverride ?? postCombatOptions?.isEtherVictory ?? false;
     onBattleResult?.({
       result: resultType as BattleResult['result'],
       playerEther: finalEther,
       deltaEther: delta,
       playerHp: player.hp,
       playerMaxHp: player.maxHp,
-      isEtherVictory: postCombatOptions?.isEtherVictory
+      isEtherVictory
     });
     resultSentRef.current = true;
   }, [player.etherPts, player.hp, player.maxHp, onBattleResult, initialEtherRef, resultSentRef, postCombatOptions?.isEtherVictory]);
