@@ -205,4 +205,38 @@ chore: 기타 작업
 
 ---
 
+## 10. 에이전트 및 스킬 활용
+
+### 에이전트 사용 원칙
+**직접 도구보다 에이전트 우선 사용**
+
+| 상황 | 사용할 에이전트 |
+|------|----------------|
+| 코드 위치/흐름 파악 | `Explore` (quick/medium/very thorough) |
+| 여러 파일 동기화 확인 | `Explore` |
+| 새 기능 설계 | `Plan` |
+| Claude Code 기능 질문 | `claude-code-guide` |
+
+### 필수 활용 케이스
+```
+# 코드 탐색 시 - 반드시 Explore 사용
+Task(subagent_type='Explore', prompt='전투 승리 조건이 어떻게 처리되는지 추적해줘')
+
+# 구현 계획 시 - Plan 사용
+Task(subagent_type='Plan', prompt='에테르 시스템 리팩토링 계획을 세워줘')
+```
+
+### 커스텀 커맨드 (`.claude/commands/`)
+- `/add-card` - 새 카드 추가
+- `/add-enemy` - 새 적 추가
+- `/balance-check` - 밸런스 검사
+- `/simulate-battle` - 전투 시뮬레이션
+- `/fix-battle-bug` - 전투 버그 수정
+
+### 스킬 (`.claude/skills/`)
+- `version-updater` - 버전 태그 자동 업데이트 알림
+- `agent-usage` - 에이전트 활용 가이드
+
+---
+
 **이 문서는 Claude가 프로젝트를 이어받아 작업할 때 참조하는 가이드입니다.**
