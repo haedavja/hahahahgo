@@ -23,6 +23,8 @@ export interface GameBattleContext {
   comboUsage?: Record<string, number>;
   tokenUsage?: Record<string, number>;
   battleLog?: string[];
+  /** 영혼파괴 승리 여부 */
+  isEtherVictory?: boolean;
 }
 
 /** 게임에서 전달하는 적 정보 */
@@ -46,6 +48,8 @@ export interface GamePlayerInfo {
 /** 변환된 통계용 전투 결과 */
 export interface AdaptedBattleResult extends SimulatorBattleResult {
   source: 'game' | 'simulator';
+  /** 영혼파괴 승리 여부 */
+  isEtherVictory?: boolean;
 }
 
 // ==================== 싱글톤 인스턴스 ====================
@@ -196,6 +200,7 @@ export function adaptGameBattleResult(
     timeline: [],
     victory: winner === 'player',
     enemyId: enemyInfo.id,
+    isEtherVictory: context.isEtherVictory || gameResult.isEtherVictory,
   };
 }
 
@@ -476,6 +481,10 @@ export interface SimplifiedStats {
   totalDamageDealt: number;
   totalRuns: number;
   successfulRuns: number;
+  /** 영혼파괴 승리 횟수 (에테르로 승리) */
+  soulDestructions: number;
+  /** 육체파괴 승리 횟수 (HP로 승리) */
+  physicalDestructions: number;
 }
 
 /** 캐시된 상세 통계 */
@@ -498,10 +507,20 @@ export function getCurrentStats(): SimplifiedStats {
   let totalTurns = 0;
   let totalDamageDealt = 0;
   let totalDamageTaken = 0;
+  let soulDestructions = 0;
+  let physicalDestructions = 0;
 
   for (let i = 0; i < battles; i++) {
     const record = battleRecords[i];
-    if (record.winner === 'player') wins++;
+    if (record.winner === 'player') {
+      wins++;
+      // 영혼파괴 vs 육체파괴 집계
+      if (record.isEtherVictory) {
+        soulDestructions++;
+      } else {
+        physicalDestructions++;
+      }
+    }
     totalTurns += record.turns || 0;
     totalDamageDealt += record.playerDamageDealt || 0;
     totalDamageTaken += record.enemyDamageDealt || 0;
@@ -520,6 +539,8 @@ export function getCurrentStats(): SimplifiedStats {
     totalDamageDealt,
     totalRuns: detailed.runStats?.totalRuns || 0,
     successfulRuns: detailed.runStats?.successfulRuns || 0,
+    soulDestructions,
+    physicalDestructions,
   };
 }
 

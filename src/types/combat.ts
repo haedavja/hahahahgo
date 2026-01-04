@@ -793,6 +793,8 @@ export interface VictoryConditionResult {
 /** 전투 후 옵션 */
 export interface PostCombatOptions {
   type: 'victory' | 'defeat';
+  /** 영혼파괴 여부 (에테르로 승리) */
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }
 

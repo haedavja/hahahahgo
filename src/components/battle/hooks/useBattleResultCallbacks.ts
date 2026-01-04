@@ -25,6 +25,7 @@ interface EnemyState {
 
 interface PostCombatOptions {
   type?: 'victory' | 'defeat';
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }
 
@@ -69,10 +70,11 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
       playerEther: finalEther,
       deltaEther: delta,
       playerHp: player.hp,
-      playerMaxHp: player.maxHp
+      playerMaxHp: player.maxHp,
+      isEtherVictory: postCombatOptions?.isEtherVictory
     });
     resultSentRef.current = true;
-  }, [player.etherPts, player.hp, player.maxHp, onBattleResult, initialEtherRef, resultSentRef]);
+  }, [player.etherPts, player.hp, player.maxHp, onBattleResult, initialEtherRef, resultSentRef, postCombatOptions?.isEtherVictory]);
 
   const closeCharacterSheet = useCallback(() => {
     actions.setShowCharacterSheet(false);

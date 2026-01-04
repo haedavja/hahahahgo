@@ -166,6 +166,7 @@ export const createBattleActions: SliceCreator = (set) => ({
             result: resultLabel as 'victory' | 'defeat',
             playerHp: finalPlayerHp,
             deltaEther: 0,
+            isEtherVictory: outcome.isEtherVictory,
           },
           {
             nodeId: state.activeBattle.nodeId,
@@ -173,6 +174,7 @@ export const createBattleActions: SliceCreator = (set) => ({
             damageDealt: outcome.damageDealt || 0,
             damageTaken: outcome.damageTaken || 0,
             battleLog,
+            isEtherVictory: outcome.isEtherVictory,
           },
           {
             id: enemyInfo?.id,

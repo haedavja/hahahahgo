@@ -47,7 +47,7 @@ export function processVictoryDefeatTransition({
       if (onVictory) {
         onVictory();
       } else {
-        actions.setPostCombatOptions({ type: 'victory' });
+        actions.setPostCombatOptions({ type: 'victory', isEtherVictory: victoryCheck.isEtherVictory });
         actions.setPhase('post');
       }
     }, victoryCheck.delay);

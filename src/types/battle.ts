@@ -148,5 +148,7 @@ export interface BattleResult {
   deltaEther?: number;
   playerHp?: number;
   playerMaxHp?: number;
+  /** 영혼파괴 여부 (에테르로 승리) */
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }

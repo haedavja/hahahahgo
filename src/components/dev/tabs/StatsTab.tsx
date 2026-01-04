@@ -292,6 +292,33 @@ export const StatsTab = memo(function StatsTab() {
                   </div>
                 </div>
               </div>
+
+              {/* 파괴 유형 통계 */}
+              {simpleStats.wins > 0 && (
+                <div style={STYLES.sectionBox}>
+                  <div style={STYLES.subHeader}>
+                    💀 승리 방식 (파괴 유형)
+                  </div>
+                  <div style={{ ...STYLES.statsGrid, gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                    <div style={STYLES.statItem}>
+                      <div style={STYLES.statLabel}>영혼파괴</div>
+                      <div style={{ ...STYLES.statValue, color: '#a855f7' }}>{simpleStats.soulDestructions}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: '4px' }}>
+                        ({simpleStats.wins > 0 ? ((simpleStats.soulDestructions / simpleStats.wins) * 100).toFixed(1) : '0'}%)
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.65rem' }}>에테르로 승리</div>
+                    </div>
+                    <div style={STYLES.statItem}>
+                      <div style={STYLES.statLabel}>육체파괴</div>
+                      <div style={{ ...STYLES.statValue, color: '#ef4444' }}>{simpleStats.physicalDestructions}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: '4px' }}>
+                        ({simpleStats.wins > 0 ? ((simpleStats.physicalDestructions / simpleStats.wins) * 100).toFixed(1) : '0'}%)
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.65rem' }}>HP로 승리</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

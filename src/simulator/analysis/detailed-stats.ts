@@ -362,6 +362,7 @@ export class StatsCollector {
       crossTriggers: 0,
       combosTriggered: { ...result.comboStats },
       groupInfo: null,
+      isEtherVictory: (result as { isEtherVictory?: boolean }).isEtherVictory,
     };
 
     // 이벤트에서 특수효과 및 교차 횟수 추출

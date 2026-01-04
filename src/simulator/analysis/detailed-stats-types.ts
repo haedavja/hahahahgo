@@ -534,6 +534,8 @@ export interface BattleRecord {
   combosTriggered: Record<string, number>;
   /** 그룹 전투 정보 (다수 적 전투 시) */
   groupInfo: BattleGroupInfo | null;
+  /** 영혼파괴 승리 여부 (에테르로 승리) */
+  isEtherVictory?: boolean;
 }
 
 /** 전투 그룹 정보 */
