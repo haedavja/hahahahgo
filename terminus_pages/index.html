@@ -79,6 +79,61 @@
         color: #cbd5e1;
       }
 
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tab {
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.35);
+        color: var(--text);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .tab.active {
+        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(59, 130, 246, 0.18);
+      }
+
+      #altView {
+        position: absolute;
+        inset: 0;
+        overflow: auto;
+        padding: 16px;
+        display: none;
+      }
+      .cardGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .card {
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 23, 42, 0.35);
+        padding: 12px 12px;
+      }
+      .cardTitle {
+        font-size: 12px;
+        color: #cbd5e1;
+        font-weight: 900;
+      }
+      .cardValue {
+        font-size: 22px;
+        font-weight: 950;
+        margin-top: 6px;
+      }
+      .mini {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+        line-height: 1.35;
+      }
+
       label {
         font-size: 12px;
         color: #cbd5e1;
@@ -176,6 +231,51 @@
           <span id="badge-export" class="badge" style="display: none;"></span>
         </div>
 
+        <div id="modeTabs" class="tabs" style="margin-top: 12px;">
+          <button class="tab active" type="button" data-mode="territory">영역</button>
+          <button class="tab" type="button" data-mode="layer">레이어</button>
+          <button class="tab" type="button" data-mode="pov">POV</button>
+          <button class="tab" type="button" data-mode="state">상태전이</button>
+          <button class="tab" type="button" data-mode="timeline">타임라인</button>
+          <button class="tab" type="button" data-mode="ui">UI</button>
+        </div>
+
+        <div id="modeHint" class="hint" style="margin-top: 10px;"></div>
+
+        <div id="control-layer" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">레이어</div>
+          <select id="layer">
+            <option value="ALL">전체</option>
+            <option value="CORE">CORE</option>
+            <option value="SYSTEM">SYSTEM</option>
+            <option value="NARRATIVE">NARRATIVE</option>
+            <option value="PLAYER">PLAYER</option>
+            <option value="UNSORTED">미분류</option>
+          </select>
+        </div>
+
+        <div id="control-pov" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">관측자(POV)</div>
+          <select id="pov">
+            <option value="PLAYER">PLAYER</option>
+            <option value="NPC">NPC</option>
+            <option value="종언자">종언자</option>
+            <option value="CORE">CORE</option>
+            <option value="ALL">전체</option>
+          </select>
+        </div>
+
+        <div id="control-status" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">상태</div>
+          <select id="status">
+            <option value="ALL">전체</option>
+            <option value="초안">초안</option>
+            <option value="정리중">정리중</option>
+            <option value="확정">확정</option>
+            <option value="미지정">미지정</option>
+          </select>
+        </div>
+
         <div id="stats" class="hint" style="margin-top: 12px;"></div>
 
         <div style="margin-top: 14px;">
@@ -254,6 +354,7 @@
 
       <main class="main">
         <div id="graph"></div>
+        <div id="altView"></div>
       </main>
     </div>
 
@@ -263,6 +364,24 @@
       const DEFAULT_WARMUP_TICKS = 40;
       const DEFAULT_COOLDOWN_TICKS = 220;
       const ITEM_LIST_LIMIT = 120;
+
+      const MODES = [
+        { id: "territory", label: "영역" },
+        { id: "layer", label: "레이어" },
+        { id: "pov", label: "POV" },
+        { id: "state", label: "상태전이" },
+        { id: "timeline", label: "타임라인" },
+        { id: "ui", label: "UI" },
+      ];
+
+      const MODE_HINTS = {
+        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터로 줄인 뒤 표시하세요.",
+        layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. (노션 '레이어' 속성이 있으면 우선 사용)",
+        pov: "관측자(POV)별로 '무엇까지 보이는가'를 보여줍니다. (기본 규칙: 레이어 기반)",
+        state: "작업 상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (노션 '상태' 사용)",
+        timeline: "시간(노션 '시간' date 또는 '시점') 기준으로 묶어서 봅니다.",
+        ui: "그래프 대신 대시보드/목록으로 빠르게 탐색합니다.",
+      };
 
       const elGraph = document.getElementById("graph");
       const elStats = document.getElementById("stats");
@@ -277,6 +396,16 @@
       const elItemLimit = document.getElementById("itemLimit");
       const elItemStats = document.getElementById("itemStats");
       const elBtnCollapse = document.getElementById("btn-collapse");
+      const elAltView = document.getElementById("altView");
+
+      const elModeTabs = document.getElementById("modeTabs");
+      const elModeHint = document.getElementById("modeHint");
+      const elControlLayer = document.getElementById("control-layer");
+      const elLayer = document.getElementById("layer");
+      const elControlPov = document.getElementById("control-pov");
+      const elPov = document.getElementById("pov");
+      const elControlStatus = document.getElementById("control-status");
+      const elStatus = document.getElementById("status");
 
       const elSelectedEmpty = document.getElementById("selectedEmpty");
       const elSelectedBox = document.getElementById("selectedBox");
@@ -287,9 +416,13 @@
 
       const state = {
         raw: null,
+        mode: "territory",
         query: "",
         domainFilter: "ALL",
         categoryFilter: "ALL",
+        layerFilter: "ALL",
+        povFilter: "PLAYER",
+        statusFilter: "ALL",
         showItems: false,
         showRelations: true,
         mindmapLayout: true,
@@ -305,6 +438,99 @@
 
       function includesCI(haystack, needle) {
         return String(haystack || "").toLowerCase().includes(String(needle || "").toLowerCase());
+      }
+
+      function toSafeIdPart(value) {
+        return String(value || "")
+          .trim()
+          .replace(/\s+/g, "_")
+          .replace(/[^0-9a-zA-Z가-힣_]+/g, "_")
+          .slice(0, 80);
+      }
+
+      function makeId(prefix, ...parts) {
+        return [prefix, ...parts.map(toSafeIdPart)].join("__");
+      }
+
+      const LAYERS = ["CORE", "SYSTEM", "NARRATIVE", "PLAYER", "UNSORTED"];
+      const LAYER_LABEL = {
+        CORE: "CORE",
+        SYSTEM: "SYSTEM",
+        NARRATIVE: "NARRATIVE",
+        PLAYER: "PLAYER",
+        UNSORTED: "미분류",
+      };
+
+      function normalizeLayer(value) {
+        const raw = String(value || "").trim().toUpperCase();
+        if (!raw) return null;
+        if (raw === "CORE" || raw === "SYSTEM" || raw === "NARRATIVE" || raw === "PLAYER") return raw;
+        if (raw === "UNSORTED") return "UNSORTED";
+        if (raw === "코어") return "CORE";
+        if (raw === "시스템") return "SYSTEM";
+        if (raw === "서사" || raw === "내러티브") return "NARRATIVE";
+        if (raw === "플레이어") return "PLAYER";
+        return null;
+      }
+
+      function inferLayerFromItem(item) {
+        const direct = normalizeLayer(item && item.layer);
+        if (direct) return direct;
+
+        const category = String(item && item.category ? item.category : "");
+        const tags = new Set(Array.isArray(item && item.tags) ? item.tags : []);
+
+        if (tags.has("플레이어") || tags.has("노출") || tags.has("공개")) return "PLAYER";
+        if (category === "시스템(게임)") return "SYSTEM";
+        if (category === "플롯/에피소드") return "NARRATIVE";
+        if (category === "메타") return "CORE";
+
+        if (tags.has("시스템") || tags.has("룰") || tags.has("밸런스")) return "SYSTEM";
+        if (tags.has("스토리") || tags.has("플롯") || tags.has("에피소드") || tags.has("서사")) return "NARRATIVE";
+
+        return "UNSORTED";
+      }
+
+      const PERSPECTIVES = ["PLAYER", "NPC", "종언자", "CORE"];
+      const PERSPECTIVE_LEVEL = { PLAYER: 0, NPC: 1, 종언자: 2, CORE: 3 };
+      const LAYER_LEVEL = { PLAYER: 0, NARRATIVE: 1, SYSTEM: 2, CORE: 3, UNSORTED: 3 };
+
+      function normalizePerspective(value) {
+        const v = String(value || "").trim();
+        if (!v) return null;
+        if (v === "PLAYER" || v === "NPC" || v === "종언자" || v === "CORE") return v;
+        const upper = v.toUpperCase();
+        if (upper === "PLAYER") return "PLAYER";
+        if (upper === "NPC") return "NPC";
+        if (v === "플레이어") return "PLAYER";
+        return null;
+      }
+
+      function pickPrimaryVisibility(item) {
+        const raw = Array.isArray(item && item.visibility) ? item.visibility : [];
+        const normalized = raw.map(normalizePerspective).filter(Boolean);
+        if (normalized.length === 0) return null;
+        for (const p of PERSPECTIVES) {
+          if (normalized.includes(p)) return p;
+        }
+        return normalized[0] || null;
+      }
+
+      function isVisibleToPerspective(item, pov) {
+        const p = normalizePerspective(pov);
+        if (!p) return false;
+
+        const raw = Array.isArray(item && item.visibility) ? item.visibility : [];
+        const normalized = raw.map(normalizePerspective).filter(Boolean);
+        if (normalized.length > 0) return normalized.includes(p);
+
+        const layer = inferLayerFromItem(item);
+        return (PERSPECTIVE_LEVEL[p] || 0) >= (LAYER_LEVEL[layer] || 0);
+      }
+
+      function getRootNode(raw) {
+        const hit = (raw && raw.nodes ? raw.nodes : []).find((n) => n.type === "root");
+        return hit ? upsertCachedNode(hit) : upsertCachedNode({ id: "__terminus_root__", type: "root", label: "테르미누스" });
       }
 
       function getEndpointId(value) {
@@ -326,6 +552,10 @@
       function getNodeSize(node) {
         if (node.type === "root") return 10;
         if (node.type === "domain") return 8;
+        if (node.type === "layer") return 8;
+        if (node.type === "pov") return 8;
+        if (node.type === "state") return 8;
+        if (node.type === "time") return 7;
         if (node.type === "category") return 6;
         return 3;
       }
@@ -338,6 +568,30 @@
           if (node.domain === "게임") return "#34d399";
           return "#93c5fd";
         }
+        if (node.type === "layer") {
+          const l = normalizeLayer(node.layer || node.label);
+          if (l === "CORE") return "#cbd5e1";
+          if (l === "SYSTEM") return "#34d399";
+          if (l === "NARRATIVE") return "#fde047";
+          if (l === "PLAYER") return "#60a5fa";
+          return "#94a3b8";
+        }
+        if (node.type === "pov") {
+          const p = normalizePerspective(node.pov || node.label);
+          if (p === "PLAYER") return "#60a5fa";
+          if (p === "NPC") return "#fde047";
+          if (p === "종언자") return "#a78bfa";
+          if (p === "CORE") return "#cbd5e1";
+          return "#94a3b8";
+        }
+        if (node.type === "state") {
+          const s = String(node.label || "");
+          if (s === "초안") return "#94a3b8";
+          if (s === "정리중") return "#fde047";
+          if (s === "확정") return "#34d399";
+          return "#cbd5e1";
+        }
+        if (node.type === "time") return "#cbd5e1";
         if (node.type === "category") {
           switch (node.label) {
             case "초법":
@@ -411,7 +665,7 @@
         elCategory.value = cats.includes(current) ? current : "ALL";
       }
 
-      function computeGraphData() {
+      function computeTerritoryGraphData() {
         const raw = state.raw;
         if (!raw) return null;
 
@@ -493,6 +747,328 @@
         };
       }
 
+      function computeLayerGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const candidate = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+          candidate.push(upsertCachedNode({ ...n, layer }));
+        }
+
+        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        if (state.selectedNodeId) {
+          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = candidate.splice(idx, 1)[0];
+            candidate.unshift(keep);
+          }
+        }
+
+        const shouldShowItems = Boolean(state.showItems);
+        const truncated = candidate.length > state.itemLimit;
+        const shownItems = shouldShowItems ? (truncated ? candidate.slice(0, state.itemLimit) : candidate) : [];
+
+        const nodes = [];
+        const links = [];
+
+        nodes.push(getRootNode(raw));
+
+        const layerNodeId = new Map();
+        for (const l of LAYERS) {
+          const id = makeId("__layer", l);
+          layerNodeId.set(l, id);
+          nodes.push(upsertCachedNode({ id, type: "layer", label: LAYER_LABEL[l] || l, layer: l }));
+          links.push({ source: getRootNode(raw).id, target: id, type: "hierarchy" });
+        }
+
+        const catNodeId = new Map();
+        const ensureCat = (layer, category) => {
+          const key = layer + "::" + category;
+          let id = catNodeId.get(key);
+          if (id) return id;
+          id = makeId("__layercat", layer, category);
+          catNodeId.set(key, id);
+          nodes.push(upsertCachedNode({ id, type: "category", label: category, layer }));
+          links.push({ source: layerNodeId.get(layer), target: id, type: "hierarchy" });
+          return id;
+        };
+
+        for (const item of shownItems) {
+          const layer = inferLayerFromItem(item);
+          const cat = String(item.category || "기타");
+          const catId = ensureCat(layer, cat);
+          nodes.push(item);
+          links.push({ source: catId, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computePovGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const povFilter = state.povFilter;
+        const showAll = povFilter === "ALL";
+        const povs = showAll ? PERSPECTIVES.slice() : [povFilter];
+
+        const candidate = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+
+          if (!state.showItems) continue;
+
+          if (!showAll) {
+            if (!isVisibleToPerspective(n, povFilter)) continue;
+            candidate.push(upsertCachedNode({ ...n, layer, pov: povFilter }));
+            continue;
+          }
+
+          const assigned = pickPrimaryVisibility(n) || (layer === "PLAYER" ? "PLAYER" : layer === "NARRATIVE" ? "NPC" : layer === "SYSTEM" ? "종언자" : "CORE");
+          candidate.push(upsertCachedNode({ ...n, layer, pov: assigned }));
+        }
+
+        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        if (state.selectedNodeId) {
+          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = candidate.splice(idx, 1)[0];
+            candidate.unshift(keep);
+          }
+        }
+
+        const truncated = candidate.length > state.itemLimit;
+        const shownItems = truncated ? candidate.slice(0, state.itemLimit) : candidate;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const povNodeId = new Map();
+        for (const p of povs) {
+          const id = makeId("__pov", p);
+          povNodeId.set(p, id);
+          nodes.push(upsertCachedNode({ id, type: "pov", label: p, pov: p }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        for (const item of shownItems) {
+          const p = showAll ? item.pov : povFilter;
+          const id = povNodeId.get(p) || povNodeId.get(povFilter);
+          if (!id) continue;
+          nodes.push(item);
+          links.push({ source: id, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computeStateGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const STATUS_NODES = ["초안", "정리중", "확정", "미지정"];
+
+        const candidate = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+
+          if (!state.showItems) continue;
+
+          const status = n.status ? String(n.status) : "미지정";
+          const statusOk = state.statusFilter === "ALL" || status === state.statusFilter;
+          if (!statusOk) continue;
+
+          candidate.push(upsertCachedNode({ ...n, layer, status }));
+        }
+
+        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        if (state.selectedNodeId) {
+          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = candidate.splice(idx, 1)[0];
+            candidate.unshift(keep);
+          }
+        }
+
+        const truncated = candidate.length > state.itemLimit;
+        const shownItems = truncated ? candidate.slice(0, state.itemLimit) : candidate;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const statusNodeId = new Map();
+        for (const s of STATUS_NODES) {
+          const id = makeId("__state", s);
+          statusNodeId.set(s, id);
+          nodes.push(upsertCachedNode({ id, type: "state", label: s }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        links.push({ source: statusNodeId.get("초안"), target: statusNodeId.get("정리중"), type: "transition" });
+        links.push({ source: statusNodeId.get("정리중"), target: statusNodeId.get("확정"), type: "transition" });
+
+        for (const item of shownItems) {
+          const sid = statusNodeId.get(item.status || "미지정") || statusNodeId.get("미지정");
+          nodes.push(item);
+          links.push({ source: sid, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function getTimelineBucket(item) {
+        const t = item && item.time ? String(item.time) : "";
+        if (t) {
+          const d = new Date(t);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            return { key: "Y:" + y, label: String(y), sortKey: y };
+          }
+        }
+        const label = item && item.timeLabel ? String(item.timeLabel).trim() : "";
+        if (label) return { key: "L:" + label, label, sortKey: Number.POSITIVE_INFINITY };
+        return { key: "UNSPEC", label: "미지정", sortKey: Number.POSITIVE_INFINITY + 1 };
+      }
+
+      function computeTimelineGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const matched = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+
+          matched.push(upsertCachedNode({ ...n, layer }));
+        }
+
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        if (state.selectedNodeId) {
+          const idx = matched.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = matched.splice(idx, 1)[0];
+            matched.unshift(keep);
+          }
+        }
+
+        const shouldShowItems = Boolean(state.showItems);
+        const truncated = matched.length > state.itemLimit;
+        const shownItems = shouldShowItems ? (truncated ? matched.slice(0, state.itemLimit) : matched) : [];
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const bucketCount = new Map();
+        const bucketInfoByKey = new Map();
+        for (const item of matched) {
+          const b = getTimelineBucket(item);
+          bucketInfoByKey.set(b.key, b);
+          bucketCount.set(b.key, (bucketCount.get(b.key) || 0) + 1);
+        }
+
+        let buckets = [...bucketInfoByKey.values()].sort((a, b) => {
+          if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+          return String(a.label).localeCompare(String(b.label), "ko");
+        });
+
+        const MAX_BUCKETS = 80;
+        const OTHER_KEY = "__OTHER__";
+        if (buckets.length > MAX_BUCKETS) {
+          const kept = buckets.slice(0, MAX_BUCKETS - 1);
+          kept.push({ key: OTHER_KEY, label: "(기타…)", sortKey: Number.POSITIVE_INFINITY + 9 });
+          buckets = kept;
+        }
+
+        const bucketNodeId = new Map();
+        for (const b of buckets) {
+          const id = makeId("__time", b.key);
+          bucketNodeId.set(b.key, id);
+          nodes.push(upsertCachedNode({ id, type: "time", label: b.label }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        for (const item of shownItems) {
+          const b = getTimelineBucket(item);
+          const bid = bucketNodeId.get(b.key) || bucketNodeId.get(OTHER_KEY);
+          if (!bid) continue;
+          nodes.push(item);
+          links.push({ source: bid, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computeGraphData() {
+        if (state.mode === "territory") return computeTerritoryGraphData();
+        if (state.mode === "layer") return computeLayerGraphData();
+        if (state.mode === "pov") return computePovGraphData();
+        if (state.mode === "state") return computeStateGraphData();
+        if (state.mode === "timeline") return computeTimelineGraphData();
+        return null;
+      }
+
       function computeById(graphData) {
         const m = new Map();
         for (const n of graphData.nodes || []) m.set(String(n.id), n);
@@ -540,6 +1116,12 @@
         if (node.domains && node.domains.length)
           badges.push('<span class="badge">domains: ' + node.domains.join(", ") + "</span>");
         if (node.category) badges.push('<span class="badge">cat: ' + node.category + "</span>");
+        if (node.layer) {
+          const l = normalizeLayer(node.layer) || inferLayerFromItem(node);
+          badges.push('<span class="badge">layer: ' + (l === "UNSORTED" ? "미분류" : l) + "</span>");
+        }
+        if (node.pov) badges.push('<span class="badge">POV: ' + node.pov + "</span>");
+        if (node.time || node.timeLabel) badges.push('<span class="badge">time: ' + (node.timeLabel || node.time) + "</span>");
         if (node.status) badges.push('<span class="badge">상태: ' + node.status + "</span>");
 
         const tags =
@@ -591,12 +1173,18 @@
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className = String(n.id) === String(state.selectedNodeId) ? "selected" : "";
+          const layer = n.layer ? normalizeLayer(n.layer) || inferLayerFromItem(n) : null;
+          const right = [];
+          if (layer && layer !== "UNSORTED") right.push(layer);
+          if (n.status) right.push(n.status);
           btn.innerHTML =
             '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
             '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
             (n.label || "") +
             "</div>" +
-            (n.status ? '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' + n.status + "</div>" : "") +
+            (right.length
+              ? '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' + right.join(" · ") + "</div>"
+              : "") +
             "</div>";
           btn.addEventListener("click", () => {
             state.userInteracted = true;
@@ -637,15 +1225,32 @@
         const nodeCount = (state.raw.nodes || []).length;
         const linkCount = (state.raw.links || []).length;
         const pageCount = meta.totalPagesFetched != null ? meta.totalPagesFetched : "?";
-        elStats.textContent = "nodes: " + nodeCount + " / links: " + linkCount + " / pages: " + pageCount;
+        const modeLabel = (MODES.find((m) => m.id === state.mode) || {}).label || state.mode;
+        const viewNodeCount = (graphData.nodes || []).length;
+        const viewLinkCount = (graphData.links || []).length;
+        elStats.textContent =
+          "모드: " +
+          modeLabel +
+          " | pages: " +
+          pageCount +
+          " | view nodes: " +
+          viewNodeCount +
+          " / view links: " +
+          viewLinkCount +
+          " | raw nodes: " +
+          nodeCount +
+          " / raw links: " +
+          linkCount;
 
         if (state.showItems) {
           elItemControls.style.display = "";
-          elItemStats.style.display = graphData.stats && (graphData.stats.matchedItems > 0 || state.expandedCategoryScope) ? "" : "none";
+          const showStatExtra =
+            state.mode === "territory" ? graphData.stats && (graphData.stats.matchedItems > 0 || state.expandedCategoryScope) : graphData.stats && graphData.stats.matchedItems > 0;
+          elItemStats.style.display = showStatExtra ? "" : "none";
           if (graphData.stats) {
             let t = "항목: " + graphData.stats.shownItems + "/" + graphData.stats.matchedItems;
             if (graphData.stats.truncated) t += " (최대 " + state.itemLimit + "개만 표시)";
-            if (state.expandedCategoryScope)
+            if (state.mode === "territory" && state.expandedCategoryScope)
               t += "\\n펼침: " + state.expandedCategoryScope.domain + " / " + state.expandedCategoryScope.category;
             elItemStats.textContent = t;
           }
@@ -661,12 +1266,258 @@
         updateSelectedUI(selected);
       }
 
+      function updateModeUI() {
+        const mode = state.mode;
+
+        for (const btn of elModeTabs.querySelectorAll("button[data-mode]")) {
+          btn.classList.toggle("active", btn.dataset.mode === mode);
+        }
+
+        elModeHint.textContent = MODE_HINTS[mode] || "";
+
+        elControlLayer.style.display = mode === "layer" || mode === "ui" ? "" : "none";
+        elControlPov.style.display = mode === "pov" ? "" : "none";
+        elControlStatus.style.display = mode === "state" || mode === "ui" ? "" : "none";
+
+        const allowMindmap = mode === "territory";
+        elMindmap.disabled = !allowMindmap;
+        if (elMindmap.parentElement) elMindmap.parentElement.style.opacity = allowMindmap ? "1" : "0.45";
+
+        const allowRelations = mode === "territory";
+        elShowRelations.disabled = !allowRelations;
+        if (elShowRelations.parentElement) elShowRelations.parentElement.style.opacity = allowRelations ? "1" : "0.45";
+
+        const allowShowItems = mode !== "ui";
+        elShowItems.disabled = !allowShowItems;
+        if (elShowItems.parentElement) elShowItems.parentElement.style.opacity = allowShowItems ? "1" : "0.45";
+      }
+
+      function setMode(nextMode) {
+        const next = String(nextMode || "").trim();
+        if (!next) return;
+        state.mode = next;
+        state.userInteracted = false;
+        state.autoFitDone = false;
+        state.hoveredNodeId = null;
+        state.selectedNodeId = null;
+        state.expandedCategoryScope = null;
+        updateModeUI();
+        refresh();
+      }
+
+      function getDagModeForMode() {
+        if (state.mode === "territory") return state.mindmapLayout ? "radialout" : null;
+        if (state.mode === "layer") return "td";
+        if (state.mode === "pov") return "radialout";
+        if (state.mode === "state") return "lr";
+        if (state.mode === "timeline") return "lr";
+        return null;
+      }
+
+      function getDagLevelDistanceForMode() {
+        if (state.mode === "territory") return state.mindmapLayout ? 110 : null;
+        if (state.mode === "layer") return 130;
+        if (state.mode === "pov") return 120;
+        if (state.mode === "state") return 140;
+        if (state.mode === "timeline") return 140;
+        return null;
+      }
+
+      function renderDashboard() {
+        const raw = state.raw;
+        if (!raw) return;
+
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+        const meta = raw.meta || {};
+        const exportedAt = meta.exportedAt || "";
+
+        const countDomain = new Map([
+          ["세계관", 0],
+          ["소설", 0],
+          ["게임", 0],
+        ]);
+        const countLayer = new Map(
+          LAYERS.map((l) => [l, 0]),
+        );
+        const countStatus = new Map([
+          ["초안", 0],
+          ["정리중", 0],
+          ["확정", 0],
+          ["미지정", 0],
+        ]);
+
+        for (const it of items) {
+          const domains = Array.isArray(it.domains) ? it.domains : [];
+          for (const d of domains) countDomain.set(d, (countDomain.get(d) || 0) + 1);
+          const layer = inferLayerFromItem(it);
+          countLayer.set(layer, (countLayer.get(layer) || 0) + 1);
+          const status = it.status ? String(it.status) : "미지정";
+          countStatus.set(status, (countStatus.get(status) || 0) + 1);
+        }
+
+        const filtersActive =
+          state.query.trim().length > 0 ||
+          state.domainFilter !== "ALL" ||
+          state.categoryFilter !== "ALL" ||
+          state.layerFilter !== "ALL" ||
+          state.statusFilter !== "ALL";
+
+        const filtered = items.filter((it) => {
+          const domains = Array.isArray(it.domains) ? it.domains : [];
+          if (state.domainFilter !== "ALL" && !domains.includes(state.domainFilter)) return false;
+          if (state.categoryFilter !== "ALL" && it.category !== state.categoryFilter) return false;
+          const layer = inferLayerFromItem(it);
+          if (state.layerFilter !== "ALL" && layer !== state.layerFilter) return false;
+          const status = it.status ? String(it.status) : "미지정";
+          if (state.statusFilter !== "ALL" && status !== state.statusFilter) return false;
+          if (state.query.trim().length > 0 && !includesCI(it.label, state.query.trim())) return false;
+          return true;
+        });
+
+        filtered.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        const truncated = filtered.length > state.itemLimit;
+        const shown = filtersActive ? (truncated ? filtered.slice(0, state.itemLimit) : filtered) : [];
+
+        elAltView.innerHTML =
+          '<div style="max-width: 980px; margin: 0 auto;">' +
+          '<div style="font-size: 16px; font-weight: 950;">UI 대시보드</div>' +
+          '<div class="mini" style="margin-top: 6px;">export: ' +
+          (exportedAt || "-") +
+          " | 총 항목: " +
+          items.length +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ['세계관', '소설', '게임']
+            .map((d) => {
+              const v = countDomain.get(d) || 0;
+              return (
+                '<button class="card" type="button" data-set-domain="' +
+                d +
+                '">' +
+                '<div class="cardTitle">도메인</div>' +
+                '<div class="cardValue" style="color:' +
+                (d === "세계관" ? "#60a5fa" : d === "소설" ? "#f472b6" : "#34d399") +
+                ';">' +
+                d +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["CORE", "SYSTEM", "NARRATIVE", "PLAYER"]
+            .map((l) => {
+              const v = countLayer.get(l) || 0;
+              return (
+                '<button class="card" type="button" data-set-layer="' +
+                l +
+                '">' +
+                '<div class="cardTitle">레이어</div>' +
+                '<div class="cardValue">' +
+                l +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["초안", "정리중", "확정", "미지정"]
+            .map((s) => {
+              const v = countStatus.get(s) || 0;
+              return (
+                '<button class="card" type="button" data-set-status="' +
+                s +
+                '">' +
+                '<div class="cardTitle">상태</div>' +
+                '<div class="cardValue">' +
+                s +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div class="row" style="margin-top: 14px; gap: 10px; flex-wrap: wrap;">' +
+          '<button type="button" data-action="clear">필터 초기화</button>' +
+          '<button type="button" data-action="toTerritory">그래프(영역)로 보기</button>' +
+          "</div>" +
+          '<div class="hint" style="margin-top: 10px;">' +
+          (filtersActive
+            ? "결과: " +
+              shown.length +
+              "/" +
+              filtered.length +
+              (truncated ? " (최대 " + state.itemLimit + "개만 표시)" : "")
+            : "검색/필터를 하나라도 걸면 결과 목록을 보여줍니다.") +
+          "</div>" +
+          '<div class="list" style="margin-top: 10px; max-height: none;">' +
+          (filtersActive
+            ? shown
+                .map((it) => {
+                  const status = it.status ? String(it.status) : "";
+                  const layer = inferLayerFromItem(it);
+                  return (
+                    '<button type="button" data-open-url="' +
+                    (it.url || "") +
+                    '">' +
+                    '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+                    '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                    (it.label || "") +
+                    "</div>" +
+                    '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' +
+                    (layer !== "UNSORTED" ? layer : "") +
+                    (status ? " · " + status : "") +
+                    "</div>" +
+                    "</div>" +
+                    "</button>"
+                  );
+                })
+                .join("")
+            : "") +
+          "</div>" +
+          "</div>";
+      }
+
       function refresh() {
-        // Expand scope hygiene
-        const q = state.query.trim();
-        if (!state.showItems) state.expandedCategoryScope = null;
-        if (state.showItems && (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL")) {
+        if (!state.raw) return;
+
+        if (state.mode === "ui") {
+          elGraph.style.display = "none";
+          elAltView.style.display = "";
+          renderDashboard();
+          elItemListBox.style.display = "none";
+          elSelectedBox.style.display = "none";
+          elSelectedEmpty.style.display = "";
+          elSelectedEmpty.textContent = "UI 모드: 오른쪽 목록에서 선택하세요.";
+          elItemControls.style.display = "none";
+          elItemStats.style.display = "none";
+          elBtnCollapse.style.display = "none";
+          return;
+        }
+
+        elGraph.style.display = "";
+        elAltView.style.display = "none";
+
+        // Expand scope hygiene (영역 모드 전용)
+        if (state.mode !== "territory") {
           state.expandedCategoryScope = null;
+        } else {
+          const q = state.query.trim();
+          if (!state.showItems) state.expandedCategoryScope = null;
+          if (state.showItems && (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL")) {
+            state.expandedCategoryScope = null;
+          }
         }
 
         const graphData = computeGraphData();
@@ -680,8 +1531,8 @@
 
         graph
           .graphData(graphData)
-          .dagMode(state.mindmapLayout ? "radialout" : null)
-          .dagLevelDistance(state.mindmapLayout ? 110 : null)
+          .dagMode(getDagModeForMode())
+          .dagLevelDistance(getDagLevelDistanceForMode())
           .nodeVal((n) => getNodeSize(n))
           .nodeColor((n) => {
             const base = getNodeBaseColor(n);
@@ -694,10 +1545,12 @@
             const t = getEndpointId(l.target);
             if (!s || !t) return 0.8;
             const key = linkKey(s, t, l.type);
-            return highlight.highlightLinks.has(key) ? 2.2 : 0.9;
+            const base = l.type === "transition" ? 1.6 : 0.9;
+            return highlight.highlightLinks.has(key) ? 2.2 : base;
           })
           .linkColor((l) => {
             if (l.type === "relation") return "rgba(248, 113, 113, 0.85)";
+            if (l.type === "transition") return "rgba(56, 189, 248, 0.75)";
             const s = getEndpointId(l.source);
             const t = getEndpointId(l.target);
             if (!s || !t) return "rgba(148, 163, 184, 0.18)";
@@ -705,7 +1558,7 @@
             if (highlight.highlightLinks.size === 0) return "rgba(148, 163, 184, 0.18)";
             return highlight.highlightLinks.has(key) ? "rgba(226, 232, 240, 0.5)" : "rgba(148, 163, 184, 0.08)";
           })
-          .linkLineDash((l) => (l.type === "relation" ? [6, 4] : null))
+          .linkLineDash((l) => (l.type === "relation" ? [6, 4] : l.type === "transition" ? [3, 3] : null))
           .nodeCanvasObjectMode(() => "after")
           .nodeCanvasObject((node, ctx, globalScale) => {
             const label = node.label;
@@ -740,6 +1593,9 @@
         state.query = elQ.value || "";
         state.domainFilter = elDomain.value || "ALL";
         state.categoryFilter = elCategory.value || "ALL";
+        state.layerFilter = elLayer ? elLayer.value || "ALL" : "ALL";
+        state.povFilter = elPov ? elPov.value || "PLAYER" : "PLAYER";
+        state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
         state.showItems = Boolean(elShowItems.checked);
         state.showRelations = Boolean(elShowRelations.checked);
         state.mindmapLayout = Boolean(elMindmap.checked);
@@ -763,6 +1619,7 @@
         try {
           state.raw = await loadRawGraph();
           renderCategories(state.raw);
+          updateModeUI();
           state.autoFitDone = false;
           refresh();
         } catch (e) {
@@ -791,6 +1648,7 @@
           state.selectedNodeId = id;
 
           if (
+            state.mode === "territory" &&
             state.showItems &&
             state.domainFilter === "ALL" &&
             state.categoryFilter === "ALL" &&
@@ -863,9 +1721,87 @@
         syncStateFromControls();
         refresh();
       });
+      if (elLayer) {
+        elLayer.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elPov) {
+        elPov.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elStatus) {
+        elStatus.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
       elBtnCollapse.addEventListener("click", () => {
         state.expandedCategoryScope = null;
         refresh();
+      });
+
+      // Mode tabs
+      for (const btn of elModeTabs.querySelectorAll("button[data-mode]")) {
+        btn.addEventListener("click", () => {
+          setMode(btn.dataset.mode);
+        });
+      }
+
+      // Dashboard actions (UI 모드)
+      elAltView.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest("button") : null;
+        if (!btn) return;
+
+        const openUrl = btn.dataset.openUrl;
+        if (openUrl) {
+          window.open(openUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+
+        const setDomain = btn.dataset.setDomain;
+        if (setDomain) {
+          elDomain.value = setDomain;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const setLayer = btn.dataset.setLayer;
+        if (setLayer) {
+          elLayer.value = setLayer;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const setStatus = btn.dataset.setStatus;
+        if (setStatus) {
+          elStatus.value = setStatus;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const action = btn.dataset.action;
+        if (action === "clear") {
+          elQ.value = "";
+          elDomain.value = "ALL";
+          elCategory.value = "ALL";
+          if (elLayer) elLayer.value = "ALL";
+          if (elPov) elPov.value = "PLAYER";
+          if (elStatus) elStatus.value = "ALL";
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+        if (action === "toTerritory") {
+          setMode("territory");
+          return;
+        }
       });
 
       document.getElementById("btn-fit").addEventListener("click", () => graph.zoomToFit(350, 50));
@@ -875,6 +1811,7 @@
 
       // Boot
       syncStateFromControls();
+      updateModeUI();
       resizeGraph();
       doExportReload();
     </script>

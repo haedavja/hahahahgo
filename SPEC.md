@@ -22,6 +22,13 @@
 - `관련 노드` (relation → 같은 DB) : 항목 간 연결
 - `상태` (select) 옵션: `초안`, `정리중`, `확정`
 
+### (선택) 모드 탭용 확장 속성
+아래 속성이 있으면 “레이어/POV/타임라인” 모드가 훨씬 정확해집니다(없어도 동작은 함: 기본 추론 규칙 사용).
+- `레이어` (select) 옵션: `CORE`, `SYSTEM`, `NARRATIVE`, `PLAYER`
+- `가시성` (multi_select) 옵션: `PLAYER`, `NPC`, `종언자`, `CORE`
+- `시간` (date) : 타임라인 기준 날짜
+- `시점` (rich_text 또는 select) : 날짜 대신 쓰는 텍스트 시점(예: “1기-3년”)
+
 ### Notion API 인증
 - GitHub Actions secret: `NOTION_TOKEN` (필수)
 - 선택 secret: `NOTION_DATABASE_ID`, `NOTION_PARENT_PAGE_ID` (기본값을 바꾸는 경우만)
@@ -43,6 +50,7 @@
   - `category` : `(도메인, 대분류)` 조합 노드
   - `item` : DB의 각 페이지(항목)
     - `label`(제목), `url`, `category`(대분류), `domains`(도메인[]), `tags`(연관[]), `status`(상태)
+    - (선택) `layer`, `visibility[]`, `time`, `timeLabel`
 - `links[]`
   - `hierarchy` : root→domain, domain→category, category→item
   - `relation` : item↔item (`관련 노드` 기반)

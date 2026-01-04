@@ -185,6 +185,35 @@ function findDatabaseTitlePropName(database) {
   return "Name";
 }
 
+function getSelectName(page, propName) {
+  const prop = page?.properties?.[propName];
+  if (!prop) return null;
+  if (prop.type === "select") return prop.select?.name || null;
+  return null;
+}
+
+function getMultiSelectNames(page, propName) {
+  const prop = page?.properties?.[propName];
+  if (!prop) return [];
+  if (prop.type === "multi_select") return (prop.multi_select || []).map((o) => o.name).filter(Boolean);
+  return [];
+}
+
+function getDateStart(page, propName) {
+  const prop = page?.properties?.[propName];
+  if (!prop) return null;
+  if (prop.type !== "date") return null;
+  return prop.date?.start || null;
+}
+
+function getRichTextPlain(page, propName) {
+  const prop = page?.properties?.[propName];
+  if (!prop) return "";
+  if (prop.type === "rich_text") return (prop.rich_text || []).map((t) => t.plain_text).join("");
+  if (prop.type === "title") return (prop.title || []).map((t) => t.plain_text).join("");
+  return "";
+}
+
 function countBy(arr) {
   const counts = new Map();
   for (const v of arr) counts.set(v, (counts.get(v) || 0) + 1);
@@ -286,6 +315,28 @@ async function setup({ databaseId, parentPageId, apply }) {
     };
   };
 
+  const ensureDate = (name) => {
+    const existing = existingProps[name];
+    if (existing) {
+      if (existing.type !== "date") {
+        throw new Error(`DB에 이미 '${name}' 속성이 있는데 타입이 date가 아닙니다: ${existing.type}`);
+      }
+      return;
+    }
+    propertiesPatch[name] = { date: {} };
+  };
+
+  const ensureRichText = (name) => {
+    const existing = existingProps[name];
+    if (existing) {
+      if (existing.type !== "rich_text") {
+        throw new Error(`DB에 이미 '${name}' 속성이 있는데 타입이 rich_text가 아닙니다: ${existing.type}`);
+      }
+      return;
+    }
+    propertiesPatch[name] = { rich_text: {} };
+  };
+
   ensureMultiSelect("도메인", [
     { name: "세계관", color: "blue" },
     { name: "소설", color: "pink" },
@@ -316,6 +367,22 @@ async function setup({ databaseId, parentPageId, apply }) {
     { name: "정리중", color: "yellow" },
     { name: "확정", color: "green" },
   ]);
+
+  // (선택) 모드 탭용 확장 속성들
+  ensureSelect("레이어", [
+    { name: "CORE", color: "gray" },
+    { name: "SYSTEM", color: "green" },
+    { name: "NARRATIVE", color: "yellow" },
+    { name: "PLAYER", color: "blue" },
+  ]);
+  ensureMultiSelect("가시성", [
+    { name: "PLAYER", color: "blue" },
+    { name: "NPC", color: "yellow" },
+    { name: "종언자", color: "purple" },
+    { name: "CORE", color: "gray" },
+  ]);
+  ensureDate("시간");
+  ensureRichText("시점");
 
   const patchKeys = Object.keys(propertiesPatch);
   if (patchKeys.length > 0) {
@@ -656,17 +723,37 @@ async function exportGraph({ databaseId, outPath }) {
     const title = getTitleFromDatabasePage(page, titlePropName).trim();
     if (!title) continue;
 
-    const relatedTags = (page.properties?.["연관"]?.multi_select || []).map((o) => o.name);
+    const relatedTags = getMultiSelectNames(page, "연관");
     const category =
       page.properties?.["대분류"]?.select?.name ||
       inferCategoryFromRelated(relatedTags) ||
       "기타";
     const domains =
-      (page.properties?.["도메인"]?.multi_select || []).map((o) => o.name) ||
-      [];
+      getMultiSelectNames(page, "도메인") || [];
     const inferredDomains = domains.length > 0 ? domains : inferDomains(category, relatedTags);
-    const status = page.properties?.["상태"]?.select?.name || null;
+    const status = getSelectName(page, "상태");
     const relatedNodes = (page.properties?.["관련 노드"]?.relation || []).map((r) => r.id);
+
+    const layer = getSelectName(page, "레이어");
+
+    const visibilityFromVisibility = getMultiSelectNames(page, "가시성");
+    const visibilityFromObserver = getMultiSelectNames(page, "관측자");
+    const visibilityFromSelect = getSelectName(page, "가시성");
+    const visibility =
+      visibilityFromVisibility.length > 0
+        ? visibilityFromVisibility
+        : visibilityFromObserver.length > 0
+          ? visibilityFromObserver
+          : visibilityFromSelect
+            ? [visibilityFromSelect]
+            : [];
+
+    const time = getDateStart(page, "시간") || getDateStart(page, "날짜") || null;
+    const timeLabel =
+      getSelectName(page, "시점") ||
+      getRichTextPlain(page, "시점") ||
+      getRichTextPlain(page, "타임라인") ||
+      "";
 
     if (!seenItem.has(id)) {
       nodes.push({
@@ -678,6 +765,10 @@ async function exportGraph({ databaseId, outPath }) {
         domains: inferredDomains,
         tags: relatedTags,
         status,
+        layer,
+        visibility: visibility.filter(Boolean),
+        time,
+        timeLabel: timeLabel.trim() || null,
       });
       seenItem.add(id);
     }
