@@ -11,6 +11,7 @@ import { useGameStore } from '../../../state/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { RELICS } from '../../../data/relics';
 import { CARD_LIBRARY } from '../../../data/cards';
+import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/stats-bridge';
 
 // =====================
 // 스타일 상수
@@ -140,6 +141,48 @@ const COPIED_TOAST_STYLE: CSSProperties = {
   zIndex: 10000
 };
 
+const TOGGLE_BUTTON_STYLE: CSSProperties = {
+  width: '100%',
+  padding: '10px',
+  background: 'rgba(59, 130, 246, 0.2)',
+  border: '1px solid rgba(59, 130, 246, 0.4)',
+  borderRadius: '8px',
+  color: '#93c5fd',
+  fontSize: '14px',
+  cursor: 'pointer',
+  marginTop: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px'
+};
+
+const STATS_GRID_STYLE: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: '8px',
+  marginTop: '8px'
+};
+
+const MINI_STAT_STYLE: CSSProperties = {
+  padding: '8px',
+  background: 'rgba(0, 0, 0, 0.3)',
+  borderRadius: '6px',
+  textAlign: 'center'
+};
+
+const MINI_STAT_LABEL: CSSProperties = {
+  fontSize: '11px',
+  color: '#94a3b8',
+  marginBottom: '2px'
+};
+
+const MINI_STAT_VALUE: CSSProperties = {
+  fontSize: '16px',
+  fontWeight: 'bold',
+  color: '#f1f5f9'
+};
+
 interface RunSummaryOverlayProps {
   result: 'victory' | 'defeat';
   onExit: () => void;
@@ -207,6 +250,11 @@ function formatRunSummary(data: {
 
 export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onExit }) => {
   const [showCopied, setShowCopied] = useState(false);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
+
+  // 통계 데이터
+  const simpleStats = getCurrentStats();
+  const detailedStats = getDetailedStats();
 
   // 게임 상태에서 통계 수집
   const {
@@ -361,6 +409,74 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
               </span>
             </div>
           </div>
+        )}
+
+        {/* 상세 통계 토글 */}
+        {simpleStats.battles > 0 && (
+          <>
+            <button
+              onClick={() => setShowDetailedStats(!showDetailedStats)}
+              style={TOGGLE_BUTTON_STYLE}
+            >
+              📊 {showDetailedStats ? '상세 통계 숨기기' : '상세 통계 보기'}
+              <span style={{ fontSize: '12px' }}>
+                ({simpleStats.battles}회 전투 기록)
+              </span>
+            </button>
+
+            {showDetailedStats && (
+              <div style={{ ...SECTION_STYLE, marginTop: '12px' }}>
+                <div style={SECTION_TITLE_STYLE}>📊 전투 통계</div>
+                <div style={STATS_GRID_STYLE}>
+                  <div style={MINI_STAT_STYLE}>
+                    <div style={MINI_STAT_LABEL}>전체 승률</div>
+                    <div style={{
+                      ...MINI_STAT_VALUE,
+                      color: simpleStats.winRate >= 0.5 ? '#22c55e' : '#ef4444'
+                    }}>
+                      {(simpleStats.winRate * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div style={MINI_STAT_STYLE}>
+                    <div style={MINI_STAT_LABEL}>평균 턴</div>
+                    <div style={MINI_STAT_VALUE}>{simpleStats.avgTurns.toFixed(1)}</div>
+                  </div>
+                  <div style={MINI_STAT_STYLE}>
+                    <div style={MINI_STAT_LABEL}>총 피해량</div>
+                    <div style={{ ...MINI_STAT_VALUE, color: '#f97316' }}>
+                      {simpleStats.totalDamageDealt}
+                    </div>
+                  </div>
+                  <div style={MINI_STAT_STYLE}>
+                    <div style={MINI_STAT_LABEL}>평균 피해</div>
+                    <div style={MINI_STAT_VALUE}>
+                      {simpleStats.avgDamageDealt.toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* TOP 카드 시너지 */}
+                {detailedStats.cardSynergyStats?.topSynergies &&
+                  detailedStats.cardSynergyStats.topSynergies.length > 0 && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ ...SECTION_TITLE_STYLE, fontSize: '12px' }}>
+                      ⚡ TOP 카드 조합
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
+                      {detailedStats.cardSynergyStats.topSynergies.slice(0, 3).map((s, i) => (
+                        <div key={i} style={{ padding: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{s.pair}</span>
+                          <span style={{ color: s.winRate >= 0.5 ? '#22c55e' : '#f97316' }}>
+                            {(s.winRate * 100).toFixed(0)}% ({s.frequency}회)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* 버튼 */}

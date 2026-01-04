@@ -17,7 +17,8 @@ import {
   ItemsTab,
   EventTab,
   CardsTab,
-  BalanceTab
+  BalanceTab,
+  StatsTab
 } from './DevToolsTabs';
 import type { DevToolsTab as Tab } from '../../types';
 
@@ -192,6 +193,7 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
     { id: 'items', label: '🎒 아이템', icon: '🎒' },
     { id: 'event', label: '🎲 이벤트', icon: '🎲' },
     { id: 'cards', label: '🃏 카드', icon: '🃏' },
+    { id: 'stats', label: '📊 통계', icon: '📊' },
     { id: 'simulator', label: '🎮 시뮬', icon: '🎮' },
     { id: 'balance', label: '⚖️ 밸런스', icon: '⚖️' },
   ];
@@ -294,6 +296,9 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
             enhanceCard={enhanceCard}
             specializeCard={specializeCard}
           />
+        )}
+        {activeTab === 'stats' && (
+          <StatsTab />
         )}
         {activeTab === 'simulator' && (
           <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading Simulator...</div>}>

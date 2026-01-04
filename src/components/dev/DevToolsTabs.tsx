@@ -15,5 +15,6 @@ export {
   ItemsTab,
   EventTab,
   CardsTab,
-  BalanceTab
+  BalanceTab,
+  StatsTab
 } from './tabs';
