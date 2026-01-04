@@ -377,6 +377,8 @@ export class TimelineBattleEngine {
     }
 
     // 전투 상태 초기화 (적 상태 필드 보장)
+    // 적 초기 에테르: 보스는 200, 일반 적은 100
+    const enemyInitialEther = enemy.isBoss ? 200 : 100;
     const state: GameBattleState = {
       player,
       enemy: {
@@ -385,6 +387,8 @@ export class TimelineBattleEngine {
         block: enemy.block || 0,
         maxHp: enemy.maxHp || enemy.hp,
         maxSpeed: enemy.maxSpeed || DEFAULT_MAX_SPEED,
+        ether: enemy.ether ?? enemyInitialEther,
+        etherPts: enemy.etherPts ?? enemyInitialEther,
       },
       turn: 0,
       phase: 'select',
@@ -436,8 +440,13 @@ export class TimelineBattleEngine {
     // 초기 핸드 드로우
     this.drawCards(state.player, DEFAULT_HAND_SIZE, state);
 
-    // 전투 루프
-    while (state.turn < this.config.maxTurns && state.player.hp > 0 && state.enemy.hp > 0) {
+    // 전투 루프: HP 0 이하 또는 적 에테르 0 이하 시 종료 (영혼파괴)
+    while (
+      state.turn < this.config.maxTurns &&
+      state.player.hp > 0 &&
+      state.enemy.hp > 0 &&
+      (state.enemy.ether ?? 100) > 0
+    ) {
       state.turn++;
       this.executeTurn(state);
     }
@@ -580,39 +589,44 @@ export class TimelineBattleEngine {
 
         // 에테르 획득
         if (etherResult.etherResult.finalGain > 0) {
-          state.player.ether += etherResult.etherResult.finalGain;
-          state.battleLog.push(`  ⚡ 에테르 +${etherResult.etherResult.finalGain} (${etherResult.etherResult.comboName})`);
+          const playerEtherGain = etherResult.etherResult.finalGain;
+          state.player.ether += playerEtherGain;
+          state.battleLog.push(`  ⚡ 에테르 +${playerEtherGain} (${etherResult.etherResult.comboName})`);
+
+          // 에테르 전이: 플레이어가 콤보로 에테르를 획득하면 적 에테르 감소
+          const currentEnemyEther = state.enemy.ether ?? 0;
+          const etherTransferred = Math.min(playerEtherGain, currentEnemyEther);
+          if (etherTransferred > 0) {
+            state.enemy.ether = currentEnemyEther - etherTransferred;
+            state.enemy.etherPts = state.enemy.ether;
+            state.battleLog.push(`  💫 에테르 전이: 적 영혼 -${etherTransferred} (잔여: ${state.enemy.ether})`);
+          }
 
           // 콤보 상징 효과 (에테르 결정, 포커칩, 목장갑, 총알 등)
           if (this.config.enableRelics) {
             const comboEffects = this.relicSystem.processCombo(
               state.player,
               etherResult.etherResult.comboName,
-              etherResult.etherResult.finalGain,
+              playerEtherGain,
               etherResult.etherResult.comboRank || 0
             );
             this.applyRelicEffects(state, comboEffects);
           }
 
-          // 버스트 발동 시
-          if (etherResult.burstResult.triggered) {
-            state.battleLog.push(`  ${etherResult.burstResult.message}`);
-
-            // 버스트 보너스 피해 적용
-            if (etherResult.burstResult.bonusDamage > 0) {
-              const hpBeforeBurst = state.enemy.hp;
-              state.enemy.hp -= etherResult.burstResult.bonusDamage;
-              state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
-              state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
-              // 버스트로 적을 처치했으면 영혼파괴
-              if (hpBeforeBurst > 0 && state.enemy.hp <= 0) {
-                state.lastDamageWasBurst = true;
-              }
-            }
-
-            // 에테르 리셋 (버스트 후 남은 양)
-            state.player.ether = 0;
-          }
+          // 버스트 시스템 임시 비활성화 (TODO: 나중에 다시 활성화)
+          // if (etherResult.burstResult.triggered) {
+          //   state.battleLog.push(`  ${etherResult.burstResult.message}`);
+          //
+          //   // 버스트 보너스 피해 적용
+          //   if (etherResult.burstResult.bonusDamage > 0) {
+          //     state.enemy.hp -= etherResult.burstResult.bonusDamage;
+          //     state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
+          //     state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
+          //   }
+          //
+          //   // 에테르 리셋 (버스트 후 남은 양)
+          //   state.player.ether = 0;
+          // }
         }
 
         // 콤보 사용 횟수 업데이트 (디플레이션용)
@@ -2816,8 +2830,16 @@ export class TimelineBattleEngine {
 
   private finalizeBattle(state: GameBattleState): BattleResult {
     let winner: 'player' | 'enemy' | 'draw';
+    const enemyEther = state.enemy.ether ?? 100;
 
-    if (state.enemy.hp <= 0 && state.player.hp > 0) {
+    // 영혼파괴 승리: 적 에테르가 0 이하
+    const isEtherVictory = enemyEther <= 0 && state.player.hp > 0;
+
+    if (isEtherVictory) {
+      // 영혼파괴 승리 (적 에테르 0)
+      winner = 'player';
+      state.battleLog.push(`  💜 영혼파괴! 적의 영혼이 소멸했습니다.`);
+    } else if (state.enemy.hp <= 0 && state.player.hp > 0) {
       winner = 'player';
     } else if (state.player.hp <= 0 && state.enemy.hp > 0) {
       winner = 'enemy';
@@ -2827,14 +2849,11 @@ export class TimelineBattleEngine {
       winner = state.player.hp > state.enemy.hp ? 'player' : 'enemy';
     }
 
-    this.emitEvent('battle_end', state.turn, { winner, playerHp: state.player.hp, enemyHp: state.enemy.hp });
+    this.emitEvent('battle_end', state.turn, { winner, playerHp: state.player.hp, enemyHp: state.enemy.hp, enemyEther });
 
     // 골드 변화량 계산 (초기 골드 100 기준)
     const initialGold = 100;
     const goldChange = state.player.gold - initialGold;
-
-    // 영혼파괴 여부: 버스트로 적을 처치했으면 true
-    const isEtherVictory = winner === 'player' && state.lastDamageWasBurst === true;
 
     return {
       winner,

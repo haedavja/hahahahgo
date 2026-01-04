@@ -400,8 +400,6 @@ export interface GameBattleState {
       combatTokens?: boolean;
     };
   };
-  /** 마지막 피해가 버스트(에테르)였는지 추적 */
-  lastDamageWasBurst?: boolean;
 }
 
 // ==================== 타임라인 시스템 ====================
