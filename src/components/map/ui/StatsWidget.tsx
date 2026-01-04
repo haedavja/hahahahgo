@@ -8,6 +8,7 @@ import type { CSSProperties } from 'react';
 import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/stats-bridge';
 import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
 import { BalanceInsightAnalyzer } from '../../../simulator/analysis/balance-insights';
+import type { DetailedStats } from '../../../simulator/analysis/detailed-stats-types';
 
 type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record' | 'dungeon' | 'item' | 'growth' | 'advanced';
 
@@ -267,7 +268,7 @@ function BattleTab({ stats }: { stats: ReturnType<typeof getCurrentStats> }) {
   );
 }
 
-function MonsterTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function MonsterTab({ detailed }: { detailed: DetailedStats }) {
   const monsters = useMemo(() => {
     if (!detailed.monsterStats || detailed.monsterStats.size === 0) return [];
     return Array.from(detailed.monsterStats.entries())
@@ -309,7 +310,7 @@ function MonsterTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats
   );
 }
 
-function CardTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function CardTab({ detailed }: { detailed: DetailedStats }) {
   const cards = useMemo(() => {
     if (!detailed.cardDeepStats || detailed.cardDeepStats.size === 0) return [];
     return Array.from(detailed.cardDeepStats.entries())
@@ -370,7 +371,7 @@ function CardTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }
   );
 }
 
-function RelicTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function RelicTab({ detailed }: { detailed: DetailedStats }) {
   const relics = useMemo(() => {
     if (!detailed.relicStats || detailed.relicStats.size === 0) return [];
     return Array.from(detailed.relicStats.entries())
@@ -407,7 +408,7 @@ function RelicTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> 
   );
 }
 
-function ComboTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function ComboTab({ detailed }: { detailed: DetailedStats }) {
   const comboDetails = detailed.pokerComboStats?.comboDetails;
 
   if (!comboDetails || Object.keys(comboDetails).length === 0) {
@@ -458,7 +459,7 @@ function ComboTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> 
   );
 }
 
-function ShopTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function ShopTab({ detailed }: { detailed: DetailedStats }) {
   const shopStats = detailed.shopStats;
 
   if (!shopStats || shopStats.totalVisits === 0) {
@@ -498,7 +499,7 @@ function ShopTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }
   );
 }
 
-function EventTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function EventTab({ detailed }: { detailed: DetailedStats }) {
   const eventStats = detailed.eventStats;
 
   if (!eventStats || eventStats.size === 0) {
@@ -531,7 +532,7 @@ function EventTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> 
   );
 }
 
-function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetailedStats>; stats: ReturnType<typeof getCurrentStats> }) {
+function RecordTab({ detailed, stats }: { detailed: DetailedStats; stats: ReturnType<typeof getCurrentStats> }) {
   const records = detailed.recordStats;
   const deathStats = detailed.deathStats;
 
@@ -626,7 +627,7 @@ function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetaile
   );
 }
 
-function DungeonTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function DungeonTab({ detailed }: { detailed: DetailedStats }) {
   const dungeonStats = detailed.dungeonStats;
 
   if (!dungeonStats || dungeonStats.totalAttempts === 0) {
@@ -652,7 +653,7 @@ function DungeonTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats
   );
 }
 
-function ItemTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function ItemTab({ detailed }: { detailed: DetailedStats }) {
   const itemStats = detailed.itemUsageStats;
 
   if (!itemStats || Object.keys(itemStats.itemsAcquired || {}).length === 0) {
@@ -693,7 +694,7 @@ function ItemTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }
   );
 }
 
-function GrowthTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function GrowthTab({ detailed }: { detailed: DetailedStats }) {
   const growthStats = detailed.growthStats;
 
   if (!growthStats || growthStats.totalInvestments === 0) {
@@ -746,13 +747,11 @@ function GrowthTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats>
   );
 }
 
-function AdvancedTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+function AdvancedTab({ detailed }: { detailed: DetailedStats }) {
   const [subTab, setSubTab] = useState<'synergy' | 'contribution' | 'analysis' | 'insights'>('synergy');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const analysis = useMemo(() => analyzeStats(detailed as any), [detailed]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const insightReport = useMemo(() => new BalanceInsightAnalyzer(detailed as any).generateReport(), [detailed]);
+  const analysis = useMemo(() => analyzeStats(detailed), [detailed]);
+  const insightReport = useMemo(() => new BalanceInsightAnalyzer(detailed).generateReport(), [detailed]);
 
   const subTabStyle = (active: boolean): CSSProperties => ({
     padding: '4px 8px',
@@ -949,7 +948,7 @@ function translateDeathCause(cause: string): string {
 
 function formatAllStatsForCopy(
   stats: ReturnType<typeof getCurrentStats>,
-  detailed: ReturnType<typeof getDetailedStats>
+  detailed: DetailedStats
 ): string {
   const lines: string[] = [];
 

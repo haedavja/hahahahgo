@@ -8,6 +8,7 @@
 import { StatsCollector, createStatsCollector } from '../analysis/detailed-stats';
 import type { BattleResult as SimulatorBattleResult, BattleEvent } from '../core/game-types';
 import type { BattleResult as GameBattleResult } from '../../types/battle';
+import type { DetailedStats } from '../analysis/detailed-stats-types';
 
 // ==================== 타입 정의 ====================
 
@@ -59,23 +60,70 @@ let isInitialized = false;
 
 const STATS_STORAGE_KEY = 'hahahahgo_game_stats';
 
+// ==================== Map 직렬화 헬퍼 ====================
+
+/**
+ * Map을 일반 객체로 변환
+ */
+function mapToObject<K extends string | number, V>(
+  map: Map<K, V> | undefined
+): Record<string, V> {
+  if (!map || !(map instanceof Map)) return {};
+  return Object.fromEntries(map);
+}
+
+/**
+ * 일반 객체를 Map으로 변환
+ */
+function objectToMap<V>(
+  obj: Record<string, V> | undefined,
+  numericKeys = false
+): Map<string | number, V> {
+  if (!obj || typeof obj !== 'object') return new Map();
+  const entries = Object.entries(obj).map(([k, v]) => [
+    numericKeys ? Number(k) : k,
+    v,
+  ] as [string | number, V]);
+  return new Map(entries);
+}
+
 /**
  * localStorage에서 통계 로드
  */
-function loadStatsFromStorage(): ReturnType<StatsCollector['finalize']> | null {
+function loadStatsFromStorage(): DetailedStats | null {
   if (typeof window === 'undefined' || !window.localStorage) return null;
   try {
     const stored = localStorage.getItem(STATS_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Map 객체 복원
-      if (parsed.monsterStats && typeof parsed.monsterStats === 'object') {
-        parsed.monsterStats = new Map(Object.entries(parsed.monsterStats));
-      }
-      if (parsed.cardDeepStats && typeof parsed.cardDeepStats === 'object') {
-        parsed.cardDeepStats = new Map(Object.entries(parsed.cardDeepStats));
-      }
-      return parsed;
+
+      // 모든 최상위 Map 객체 복원
+      return {
+        ...parsed,
+        cardStats: objectToMap(parsed.cardStats),
+        monsterStats: objectToMap(parsed.monsterStats),
+        enemyGroupStats: objectToMap(parsed.enemyGroupStats),
+        eventStats: objectToMap(parsed.eventStats),
+        eventChoiceStats: objectToMap(parsed.eventChoiceStats),
+        cardDeepStats: objectToMap(parsed.cardDeepStats),
+        relicStats: objectToMap(parsed.relicStats),
+        difficultyStats: objectToMap(parsed.difficultyStats, true),
+        tokenStats: objectToMap(parsed.tokenStats),
+        nodeTypeValueComparison: objectToMap(parsed.nodeTypeValueComparison),
+        // 중첩 Map 복원
+        floorProgressionAnalysis: parsed.floorProgressionAnalysis ? {
+          ...parsed.floorProgressionAnalysis,
+          floorStats: objectToMap(parsed.floorProgressionAnalysis.floorStats, true),
+        } : undefined,
+        pokerComboStats: parsed.pokerComboStats ? {
+          ...parsed.pokerComboStats,
+          comboDetails: objectToMap(parsed.pokerComboStats.comboDetails),
+        } : undefined,
+        eventImpactAnalysis: parsed.eventImpactAnalysis ? {
+          ...parsed.eventImpactAnalysis,
+          eventImpacts: objectToMap(parsed.eventImpactAnalysis.eventImpacts),
+        } : undefined,
+      } as DetailedStats;
     }
   } catch (e) {
     console.warn('[StatsBridge] Failed to load stats from localStorage:', e);
@@ -92,12 +140,35 @@ function saveStatsToStorage(): void {
 
   try {
     const stats = globalStatsCollector.finalize();
-    // Map 객체를 일반 객체로 변환
+
+    // 모든 최상위 Map 객체를 일반 객체로 변환
     const serializable = {
       ...stats,
-      monsterStats: Object.fromEntries(stats.monsterStats || new Map()),
-      cardDeepStats: Object.fromEntries(stats.cardDeepStats || new Map()),
+      cardStats: mapToObject(stats.cardStats),
+      monsterStats: mapToObject(stats.monsterStats),
+      enemyGroupStats: mapToObject(stats.enemyGroupStats),
+      eventStats: mapToObject(stats.eventStats),
+      eventChoiceStats: mapToObject(stats.eventChoiceStats),
+      cardDeepStats: mapToObject(stats.cardDeepStats),
+      relicStats: mapToObject(stats.relicStats),
+      difficultyStats: mapToObject(stats.difficultyStats),
+      tokenStats: mapToObject(stats.tokenStats),
+      nodeTypeValueComparison: mapToObject(stats.nodeTypeValueComparison),
+      // 중첩 Map 직렬화
+      floorProgressionAnalysis: stats.floorProgressionAnalysis ? {
+        ...stats.floorProgressionAnalysis,
+        floorStats: mapToObject(stats.floorProgressionAnalysis.floorStats),
+      } : undefined,
+      pokerComboStats: stats.pokerComboStats ? {
+        ...stats.pokerComboStats,
+        comboDetails: mapToObject(stats.pokerComboStats.comboDetails),
+      } : undefined,
+      eventImpactAnalysis: stats.eventImpactAnalysis ? {
+        ...stats.eventImpactAnalysis,
+        eventImpacts: mapToObject(stats.eventImpactAnalysis.eventImpacts),
+      } : undefined,
     };
+
     localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(serializable));
   } catch (e) {
     console.warn('[StatsBridge] Failed to save stats to localStorage:', e);
@@ -138,6 +209,7 @@ export function isStatsInitialized(): boolean {
  * 통계 저장 (수동 호출용)
  */
 export function saveStats(): void {
+  invalidateStatsCache();
   saveStatsToStorage();
 }
 
@@ -360,7 +432,8 @@ export function recordRunEnd(
       undefined
     );
 
-    // localStorage에 저장
+    // 캐시 무효화 및 저장
+    invalidateStatsCache();
     saveStatsToStorage();
 
     if (import.meta.env?.DEV) {
@@ -776,7 +849,7 @@ export interface SimplifiedStats {
 }
 
 /** 캐시된 상세 통계 */
-let cachedDetailedStats: ReturnType<StatsCollector['finalize']> | null = null;
+let cachedDetailedStats: DetailedStats | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5000; // 5초
 
@@ -835,7 +908,7 @@ export function getCurrentStats(): SimplifiedStats {
 /**
  * 상세 통계 가져오기 (캐시 사용)
  */
-export function getDetailedStats(): ReturnType<StatsCollector['finalize']> {
+export function getDetailedStats(): DetailedStats {
   const now = Date.now();
 
   // 캐시가 유효하면 반환
