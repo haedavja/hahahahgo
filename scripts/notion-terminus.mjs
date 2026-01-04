@@ -5,6 +5,22 @@ import { fileURLToPath } from "node:url";
 const NOTION_VERSION = "2022-06-28";
 const DEFAULT_DATABASE_ID = "b67a8082-de7c-4bb2-a966-1fb333d9ed1c"; // 총정리
 const DEFAULT_PARENT_PAGE_ID = "09873372-f0c4-4259-b1ee-14be0d748884"; // 테르미누스
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function formatKstIsoWithOffset(date = new Date()) {
+  const kst = new Date(date.getTime() + KST_OFFSET_MS);
+  const y = kst.getUTCFullYear();
+  const m = pad2(kst.getUTCMonth() + 1);
+  const d = pad2(kst.getUTCDate());
+  const hh = pad2(kst.getUTCHours());
+  const mm = pad2(kst.getUTCMinutes());
+  const ss = pad2(kst.getUTCSeconds());
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}+09:00`;
+}
 
 function usage() {
   console.log(
@@ -1065,7 +1081,8 @@ async function exportGraph({ databaseId, outPath }) {
 
   const payload = {
     meta: {
-      exportedAt: new Date().toISOString(),
+      exportedAt: formatKstIsoWithOffset(new Date()),
+      exportedAtUtc: new Date().toISOString(),
       databaseId: normalizeNotionId(databaseId),
       titlePropName,
       totalPagesFetched: pages.length,

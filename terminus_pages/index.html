@@ -1627,7 +1627,7 @@
         if (!state.raw) return;
 
         const meta = state.raw.meta || {};
-        const exportedAt = meta.exportedAt || "";
+        const exportedAt = meta.exportedAt || meta.exportedAtUtc || "";
         if (exportedAt) {
           elExport.textContent = "export: " + exportedAt;
           elExport.style.display = "";
@@ -1895,7 +1895,7 @@
 
         const items = (raw.nodes || []).filter((n) => n.type === "item");
         const meta = raw.meta || {};
-        const exportedAt = meta.exportedAt || "";
+        const exportedAt = meta.exportedAt || meta.exportedAtUtc || "";
 
         const countDomain = new Map([
           ["세계관", 0],
