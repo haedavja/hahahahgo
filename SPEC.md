@@ -1,4 +1,4 @@
-# SPEC — TERMINUS (Notion → Graph JSON → GitHub Pages → Notion Embed)
+# SPEC - TERMINUS (Notion → Graph JSON → GitHub Pages → Notion Embed)
 
 ## 목표
 1) Notion DB(“총정리”)를 **단일 원본(SSOT)** 으로 유지한다.  
@@ -77,4 +77,3 @@
 ## 노션에서 보기 (Embed)
 노션은 커스텀 JS를 직접 실행할 수 없으므로,
 **GitHub Pages URL을 Embed 블록으로 붙여 넣는 방식**만 지원 범위로 한다.
-

@@ -1,4 +1,4 @@
-# TASKS — “노션에서 그냥 보기”까지 (클릭 위주)
+# TASKS - 노션에서 그냥 보기까지 (클릭 위주)
 
 ## A. 초기 1회 세팅(웹에서 클릭만)
 1) **Notion Integration 만들기**
@@ -27,4 +27,3 @@
 - 업데이트는:
   - 자동(스케줄) 또는
   - GitHub `Actions → Terminus Pages → Run workflow`로 즉시 반영
-
