@@ -276,6 +276,15 @@
           </select>
         </div>
 
+        <div style="margin-top: 10px;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">겹침 완화(간격)</div>
+          <select id="density">
+            <option value="compact">촘촘</option>
+            <option value="normal" selected>보통</option>
+            <option value="spacious">넓게</option>
+          </select>
+        </div>
+
         <div id="stats" class="hint" style="margin-top: 12px;"></div>
 
         <div style="margin-top: 14px;">
@@ -375,12 +384,12 @@
       ];
 
       const MODE_HINTS = {
-        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터로 줄인 뒤 표시하세요.",
-        layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. (노션 '레이어' 속성이 있으면 우선 사용)",
-        pov: "관측자(POV)별로 '무엇까지 보이는가'를 보여줍니다. (기본 규칙: 레이어 기반)",
-        state: "작업 상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (노션 '상태' 사용)",
-        timeline: "시간(노션 '시간' date 또는 '시점') 기준으로 묶어서 봅니다.",
-        ui: "그래프 대신 대시보드/목록으로 빠르게 탐색합니다.",
+        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터 또는 카테고리 클릭(펼침)으로 좁힌 뒤 표시하세요.",
+        layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. 기본은 추론, 노션 '레이어'가 있으면 그 값을 우선합니다. (카테고리 클릭 → 펼침)",
+        pov: "관측자(POV)별 '무엇까지 보이는가'를 보여줍니다. 노션 '가시성'이 없으면 레이어 기반으로 추론합니다. (POV 클릭 → 펼침)",
+        state: "상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (상태 노드 클릭 → 펼침)",
+        timeline: "시간(date) 또는 시점(text) 기준으로 묶습니다. (연도/시점 노드 클릭 → 펼침)",
+        ui: "그래프 대신 대시보드/목록으로 빠르게 탐색합니다. (카드 클릭으로 필터)",
       };
 
       const elGraph = document.getElementById("graph");
@@ -406,6 +415,7 @@
       const elPov = document.getElementById("pov");
       const elControlStatus = document.getElementById("control-status");
       const elStatus = document.getElementById("status");
+      const elDensity = document.getElementById("density");
 
       const elSelectedEmpty = document.getElementById("selectedEmpty");
       const elSelectedBox = document.getElementById("selectedBox");
@@ -423,11 +433,13 @@
         layerFilter: "ALL",
         povFilter: "PLAYER",
         statusFilter: "ALL",
+        density: "normal",
         showItems: false,
         showRelations: true,
         mindmapLayout: true,
         itemLimit: 250,
         expandedCategoryScope: null,
+        expandedScope: null,
         selectedNodeId: null,
         hoveredNodeId: null,
         userInteracted: false,
@@ -585,7 +597,7 @@
           return "#94a3b8";
         }
         if (node.type === "state") {
-          const s = String(node.label || "");
+          const s = String(node.statusName || node.status || node.baseLabel || stripCountSuffix(node.label || ""));
           if (s === "초안") return "#94a3b8";
           if (s === "정리중") return "#fde047";
           if (s === "확정") return "#34d399";
@@ -593,7 +605,8 @@
         }
         if (node.type === "time") return "#cbd5e1";
         if (node.type === "category") {
-          switch (node.label) {
+          const key = String(node.categoryName || node.baseLabel || stripCountSuffix(node.label || ""));
+          switch (key) {
             case "초법":
               return "#a78bfa";
             case "기술":
@@ -747,6 +760,34 @@
         };
       }
 
+      function stripCountSuffix(label) {
+        const s = String(label || "");
+        return s.replace(/\s*\(\d+\)\s*$/, "");
+      }
+
+      function hasNarrowingForItemsForMode(mode, extra) {
+        const m = String(mode || "").trim();
+        const q = state.query.trim();
+        if (q.length > 0) return true;
+        if (state.domainFilter !== "ALL") return true;
+        if (state.categoryFilter !== "ALL") return true;
+
+        if (m === "layer" || m === "pov" || m === "state" || m === "timeline" || m === "ui") {
+          if (state.layerFilter !== "ALL") return true;
+        }
+
+        if (m === "state" || m === "ui") {
+          if (state.statusFilter !== "ALL") return true;
+        }
+
+        if (m === "pov") {
+          if (state.povFilter && state.povFilter !== "ALL" && state.povFilter !== "PLAYER") return true;
+        }
+
+        if (extra && extra()) return true;
+        return false;
+      }
+
       function computeLayerGraphData() {
         const raw = state.raw;
         if (!raw) return null;
@@ -754,7 +795,7 @@
         const q = state.query.trim();
         const items = (raw.nodes || []).filter((n) => n.type === "item");
 
-        const candidate = [];
+        const matched = [];
         for (const n of items) {
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
@@ -763,21 +804,40 @@
           const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
           const queryOk = q.length === 0 || includesCI(n.label, q);
           if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
-          candidate.push(upsertCachedNode({ ...n, layer }));
+          matched.push(upsertCachedNode({ ...n, layer }));
         }
 
-        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
-        if (state.selectedNodeId) {
-          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
-          if (idx >= 0) {
-            const keep = candidate.splice(idx, 1)[0];
-            candidate.unshift(keep);
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "layer" &&
+          state.expandedScope.layer &&
+          state.expandedScope.category;
+
+        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("layer"));
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded) {
+            toShow = matched.filter(
+              (n) => String(n.layer) === String(state.expandedScope.layer) && String(n.category) === String(state.expandedScope.category),
+            );
+          } else {
+            toShow = matched.slice();
           }
         }
 
-        const shouldShowItems = Boolean(state.showItems);
-        const truncated = candidate.length > state.itemLimit;
-        const shownItems = shouldShowItems ? (truncated ? candidate.slice(0, state.itemLimit) : candidate) : [];
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
 
         const nodes = [];
         const links = [];
@@ -793,16 +853,32 @@
         }
 
         const catNodeId = new Map();
+        const catCount = new Map();
         const ensureCat = (layer, category) => {
           const key = layer + "::" + category;
           let id = catNodeId.get(key);
           if (id) return id;
           id = makeId("__layercat", layer, category);
           catNodeId.set(key, id);
-          nodes.push(upsertCachedNode({ id, type: "category", label: category, layer }));
+          nodes.push(upsertCachedNode({ id, type: "category", label: category, baseLabel: category, categoryName: category, layer, count: 0 }));
           links.push({ source: layerNodeId.get(layer), target: id, type: "hierarchy" });
           return id;
         };
+
+        for (const item of matched) {
+          const layer = inferLayerFromItem(item);
+          const cat = String(item.category || "기타");
+          const catId = ensureCat(layer, cat);
+          catCount.set(catId, (catCount.get(catId) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "category") continue;
+          const c = catCount.get(String(node.id)) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.categoryName || node.label);
+          node.label = base + " (" + c + ")";
+        }
 
         for (const item of shownItems) {
           const layer = inferLayerFromItem(item);
@@ -815,7 +891,7 @@
         return {
           nodes,
           links,
-          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
         };
       }
 
@@ -830,7 +906,7 @@
         const showAll = povFilter === "ALL";
         const povs = showAll ? PERSPECTIVES.slice() : [povFilter];
 
-        const candidate = [];
+        const matched = [];
         for (const n of items) {
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
@@ -840,29 +916,44 @@
           const queryOk = q.length === 0 || includesCI(n.label, q);
           if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
 
-          if (!state.showItems) continue;
-
           if (!showAll) {
             if (!isVisibleToPerspective(n, povFilter)) continue;
-            candidate.push(upsertCachedNode({ ...n, layer, pov: povFilter }));
+            matched.push(upsertCachedNode({ ...n, layer, pov: povFilter }));
             continue;
           }
 
           const assigned = pickPrimaryVisibility(n) || (layer === "PLAYER" ? "PLAYER" : layer === "NARRATIVE" ? "NPC" : layer === "SYSTEM" ? "종언자" : "CORE");
-          candidate.push(upsertCachedNode({ ...n, layer, pov: assigned }));
+          matched.push(upsertCachedNode({ ...n, layer, pov: assigned }));
         }
 
-        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
-        if (state.selectedNodeId) {
-          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
-          if (idx >= 0) {
-            const keep = candidate.splice(idx, 1)[0];
-            candidate.unshift(keep);
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "pov" &&
+          state.expandedScope.pov;
+
+        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("pov"));
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded && showAll) {
+            toShow = matched.filter((n) => String(n.pov) === String(state.expandedScope.pov));
+          } else {
+            toShow = matched.slice();
           }
         }
 
-        const truncated = candidate.length > state.itemLimit;
-        const shownItems = truncated ? candidate.slice(0, state.itemLimit) : candidate;
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
 
         const nodes = [];
         const links = [];
@@ -874,8 +965,25 @@
         for (const p of povs) {
           const id = makeId("__pov", p);
           povNodeId.set(p, id);
-          nodes.push(upsertCachedNode({ id, type: "pov", label: p, pov: p }));
+          nodes.push(upsertCachedNode({ id, type: "pov", label: p, baseLabel: p, pov: p }));
           links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        const povCount = new Map();
+        for (const item of matched) {
+          const p = showAll ? item.pov : povFilter;
+          const id = povNodeId.get(p) || povNodeId.get(povFilter);
+          if (!id) continue;
+          povCount.set(id, (povCount.get(id) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "pov") continue;
+          const id = String(node.id);
+          const c = povCount.get(id) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.pov || node.label);
+          node.label = base + " (" + c + ")";
         }
 
         for (const item of shownItems) {
@@ -889,7 +997,7 @@
         return {
           nodes,
           links,
-          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
         };
       }
 
@@ -902,7 +1010,7 @@
 
         const STATUS_NODES = ["초안", "정리중", "확정", "미지정"];
 
-        const candidate = [];
+        const matched = [];
         for (const n of items) {
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
@@ -912,26 +1020,41 @@
           const queryOk = q.length === 0 || includesCI(n.label, q);
           if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
 
-          if (!state.showItems) continue;
-
           const status = n.status ? String(n.status) : "미지정";
           const statusOk = state.statusFilter === "ALL" || status === state.statusFilter;
           if (!statusOk) continue;
 
-          candidate.push(upsertCachedNode({ ...n, layer, status }));
+          matched.push(upsertCachedNode({ ...n, layer, status }));
         }
 
-        candidate.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
-        if (state.selectedNodeId) {
-          const idx = candidate.findIndex((n) => String(n.id) === String(state.selectedNodeId));
-          if (idx >= 0) {
-            const keep = candidate.splice(idx, 1)[0];
-            candidate.unshift(keep);
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "state" &&
+          state.expandedScope.status;
+
+        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("state"));
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded && state.statusFilter === "ALL") {
+            toShow = matched.filter((n) => String(n.status || "미지정") === String(state.expandedScope.status));
+          } else {
+            toShow = matched.slice();
           }
         }
 
-        const truncated = candidate.length > state.itemLimit;
-        const shownItems = truncated ? candidate.slice(0, state.itemLimit) : candidate;
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
 
         const nodes = [];
         const links = [];
@@ -940,15 +1063,31 @@
         nodes.push(root);
 
         const statusNodeId = new Map();
+        const statusCount = new Map();
         for (const s of STATUS_NODES) {
           const id = makeId("__state", s);
           statusNodeId.set(s, id);
-          nodes.push(upsertCachedNode({ id, type: "state", label: s }));
+          nodes.push(upsertCachedNode({ id, type: "state", label: s, baseLabel: s, status: s, statusName: s }));
           links.push({ source: root.id, target: id, type: "hierarchy" });
         }
 
         links.push({ source: statusNodeId.get("초안"), target: statusNodeId.get("정리중"), type: "transition" });
         links.push({ source: statusNodeId.get("정리중"), target: statusNodeId.get("확정"), type: "transition" });
+
+        for (const item of matched) {
+          const status = item.status || "미지정";
+          const sid = statusNodeId.get(status) || statusNodeId.get("미지정");
+          statusCount.set(sid, (statusCount.get(sid) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "state") continue;
+          const id = String(node.id);
+          const c = statusCount.get(id) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.statusName || node.status || node.label);
+          node.label = base + " (" + c + ")";
+        }
 
         for (const item of shownItems) {
           const sid = statusNodeId.get(item.status || "미지정") || statusNodeId.get("미지정");
@@ -959,7 +1098,7 @@
         return {
           nodes,
           links,
-          stats: { matchedItems: candidate.length, shownItems: shownItems.length, truncated },
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
         };
       }
 
@@ -998,17 +1137,33 @@
         }
 
         matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
-        if (state.selectedNodeId) {
-          const idx = matched.findIndex((n) => String(n.id) === String(state.selectedNodeId));
-          if (idx >= 0) {
-            const keep = matched.splice(idx, 1)[0];
-            matched.unshift(keep);
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "timeline" &&
+          state.expandedScope.bucketKey;
+
+        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("timeline"));
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded) {
+            toShow = matched.filter((it) => getTimelineBucket(it).key === state.expandedScope.bucketKey);
+          } else {
+            toShow = matched.slice();
           }
         }
 
-        const shouldShowItems = Boolean(state.showItems);
-        const truncated = matched.length > state.itemLimit;
-        const shownItems = shouldShowItems ? (truncated ? matched.slice(0, state.itemLimit) : matched) : [];
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
 
         const nodes = [];
         const links = [];
@@ -1041,7 +1196,8 @@
         for (const b of buckets) {
           const id = makeId("__time", b.key);
           bucketNodeId.set(b.key, id);
-          nodes.push(upsertCachedNode({ id, type: "time", label: b.label }));
+          const count = bucketCount.get(b.key) || 0;
+          nodes.push(upsertCachedNode({ id, type: "time", label: b.label + " (" + count + ")", bucketKey: b.key, count }));
           links.push({ source: root.id, target: id, type: "hierarchy" });
         }
 
@@ -1158,8 +1314,23 @@
 
         const items = (graphData.nodes || []).filter((n) => n.type === "item");
         if (items.length === 0) {
-          elItemListBox.style.display = "none";
+          const matchedItems =
+            graphData.stats && typeof graphData.stats.matchedItems === "number" ? Number(graphData.stats.matchedItems) : 0;
+          const shownItems =
+            graphData.stats && typeof graphData.stats.shownItems === "number" ? Number(graphData.stats.shownItems) : 0;
+
+          elItemListBox.style.display = "";
+          elItemListCount.textContent = matchedItems ? shownItems + "/" + matchedItems : "0";
           elItemList.innerHTML = "";
+          elItemListHint.style.display = "";
+
+          if (state.mode === "territory") {
+            elItemListHint.textContent = "검색/필터를 적용하거나, 카테고리 노드를 클릭해서 펼치면 항목이 표시됩니다.";
+          } else if (state.mode === "layer" || state.mode === "pov" || state.mode === "state" || state.mode === "timeline") {
+            elItemListHint.textContent = "그룹 노드를 클릭해서 펼치거나, 검색/필터로 범위를 줄이면 항목이 표시됩니다.";
+          } else {
+            elItemListHint.textContent = "검색/필터로 범위를 줄이면 항목이 표시됩니다.";
+          }
           return;
         }
 
@@ -1252,6 +1423,12 @@
             if (graphData.stats.truncated) t += " (최대 " + state.itemLimit + "개만 표시)";
             if (state.mode === "territory" && state.expandedCategoryScope)
               t += "\\n펼침: " + state.expandedCategoryScope.domain + " / " + state.expandedCategoryScope.category;
+            if (state.expandedScope) {
+              if (state.expandedScope.mode === "layer") t += "\\n펼침: " + state.expandedScope.layer + " / " + state.expandedScope.category;
+              if (state.expandedScope.mode === "pov") t += "\\n펼침: " + state.expandedScope.pov;
+              if (state.expandedScope.mode === "state") t += "\\n펼침: " + state.expandedScope.status;
+              if (state.expandedScope.mode === "timeline") t += "\\n펼침: " + state.expandedScope.bucketKey;
+            }
             elItemStats.textContent = t;
           }
         } else {
@@ -1260,7 +1437,7 @@
           state.expandedCategoryScope = null;
         }
 
-        elBtnCollapse.style.display = state.expandedCategoryScope ? "" : "none";
+        elBtnCollapse.style.display = state.expandedCategoryScope || state.expandedScope ? "" : "none";
 
         const selected = state.selectedNodeId ? byId.get(String(state.selectedNodeId)) : null;
         updateSelectedUI(selected);
@@ -1301,6 +1478,7 @@
         state.hoveredNodeId = null;
         state.selectedNodeId = null;
         state.expandedCategoryScope = null;
+        state.expandedScope = null;
         updateModeUI();
         refresh();
       }
@@ -1315,12 +1493,41 @@
       }
 
       function getDagLevelDistanceForMode() {
-        if (state.mode === "territory") return state.mindmapLayout ? 110 : null;
-        if (state.mode === "layer") return 130;
-        if (state.mode === "pov") return 120;
-        if (state.mode === "state") return 140;
-        if (state.mode === "timeline") return 140;
+        const density = state.density || "normal";
+        const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+        if (state.mode === "territory") return state.mindmapLayout ? Math.floor(110 * mult) : null;
+        if (state.mode === "layer") return Math.floor(130 * mult);
+        if (state.mode === "pov") return Math.floor(120 * mult);
+        if (state.mode === "state") return Math.floor(140 * mult);
+        if (state.mode === "timeline") return Math.floor(140 * mult);
         return null;
+      }
+
+      function applyForces(graphData) {
+        if (!graphData) return;
+
+        const density = state.density || "normal";
+        const baseCharge = density === "spacious" ? -260 : density === "compact" ? -130 : -190;
+        const baseLink = density === "spacious" ? 72 : density === "compact" ? 44 : 58;
+
+        const itemCount = (graphData.nodes || []).reduce((acc, n) => acc + (n.type === "item" ? 1 : 0), 0);
+        const scale = Math.min(2.2, 1 + itemCount / 220);
+        const chargeStrength = Math.floor(baseCharge * scale);
+        const linkDistance = Math.floor(baseLink * Math.min(1.8, 1 + itemCount / 450));
+
+        const charge = graph.d3Force && graph.d3Force("charge");
+        if (charge && typeof charge.strength === "function") charge.strength(chargeStrength);
+
+        const link = graph.d3Force && graph.d3Force("link");
+        if (link && typeof link.distance === "function") {
+          link.distance((l) => {
+            if (l.type === "relation") return 28;
+            if (l.type === "transition") return 36;
+            return linkDistance;
+          });
+        }
+
+        if (typeof graph.d3ReheatSimulation === "function") graph.d3ReheatSimulation();
       }
 
       function renderDashboard() {
@@ -1509,15 +1716,24 @@
         elGraph.style.display = "";
         elAltView.style.display = "none";
 
-        // Expand scope hygiene (영역 모드 전용)
-        if (state.mode !== "territory") {
-          state.expandedCategoryScope = null;
-        } else {
+        // Expand scope hygiene
+        if (state.mode === "territory") {
+          state.expandedScope = null;
           const q = state.query.trim();
           if (!state.showItems) state.expandedCategoryScope = null;
           if (state.showItems && (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL")) {
             state.expandedCategoryScope = null;
           }
+        } else {
+          state.expandedCategoryScope = null;
+          const q = state.query.trim();
+          const hasFilters =
+            q.length > 0 ||
+            state.domainFilter !== "ALL" ||
+            state.categoryFilter !== "ALL" ||
+            state.layerFilter !== "ALL" ||
+            (state.mode === "state" && state.statusFilter !== "ALL");
+          if (!state.showItems || hasFilters) state.expandedScope = null;
         }
 
         const graphData = computeGraphData();
@@ -1528,6 +1744,8 @@
         if (state.hoveredNodeId && !byId.has(String(state.hoveredNodeId))) state.hoveredNodeId = null;
 
         const highlight = computeHighlight(graphData);
+
+        applyForces(graphData);
 
         graph
           .graphData(graphData)
@@ -1596,6 +1814,7 @@
         state.layerFilter = elLayer ? elLayer.value || "ALL" : "ALL";
         state.povFilter = elPov ? elPov.value || "PLAYER" : "PLAYER";
         state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
+        state.density = elDensity ? elDensity.value || "normal" : "normal";
         state.showItems = Boolean(elShowItems.checked);
         state.showRelations = Boolean(elShowRelations.checked);
         state.mindmapLayout = Boolean(elMindmap.checked);
@@ -1647,6 +1866,12 @@
           const id = String(node.id);
           state.selectedNodeId = id;
 
+          // 클릭으로 항목을 "펼침" 하려는 경우, 자동으로 항목 표시를 켠다.
+          if (state.mode !== "ui" && node.type !== "item" && !state.showItems && !elShowItems.disabled) {
+            elShowItems.checked = true;
+            syncStateFromControls();
+          }
+
           if (
             state.mode === "territory" &&
             state.showItems &&
@@ -1665,6 +1890,55 @@
               state.expandedCategoryScope = null;
             } else {
               state.expandedCategoryScope = next;
+            }
+          }
+
+          if (state.mode === "layer" && state.showItems && node.type === "category" && node.layer) {
+            const categoryName = String(node.categoryName || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "layer", layer: String(node.layer), category: categoryName };
+            if (
+              state.expandedScope &&
+              state.expandedScope.mode === "layer" &&
+              String(state.expandedScope.layer) === next.layer &&
+              String(state.expandedScope.category) === next.category
+            ) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "pov" && state.showItems && node.type === "pov") {
+            const pov = String(node.pov || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "pov", pov };
+            if (state.expandedScope && state.expandedScope.mode === "pov" && String(state.expandedScope.pov) === pov) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "state" && state.showItems && node.type === "state") {
+            const status = String(node.statusName || node.status || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "state", status };
+            if (state.expandedScope && state.expandedScope.mode === "state" && String(state.expandedScope.status) === status) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "timeline" && state.showItems && node.type === "time" && node.bucketKey) {
+            const bucketKey = String(node.bucketKey);
+            const next = { mode: "timeline", bucketKey };
+            if (
+              state.expandedScope &&
+              state.expandedScope.mode === "timeline" &&
+              String(state.expandedScope.bucketKey) === bucketKey
+            ) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
             }
           }
 
@@ -1739,8 +2013,16 @@
           refresh();
         });
       }
+      if (elDensity) {
+        elDensity.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
       elBtnCollapse.addEventListener("click", () => {
         state.expandedCategoryScope = null;
+        state.expandedScope = null;
         refresh();
       });
 
