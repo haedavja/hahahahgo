@@ -105,10 +105,7 @@ export const CARDS = [
     cardCategory: "fencing",
     special: "advanceTimeline",
     advanceAmount: 4,
-    appliedTokens: [{ id: 'blur', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('blur', 1);
-    }
+    appliedTokens: [{ id: 'blur', target: 'player' }]
   },
   {
     id: "lunge",
@@ -162,10 +159,7 @@ export const CARDS = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'shaken', target: 'enemy' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToEnemy('shaken', 1);
-    }
+    appliedTokens: [{ id: 'shaken', target: 'enemy' }]
   },
   {
     id: "beat",
@@ -195,11 +189,7 @@ export const CARDS = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('evasion', 1);
-      actions.addTokenToPlayer('offense', 1);
-    }
+    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }]
   },
   {
     id: "defensive_stance",
@@ -244,9 +234,6 @@ export const CARDS = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('counterShot', 2);
-    },
     crossBonus: { type: 'gun_attack', count: 1 }
   },
   {
@@ -421,11 +408,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
-    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('insight', 1);
-      actions.addTokenToPlayer('crit_boost', 1);
-    }
+    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }]
   },
   {
     id: "gun_headshot",
@@ -553,10 +536,6 @@ export const CARDS = [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
     ],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToEnemy('dull', 1);
-      actions.addTokenToEnemy('shaken', 1);
-    },
     crossBonus: { type: 'add_tokens', tokens: [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }

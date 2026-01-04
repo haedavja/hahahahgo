@@ -8,6 +8,7 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { RelicsBar, PathosBar, RestModal, EventModal } from "./ui";
+import { StatsWidget } from "./ui/StatsWidget";
 
 // Lazy loading for heavy components
 const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
@@ -359,6 +360,9 @@ function MapDemoComponent() {
 
   return (
     <div className="app-shell">
+      {/* 우측 상단 통계 위젯 */}
+      <StatsWidget />
+
       <header>
         <h1>로그라이크 경로 지도</h1>
         <small>속도 시스템 기준 · React + Vite 시연</small>

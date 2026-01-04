@@ -69,6 +69,7 @@ export interface BattlePayload {
   simulation: ResolverSimulationResult;
   hasCharacterBuild: boolean;
   characterBuild: CharacterBuild | null;
+  enemyInfo?: EnemyInfo;
 }
 
 /** travelToNode 결과 */
@@ -327,6 +328,19 @@ export const createBattlePayload = (
 
   const mixedEnemies = enemies.map((e) => createBattleEnemyData(e));
 
+  // 주요 적 정보 생성 (통계 기록용)
+  const primaryEnemy = enemies[0];
+  const isBoss = node.type === 'boss' || (enemyGroup as { isBoss?: boolean })?.isBoss === true;
+  const isElite = node.type === 'elite';
+  const enemyInfo: EnemyInfo | undefined = primaryEnemy ? {
+    id: primaryEnemy.id,
+    name: enemyGroup?.name || primaryEnemy.name,
+    emoji: primaryEnemy.emoji || '👾',
+    tier: enemyGroup?.tier || primaryEnemy.tier || 1,
+    isBoss,
+    isElite,
+  } : undefined;
+
   return {
     nodeId: String(node.id),
     kind: node.type,
@@ -350,6 +364,7 @@ export const createBattlePayload = (
     simulation,
     hasCharacterBuild,
     characterBuild: hasCharacterBuild ? characterBuild : null,
+    enemyInfo,
   };
 };
 
