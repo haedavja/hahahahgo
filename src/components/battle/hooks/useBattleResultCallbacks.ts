@@ -20,6 +20,7 @@ interface PlayerState {
 
 interface EnemyState {
   hp?: number;
+  etherPts?: number;
   [key: string]: unknown;
 }
 
@@ -42,7 +43,7 @@ interface UseBattleResultCallbacksParams {
 }
 
 interface BattleResultCallbacks {
-  notifyBattleResult: (resultType: string, isEtherVictory?: boolean) => void;
+  notifyBattleResult: (resultType: string) => void;
   closeCharacterSheet: () => void;
   handleExitToMap: () => void;
 }
@@ -61,12 +62,12 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
     actions
   } = params;
 
-  const notifyBattleResult = useCallback((resultType: string, isEtherVictoryOverride?: boolean) => {
+  const notifyBattleResult = useCallback((resultType: string) => {
     if (!resultType || resultSentRef.current) return;
     const finalEther = (player.etherPts as number);
     const delta = finalEther - ((initialEtherRef.current as number) ?? 0);
-    // isEtherVictoryOverride가 명시적으로 전달되면 사용, 아니면 postCombatOptions에서 가져옴
-    const isEtherVictory = isEtherVictoryOverride ?? postCombatOptions?.isEtherVictory ?? false;
+    // 적 에테르가 0 이하면 영혼파괴 (에테르 승리)
+    const isEtherVictory = resultType === 'victory' && enemy != null && typeof enemy.etherPts === 'number' && enemy.etherPts <= 0;
     onBattleResult?.({
       result: resultType as BattleResult['result'],
       playerEther: finalEther,
@@ -76,7 +77,7 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
       isEtherVictory
     });
     resultSentRef.current = true;
-  }, [player.etherPts, player.hp, player.maxHp, onBattleResult, initialEtherRef, resultSentRef, postCombatOptions?.isEtherVictory]);
+  }, [player.etherPts, player.hp, player.maxHp, enemy, onBattleResult, initialEtherRef, resultSentRef]);
 
   const closeCharacterSheet = useCallback(() => {
     actions.setShowCharacterSheet(false);
@@ -85,8 +86,7 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
   const handleExitToMap = useCallback(() => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp !== undefined && enemy.hp <= 0 ? 'victory' : (player && player.hp !== undefined && player.hp <= 0 ? 'defeat' : null));
     if (!outcome) return;
-    // 영혼파괴 여부도 함께 전달
-    notifyBattleResult(outcome, postCombatOptions?.isEtherVictory);
+    notifyBattleResult(outcome);
     if (typeof window !== 'undefined' && window.top === window) {
       setTimeout(() => { window.location.href = '/'; }, 100);
     }
