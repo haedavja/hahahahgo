@@ -6,8 +6,10 @@
 import { useState, useCallback, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/stats-bridge';
+import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
+import { BalanceInsightAnalyzer } from '../../../simulator/analysis/balance-insights';
 
-type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record';
+type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record' | 'dungeon' | 'item' | 'growth' | 'advanced';
 
 const WIDGET_STYLE: CSSProperties = {
   position: 'fixed',
@@ -122,7 +124,11 @@ const TABS: { id: TabType; label: string; emoji: string }[] = [
   { id: 'combo', label: '콤보', emoji: '🎯' },
   { id: 'shop', label: '상점', emoji: '🛒' },
   { id: 'event', label: '이벤트', emoji: '📜' },
+  { id: 'dungeon', label: '던전', emoji: '🏰' },
+  { id: 'item', label: '아이템', emoji: '🎒' },
+  { id: 'growth', label: '성장', emoji: '📈' },
   { id: 'record', label: '기록', emoji: '🏆' },
+  { id: 'advanced', label: '분석', emoji: '🔍' },
 ];
 
 export const StatsWidget = memo(function StatsWidget() {
@@ -191,7 +197,11 @@ export const StatsWidget = memo(function StatsWidget() {
             {activeTab === 'combo' && <ComboTab detailed={detailed} />}
             {activeTab === 'shop' && <ShopTab detailed={detailed} />}
             {activeTab === 'event' && <EventTab detailed={detailed} />}
+            {activeTab === 'dungeon' && <DungeonTab detailed={detailed} />}
+            {activeTab === 'item' && <ItemTab detailed={detailed} />}
+            {activeTab === 'growth' && <GrowthTab detailed={detailed} />}
             {activeTab === 'record' && <RecordTab detailed={detailed} stats={stats} />}
+            {activeTab === 'advanced' && <AdvancedTab detailed={detailed} />}
 
             <button onClick={handleCopy} style={COPY_BUTTON_STYLE}>
               {copied ? '✅ 복사됨!' : '📋 전체 통계 복사하기'}
@@ -610,6 +620,296 @@ function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetaile
                 />
               );
             })}
+        </>
+      )}
+    </>
+  );
+}
+
+function DungeonTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const dungeonStats = detailed.dungeonStats;
+
+  if (!dungeonStats || dungeonStats.totalAttempts === 0) {
+    return <p style={{ color: '#94a3b8' }}>아직 던전 기록이 없습니다.</p>;
+  }
+
+  return (
+    <>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316' }}>🏰 던전 통계</h3>
+      <StatRow label="총 진입" value={`${dungeonStats.totalAttempts ?? 0}회`} />
+      <StatRow label="클리어율" value={`${((dungeonStats.clearRate ?? 0) * 100).toFixed(1)}%`} />
+      <StatRow label="평균 소요 턴" value={(dungeonStats.avgTurns ?? 0).toFixed(1)} />
+      <StatRow label="평균 받은 피해" value={(dungeonStats.avgDamageTaken ?? 0).toFixed(1)} />
+
+      {dungeonStats.rewards && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>획득 보상</h4>
+          <StatRow label="카드" value={`${dungeonStats.rewards.cards?.length ?? 0}장`} />
+          <StatRow label="상징" value={`${dungeonStats.rewards.relics?.length ?? 0}개`} />
+        </>
+      )}
+    </>
+  );
+}
+
+function ItemTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const itemStats = detailed.itemUsageStats;
+
+  if (!itemStats || Object.keys(itemStats.itemsAcquired || {}).length === 0) {
+    return <p style={{ color: '#94a3b8' }}>아직 아이템 기록이 없습니다.</p>;
+  }
+
+  return (
+    <>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#84cc16' }}>🎒 아이템 획득</h3>
+      {Object.entries(itemStats.itemsAcquired || {})
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .map(([id, count]) => (
+          <StatRow key={id} label={id} value={`${count}개`} />
+        ))}
+
+      {itemStats.itemEffects && Object.keys(itemStats.itemEffects).length > 0 && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#06b6d4' }}>💊 아이템 효과</h3>
+          {Object.entries(itemStats.itemEffects)
+            .sort((a, b) => (b[1] as { timesUsed?: number }).timesUsed ?? 0 - ((a[1] as { timesUsed?: number }).timesUsed ?? 0))
+            .map(([id, eff]) => {
+              const effect = eff as { timesUsed?: number; totalHpHealed?: number; totalDamage?: number };
+              return (
+                <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={STAT_LABEL_STYLE}>{id}</span>
+                    <span style={STAT_VALUE_STYLE}>{effect.timesUsed ?? 0}회 사용</span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    HP회복 {effect.totalHpHealed ?? 0} | 피해 {effect.totalDamage ?? 0}
+                  </div>
+                </div>
+              );
+            })}
+        </>
+      )}
+    </>
+  );
+}
+
+function GrowthTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const growthStats = detailed.growthStats;
+
+  if (!growthStats || growthStats.totalInvestments === 0) {
+    return <p style={{ color: '#94a3b8' }}>아직 성장 기록이 없습니다.</p>;
+  }
+
+  return (
+    <>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#14b8a6' }}>📈 성장 통계</h3>
+      <StatRow label="총 투자" value={`${growthStats.totalInvestments ?? 0}회`} />
+      <StatRow label="런당 평균" value={`${(growthStats.avgInvestmentsPerRun ?? 0).toFixed(1)}회`} />
+
+      {growthStats.statInvestments && Object.keys(growthStats.statInvestments).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>스탯별 투자</h4>
+          {Object.entries(growthStats.statInvestments as Record<string, number>)
+            .sort((a, b) => b[1] - a[1])
+            .map(([stat, count]) => (
+              <StatRow key={stat} label={stat} value={`${count}회`} />
+            ))}
+        </>
+      )}
+
+      {growthStats.statWinCorrelation && Object.keys(growthStats.statWinCorrelation).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>승률 기여도</h4>
+          {Object.entries(growthStats.statWinCorrelation as Record<string, number>)
+            .sort((a, b) => b[1] - a[1])
+            .map(([stat, corr]) => (
+              <StatRow
+                key={stat}
+                label={stat}
+                value={`${corr > 0 ? '+' : ''}${(corr * 100).toFixed(1)}%`}
+                valueColor={corr > 0 ? '#22c55e' : corr < 0 ? '#ef4444' : '#94a3b8'}
+              />
+            ))}
+        </>
+      )}
+
+      {growthStats.finalStatDistribution && Object.keys(growthStats.finalStatDistribution).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>최종 스탯 분포</h4>
+          {Object.entries(growthStats.finalStatDistribution as Record<string, { avg: number; max: number }>)
+            .map(([stat, data]) => (
+              <StatRow key={stat} label={stat} value={`평균 ${data.avg.toFixed(1)} / 최대 ${data.max}`} />
+            ))}
+        </>
+      )}
+    </>
+  );
+}
+
+function AdvancedTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const [subTab, setSubTab] = useState<'synergy' | 'contribution' | 'analysis' | 'insights'>('synergy');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const analysis = useMemo(() => analyzeStats(detailed as any), [detailed]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const insightReport = useMemo(() => new BalanceInsightAnalyzer(detailed as any).generateReport(), [detailed]);
+
+  const subTabStyle = (active: boolean): CSSProperties => ({
+    padding: '4px 8px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    background: active ? '#3b82f6' : '#334155',
+    color: active ? '#fff' : '#94a3b8',
+  });
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+        <button onClick={() => setSubTab('synergy')} style={subTabStyle(subTab === 'synergy')}>시너지</button>
+        <button onClick={() => setSubTab('contribution')} style={subTabStyle(subTab === 'contribution')}>기여도</button>
+        <button onClick={() => setSubTab('analysis')} style={subTabStyle(subTab === 'analysis')}>AI분석</button>
+        <button onClick={() => setSubTab('insights')} style={subTabStyle(subTab === 'insights')}>인사이트</button>
+      </div>
+
+      {/* 카드 시너지 */}
+      {subTab === 'synergy' && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f59e0b' }}>🔗 카드 시너지</h3>
+          {detailed.cardSynergyStats?.topSynergies && detailed.cardSynergyStats.topSynergies.length > 0 ? (
+            detailed.cardSynergyStats.topSynergies.slice(0, 10).map((synergy: { pair: string; frequency: number; winRate: number }, i: number) => {
+              const [card1, card2] = synergy.pair.split('+');
+              return (
+                <div key={i} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#fbbf24', fontSize: '12px' }}>{card1} + {card2}</span>
+                    <span style={{ color: synergy.winRate > 0.5 ? '#22c55e' : '#f59e0b', fontWeight: 'bold' }}>
+                      {(synergy.winRate * 100).toFixed(1)}% 승률
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    {synergy.frequency}회 등장
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ color: '#94a3b8' }}>시너지 데이터가 없습니다.</p>
+          )}
+        </>
+      )}
+
+      {/* 카드 기여도 */}
+      {subTab === 'contribution' && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#8b5cf6' }}>📈 카드 기여도</h3>
+          {detailed.cardContributionStats?.contribution && Object.keys(detailed.cardContributionStats.contribution).length > 0 ? (
+            Object.entries(detailed.cardContributionStats.contribution)
+              .filter(([cardId]) => (detailed.cardContributionStats?.runsWithCard?.[cardId] || 0) >= 2)
+              .sort((a, b) => (b[1] as number) - (a[1] as number))
+              .slice(0, 10)
+              .map(([cardId, contrib]) => {
+                const contribution = contrib as number;
+                const winRateWith = detailed.cardContributionStats?.winRateWithCard?.[cardId] || 0;
+                return (
+                  <StatRow
+                    key={cardId}
+                    label={cardId}
+                    value={`${contribution > 0 ? '+' : ''}${(contribution * 100).toFixed(1)}% (보유시 ${(winRateWith * 100).toFixed(1)}%)`}
+                    valueColor={contribution > 0 ? '#22c55e' : contribution < 0 ? '#ef4444' : '#94a3b8'}
+                  />
+                );
+              })
+          ) : (
+            <p style={{ color: '#94a3b8' }}>기여도 데이터가 없습니다.</p>
+          )}
+        </>
+      )}
+
+      {/* AI 분석 */}
+      {subTab === 'analysis' && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316' }}>🔍 AI 분석</h3>
+          <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+            <p style={{ fontSize: '12px', color: '#e2e8f0', margin: 0 }}>{analysis.summary}</p>
+          </div>
+
+          {analysis.problems.length > 0 && (
+            <>
+              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ef4444' }}>⚠️ 문제점</h4>
+              {analysis.problems.slice(0, 5).map((problem: { description: string; category: string; severity: number }, i: number) => (
+                <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px', borderLeft: `3px solid ${problem.severity >= 4 ? '#ef4444' : '#f59e0b'}` }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>[{problem.category}]</span>
+                  <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{problem.description}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          {analysis.recommendations.length > 0 && (
+            <>
+              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#22c55e' }}>💡 개선 권장</h4>
+              {analysis.recommendations.slice(0, 5).map((rec: { target: string; suggestion: string }, i: number) => (
+                <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#fbbf24' }}>{rec.target}</span>
+                  <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{rec.suggestion}</p>
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      )}
+
+      {/* 밸런스 인사이트 */}
+      {subTab === 'insights' && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#10b981' }}>⚖️ 밸런스 인사이트</h3>
+
+          {/* 요약 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>건강도</div>
+              <div style={{
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                color: insightReport.summary.healthScore >= 70 ? '#22c55e' : insightReport.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
+              }}>
+                {insightReport.summary.healthScore}/100
+              </div>
+            </div>
+            <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>이슈</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>
+                {insightReport.summary.criticalIssues + insightReport.summary.warningIssues}개
+              </div>
+            </div>
+          </div>
+
+          {/* 최우선 과제 */}
+          {insightReport.summary.topPriorities.length > 0 && (
+            <>
+              <h4 style={{ margin: '8px 0 4px', fontSize: '12px', color: '#fbbf24' }}>🎯 우선 과제</h4>
+              {insightReport.summary.topPriorities.slice(0, 3).map((p: string, i: number) => (
+                <p key={i} style={{ fontSize: '11px', color: '#e2e8f0', margin: '4px 0', paddingLeft: '8px' }}>
+                  {i + 1}. {p}
+                </p>
+              ))}
+            </>
+          )}
+
+          {/* 필수픽 경고 */}
+          {insightReport.mustPicks.length > 0 && (
+            <>
+              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ec4899' }}>⚠️ 필수픽</h4>
+              {insightReport.mustPicks.slice(0, 3).map((mp: { targetName: string; explanation: string }, i: number) => (
+                <div key={i} style={{ padding: '4px 6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', color: '#f472b6', fontWeight: 'bold' }}>{mp.targetName}</span>
+                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0' }}>{mp.explanation}</p>
+                </div>
+              ))}
+            </>
+          )}
         </>
       )}
     </>

@@ -467,6 +467,294 @@ export function recordCardUpgrade(
   }
 }
 
+/**
+ * 상점 방문 기록
+ */
+export function recordShopVisit(context: { floor?: number; gold?: number } = {}): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordShopVisit({
+      floor: context.floor ?? 1,
+      goldAvailable: context.gold ?? 0,
+    });
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record shop visit:', error);
+  }
+}
+
+/**
+ * 상점 구매 기록
+ */
+export function recordShopPurchase(
+  itemType: 'relic' | 'card' | 'removal' | 'upgrade' | 'item',
+  itemId: string,
+  cost: number,
+  context: { floor?: number } = {}
+): void {
+  try {
+    const stats = getStatsCollector();
+
+    if (itemType === 'relic') {
+      stats.recordShopService({ type: 'relic', cost, relicId: itemId });
+    } else if (itemType === 'card') {
+      stats.recordShopService({ type: 'card', cost, cardId: itemId });
+    } else if (itemType === 'removal') {
+      stats.recordShopService({ type: 'removal', cost, cardId: itemId });
+    } else if (itemType === 'upgrade') {
+      stats.recordShopService({ type: 'upgrade', cost, cardId: itemId });
+    } else if (itemType === 'item') {
+      stats.recordShopService({ type: 'item', cost, itemId });
+      stats.recordItemAcquired(itemId);
+    }
+
+    invalidateStatsCache();
+    saveStatsToStorage();
+
+    if (import.meta.env?.DEV) {
+      console.log('[StatsBridge] Shop purchase:', itemType, itemId, cost);
+    }
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record shop purchase:', error);
+  }
+}
+
+/**
+ * 이벤트 발생 기록
+ */
+export function recordEventOccurrence(
+  eventId: string,
+  eventName: string,
+  context: { floor?: number } = {}
+): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordEvent(
+      eventId,
+      eventName,
+      true, // success
+      [], // relicsGained
+      {} // resourceChanges
+    );
+    invalidateStatsCache();
+    saveStatsToStorage();
+
+    if (import.meta.env?.DEV) {
+      console.log('[StatsBridge] Event occurred:', eventName);
+    }
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record event:', error);
+  }
+}
+
+/**
+ * 이벤트 선택 기록
+ */
+export function recordEventChoice(
+  eventId: string,
+  choiceId: string,
+  result: {
+    success?: boolean;
+    hpChange?: number;
+    goldChange?: number;
+    relicsGained?: string[];
+    cardsGained?: string[];
+  } = {}
+): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordEventChoice({
+      eventId,
+      choiceId,
+      success: result.success ?? true,
+      hpChange: result.hpChange ?? 0,
+      goldChange: result.goldChange ?? 0,
+      relicsGained: result.relicsGained ?? [],
+      cardsGained: result.cardsGained ?? [],
+    });
+    invalidateStatsCache();
+    saveStatsToStorage();
+
+    if (import.meta.env?.DEV) {
+      console.log('[StatsBridge] Event choice:', eventId, choiceId);
+    }
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record event choice:', error);
+  }
+}
+
+/**
+ * 던전 진입/완료 기록
+ */
+export function recordDungeon(
+  dungeonId: string,
+  success: boolean,
+  context: {
+    floor?: number;
+    turnsSpent?: number;
+    damageTaken?: number;
+    cardsGained?: string[];
+    relicsGained?: string[];
+  } = {}
+): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordDungeon({
+      dungeonId,
+      success,
+      floor: context.floor ?? 1,
+      turnsSpent: context.turnsSpent ?? 0,
+      damageTaken: context.damageTaken ?? 0,
+      cardsGained: context.cardsGained ?? [],
+      relicsGained: context.relicsGained ?? [],
+    });
+    invalidateStatsCache();
+    saveStatsToStorage();
+
+    if (import.meta.env?.DEV) {
+      console.log('[StatsBridge] Dungeon:', dungeonId, success ? 'cleared' : 'failed');
+    }
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record dungeon:', error);
+  }
+}
+
+/**
+ * 아이템 획득 기록
+ */
+export function recordItemAcquired(itemId: string, itemName?: string): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordItemAcquired(itemId, itemName);
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record item acquired:', error);
+  }
+}
+
+/**
+ * 아이템 사용 기록
+ */
+export function recordItemUsed(
+  itemId: string,
+  context: {
+    hpRestored?: number;
+    damageDealt?: number;
+    inBattle?: boolean;
+    floor?: number;
+  } = {}
+): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordItemUsed({
+      itemId,
+      hpRestored: context.hpRestored ?? 0,
+      damageDealt: context.damageDealt ?? 0,
+      inBattle: context.inBattle ?? false,
+      floor: context.floor ?? 1,
+    });
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record item used:', error);
+  }
+}
+
+/**
+ * 성장 투자 기록
+ */
+export function recordGrowthInvestment(
+  statId: string,
+  type: 'trait' | 'ethos' | 'pathos' | 'logos' = 'trait',
+  amount: number = 1
+): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordGrowthInvestment(statId, type, amount);
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record growth:', error);
+  }
+}
+
+/**
+ * 턴 피해 기록 (최대 피해 추적용)
+ */
+export function recordTurnDamage(damage: number, cardId: string, monsterName: string): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordTurnDamage(damage, cardId, monsterName);
+    invalidateStatsCache();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record turn damage:', error);
+  }
+}
+
+/**
+ * 무피해 승리 기록
+ */
+export function recordFlawlessVictory(isBoss: boolean = false): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordFlawlessVictory(isBoss);
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record flawless victory:', error);
+  }
+}
+
+/**
+ * 층 진행 스냅샷 기록
+ */
+export function recordFloorSnapshot(data: {
+  floor: number;
+  hp: number;
+  maxHp: number;
+  gold: number;
+  deckSize: number;
+  relicCount: number;
+}): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordFloorSnapshot(data);
+    invalidateStatsCache();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record floor snapshot:', error);
+  }
+}
+
+/**
+ * 사망 기록
+ */
+export function recordDeath(data: {
+  enemyId: string;
+  enemyName?: string;
+  floor: number;
+  cause?: string;
+  playerHp?: number;
+  lastCards?: string[];
+}): void {
+  try {
+    const stats = getStatsCollector();
+    stats.recordDeath({
+      enemyId: data.enemyId,
+      enemyName: data.enemyName,
+      floor: data.floor,
+      cause: data.cause ?? 'combat',
+      playerHp: data.playerHp ?? 0,
+      lastCards: data.lastCards ?? [],
+    });
+    invalidateStatsCache();
+    saveStatsToStorage();
+  } catch (error) {
+    console.error('[StatsBridge] Failed to record death:', error);
+  }
+}
+
 // ==================== 통계 조회 ====================
 
 /** 간소화된 통계 인터페이스 */
@@ -594,13 +882,41 @@ export const StatsBridge = {
   reset: resetStatsCollector,
   isInitialized: isStatsInitialized,
 
-  // 기록
+  // 전투 기록
   recordBattle: recordGameBattle,
   recordRunStart,
   recordRunEnd,
+  recordTurnDamage,
+  recordFlawlessVictory,
+  recordDeath,
+
+  // 카드 관련
   recordCardPick,
-  recordRelicAcquired,
   recordCardUpgrade,
+
+  // 상징/렐릭
+  recordRelicAcquired,
+
+  // 상점
+  recordShopVisit,
+  recordShopPurchase,
+
+  // 이벤트
+  recordEventOccurrence,
+  recordEventChoice,
+
+  // 던전
+  recordDungeon,
+
+  // 아이템
+  recordItemAcquired,
+  recordItemUsed,
+
+  // 성장
+  recordGrowthInvestment,
+
+  // 진행 추적
+  recordFloorSnapshot,
 
   // 저장/조회
   saveStats,
@@ -608,6 +924,9 @@ export const StatsBridge = {
   getDetailedStats,
   getCardStats,
   getEnemyStats,
+
+  // 캐시
+  invalidateCache: invalidateStatsCache,
 
   // 어댑터
   adaptResult: adaptGameBattleResult,
