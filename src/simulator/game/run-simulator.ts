@@ -17,6 +17,7 @@ import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from '
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
+import type { SkillLevel } from '../core/battle-engine-types';
 import { EnhancedBattleProcessor, type EnhancedBattleResult } from '../core/enhanced-battle-processor';
 import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
 import { createComboOptimizer, type ComboOptimizer } from '../ai/combo-optimizer';
@@ -173,6 +174,8 @@ export interface RunConfig {
   mapRisk?: number;
   /** 난이도 수정자 (세부 옵션) */
   difficultyModifiers?: DifficultyModifiers;
+  /** 플레이어 스킬 레벨 (기본: optimal) */
+  skillLevel?: SkillLevel;
 }
 
 export type RunStrategy = 'aggressive' | 'defensive' | 'balanced' | 'speedrun' | 'treasure_hunter';
@@ -369,6 +372,11 @@ export class RunSimulator {
   simulateRun(config: RunConfig): RunResult {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
+
+    // 플레이어 스킬 레벨 설정
+    if (config.skillLevel) {
+      this.battleEngine.setSkillLevel(config.skillLevel);
+    }
 
     // 시작 HP 배율 적용
     const startingHpMult = config.difficultyModifiers?.startingHpMultiplier ?? 1;

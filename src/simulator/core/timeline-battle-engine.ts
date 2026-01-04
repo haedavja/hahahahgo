@@ -125,7 +125,9 @@ import {
   DEFAULT_CONFIG,
   type BattleEngineConfig,
   type TraitModifiers,
+  type SkillLevel,
 } from './battle-engine-types';
+import { SkillLevelAI, createSkillLevelAI } from '../ai/skill-level-ai';
 import {
   initializeEnemyUnits,
   selectTargetUnit,
@@ -182,6 +184,8 @@ export class TimelineBattleEngine {
   private cardEnhancements: Record<string, number> = {};
   /** 보스 페이즈 변경 추적용 */
   private lastBossPhase: string | null = null;
+  /** 플레이어 스킬 레벨 AI */
+  private skillLevelAI: SkillLevelAI;
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -191,6 +195,22 @@ export class TimelineBattleEngine {
     this.itemSystem = getItemSystem();
     this.respondAI = new RespondAI(this.cards);
     this.cardCreation = new CardCreationSystem(this.cards);
+    this.skillLevelAI = createSkillLevelAI(this.config.skillLevel);
+  }
+
+  /**
+   * 스킬 레벨 설정 변경
+   */
+  setSkillLevel(level: SkillLevel): void {
+    this.config.skillLevel = level;
+    this.skillLevelAI = createSkillLevelAI(level);
+  }
+
+  /**
+   * 현재 스킬 레벨 AI 통계 가져오기
+   */
+  getSkillLevelStats(): { optimalPlays: number; suboptimalPlays: number; mistakesMade: number } {
+    return this.skillLevelAI.getStats();
   }
 
   // ==================== 토큰 추적 헬퍼 ====================
@@ -665,7 +685,18 @@ export class TimelineBattleEngine {
       const decision = this.respondAI.decideResponse(state, reactionCards);
 
       if (decision.shouldRespond) {
-        this.applyPlayerResponse(state, decision);
+        // 스킬 레벨 AI로 대응 결정 수정 (optimal이 아닌 경우)
+        let actuallyRespond = decision.shouldRespond;
+        if (this.config.skillLevel !== 'optimal') {
+          actuallyRespond = this.skillLevelAI.decideRespond(state, decision.shouldRespond);
+          if (!actuallyRespond && this.config.verbose) {
+            state.battleLog.push(`  ⚠️ 플레이어: 대응 타이밍 놓침`);
+          }
+        }
+
+        if (actuallyRespond) {
+          this.applyPlayerResponse(state, decision);
+        }
       }
     }
 
@@ -1061,6 +1092,28 @@ export class TimelineBattleEngine {
         .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
       if (cheapest) {
         selected.push(cheapest);
+      }
+    }
+
+    // 스킬 레벨 AI 적용 (optimal이 아닌 경우 실수 가능)
+    if (this.config.skillLevel !== 'optimal' && selected.length > 0) {
+      const optimalCardIds = selected.map(c => c.id);
+      const decision = this.skillLevelAI.selectCards(state, optimalCardIds);
+
+      if (!decision.wasOptimal) {
+        // 실수가 발생한 경우 로그
+        if (this.config.verbose && decision.reasoning.length > 0) {
+          state.battleLog.push(`  ⚠️ 플레이어 실수: ${decision.reasoning.join(', ')}`);
+        }
+
+        // 스킬 레벨에 맞게 선택된 카드로 교체
+        const newSelected = decision.selectedCards
+          .map(id => handCards.find(c => c.id === id))
+          .filter((c): c is GameCard => c !== undefined);
+
+        if (newSelected.length > 0) {
+          return newSelected;
+        }
       }
     }
 

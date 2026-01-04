@@ -14,6 +14,9 @@ export const DEFAULT_HAND_SIZE = 5;
 
 // ==================== 전투 엔진 설정 ====================
 
+/** 플레이어 스킬 레벨 */
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'optimal';
+
 export interface BattleEngineConfig {
   maxSpeed: number;
   maxTurns: number;
@@ -26,6 +29,8 @@ export interface BattleEngineConfig {
   verbose: boolean;
   /** 맵 위험도 (0-4, 이변 레벨 계산용) */
   mapRisk: number;
+  /** 플레이어 스킬 레벨 (기본: optimal) */
+  skillLevel: SkillLevel;
 }
 
 export const DEFAULT_CONFIG: BattleEngineConfig = {
@@ -39,6 +44,7 @@ export const DEFAULT_CONFIG: BattleEngineConfig = {
   enableTimeline: true,
   verbose: false,
   mapRisk: 0,
+  skillLevel: 'optimal',
 };
 
 // ==================== 특성 수정자 타입 ====================
