@@ -101,6 +101,15 @@ import {
   type BurstResult,
 } from './combo-ether-system';
 import {
+  createInitialGraceState,
+  updateGraceOnTurnStart,
+  gainGrace,
+  checkSoulShield,
+  processAutoPrayers,
+  applyPrayerEffects,
+  type PrayerExecutionResult,
+} from './grace-system';
+import {
   createEnemyAI,
   getPatternForEnemy,
   getPatternModifierByHp,
@@ -379,6 +388,10 @@ export class TimelineBattleEngine {
     // 전투 상태 초기화 (적 상태 필드 보장)
     // 적 초기 에테르: 보스는 200, 일반 적은 100
     const enemyInitialEther = enemy.isBoss ? 200 : 100;
+    // 보스는 모든 기원 사용 가능, 일반 적은 기본 3개
+    const enemyPrayers = enemy.isBoss
+      ? ['immunity', 'blessing', 'healing', 'offense', 'veil'] as const
+      : ['immunity', 'healing', 'veil'] as const;
     const state: GameBattleState = {
       player,
       enemy: {
@@ -389,6 +402,7 @@ export class TimelineBattleEngine {
         maxSpeed: enemy.maxSpeed || DEFAULT_MAX_SPEED,
         ether: enemy.ether ?? enemyInitialEther,
         etherPts: enemy.etherPts ?? enemyInitialEther,
+        graceState: enemy.graceState ?? createInitialGraceState([...enemyPrayers]),
       },
       turn: 0,
       phase: 'select',
@@ -509,6 +523,11 @@ export class TimelineBattleEngine {
       }
     }
 
+    // 은총 상태 턴 시작 업데이트 (가호 턴 감소, 사용 기록 초기화)
+    if (state.enemy.graceState) {
+      state.enemy.graceState = updateGraceOnTurnStart(state.enemy.graceState);
+    }
+
     // 50% HP 소환 패시브 체크
     const summonResult = checkAndProcessSummonPassive(state);
     if (summonResult.triggered) {
@@ -594,12 +613,27 @@ export class TimelineBattleEngine {
           state.battleLog.push(`  ⚡ 에테르 +${playerEtherGain} (${etherResult.etherResult.comboName})`);
 
           // 에테르 전이: 플레이어가 콤보로 에테르를 획득하면 적 에테르 감소
+          // 은총 보호막/은총이 영혼 피해를 흡수할 수 있음
           const currentEnemyEther = state.enemy.ether ?? 0;
-          const etherTransferred = Math.min(playerEtherGain, currentEnemyEther);
-          if (etherTransferred > 0) {
-            state.enemy.ether = currentEnemyEther - etherTransferred;
+          let soulDamage = Math.min(playerEtherGain, currentEnemyEther);
+          let shieldBlocked = 0;
+
+          // 은총 보호막 체크
+          if (state.enemy.graceState && soulDamage > 0) {
+            const [remainingDamage, newGraceState] = checkSoulShield(state.enemy.graceState, soulDamage);
+            shieldBlocked = soulDamage - remainingDamage;
+            soulDamage = remainingDamage;
+            state.enemy.graceState = newGraceState;
+
+            if (shieldBlocked > 0) {
+              state.battleLog.push(`  🛡️ 적 보호막: 영혼 ${shieldBlocked} 피해 흡수`);
+            }
+          }
+
+          if (soulDamage > 0) {
+            state.enemy.ether = Math.max(0, currentEnemyEther - soulDamage);
             state.enemy.etherPts = state.enemy.ether;
-            state.battleLog.push(`  💫 에테르 전이: 적 영혼 -${etherTransferred} (잔여: ${state.enemy.ether})`);
+            state.battleLog.push(`  💫 에테르 전이: 적 영혼 -${soulDamage} (잔여: ${state.enemy.ether})`);
           }
 
           // 콤보 상징 효과 (에테르 결정, 포커칩, 목장갑, 총알 등)
@@ -614,19 +648,6 @@ export class TimelineBattleEngine {
           }
 
           // 버스트 시스템 임시 비활성화 (TODO: 나중에 다시 활성화)
-          // if (etherResult.burstResult.triggered) {
-          //   state.battleLog.push(`  ${etherResult.burstResult.message}`);
-          //
-          //   // 버스트 보너스 피해 적용
-          //   if (etherResult.burstResult.bonusDamage > 0) {
-          //     state.enemy.hp -= etherResult.burstResult.bonusDamage;
-          //     state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
-          //     state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
-          //   }
-          //
-          //   // 에테르 리셋 (버스트 후 남은 양)
-          //   state.player.ether = 0;
-          // }
         }
 
         // 콤보 사용 횟수 업데이트 (디플레이션용)
@@ -634,6 +655,43 @@ export class TimelineBattleEngine {
       }
     } else if (etherBlockedByAnomaly) {
       state.battleLog.push(`  ❌ 이변: 에테르 획득 불가`);
+    }
+
+    // 적 에테르 처리: 적이 실행한 카드 기반으로 은총 획득
+    if (this.config.enableCombos && state.enemy.graceState) {
+      const enemyPlayedCards = state.timeline
+        .filter(tc => tc.owner === 'enemy' && tc.executed)
+        .map(tc => this.getCard(tc.cardId))
+        .filter((c): c is GameCard => c !== undefined);
+
+      if (enemyPlayedCards.length > 0) {
+        // 적 콤보 감지 (게임과 동일한 로직)
+        const enemyCombo = detectPokerCombo(enemyPlayedCards);
+        if (enemyCombo && enemyCombo.baseEther > 0) {
+          // 적은 에테르를 은총으로 전환 (영혼 변화 없음)
+          const graceGain = Math.floor(enemyCombo.baseEther * enemyCombo.multiplier);
+          state.enemy.graceState = gainGrace(state.enemy.graceState, graceGain);
+          if (this.config.verbose) {
+            state.battleLog.push(`  ✨ 적 은총 +${graceGain} (${enemyCombo.name})`);
+          }
+        }
+      }
+
+      // 기원 발동 AI (턴 종료 시)
+      const prayerResults = processAutoPrayers({
+        graceState: state.enemy.graceState,
+        enemyHp: state.enemy.hp,
+        enemyMaxHp: state.enemy.maxHp || state.enemy.hp,
+        enemyEtherPts: state.enemy.ether ?? 100,
+        playerEtherPts: state.player.ether,
+        turnNumber: state.turn,
+      });
+
+      for (const result of prayerResults) {
+        state.enemy.graceState = result.graceState;
+        state.enemy = applyPrayerEffects(state.enemy, result);
+        state.battleLog.push(`  🙏 ${result.log}`);
+      }
     }
 
     // 타임라인 반복 저장 (르 송쥬 뒤 비에야르)

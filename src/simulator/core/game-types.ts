@@ -326,6 +326,27 @@ export interface EnemyUnit {
 
 export interface EnemyPassives extends GameEnemyPassives {}
 
+// ==================== 은총 시스템 (게임과 동일) ====================
+
+/** 기원 타입 */
+export type PrayerType = 'immunity' | 'blessing' | 'healing' | 'offense' | 'veil';
+
+/** 몬스터 은총 상태 */
+export interface GraceState {
+  /** 현재 은총 포인트 */
+  gracePts: number;
+  /** 영혼 보호막 (면역 기원) */
+  soulShield: number;
+  /** 가호 남은 턴 */
+  blessingTurns: number;
+  /** 가호 보너스율 (%) */
+  blessingBonus: number;
+  /** 사용 가능한 기원 목록 */
+  availablePrayers: PrayerType[];
+  /** 이번 턴 사용한 기원 */
+  usedPrayersThisTurn: PrayerType[];
+}
+
 export interface EnemyState extends CombatantState {
   id: string;
   name: string;
@@ -344,6 +365,8 @@ export interface EnemyState extends CombatantState {
   strength?: number;
   /** 에테르 (호환) */
   ether?: number;
+  /** 은총 상태 */
+  graceState?: GraceState;
   /** 속도 (호환) */
   speed?: number;
   /** 보스 여부 */
