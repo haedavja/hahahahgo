@@ -338,6 +338,14 @@ export function formatDetailedStatsForAI(
     lines.push(`- Success Rate: ${pct(stats.runStats.successRate)}`);
     lines.push(`- Avg Layer: ${num(stats.runStats.avgLayerReached)}`);
     lines.push(`- Avg Battles Won: ${num(stats.runStats.avgBattlesWon)}`);
+    // 영혼파괴/육체파괴 통계
+    const totalWins = (stats.runStats.soulDestructions || 0) + (stats.runStats.physicalDestructions || 0);
+    if (totalWins > 0) {
+      const soulRate = ((stats.runStats.soulDestructions || 0) / totalWins * 100).toFixed(1);
+      const physRate = ((stats.runStats.physicalDestructions || 0) / totalWins * 100).toFixed(1);
+      lines.push(`- Soul Destructions (Ether): ${stats.runStats.soulDestructions || 0} (${soulRate}%)`);
+      lines.push(`- Physical Destructions (HP): ${stats.runStats.physicalDestructions || 0} (${physRate}%)`);
+    }
   }
 
   // 원본 JSON

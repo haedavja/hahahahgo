@@ -362,7 +362,7 @@ export class StatsCollector {
       crossTriggers: 0,
       combosTriggered: { ...result.comboStats },
       groupInfo: null,
-      isEtherVictory: (result as { isEtherVictory?: boolean }).isEtherVictory,
+      isEtherVictory: result.isEtherVictory,
     };
 
     // 이벤트에서 특수효과 및 교차 횟수 추출
@@ -2074,6 +2074,19 @@ export class StatsCollector {
       strategyWinRates[strategy] = results.total > 0 ? results.wins / results.total : 0;
     }
 
+    // 영혼파괴/육체파괴 집계 (battleRecords에서)
+    let soulDestructions = 0;
+    let physicalDestructions = 0;
+    for (const record of this.battleRecords) {
+      if (record.winner === 'player') {
+        if (record.isEtherVictory) {
+          soulDestructions++;
+        } else {
+          physicalDestructions++;
+        }
+      }
+    }
+
     return {
       totalRuns: total,
       successfulRuns: successful,
@@ -2096,6 +2109,8 @@ export class StatsCollector {
       deathCauses,
       deathByLayer,
       strategyWinRates,
+      soulDestructions,
+      physicalDestructions,
     };
   }
 

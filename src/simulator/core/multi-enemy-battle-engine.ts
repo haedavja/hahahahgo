@@ -1445,6 +1445,8 @@ export class MultiEnemyBattleEngine {
       comboStats: state.comboStats,
       tokenStats: {},
       timeline: state.timeline,
+      // 다중 적 전투에서는 버스트 추적 미지원 (기본값 false)
+      isEtherVictory: false,
       enemiesKilled,
       survivingEnemies,
       enemyDetails,

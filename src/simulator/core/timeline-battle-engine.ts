@@ -600,9 +600,14 @@ export class TimelineBattleEngine {
 
             // 버스트 보너스 피해 적용
             if (etherResult.burstResult.bonusDamage > 0) {
+              const hpBeforeBurst = state.enemy.hp;
               state.enemy.hp -= etherResult.burstResult.bonusDamage;
               state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
               state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
+              // 버스트로 적을 처치했으면 영혼파괴
+              if (hpBeforeBurst > 0 && state.enemy.hp <= 0) {
+                state.lastDamageWasBurst = true;
+              }
             }
 
             // 에테르 리셋 (버스트 후 남은 양)
@@ -2828,6 +2833,9 @@ export class TimelineBattleEngine {
     const initialGold = 100;
     const goldChange = state.player.gold - initialGold;
 
+    // 영혼파괴 여부: 버스트로 적을 처치했으면 true
+    const isEtherVictory = winner === 'player' && state.lastDamageWasBurst === true;
+
     return {
       winner,
       turns: state.turn,
@@ -2846,6 +2854,7 @@ export class TimelineBattleEngine {
       itemEffectStats: state.itemEffects || {},
       relicEffectStats: state.relicEffects || {},
       timeline: state.timeline,
+      isEtherVictory,
     };
   }
 }

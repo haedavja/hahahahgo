@@ -178,6 +178,17 @@ export class StatsReporter {
     lines.push(`  평균 덱 크기: ${rs.avgFinalDeckSize.toFixed(1)}`);
     lines.push(`  평균 상징 수: ${rs.avgFinalRelicCount.toFixed(1)}`);
 
+    // 영혼파괴/육체파괴 통계
+    const totalWins = rs.soulDestructions + rs.physicalDestructions;
+    if (totalWins > 0) {
+      lines.push('');
+      lines.push('【 승리 방식 (파괴 유형) 】');
+      const soulRate = (rs.soulDestructions / totalWins * 100).toFixed(1);
+      const physRate = (rs.physicalDestructions / totalWins * 100).toFixed(1);
+      lines.push(`  💜 영혼파괴: ${rs.soulDestructions}회 (${soulRate}%) - 에테르/버스트로 처치`);
+      lines.push(`  ❤️ 육체파괴: ${rs.physicalDestructions}회 (${physRate}%) - HP 피해로 처치`);
+    }
+
     if (Object.keys(rs.deathCauses).length > 0) {
       lines.push('');
       lines.push('【 사망 원인 】');

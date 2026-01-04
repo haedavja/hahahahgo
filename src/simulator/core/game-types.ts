@@ -400,6 +400,8 @@ export interface GameBattleState {
       combatTokens?: boolean;
     };
   };
+  /** 마지막 피해가 버스트(에테르)였는지 추적 */
+  lastDamageWasBurst?: boolean;
 }
 
 // ==================== 타임라인 시스템 ====================
@@ -470,6 +472,8 @@ export interface BattleResult {
   victory?: boolean;
   battleId?: string;
   enemyId?: string;
+  /** 영혼파괴 여부 (에테르로 승리) */
+  isEtherVictory?: boolean;
   // 호환성 별칭
   totalDamageDealt?: number;
   playerHealth?: number;

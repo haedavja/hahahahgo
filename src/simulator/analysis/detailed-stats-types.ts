@@ -340,6 +340,10 @@ export interface RunStats {
   deathByLayer: Record<number, number>;
   /** 전략별 승률 */
   strategyWinRates: Record<string, number>;
+  /** 영혼파괴 횟수 (에테르/버스트로 승리) */
+  soulDestructions: number;
+  /** 육체파괴 횟수 (HP로 승리) */
+  physicalDestructions: number;
 }
 
 /** 카드 승급 통계 */
