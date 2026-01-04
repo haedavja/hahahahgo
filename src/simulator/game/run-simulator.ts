@@ -189,6 +189,8 @@ export interface NodeResult {
   cardsGained: string[];
   relicsGained: string[];
   details: string;
+  /** 영혼파괴 승리 여부 (전투 노드에서만 사용) */
+  isEtherVictory?: boolean;
 }
 
 export interface RunResult {
@@ -204,6 +206,10 @@ export interface RunResult {
   battlesWon: number;
   /** 전투 패배 수 */
   battlesLost: number;
+  /** 영혼파괴 승리 수 (에테르로 적 처치) */
+  soulDestructions: number;
+  /** 육체파괴 승리 수 (HP로 적 처치) */
+  physicalDestructions: number;
   /** 이벤트 완료 수 */
   eventsCompleted: number;
   /** 상점 방문 수 */
@@ -231,6 +237,10 @@ export interface RunStatistics {
   avgBattlesWon: number;
   avgGoldEarned: number;
   avgCardsInDeck: number;
+  /** 총 영혼파괴 승리 수 */
+  soulDestructions: number;
+  /** 총 육체파괴 승리 수 */
+  physicalDestructions: number;
   deathCauses: Record<string, number>;
   strategyComparison: Record<RunStrategy, { successRate: number; avgLayer: number }>;
 }
@@ -422,6 +432,8 @@ export class RunSimulator {
       nodesVisited: 0,
       battlesWon: 0,
       battlesLost: 0,
+      soulDestructions: 0,
+      physicalDestructions: 0,
       eventsCompleted: 0,
       shopsVisited: 0,
       restsUsed: 0,
@@ -460,13 +472,28 @@ export class RunSimulator {
       switch (currentNode.type) {
         case 'combat':
         case 'elite':
-          if (nodeResult.success) result.battlesWon++;
-          else result.battlesLost++;
+          if (nodeResult.success) {
+            result.battlesWon++;
+            // 영혼파괴/육체파괴 집계
+            if (nodeResult.isEtherVictory) {
+              result.soulDestructions++;
+            } else {
+              result.physicalDestructions++;
+            }
+          } else {
+            result.battlesLost++;
+          }
           break;
         case 'boss':
           if (nodeResult.success) {
             result.battlesWon++;
             result.success = true;
+            // 영혼파괴/육체파괴 집계
+            if (nodeResult.isEtherVictory) {
+              result.soulDestructions++;
+            } else {
+              result.physicalDestructions++;
+            }
           } else {
             result.battlesLost++;
             result.deathCause = '보스전 패배';
@@ -960,6 +987,8 @@ export class RunSimulator {
     if (wonAllBattles && totalBattleResult) {
       result.success = true;
       result.details = `전투 승리 vs ${displayName} (${totalBattleResult.turns}턴)`;
+      // 영혼파괴 여부 기록 (BattleResult.isEtherVictory에서 가져옴)
+      result.isEtherVictory = (totalBattleResult as BattleResult).isEtherVictory || false;
 
       // 보상 (적 수에 비례, 난이도 수정자 적용)
       const goldMult = config.difficultyModifiers?.goldMultiplier ?? 1;
@@ -2189,6 +2218,10 @@ export class RunSimulator {
 
     const successfulRuns = results.filter(r => r.success);
 
+    // 영혼파괴/육체파괴 집계
+    const totalSoulDestructions = results.reduce((sum, r) => sum + r.soulDestructions, 0);
+    const totalPhysicalDestructions = results.reduce((sum, r) => sum + r.physicalDestructions, 0);
+
     return {
       totalRuns: count,
       successRate: successfulRuns.length / count,
@@ -2196,6 +2229,8 @@ export class RunSimulator {
       avgBattlesWon: results.reduce((sum, r) => sum + r.battlesWon, 0) / count,
       avgGoldEarned: results.reduce((sum, r) => sum + r.totalGoldEarned, 0) / count,
       avgCardsInDeck: results.reduce((sum, r) => sum + r.finalPlayerState.deck.length, 0) / count,
+      soulDestructions: totalSoulDestructions,
+      physicalDestructions: totalPhysicalDestructions,
       deathCauses,
       strategyComparison: {
         [config.strategy]: {
