@@ -53,6 +53,53 @@ export interface AdaptedBattleResult extends SimulatorBattleResult {
 let globalStatsCollector: StatsCollector | null = null;
 let isInitialized = false;
 
+const STATS_STORAGE_KEY = 'hahahahgo_game_stats';
+
+/**
+ * localStorage에서 통계 로드
+ */
+function loadStatsFromStorage(): ReturnType<StatsCollector['finalize']> | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const stored = localStorage.getItem(STATS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Map 객체 복원
+      if (parsed.monsterStats && typeof parsed.monsterStats === 'object') {
+        parsed.monsterStats = new Map(Object.entries(parsed.monsterStats));
+      }
+      if (parsed.cardDeepStats && typeof parsed.cardDeepStats === 'object') {
+        parsed.cardDeepStats = new Map(Object.entries(parsed.cardDeepStats));
+      }
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('[StatsBridge] Failed to load stats from localStorage:', e);
+  }
+  return null;
+}
+
+/**
+ * localStorage에 통계 저장
+ */
+function saveStatsToStorage(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  if (!globalStatsCollector) return;
+
+  try {
+    const stats = globalStatsCollector.finalize();
+    // Map 객체를 일반 객체로 변환
+    const serializable = {
+      ...stats,
+      monsterStats: Object.fromEntries(stats.monsterStats || new Map()),
+      cardDeepStats: Object.fromEntries(stats.cardDeepStats || new Map()),
+    };
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(serializable));
+  } catch (e) {
+    console.warn('[StatsBridge] Failed to save stats to localStorage:', e);
+  }
+}
+
 /**
  * 전역 통계 수집기 가져오기 또는 생성
  */
@@ -70,6 +117,10 @@ export function getStatsCollector(): StatsCollector {
 export function resetStatsCollector(): void {
   globalStatsCollector = createStatsCollector();
   isInitialized = true;
+  // localStorage도 초기화
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.removeItem(STATS_STORAGE_KEY);
+  }
 }
 
 /**
@@ -77,6 +128,13 @@ export function resetStatsCollector(): void {
  */
 export function isStatsInitialized(): boolean {
   return isInitialized;
+}
+
+/**
+ * 통계 저장 (수동 호출용)
+ */
+export function saveStats(): void {
+  saveStatsToStorage();
 }
 
 // ==================== 타입 어댑터 ====================
@@ -221,6 +279,9 @@ export function recordGameBattle(
     // 캐시 무효화 (새 데이터 반영)
     invalidateStatsCache();
 
+    // localStorage에 저장
+    saveStatsToStorage();
+
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Battle recorded:', {
         result: adapted.winner,
@@ -293,6 +354,9 @@ export function recordRunEnd(
       success ? undefined : 'defeat',
       undefined
     );
+
+    // localStorage에 저장
+    saveStatsToStorage();
 
     if (import.meta.env?.DEV) {
       console.log('[StatsBridge] Run ended:', {
@@ -517,7 +581,8 @@ export const StatsBridge = {
   recordRelicAcquired,
   recordCardUpgrade,
 
-  // 조회
+  // 저장/조회
+  saveStats,
   getStats: getCurrentStats,
   getDetailedStats,
   getCardStats,

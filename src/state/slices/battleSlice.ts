@@ -191,9 +191,21 @@ export const createBattleActions: SliceCreator = (set) => ({
 
         // 패배 시 런 종료 기록
         if (resultLabel === 'defeat' && finalPlayerHp <= 0) {
+          const currentFloor = state.map?.baseLayer ?? 1;
           recordRunEnd(
             false,
-            1, // TODO: 실제 floor 정보 연결
+            currentFloor,
+            state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            state.relics?.map(r => r.id) || []
+          );
+        }
+
+        // 보스 승리 시 런 종료 기록
+        if (resultLabel === 'victory' && (enemyInfo?.isBoss || state.activeBattle.kind === 'boss')) {
+          const currentFloor = state.map?.baseLayer ?? 11;
+          recordRunEnd(
+            true,
+            currentFloor,
             state.activeBattle.playerLibrary?.map(c => c.id) || [],
             state.relics?.map(r => r.id) || []
           );
