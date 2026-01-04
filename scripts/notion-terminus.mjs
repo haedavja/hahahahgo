@@ -334,13 +334,19 @@ function getTimelineDateStart(page) {
 }
 
 function getTimelineLabel(page, relatedTags, title) {
-  const directCandidates = [
+  const strongDirect = [
     getSelectName(page, "연대기"),
     getRichTextPlain(page, "연대기"),
-    getSelectName(page, "연대"),
-    getRichTextPlain(page, "연대"),
     getSelectName(page, "타임라인"),
     getRichTextPlain(page, "타임라인"),
+  ]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+  if (strongDirect.length) return strongDirect[0];
+
+  const directCandidates = [
+    getSelectName(page, "연대"),
+    getRichTextPlain(page, "연대"),
     getSelectName(page, "시간대"),
     getRichTextPlain(page, "시간대"),
   ]
@@ -371,14 +377,17 @@ function getTimelineLabel(page, relatedTags, title) {
     }
     value = String(value || "").trim();
     if (!value) continue;
-    if (!looksLikeTimelineLabel(value)) continue;
+
+    const strongName =
+      propNameNorm.includes(normalizePropName("연대기")) || propNameNorm.includes(normalizePropName("타임라인"));
+    if (!strongName && !looksLikeTimelineLabel(value)) continue;
 
     let score = 0;
     for (const hint of TIMELINE_LABEL_PROP_HINTS) {
       const h = normalizePropName(hint);
       if (propNameNorm.includes(h)) score += 4;
     }
-    score += 2;
+    score += strongName ? 20 : 2;
 
     if (!best || score > best.score) best = { score, value };
   }
