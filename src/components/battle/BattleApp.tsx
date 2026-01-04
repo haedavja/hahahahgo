@@ -139,7 +139,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection, BattleRefType, EscapeBanRefType, CommonBattleActions, BattleRefValue } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection, BattleRefType, EscapeBanRefType, CommonBattleActions, BattleRefValue, SimActionEvent } from "../../types";
 import type { Relic, TokenType, TokenInstance, TokenEffect } from "../../types/core";
 import type { BattleEvent, SingleHitResult, PlayerCombatData, EnemyCombatData, CardPlaySpecialsResult } from "../../types/combat";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
@@ -722,7 +722,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     battleQIndex: battle.qIndex,
     battleQueueLength: battle.queue.length,
     computeComboMultiplier,
-    explainComboMultiplier: explainComboMultiplier as unknown as (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] },
+    explainComboMultiplier,
     orderedRelicList,
     selected,
     actions: actions as { setCurrentDeflation: (deflation: { multiplier: number; usageCount: number } | null) => void; setMultiplierPulse: (pulse: boolean) => void }
@@ -846,7 +846,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     enemyTurnEtherAccumulated,
     finalComboMultiplier,
     enemyPlan,
-    relics: orderedRelicList as unknown as UIRelicsMap,
+    relics: orderedRelicList,
     orderedRelicList,
     battleRef,
     parryReadyStatesRef,
@@ -1161,7 +1161,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     }
 
     let actionResult;
-    let actionEvents;
+    let actionEvents: SimActionEvent[];
 
     if (useAsyncMultiHit) {
       // 비동기 다중 타격 실행
@@ -1169,7 +1169,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
       const defender = a.actor === 'player' ? E : P;
 
       // 타격별 콜백: 피격 애니메이션 및 사운드
-      const onHitCallback = async (hitResult: SingleHitResult, hitIndex: number, totalHits: number) => {
+      const onHitCallback = (_hitIndex: number, _totalHits: number, hitResult: { damage: number; events: import("../../types/combat").BattleEvent[] }) => {
         if (hitResult.damage > 0) {
           playHitSound();
           if (a.actor === 'player') {
@@ -1182,7 +1182,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         }
       };
 
-      const multiHitResult = await executeMultiHitAsync(a.card, attacker, defender, a.actor, battleContext, onHitCallback as unknown as (hitIndex: number, totalHits: number, hitResult: { damage: number; events: import("../../types/combat").BattleEvent[] }) => void);
+      const multiHitResult = await executeMultiHitAsync(a.card, attacker, defender, a.actor, battleContext, onHitCallback);
 
       // 결과 반영
       if (a.actor === 'player') {
@@ -1507,10 +1507,10 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
           const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
           const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
-          const waitingCards = waitingCardIds.map(id => CARDS.find(c => c.id === id)).filter(Boolean);
+          const waitingCards = waitingCardIds.map(id => CARDS.find(c => c.id === id)).filter((c): c is Card => Boolean(c));
 
           if (waitingCards.length > 0) {
-            setRecallSelection({ availableCards: waitingCards } as unknown as { availableCards: Card[] });
+            setRecallSelection({ availableCards: waitingCards });
             addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
           } else {
             addLog(`📢 함성: 대기 카드가 없습니다.`);
@@ -1668,7 +1668,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
               return result;
             }
           };
-          a.card.onPlay(battle, tokenActions as unknown as import("../../types").BattleTokenActions);
+          a.card.onPlay(battle, tokenActions);
         } catch (error) {
           if (import.meta.env.DEV) console.error('[Token onPlay Error]', error);
         }
@@ -1677,7 +1677,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
     if (hasTrait(a.card, 'stun')) {
       const { updatedQueue, stunEvent } = processStunEffect({
-        action: a as unknown as never,
+        action: { card: a.card!, sp: a.sp, actor: a.actor },
         queue: currentBattle.queue,
         currentQIndex: currentBattle.qIndex,
         addLog
@@ -1815,7 +1815,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
       processEnemyEtherAccumulation({
         card: a.card,
         enemyTurnEtherAccumulated,
-        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+        getCardEtherGain,
         actions
       });
     }
@@ -1840,7 +1840,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
       const damageDistributionResult = distributeUnitDamage({
         card: cardWithAoe,
-        enemyUnits: enemyUnits as unknown as EnemyUnit[],
+        enemyUnits,
         damageDealt: actionResult.dealt || 0,
         selectedTargetUnit: battle.selectedTargetUnit ?? 0
       });
@@ -1857,8 +1857,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
-      actionEvents: actionEvents as unknown as import("../../types").SimActionEvent[],
-      action: a as unknown as HandAction,
+      actionEvents,
+      action: a,
       playHitSound,
       playBlockSound,
       actions

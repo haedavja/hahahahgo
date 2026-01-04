@@ -12,7 +12,8 @@ import type {
   Card,
   PassiveStats,
   RelicTriggeredRefs,
-  RelicTrigger
+  RelicTrigger,
+  EtherCard
 } from '../../../types';
 
 /**
@@ -69,7 +70,7 @@ interface PlayerEtherAccumulationResult {
 interface EnemyEtherAccumulationParams {
   card: Card;
   enemyTurnEtherAccumulated: number;
-  getCardEtherGain: (card: Card | Partial<Card>) => number;
+  getCardEtherGain: (card: EtherCard) => number;
   actions: Pick<EtherAccumActions, 'setEnemyTurnEtherAccumulated'>;
 }
 

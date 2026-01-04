@@ -7,7 +7,7 @@
  */
 
 import type { MutableRefObject } from 'react';
-import type { Card, TokenState, TokenEntity } from './core';
+import type { Card, TokenState, TokenEntity, EnemyUnitState } from './core';
 import type { HandCard } from './systems';
 import type { NextTurnEffects, InsightBadge } from './combat';
 import type { DeflationInfo } from './ui';
@@ -49,7 +49,7 @@ export interface BattleEntityState extends TokenEntity {
   drawPenalty?: number;
   insightPenalty?: number;
   // 적 전용 필드
-  units?: Array<BattleUnitState>;
+  units?: EnemyUnitState[];
   shroud?: number;
   name?: string;
   emoji?: string;
@@ -175,7 +175,7 @@ export interface UseComboSystemParams {
   battleQIndex: number;
   battleQueueLength: number;
   computeComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean) => number;
-  explainComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] };
+  explainComboMultiplier: (baseMultiplier: number, cardsCount: number, includeFiveCard?: boolean, includeRefBook?: boolean, relicOrderOverride?: string[] | null, orderedRelicList?: string[]) => { multiplier: number; steps: string[] };
   orderedRelicList: string[];
   selected: Card[];
   actions: {

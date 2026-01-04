@@ -65,7 +65,7 @@ interface UseResolveExecutionParams {
   enemyTurnEtherAccumulated: number;
   finalComboMultiplier: number;
   enemyPlan: EnemyPlan;
-  relics: UIRelicsMap;
+  relics: string[];
   orderedRelicList: string[];
   battleRef: MutableRefObject<BattleRefValue | null>;
   parryReadyStatesRef: MutableRefObject<ParryReadyState[]>;
@@ -189,7 +189,7 @@ export function useResolveExecution({
     };
 
     // 상징 턴 종료 효과 적용
-    const relicIds = Object.keys(relics);
+    const relicIds = relics;
     const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
       cardsPlayedThisTurn: battle.selected.length,
       player,

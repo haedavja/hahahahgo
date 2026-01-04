@@ -57,6 +57,8 @@ export interface BattleTokenActions {
   removeTokenFromEnemy: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
   resetTokenForPlayer: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
   resetTokenForEnemy: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
+  // 확장 속성 허용 (actions 스프레드 지원)
+  [key: string]: unknown;
 }
 
 /** 카드 정의 */

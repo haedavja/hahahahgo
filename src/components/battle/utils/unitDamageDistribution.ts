@@ -3,17 +3,11 @@
  * @description 다중 유닛 데미지 분배 처리 유틸리티
  */
 
-import type { Card } from '../../../types/core';
+import type { Card, EnemyUnitState } from '../../../types/core';
 import { hasSpecial } from './cardSpecialEffects';
 
-export interface EnemyUnit {
-  unitId: number;
-  name: string;
-  hp: number;
-  maxHp?: number;
-  block?: number;
-  [key: string]: unknown;
-}
+// EnemyUnitState 재사용
+export type EnemyUnit = EnemyUnitState;
 
 export interface DamageDistributionResult {
   updatedUnits: EnemyUnit[];
