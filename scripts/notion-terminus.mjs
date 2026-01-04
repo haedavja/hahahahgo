@@ -248,6 +248,154 @@ function getRichTextPlain(page, propName) {
   return "";
 }
 
+function normalizePropName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function getPlainFromPropValue(prop) {
+  if (!prop) return "";
+  if (prop.type === "rich_text") return (prop.rich_text || []).map((t) => t.plain_text).join("");
+  if (prop.type === "title") return (prop.title || []).map((t) => t.plain_text).join("");
+  return "";
+}
+
+function looksLikeTimelineLabel(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  if (/\d/.test(s)) return true;
+  if (/[년월일전후]/.test(s)) return true;
+  if (/(막|장|챕터|chapter|act|season|episode|ep|phase|t[\s-]?\d)/i.test(s)) return true;
+  return false;
+}
+
+const TIMELINE_DATE_PROP_HINTS = ["시간", "날짜", "일자", "연대", "시점", "timeline", "time", "date"];
+const TIMELINE_LABEL_PROP_HINTS = [
+  "시점",
+  "연대",
+  "연대기",
+  "타임라인",
+  "시간대",
+  "시기",
+  "시대",
+  "연도",
+  "년도",
+  "챕터",
+  "chapter",
+  "act",
+  "timeline",
+  "time",
+];
+
+const KNOWN_NON_TIMELINE_PROPS = [
+  "대분류",
+  "도메인",
+  "연관",
+  "상태",
+  "역할",
+  "레이어",
+  "가시성",
+  "관측자",
+  "관련노드",
+  "관련 노드",
+];
+
+function getTimelineDateStart(page) {
+  const direct =
+    getDateStart(page, "시간") ||
+    getDateStart(page, "날짜") ||
+    getDateStart(page, "일자") ||
+    getDateStart(page, "연대") ||
+    getDateStart(page, "시점") ||
+    null;
+  if (direct) return direct;
+
+  const props = page?.properties || {};
+  let best = null; // { score, start }
+  for (const [name, prop] of Object.entries(props)) {
+    if (!prop || prop.type !== "date") continue;
+    const start = prop.date?.start;
+    if (!start) continue;
+    const n = normalizePropName(name);
+    let score = 0;
+    for (const hint of TIMELINE_DATE_PROP_HINTS) {
+      const h = normalizePropName(hint);
+      if (n.includes(h)) score += 2;
+    }
+    if (!best || score > best.score) best = { score, start };
+  }
+  return best ? best.start : null;
+}
+
+function getTimelineLabel(page, relatedTags, title) {
+  const direct =
+    getSelectName(page, "시점") ||
+    getRichTextPlain(page, "시점") ||
+    getSelectName(page, "연대기") ||
+    getRichTextPlain(page, "연대기") ||
+    getSelectName(page, "연대") ||
+    getRichTextPlain(page, "연대") ||
+    getSelectName(page, "타임라인") ||
+    getRichTextPlain(page, "타임라인") ||
+    "";
+  if (String(direct || "").trim()) return String(direct).trim();
+
+  const props = page?.properties || {};
+  let best = null; // { score, value }
+  for (const [name, prop] of Object.entries(props)) {
+    if (!prop) continue;
+
+    const propNameNorm = normalizePropName(name);
+    if (KNOWN_NON_TIMELINE_PROPS.some((k) => propNameNorm === normalizePropName(k))) continue;
+
+    let value = "";
+    if (prop.type === "select") value = prop.select?.name || "";
+    else if (prop.type === "rich_text" || prop.type === "title") value = getPlainFromPropValue(prop);
+    else if (prop.type === "multi_select") {
+      const names = (prop.multi_select || []).map((o) => o.name).filter(Boolean);
+      value = names.find(looksLikeTimelineLabel) || "";
+    }
+    value = String(value || "").trim();
+    if (!value) continue;
+
+    let score = 0;
+    for (const hint of TIMELINE_LABEL_PROP_HINTS) {
+      const h = normalizePropName(hint);
+      if (propNameNorm.includes(h)) score += 4;
+    }
+    if (looksLikeTimelineLabel(value)) score += 2;
+    if (score <= 0) continue;
+
+    if (!best || score > best.score) best = { score, value };
+  }
+  if (best && best.value) return best.value;
+
+  const tags = Array.isArray(relatedTags) ? relatedTags : [];
+  for (const raw of tags) {
+    const s = String(raw || "").trim();
+    if (!s) continue;
+
+    const m = s.match(/^(?:시점|연대기|연대|타임라인|timeline|time|t)\s*[:：]\s*(.+)$/i);
+    if (m) return String(m[1] || "").trim();
+
+    if (/^(?:t\s*[+-]?\d+|\d{4}(?:[-./]\d{1,2})?(?:[-./]\d{1,2})?|\d+\s*(?:막|장)|act\s*\d+|chapter\s*\d+)$/i.test(s)) {
+      return s;
+    }
+  }
+
+  const t = String(title || "").trim();
+  if (t) {
+    const m = t.match(/(19|20)\d{2}[./-]\d{1,2}[./-]\d{1,2}/);
+    if (m) return m[0].replaceAll(".", "-").replaceAll("/", "-");
+    const y = t.match(/(19|20)\d{2}/);
+    if (y) return y[0];
+  }
+
+  return null;
+}
+
 function countBy(arr) {
   const counts = new Map();
   for (const v of arr) counts.set(v, (counts.get(v) || 0) + 1);
@@ -1213,12 +1361,8 @@ async function exportGraph({ databaseId, outPath }) {
             ? [visibilityFromSelect]
             : [];
 
-    const time = getDateStart(page, "시간") || getDateStart(page, "날짜") || null;
-    const timeLabel =
-      getSelectName(page, "시점") ||
-      getRichTextPlain(page, "시점") ||
-      getRichTextPlain(page, "타임라인") ||
-      "";
+    const time = getTimelineDateStart(page);
+    const timeLabel = getTimelineLabel(page, relatedTags, title) || "";
 
     if (!seenItem.has(id)) {
       const itemNode = {
@@ -1233,8 +1377,8 @@ async function exportGraph({ databaseId, outPath }) {
         role,
         layer,
         visibility: visibility.filter(Boolean),
-        time,
-        timeLabel: timeLabel.trim() || null,
+        time: time || null,
+        timeLabel: String(timeLabel || "").trim() || null,
       };
       nodes.push(itemNode);
       itemById.set(String(id), itemNode);
