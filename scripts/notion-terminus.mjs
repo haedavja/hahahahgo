@@ -31,6 +31,7 @@ function usage() {
       "  node scripts/notion-terminus.mjs analyze [--database <id>]",
       "  node scripts/notion-terminus.mjs autoclassify [--apply] [--limit <n>] [--force] [--database <id>]",
       "  node scripts/notion-terminus.mjs autorole [--apply] [--limit <n>] [--force] [--strict] [--database <id>]",
+      "  node scripts/notion-terminus.mjs autolink [--apply] [--min-score <n>] [--max-add <n>] [--max-total <n>] [--limit-pages <n>] [--database <id>]",
       "  node scripts/notion-terminus.mjs export-graph [--out <path>] [--database <id>]",
       "",
       "필수:",
@@ -251,6 +252,59 @@ function countBy(arr) {
   const counts = new Map();
   for (const v of arr) counts.set(v, (counts.get(v) || 0) + 1);
   return counts;
+}
+
+const DEFAULT_INFER_STOP_TAGS = [
+  // 너무 일반적인 태그는 관계 품질을 떨어뜨려서 제외합니다.
+  "세계관",
+  "소설",
+  "게임",
+  "설정",
+  "용어",
+  "개념",
+  "인물",
+  "캐릭터",
+  "세력",
+  "정부",
+  "국가",
+  "제국",
+  "왕국",
+  "교단",
+  "조직",
+  "배교자",
+  "지역",
+  "장소",
+  "도시",
+  "행성",
+  "사건",
+  "역사",
+  "전쟁",
+  "시스템",
+  "룰",
+  "밸런스",
+  "스탯",
+  "스킬",
+  "스토리",
+  "플롯",
+  "에피소드",
+  "서사",
+  "초법",
+  "마법",
+  "주술",
+  "진법",
+  "기술",
+  "과학",
+  "공학",
+  "군사",
+  "전투",
+  "유물",
+  "아이템",
+  "메타",
+  "핵심",
+];
+
+function createStopTagSet(extra = []) {
+  return new Set([...DEFAULT_INFER_STOP_TAGS, ...(extra || [])].map((t) => String(t || "").trim()).filter(Boolean));
 }
 
 function topNFromCountMap(countMap, n) {
@@ -861,6 +915,176 @@ async function autorole({ databaseId, apply, limit, force, strict }) {
   console.log("완료: 역할 자동 분류를 반영했습니다.");
 }
 
+async function autolink({
+  databaseId,
+  apply,
+  limitPages = 200,
+  maxAdd = 2,
+  maxTotal = 10,
+  minScore = 0.32,
+}) {
+  await getMe();
+
+  const db = await getDatabase(databaseId);
+  const titlePropName = findDatabaseTitlePropName(db);
+
+  const relProp = db.properties?.["관련 노드"];
+  if (!relProp) throw new Error("DB에 '관련 노드' 속성이 없습니다. setup를 먼저 실행하세요.");
+  if (relProp.type !== "relation") throw new Error(`DB '관련 노드' 속성 타입이 relation이 아닙니다: ${relProp.type}`);
+
+  let cursor = undefined;
+  const pages = [];
+  while (true) {
+    const res = await queryDatabase(databaseId, { page_size: 100, start_cursor: cursor });
+    pages.push(...res.results);
+    if (!res.has_more) break;
+    cursor = res.next_cursor;
+  }
+
+  const items = [];
+  const itemById = new Map();
+  for (const page of pages) {
+    const id = String(page.id);
+    const title = getTitleFromDatabasePage(page, titlePropName).trim();
+    if (!title) continue;
+
+    const tags = getMultiSelectNames(page, "연관");
+    const category = getSelectName(page, "대분류") || inferCategoryFromRelated(tags) || "기타";
+    const domains = getMultiSelectNames(page, "도메인") || [];
+    const inferredDomains = domains.length > 0 ? domains : inferDomains(category, tags);
+    const existing = (page.properties?.["관련 노드"]?.relation || []).map((r) => String(r.id));
+
+    const item = {
+      id,
+      title,
+      category,
+      domains: inferredDomains,
+      tags,
+      existing,
+    };
+    items.push(item);
+    itemById.set(id, item);
+  }
+
+  const stopTags = createStopTagSet();
+  const tagToItemIds = new Map();
+  for (const it of items) {
+    for (const t of it.tags || []) {
+      const tag = String(t || "").trim();
+      if (!tag) continue;
+      if (stopTags.has(tag)) continue;
+      if (!tagToItemIds.has(tag)) tagToItemIds.set(tag, []);
+      tagToItemIds.get(tag).push(it.id);
+    }
+  }
+
+  const MAX_TAG_FREQ = 120;
+
+  const candidatesById = new Map();
+  for (const it of items) {
+    const scores = new Map(); // otherId -> baseScore
+    for (const rawTag of it.tags || []) {
+      const tag = String(rawTag || "").trim();
+      if (!tag) continue;
+      if (stopTags.has(tag)) continue;
+      const list = tagToItemIds.get(tag) || [];
+      const freq = list.length;
+      if (freq <= 1) continue;
+      if (freq > MAX_TAG_FREQ) continue;
+
+      const weight = 1 / Math.log(2 + freq);
+      for (const otherId of list) {
+        if (otherId === it.id) continue;
+        scores.set(otherId, (scores.get(otherId) || 0) + weight);
+      }
+    }
+
+    const ranked = [];
+    for (const [otherId, base] of scores.entries()) {
+      const other = itemById.get(otherId);
+      if (!other) continue;
+
+      let score = base;
+      if (String(other.category || "") === String(it.category || "")) score += 0.08;
+      if ((it.domains || []).some((d) => (other.domains || []).includes(d))) score += 0.06;
+      if (score < minScore) continue;
+
+      ranked.push({ otherId, score });
+    }
+
+    ranked.sort((a, b) => b.score - a.score);
+    candidatesById.set(it.id, ranked);
+  }
+
+  const toUpdate = [];
+  for (const it of items) {
+    const existing = new Set(it.existing || []);
+    if (existing.size >= maxTotal) continue;
+
+    const ranked = candidatesById.get(it.id) || [];
+    const picked = [];
+    for (const c of ranked) {
+      if (picked.length >= maxAdd) break;
+      if (existing.has(c.otherId)) continue;
+      if (c.otherId === it.id) continue;
+      picked.push(c);
+    }
+    if (picked.length === 0) continue;
+    toUpdate.push({ it, picked, top: picked[0].score });
+  }
+
+  toUpdate.sort((a, b) => b.top - a.top);
+  const limited = toUpdate.slice(0, Math.max(1, Number(limitPages || 200)));
+
+  console.log(`확정 관계 자동 추가 후보: ${toUpdate.length} (이번 처리 ${limited.length})`);
+  if (limited.length === 0) return;
+
+  const sample = limited.slice(0, 25);
+  console.log("\n샘플(최대 25개)");
+  for (const u of sample) {
+    const names = u.picked
+      .map((p) => {
+        const other = itemById.get(p.otherId);
+        return `${other ? other.title : p.otherId}(${p.score.toFixed(2)})`;
+      })
+      .join(" | ");
+    console.log(`- ${u.it.title}: + ${names}`);
+  }
+
+  if (!apply) {
+    console.log("\n(dry-run) --apply를 붙이면 실제로 반영합니다.");
+    return;
+  }
+
+  let updatedPages = 0;
+  let addedLinks = 0;
+
+  for (let i = 0; i < limited.length; i++) {
+    const u = limited[i];
+    const current = new Set(u.it.existing || []);
+    const remaining = Math.max(0, maxTotal - current.size);
+    const adding = u.picked.slice(0, Math.min(maxAdd, remaining)).map((p) => p.otherId);
+    if (adding.length === 0) continue;
+
+    const next = uniq([...current, ...adding]);
+    await patchPage(u.it.id, {
+      properties: {
+        "관련 노드": {
+          relation: next.map((id) => ({ id })),
+        },
+      },
+    });
+
+    updatedPages++;
+    addedLinks += adding.length;
+
+    if ((i + 1) % 20 === 0) console.log(`진행: ${i + 1}/${limited.length} (pages=${updatedPages}, links=${addedLinks})`);
+    await sleep(350);
+  }
+
+  console.log(`완료: pages=${updatedPages}, links_added=${addedLinks}`);
+}
+
 async function exportGraph({ databaseId, outPath }) {
   await getMe();
 
@@ -1018,61 +1242,22 @@ async function exportGraph({ databaseId, outPath }) {
 
     for (const rid of relatedNodes) {
       addLink(id, rid, "relation");
+      const a = String(id);
+      const b = String(rid);
+      const key = [a, b].sort().join("|");
+      confirmedPairs.add(key);
     }
   }
+
+  // (확정 관계) 노션 '관련 노드' 관계는 우선 순위가 가장 높습니다.
+  // - 추정(rel_inferred) 관계는 확정 관계가 없는 경우에만 보조로 생성합니다.
+  const confirmedPairs = new Set(); // undirected key: a|b
 
   // (추정 관계) "연관" 태그 기반으로 item-item 관계를 생성합니다.
   // - 노션의 '관련 노드'를 적극적으로 쓰기 전까지, 관계를 "보이게" 만드는 보조 장치입니다.
   // - 너무 흔한 태그는 노이즈가 커서 제외합니다.
   const itemNodes = [...itemById.values()];
-  const STOP_TAGS = new Set([
-    // 너무 일반적인 태그는 관계 품질을 떨어뜨려서 제외합니다.
-    "세계관",
-    "소설",
-    "게임",
-    "설정",
-    "용어",
-    "개념",
-    "인물",
-    "캐릭터",
-    "세력",
-    "정부",
-    "국가",
-    "제국",
-    "왕국",
-    "교단",
-    "조직",
-    "배교자",
-    "지역",
-    "장소",
-    "도시",
-    "행성",
-    "사건",
-    "역사",
-    "전쟁",
-    "시스템",
-    "룰",
-    "밸런스",
-    "스탯",
-    "스킬",
-    "스토리",
-    "플롯",
-    "에피소드",
-    "서사",
-    "초법",
-    "마법",
-    "주술",
-    "진법",
-    "기술",
-    "과학",
-    "공학",
-    "군사",
-    "전투",
-    "유물",
-    "아이템",
-    "메타",
-    "핵심",
-  ]);
+  const STOP_TAGS = createStopTagSet();
   const tagToItemIds = new Map();
   for (const it of itemNodes) {
     const tags = Array.isArray(it.tags) ? it.tags : [];
@@ -1146,7 +1331,12 @@ async function exportGraph({ databaseId, outPath }) {
       shared.sort((a, b) => a.freq - b.freq || String(a.tag).localeCompare(String(b.tag), "ko"));
       const why = shared.slice(0, 3).map((x) => x.tag);
 
-      addLink(String(it.id), p.otherId, "rel_inferred", {
+      const a = String(it.id);
+      const b = String(p.otherId);
+      const key = [a, b].sort().join("|");
+      if (confirmedPairs.has(key)) continue;
+
+      addLink(a, b, "rel_inferred", {
         weight: Number(p.score.toFixed(3)),
         tags: why.length ? why : null,
       });
@@ -1187,6 +1377,10 @@ async function main() {
   const outPath = flags.get("out") || "public/terminus-graph.json";
   const databaseId = flags.get("database") || process.env.NOTION_DATABASE_ID || DEFAULT_DATABASE_ID;
   const parentPageId = flags.get("parent") || process.env.NOTION_PARENT_PAGE_ID || DEFAULT_PARENT_PAGE_ID;
+  const minScore = flags.get("min-score") != null ? Number(flags.get("min-score")) : undefined;
+  const maxAdd = flags.get("max-add") != null ? Number(flags.get("max-add")) : undefined;
+  const maxTotal = flags.get("max-total") != null ? Number(flags.get("max-total")) : undefined;
+  const limitPages = flags.get("limit-pages") != null ? Number(flags.get("limit-pages")) : undefined;
 
   try {
     if (cmd === "setup") {
@@ -1207,6 +1401,17 @@ async function main() {
     }
     if (cmd === "autorole") {
       await autorole({ databaseId, apply, limit, force, strict });
+      return;
+    }
+    if (cmd === "autolink") {
+      await autolink({
+        databaseId,
+        apply,
+        minScore: minScore != null ? minScore : 0.32,
+        maxAdd: maxAdd != null ? maxAdd : 2,
+        maxTotal: maxTotal != null ? maxTotal : 10,
+        limitPages: limitPages != null ? limitPages : 200,
+      });
       return;
     }
     if (cmd === "export-graph") {
