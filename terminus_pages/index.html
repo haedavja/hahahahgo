@@ -293,6 +293,7 @@
             <option value="500">500</option>
           </select>
           <div class="row" style="margin-top: 10px; gap: 14px;">
+            <label class="checkbox"><input id="relationIncludeInferred" type="checkbox" checked /> 추정 관계(태그) 포함</label>
             <label class="checkbox"><input id="relationShowHierarchy" type="checkbox" /> 계층(도메인/카테고리)도 같이</label>
           </div>
         </div>
@@ -458,6 +459,7 @@
       const elControlRelation = document.getElementById("control-relation");
       const elRelationDepth = document.getElementById("relationDepth");
       const elRelationLimit = document.getElementById("relationLimit");
+      const elRelationIncludeInferred = document.getElementById("relationIncludeInferred");
       const elRelationShowHierarchy = document.getElementById("relationShowHierarchy");
       const elDensity = document.getElementById("density");
 
@@ -480,6 +482,7 @@
         statusFilter: "ALL",
         relationDepth: 1,
         relationLimit: 200,
+        relationIncludeInferred: true,
         relationShowHierarchy: false,
         density: "normal",
         showItems: false,
@@ -816,17 +819,17 @@
         const shownItems = truncated ? candidateItems.slice(0, state.itemLimit) : candidateItems;
         for (const n of shownItems) visibleNodeIds.add(n.id);
 
-        const relationFocusId = state.showRelations ? state.selectedNodeId : null;
-        const links = (raw.links || []).filter((l) => {
-          const s = String(l.source);
-          const t = String(l.target);
-          if (!visibleNodeIds.has(s) || !visibleNodeIds.has(t)) return false;
-          if (l.type === "relation") {
-            if (!relationFocusId) return false;
-            return s === relationFocusId || t === relationFocusId;
-          }
-          return true;
-        });
+          const relationFocusId = state.showRelations ? state.selectedNodeId : null;
+          const links = (raw.links || []).filter((l) => {
+            const s = String(l.source);
+            const t = String(l.target);
+            if (!visibleNodeIds.has(s) || !visibleNodeIds.has(t)) return false;
+            if (l.type === "relation" || l.type === "rel_inferred") {
+              if (!relationFocusId) return false;
+              return s === relationFocusId || t === relationFocusId;
+            }
+            return true;
+          });
 
         return {
           nodes: baseNodes.concat(shownItems),
@@ -1329,7 +1332,8 @@
           const t = getEndpointId(l.target);
           if (!s || !t) continue;
 
-          if (l.type === "relation") {
+          const isRel = l.type === "relation" || (state.relationIncludeInferred && l.type === "rel_inferred");
+          if (isRel) {
             if (!adj.has(s)) adj.set(s, new Set());
             if (!adj.has(t)) adj.set(t, new Set());
             adj.get(s).add(t);
@@ -1414,11 +1418,11 @@
           if (!s || !t) continue;
           if (!inSet.has(String(s)) || !inSet.has(String(t))) continue;
 
-          if (l.type === "relation") {
-            const key = linkKey(s, t, "relation");
+          if (l.type === "relation" || (state.relationIncludeInferred && l.type === "rel_inferred")) {
+            const key = linkKey(s, t, l.type);
             if (seen.has(key)) continue;
             seen.add(key);
-            links.push({ source: s, target: t, type: "relation" });
+            links.push({ source: s, target: t, type: l.type });
           }
 
           if (includeHierarchy && l.type === "hierarchy") {
@@ -1874,6 +1878,7 @@
         if (link && typeof link.distance === "function") {
           link.distance((l) => {
             if (l.type === "relation") return 28;
+            if (l.type === "rel_inferred") return 38;
             if (l.type === "transition") return 36;
             if (state.mode === "relation") return Math.max(26, Math.floor(linkDistance * 0.9));
             if (state.mode === "territory") return Math.floor(linkDistance * (state.mindmapLayout ? 1.65 : 1.25));
@@ -2171,6 +2176,7 @@
           })
           .linkColor((l) => {
             if (l.type === "relation") return "rgba(248, 113, 113, 0.85)";
+            if (l.type === "rel_inferred") return "rgba(251, 191, 36, 0.65)";
             if (l.type === "transition") return "rgba(56, 189, 248, 0.75)";
             const s = getEndpointId(l.source);
             const t = getEndpointId(l.target);
@@ -2179,7 +2185,9 @@
             if (highlight.highlightLinks.size === 0) return "rgba(148, 163, 184, 0.18)";
             return highlight.highlightLinks.has(key) ? "rgba(226, 232, 240, 0.5)" : "rgba(148, 163, 184, 0.08)";
           })
-          .linkLineDash((l) => (l.type === "relation" ? [6, 4] : l.type === "transition" ? [3, 3] : null))
+          .linkLineDash((l) =>
+            l.type === "relation" ? [6, 4] : l.type === "rel_inferred" ? [2, 5] : l.type === "transition" ? [3, 3] : null,
+          )
           .nodeCanvasObjectMode(() => "after")
           .nodeCanvasObject((node, ctx, globalScale) => {
             const label = node.label;
@@ -2220,6 +2228,7 @@
         state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
         state.relationDepth = elRelationDepth ? Number(elRelationDepth.value || 1) : 1;
         state.relationLimit = elRelationLimit ? Number(elRelationLimit.value || 200) : 200;
+        state.relationIncludeInferred = Boolean(elRelationIncludeInferred && elRelationIncludeInferred.checked);
         state.relationShowHierarchy = Boolean(elRelationShowHierarchy && elRelationShowHierarchy.checked);
         state.density = elDensity ? elDensity.value || "normal" : "normal";
         state.showItems = Boolean(elShowItems.checked);
@@ -2442,6 +2451,13 @@
       }
       if (elRelationShowHierarchy) {
         elRelationShowHierarchy.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationIncludeInferred) {
+        elRelationIncludeInferred.addEventListener("change", () => {
           state.autoFitDone = false;
           syncStateFromControls();
           refresh();

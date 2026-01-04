@@ -914,16 +914,17 @@ async function exportGraph({ databaseId, outPath }) {
   const seenLink = new Set();
 
   const addLink = (source, target, type) => {
-    const key =
-      type === "relation"
-        ? [source, target].sort().join("|") + `|${type}`
-        : `${source}|${target}|${type}`;
+    const isUndirected = type === "relation" || String(type || "").startsWith("rel_");
+    const key = isUndirected
+      ? [source, target].sort().join("|") + `|${type}`
+      : `${source}|${target}|${type}`;
     if (seenLink.has(key)) return;
     seenLink.add(key);
     links.push({ source, target, type });
   };
 
   const seenItem = new Set();
+  const itemById = new Map();
   for (const page of pages) {
     const id = page.id;
     const title = getTitleFromDatabasePage(page, titlePropName).trim();
@@ -963,7 +964,7 @@ async function exportGraph({ databaseId, outPath }) {
       "";
 
     if (!seenItem.has(id)) {
-      nodes.push({
+      const itemNode = {
         id,
         type: "item",
         label: title,
@@ -977,7 +978,9 @@ async function exportGraph({ databaseId, outPath }) {
         visibility: visibility.filter(Boolean),
         time,
         timeLabel: timeLabel.trim() || null,
-      });
+      };
+      nodes.push(itemNode);
+      itemById.set(String(id), itemNode);
       seenItem.add(id);
     }
 
@@ -998,6 +1001,66 @@ async function exportGraph({ databaseId, outPath }) {
     for (const rid of relatedNodes) {
       addLink(id, rid, "relation");
     }
+  }
+
+  // (추정 관계) "연관" 태그 기반으로 item-item 관계를 생성합니다.
+  // - 노션의 '관련 노드'를 적극적으로 쓰기 전까지, 관계를 "보이게" 만드는 보조 장치입니다.
+  // - 너무 흔한 태그는 노이즈가 커서 제외합니다.
+  const itemNodes = [...itemById.values()];
+  const tagToItemIds = new Map();
+  for (const it of itemNodes) {
+    const tags = Array.isArray(it.tags) ? it.tags : [];
+    for (const t of tags) {
+      const tag = String(t || "").trim();
+      if (!tag) continue;
+      if (!tagToItemIds.has(tag)) tagToItemIds.set(tag, []);
+      tagToItemIds.get(tag).push(String(it.id));
+    }
+  }
+
+  const MAX_TAG_FREQ = 120;
+  const TOP_K = 6;
+  const MIN_SCORE = 0.18;
+
+  for (const it of itemNodes) {
+    const tags = Array.isArray(it.tags) ? it.tags : [];
+    if (tags.length === 0) continue;
+
+    const scores = new Map(); // otherId -> baseScore
+    for (const rawTag of tags) {
+      const tag = String(rawTag || "").trim();
+      if (!tag) continue;
+      const list = tagToItemIds.get(tag) || [];
+      const freq = list.length;
+      if (freq <= 1) continue;
+      if (freq > MAX_TAG_FREQ) continue;
+
+      const weight = 1 / Math.log(2 + freq); // 흔할수록 약해짐
+      for (const otherId of list) {
+        if (String(otherId) === String(it.id)) continue;
+        scores.set(otherId, (scores.get(otherId) || 0) + weight);
+      }
+    }
+
+    if (scores.size === 0) continue;
+
+    const candidates = [];
+    for (const [otherId, base] of scores.entries()) {
+      const other = itemById.get(String(otherId));
+      if (!other) continue;
+
+      let score = base;
+      if (String(other.category || "") === String(it.category || "")) score += 0.08;
+      const d1 = Array.isArray(it.domains) ? it.domains : [];
+      const d2 = Array.isArray(other.domains) ? other.domains : [];
+      if (d1.some((d) => d2.includes(d))) score += 0.06;
+
+      candidates.push({ otherId: String(otherId), score });
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+    const picked = candidates.filter((c) => c.score >= MIN_SCORE).slice(0, TOP_K);
+    for (const p of picked) addLink(String(it.id), p.otherId, "rel_inferred");
   }
 
   const payload = {
