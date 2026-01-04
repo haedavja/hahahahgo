@@ -312,6 +312,22 @@
           </div>
         </div>
 
+        <div style="margin-top: 10px;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">역할(1차 분류)</div>
+          <select id="role">
+            <option value="ALL">전체</option>
+            <option value="__NONE__">미지정(없음)</option>
+            <option value="존재">존재</option>
+            <option value="사건">사건</option>
+            <option value="구조">구조</option>
+            <option value="결과">결과</option>
+            <option value="미지정_존재">미지정_존재</option>
+            <option value="미지정_사건">미지정_사건</option>
+            <option value="미지정_구조">미지정_구조</option>
+            <option value="미지정_결과">미지정_결과</option>
+          </select>
+        </div>
+
         <div class="row" style="margin-top: 12px; gap: 14px;">
           <label class="checkbox"><input id="showItems" type="checkbox" /> 항목 표시</label>
           <label class="checkbox"><input id="showRelations" type="checkbox" checked /> 관련 노드(점선)</label>
@@ -384,7 +400,7 @@
       ];
 
       const MODE_HINTS = {
-        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터 또는 카테고리 클릭(펼침)으로 좁힌 뒤 표시하세요.",
+        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터(역할 포함) 또는 카테고리 클릭(펼침)으로 좁힌 뒤 표시하세요.",
         layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. 기본은 추론, 노션 '레이어'가 있으면 그 값을 우선합니다. (카테고리 클릭 → 펼침)",
         pov: "관측자(POV)별 '무엇까지 보이는가'를 보여줍니다. 노션 '가시성'이 없으면 레이어 기반으로 추론합니다. (POV 클릭 → 펼침)",
         state: "상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (상태 노드 클릭 → 펼침)",
@@ -398,6 +414,7 @@
       const elQ = document.getElementById("q");
       const elDomain = document.getElementById("domain");
       const elCategory = document.getElementById("category");
+      const elRole = document.getElementById("role");
       const elShowItems = document.getElementById("showItems");
       const elShowRelations = document.getElementById("showRelations");
       const elMindmap = document.getElementById("mindmap");
@@ -430,6 +447,7 @@
         query: "",
         domainFilter: "ALL",
         categoryFilter: "ALL",
+        roleFilter: "ALL",
         layerFilter: "ALL",
         povFilter: "PLAYER",
         statusFilter: "ALL",
@@ -501,6 +519,28 @@
         if (tags.has("스토리") || tags.has("플롯") || tags.has("에피소드") || tags.has("서사")) return "NARRATIVE";
 
         return "UNSORTED";
+      }
+
+      function getRoleFromItem(item) {
+        const r = item && item.role != null ? String(item.role).trim() : "";
+        return r || null;
+      }
+
+      function isRoleMatch(item) {
+        const f = String(state.roleFilter || "ALL");
+        if (f === "ALL") return true;
+        const r = getRoleFromItem(item);
+        if (f === "__NONE__") return !r;
+        return String(r || "") === f;
+      }
+
+      function suggestRoleFromCategory(item) {
+        const category = String(item && item.category ? item.category : "");
+        if (category === "인물" || category === "세력" || category === "장소/지역" || category === "유물/아이템") return "존재";
+        if (category === "역사/사건" || category === "플롯/에피소드") return "사건";
+        if (category === "초법" || category === "기술" || category === "시스템(게임)") return "구조";
+        if (category === "용어/개념" || category === "설정" || category === "메타") return "구조";
+        return null;
       }
 
       const PERSPECTIVES = ["PLAYER", "NPC", "종언자", "CORE"];
@@ -693,6 +733,7 @@
           (q.length > 0 ||
             state.domainFilter !== "ALL" ||
             state.categoryFilter !== "ALL" ||
+            state.roleFilter !== "ALL" ||
             expandedDomain !== null);
 
         const baseNodes = [];
@@ -716,6 +757,7 @@
 
           if (n.type !== "item") continue;
           if (!shouldShowItems) continue;
+          if (!isRoleMatch(n)) continue;
 
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
@@ -771,6 +813,7 @@
         if (q.length > 0) return true;
         if (state.domainFilter !== "ALL") return true;
         if (state.categoryFilter !== "ALL") return true;
+        if (state.roleFilter !== "ALL") return true;
 
         if (m === "layer" || m === "pov" || m === "state" || m === "timeline" || m === "ui") {
           if (state.layerFilter !== "ALL") return true;
@@ -800,10 +843,11 @@
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
           const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
           const layer = inferLayerFromItem(n);
           const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
           const queryOk = q.length === 0 || includesCI(n.label, q);
-          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
           matched.push(upsertCachedNode({ ...n, layer }));
         }
 
@@ -911,10 +955,11 @@
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
           const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
           const layer = inferLayerFromItem(n);
           const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
           const queryOk = q.length === 0 || includesCI(n.label, q);
-          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
 
           if (!showAll) {
             if (!isVisibleToPerspective(n, povFilter)) continue;
@@ -1015,10 +1060,11 @@
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
           const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
           const layer = inferLayerFromItem(n);
           const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
           const queryOk = q.length === 0 || includesCI(n.label, q);
-          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
 
           const status = n.status ? String(n.status) : "미지정";
           const statusOk = state.statusFilter === "ALL" || status === state.statusFilter;
@@ -1128,10 +1174,11 @@
           const domains = Array.isArray(n.domains) ? n.domains : [];
           const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
           const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
           const layer = inferLayerFromItem(n);
           const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
           const queryOk = q.length === 0 || includesCI(n.label, q);
-          if (!domainOk || !categoryOk || !layerOk || !queryOk) continue;
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
 
           matched.push(upsertCachedNode({ ...n, layer }));
         }
@@ -1272,6 +1319,7 @@
         if (node.domains && node.domains.length)
           badges.push('<span class="badge">domains: ' + node.domains.join(", ") + "</span>");
         if (node.category) badges.push('<span class="badge">cat: ' + node.category + "</span>");
+        if (node.role) badges.push('<span class="badge">역할: ' + node.role + "</span>");
         if (node.layer) {
           const l = normalizeLayer(node.layer) || inferLayerFromItem(node);
           badges.push('<span class="badge">layer: ' + (l === "UNSORTED" ? "미분류" : l) + "</span>");
@@ -1347,6 +1395,8 @@
           const layer = n.layer ? normalizeLayer(n.layer) || inferLayerFromItem(n) : null;
           const right = [];
           if (layer && layer !== "UNSORTED") right.push(layer);
+          const role = getRoleFromItem(n);
+          if (role) right.push(role);
           if (n.status) right.push(n.status);
           btn.innerHTML =
             '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
@@ -1552,6 +1602,17 @@
           ["확정", 0],
           ["미지정", 0],
         ]);
+        const countRole = new Map([
+          ["존재", 0],
+          ["사건", 0],
+          ["구조", 0],
+          ["결과", 0],
+          ["미지정(없음)", 0],
+          ["미지정_존재", 0],
+          ["미지정_사건", 0],
+          ["미지정_구조", 0],
+          ["미지정_결과", 0],
+        ]);
 
         for (const it of items) {
           const domains = Array.isArray(it.domains) ? it.domains : [];
@@ -1560,16 +1621,22 @@
           countLayer.set(layer, (countLayer.get(layer) || 0) + 1);
           const status = it.status ? String(it.status) : "미지정";
           countStatus.set(status, (countStatus.get(status) || 0) + 1);
+          const role = getRoleFromItem(it);
+          const roleKey = role || "미지정(없음)";
+          if (!countRole.has(roleKey)) countRole.set(roleKey, 0);
+          countRole.set(roleKey, (countRole.get(roleKey) || 0) + 1);
         }
 
         const filtersActive =
           state.query.trim().length > 0 ||
           state.domainFilter !== "ALL" ||
           state.categoryFilter !== "ALL" ||
+          state.roleFilter !== "ALL" ||
           state.layerFilter !== "ALL" ||
           state.statusFilter !== "ALL";
 
         const filtered = items.filter((it) => {
+          if (!isRoleMatch(it)) return false;
           const domains = Array.isArray(it.domains) ? it.domains : [];
           if (state.domainFilter !== "ALL" && !domains.includes(state.domainFilter)) return false;
           if (state.categoryFilter !== "ALL" && it.category !== state.categoryFilter) return false;
@@ -1655,6 +1722,27 @@
             })
             .join("") +
           "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["미지정(없음)", "존재", "사건", "구조", "결과", "미지정_존재", "미지정_사건", "미지정_구조", "미지정_결과"]
+            .map((r) => {
+              const v = countRole.get(r) || 0;
+              const value = r === "미지정(없음)" ? "__NONE__" : r;
+              return (
+                '<button class="card" type="button" data-set-role="' +
+                value +
+                '">' +
+                '<div class="cardTitle">역할</div>' +
+                '<div class="cardValue">' +
+                r +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
           '<div class="row" style="margin-top: 14px; gap: 10px; flex-wrap: wrap;">' +
           '<button type="button" data-action="clear">필터 초기화</button>' +
           '<button type="button" data-action="toTerritory">그래프(영역)로 보기</button>' +
@@ -1674,6 +1762,8 @@
                 .map((it) => {
                   const status = it.status ? String(it.status) : "";
                   const layer = inferLayerFromItem(it);
+                  const role = getRoleFromItem(it);
+                  const suggested = !role ? suggestRoleFromCategory(it) : null;
                   return (
                     '<button type="button" data-open-url="' +
                     (it.url || "") +
@@ -1684,6 +1774,7 @@
                     "</div>" +
                     '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' +
                     (layer !== "UNSORTED" ? layer : "") +
+                    (role ? " · " + role : suggested ? " · 역할없음→" + suggested : "") +
                     (status ? " · " + status : "") +
                     "</div>" +
                     "</div>" +
@@ -1721,7 +1812,10 @@
           state.expandedScope = null;
           const q = state.query.trim();
           if (!state.showItems) state.expandedCategoryScope = null;
-          if (state.showItems && (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL")) {
+          if (
+            state.showItems &&
+            (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL" || state.roleFilter !== "ALL")
+          ) {
             state.expandedCategoryScope = null;
           }
         } else {
@@ -1731,6 +1825,7 @@
             q.length > 0 ||
             state.domainFilter !== "ALL" ||
             state.categoryFilter !== "ALL" ||
+            state.roleFilter !== "ALL" ||
             state.layerFilter !== "ALL" ||
             (state.mode === "state" && state.statusFilter !== "ALL");
           if (!state.showItems || hasFilters) state.expandedScope = null;
@@ -1811,6 +1906,7 @@
         state.query = elQ.value || "";
         state.domainFilter = elDomain.value || "ALL";
         state.categoryFilter = elCategory.value || "ALL";
+        state.roleFilter = elRole ? elRole.value || "ALL" : "ALL";
         state.layerFilter = elLayer ? elLayer.value || "ALL" : "ALL";
         state.povFilter = elPov ? elPov.value || "PLAYER" : "PLAYER";
         state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
@@ -1978,6 +2074,12 @@
         syncStateFromControls();
         refresh();
       });
+      if (elRole) {
+        elRole.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
       elShowItems.addEventListener("change", () => {
         syncStateFromControls();
         refresh();
@@ -2068,11 +2170,20 @@
           return;
         }
 
+        const setRole = btn.dataset.setRole;
+        if (setRole) {
+          if (elRole) elRole.value = setRole;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
         const action = btn.dataset.action;
         if (action === "clear") {
           elQ.value = "";
           elDomain.value = "ALL";
           elCategory.value = "ALL";
+          if (elRole) elRole.value = "ALL";
           if (elLayer) elLayer.value = "ALL";
           if (elPov) elPov.value = "PLAYER";
           if (elStatus) elStatus.value = "ALL";

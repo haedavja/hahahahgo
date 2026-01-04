@@ -368,6 +368,18 @@ async function setup({ databaseId, parentPageId, apply }) {
     { name: "확정", color: "green" },
   ]);
 
+  // (선택) 1차 분류(존재/사건/구조/결과) + 미지정 해체용
+  ensureSelect("역할", [
+    { name: "존재", color: "yellow" },
+    { name: "사건", color: "orange" },
+    { name: "구조", color: "green" },
+    { name: "결과", color: "red" },
+    { name: "미지정_존재", color: "gray" },
+    { name: "미지정_사건", color: "gray" },
+    { name: "미지정_구조", color: "gray" },
+    { name: "미지정_결과", color: "gray" },
+  ]);
+
   // (선택) 모드 탭용 확장 속성들
   ensureSelect("레이어", [
     { name: "CORE", color: "gray" },
@@ -677,6 +689,38 @@ async function exportGraph({ databaseId, outPath }) {
   const db = await getDatabase(databaseId);
   const titlePropName = findDatabaseTitlePropName(db);
 
+  // 뷰어/분류(역할)용 속성은 export 단계에서 "최소한" 자동 보장합니다.
+  // - 데이터 자체를 바꾸지 않고, 속성(컬럼)만 추가하는 안전한 작업입니다.
+  try {
+    const existing = db.properties?.["역할"];
+    if (!existing) {
+      console.log("DB에 '역할' 속성이 없어 자동으로 추가합니다.");
+      await patchDatabase(databaseId, {
+        properties: {
+          역할: {
+            select: {
+              options: [
+                { name: "존재", color: "yellow" },
+                { name: "사건", color: "orange" },
+                { name: "구조", color: "green" },
+                { name: "결과", color: "red" },
+                { name: "미지정_존재", color: "gray" },
+                { name: "미지정_사건", color: "gray" },
+                { name: "미지정_구조", color: "gray" },
+                { name: "미지정_결과", color: "gray" },
+              ],
+            },
+          },
+        },
+      });
+      console.log("DB '역할' 속성 추가 완료.");
+    } else if (existing.type !== "select") {
+      console.log(`경고: DB '역할' 속성이 있지만 타입이 select가 아닙니다: ${existing.type}`);
+    }
+  } catch (e) {
+    console.log(`경고: DB '역할' 속성을 자동 추가하지 못했습니다. (${String((e && e.message) || e)})`);
+  }
+
   let cursor = undefined;
   const pages = [];
   while (true) {
@@ -734,6 +778,7 @@ async function exportGraph({ databaseId, outPath }) {
     const status = getSelectName(page, "상태");
     const relatedNodes = (page.properties?.["관련 노드"]?.relation || []).map((r) => r.id);
 
+    const role = getSelectName(page, "역할");
     const layer = getSelectName(page, "레이어");
 
     const visibilityFromVisibility = getMultiSelectNames(page, "가시성");
@@ -765,6 +810,7 @@ async function exportGraph({ databaseId, outPath }) {
         domains: inferredDomains,
         tags: relatedTags,
         status,
+        role,
         layer,
         visibility: visibility.filter(Boolean),
         time,
