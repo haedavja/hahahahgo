@@ -237,6 +237,15 @@ export function formatRunStatsForAI(
   lines.push(`- Avg Gold Earned: ${num(stats.avgGoldEarned)}`);
   lines.push(`- Avg Cards in Deck: ${num(stats.avgCardsInDeck)}`);
 
+  // 영혼파괴/육체파괴 통계
+  const totalVictories = (stats.soulDestructions || 0) + (stats.physicalDestructions || 0);
+  if (totalVictories > 0) {
+    const soulRate = ((stats.soulDestructions || 0) / totalVictories * 100).toFixed(1);
+    const physRate = ((stats.physicalDestructions || 0) / totalVictories * 100).toFixed(1);
+    lines.push(`- Soul Destructions (Ether Victory): ${stats.soulDestructions || 0} (${soulRate}%)`);
+    lines.push(`- Physical Destructions (HP Victory): ${stats.physicalDestructions || 0} (${physRate}%)`);
+  }
+
   // 사망 원인
   if (stats.deathCauses && Object.keys(stats.deathCauses).length > 0) {
     lines.push('');
