@@ -265,15 +265,19 @@ function getPlainFromPropValue(prop) {
 function looksLikeTimelineLabel(text) {
   const s = String(text || "").trim();
   if (!s) return false;
-  if (/\d/.test(s)) return true;
-  if (/[년월일전후]/.test(s)) return true;
-  if (/(막|장|챕터|chapter|act|season|episode|ep|phase|t[\s-]?\d)/i.test(s)) return true;
+  if (/(19|20)\d{2}/.test(s)) return true;
+  if (/^\d{4}[-./]\d{1,2}(?:[-./]\d{1,2})?$/.test(s)) return true;
+  if (/^t\s*[+-]?\d+$/i.test(s)) return true;
+  if (/^\d+\s*(?:막|장)$/.test(s)) return true;
+  if (/^(?:act|chapter)\s*\d+$/i.test(s)) return true;
+  if (/\d+\s*(?:년|월|일)\b/.test(s)) return true;
+  if (/(막|장|챕터|chapter|act)/i.test(s) && /\d/.test(s)) return true;
+  if (/(t[\s-]?\d)/i.test(s)) return true;
   return false;
 }
 
 const TIMELINE_DATE_PROP_HINTS = ["시간", "날짜", "일자", "연대", "시점", "timeline", "time", "date"];
 const TIMELINE_LABEL_PROP_HINTS = [
-  "시점",
   "연대",
   "연대기",
   "타임라인",
@@ -330,17 +334,25 @@ function getTimelineDateStart(page) {
 }
 
 function getTimelineLabel(page, relatedTags, title) {
-  const direct =
-    getSelectName(page, "시점") ||
-    getRichTextPlain(page, "시점") ||
-    getSelectName(page, "연대기") ||
-    getRichTextPlain(page, "연대기") ||
-    getSelectName(page, "연대") ||
-    getRichTextPlain(page, "연대") ||
-    getSelectName(page, "타임라인") ||
-    getRichTextPlain(page, "타임라인") ||
-    "";
-  if (String(direct || "").trim()) return String(direct).trim();
+  const directCandidates = [
+    getSelectName(page, "연대기"),
+    getRichTextPlain(page, "연대기"),
+    getSelectName(page, "연대"),
+    getRichTextPlain(page, "연대"),
+    getSelectName(page, "타임라인"),
+    getRichTextPlain(page, "타임라인"),
+    getSelectName(page, "시간대"),
+    getRichTextPlain(page, "시간대"),
+  ]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+  for (const v of directCandidates) {
+    if (looksLikeTimelineLabel(v)) return v;
+  }
+
+  const maybeAmbiguous =
+    String(getSelectName(page, "시점") || "").trim() || String(getRichTextPlain(page, "시점") || "").trim();
+  if (maybeAmbiguous && looksLikeTimelineLabel(maybeAmbiguous)) return maybeAmbiguous;
 
   const props = page?.properties || {};
   let best = null; // { score, value }
@@ -359,14 +371,14 @@ function getTimelineLabel(page, relatedTags, title) {
     }
     value = String(value || "").trim();
     if (!value) continue;
+    if (!looksLikeTimelineLabel(value)) continue;
 
     let score = 0;
     for (const hint of TIMELINE_LABEL_PROP_HINTS) {
       const h = normalizePropName(hint);
       if (propNameNorm.includes(h)) score += 4;
     }
-    if (looksLikeTimelineLabel(value)) score += 2;
-    if (score <= 0) continue;
+    score += 2;
 
     if (!best || score > best.score) best = { score, value };
   }
@@ -1370,6 +1382,8 @@ async function exportGraph({ databaseId, outPath }) {
         type: "item",
         label: title,
         url: page.url,
+        createdAt: page.created_time || null,
+        editedAt: page.last_edited_time || null,
         category,
         domains: inferredDomains,
         tags: relatedTags,

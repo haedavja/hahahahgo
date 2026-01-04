@@ -436,7 +436,8 @@
         layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. 기본은 추론, 노션 '레이어'가 있으면 그 값을 우선합니다. (카테고리 클릭 → 펼침)",
         pov: "관측자(POV)별 '무엇까지 보이는가'를 보여줍니다. 노션 '가시성'이 없으면 레이어 기반으로 추론합니다. (POV 클릭 → 펼침)",
         state: "상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (상태 노드 클릭 → 펼침)",
-        timeline: "시간(date) 또는 시점(text) 기준으로 묶습니다. (연도/시점 노드 클릭 → 펼침)",
+        timeline:
+          "스토리 시간(시간/날짜/연대/타임라인)이 있으면 그걸로 묶고, 없으면 노션 작성/수정 시각으로 임시 타임라인을 만듭니다. (버킷 클릭 → 펼침)",
         ui: "그래프 대신 대시보드/목록으로 빠르게 탐색합니다. (카드 클릭으로 필터)",
       };
 
@@ -1248,6 +1249,30 @@
         }
         const label = item && item.timeLabel ? String(item.timeLabel).trim() : "";
         if (label) return { key: "L:" + label, label, sortKey: labelSortKey(label) };
+
+        const createdAt = item && item.createdAt ? String(item.createdAt) : "";
+        if (createdAt) {
+          const d = new Date(createdAt);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            const m = d.getUTCMonth() + 1;
+            const mm = String(m).padStart(2, "0");
+            const key = "C:" + y + "-" + mm;
+            return { key, label: "작성 " + y + "-" + mm, sortKey: y * 10000 + m * 100 };
+          }
+        }
+
+        const editedAt = item && item.editedAt ? String(item.editedAt) : "";
+        if (editedAt) {
+          const d = new Date(editedAt);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            const m = d.getUTCMonth() + 1;
+            const mm = String(m).padStart(2, "0");
+            const key = "E:" + y + "-" + mm;
+            return { key, label: "수정 " + y + "-" + mm, sortKey: y * 10000 + m * 100 + 50 };
+          }
+        }
         return { key: "UNSPEC", label: "미지정", sortKey: Number.POSITIVE_INFINITY + 1 };
       }
 
