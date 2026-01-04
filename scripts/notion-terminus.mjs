@@ -1067,13 +1067,25 @@ async function autolink({
     if (adding.length === 0) continue;
 
     const next = uniq([...current, ...adding]);
-    await patchPage(u.it.id, {
-      properties: {
-        "관련 노드": {
-          relation: next.map((id) => ({ id })),
-        },
-      },
-    });
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await patchPage(u.it.id, {
+          properties: {
+            "관련 노드": {
+              relation: next.map((id) => ({ id })),
+            },
+          },
+        });
+        break;
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        if (attempt === 5) {
+          console.log(`실패(스킵): ${u.it.title || u.it.id} (${msg})`);
+        } else {
+          await sleep(Math.min(5000, 350 * attempt * attempt));
+        }
+      }
+    }
 
     updatedPages++;
     addedLinks += adding.length;
@@ -1152,6 +1164,9 @@ async function exportGraph({ databaseId, outPath }) {
 
   const categoryNodeIdByKey = new Map();
   const seenLink = new Set();
+  // (확정 관계) 노션 '관련 노드' 관계는 우선 순위가 가장 높습니다.
+  // - 추정(rel_inferred) 관계는 확정 관계가 없는 경우에만 보조로 생성합니다.
+  const confirmedPairs = new Set(); // undirected key: a|b
 
   const addLink = (source, target, type, extra) => {
     const s = String(source);
@@ -1248,10 +1263,6 @@ async function exportGraph({ databaseId, outPath }) {
       confirmedPairs.add(key);
     }
   }
-
-  // (확정 관계) 노션 '관련 노드' 관계는 우선 순위가 가장 높습니다.
-  // - 추정(rel_inferred) 관계는 확정 관계가 없는 경우에만 보조로 생성합니다.
-  const confirmedPairs = new Set(); // undirected key: a|b
 
   // (추정 관계) "연관" 태그 기반으로 item-item 관계를 생성합니다.
   // - 노션의 '관련 노드'를 적극적으로 쓰기 전까지, 관계를 "보이게" 만드는 보조 장치입니다.
