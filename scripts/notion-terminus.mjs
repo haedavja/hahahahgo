@@ -929,14 +929,16 @@ async function exportGraph({ databaseId, outPath }) {
   const categoryNodeIdByKey = new Map();
   const seenLink = new Set();
 
-  const addLink = (source, target, type) => {
+  const addLink = (source, target, type, extra) => {
+    const s = String(source);
+    const t = String(target);
     const isUndirected = type === "relation" || String(type || "").startsWith("rel_");
     const key = isUndirected
-      ? [source, target].sort().join("|") + `|${type}`
-      : `${source}|${target}|${type}`;
+      ? [s, t].sort().join("|") + `|${type}`
+      : `${s}|${t}|${type}`;
     if (seenLink.has(key)) return;
     seenLink.add(key);
-    links.push({ source, target, type });
+    links.push({ source: s, target: t, type, ...(extra || {}) });
   };
 
   const seenItem = new Set();
@@ -1023,11 +1025,60 @@ async function exportGraph({ databaseId, outPath }) {
   // - 노션의 '관련 노드'를 적극적으로 쓰기 전까지, 관계를 "보이게" 만드는 보조 장치입니다.
   // - 너무 흔한 태그는 노이즈가 커서 제외합니다.
   const itemNodes = [...itemById.values()];
+  const STOP_TAGS = new Set([
+    // 너무 일반적인 태그는 관계 품질을 떨어뜨려서 제외합니다.
+    "세계관",
+    "소설",
+    "게임",
+    "설정",
+    "용어",
+    "개념",
+    "인물",
+    "캐릭터",
+    "세력",
+    "정부",
+    "국가",
+    "제국",
+    "왕국",
+    "교단",
+    "조직",
+    "배교자",
+    "지역",
+    "장소",
+    "도시",
+    "행성",
+    "사건",
+    "역사",
+    "전쟁",
+    "시스템",
+    "룰",
+    "밸런스",
+    "스탯",
+    "스킬",
+    "스토리",
+    "플롯",
+    "에피소드",
+    "서사",
+    "초법",
+    "마법",
+    "주술",
+    "진법",
+    "기술",
+    "과학",
+    "공학",
+    "군사",
+    "전투",
+    "유물",
+    "아이템",
+    "메타",
+    "핵심",
+  ]);
   const tagToItemIds = new Map();
   for (const it of itemNodes) {
     const tags = Array.isArray(it.tags) ? it.tags : [];
     for (const t of tags) {
       const tag = String(t || "").trim();
+      if (STOP_TAGS.has(tag)) continue;
       if (!tag) continue;
       if (!tagToItemIds.has(tag)) tagToItemIds.set(tag, []);
       tagToItemIds.get(tag).push(String(it.id));
@@ -1045,6 +1096,7 @@ async function exportGraph({ databaseId, outPath }) {
     const scores = new Map(); // otherId -> baseScore
     for (const rawTag of tags) {
       const tag = String(rawTag || "").trim();
+      if (STOP_TAGS.has(tag)) continue;
       if (!tag) continue;
       const list = tagToItemIds.get(tag) || [];
       const freq = list.length;
@@ -1076,7 +1128,29 @@ async function exportGraph({ databaseId, outPath }) {
 
     candidates.sort((a, b) => b.score - a.score);
     const picked = candidates.filter((c) => c.score >= MIN_SCORE).slice(0, TOP_K);
-    for (const p of picked) addLink(String(it.id), p.otherId, "rel_inferred");
+    for (const p of picked) {
+      const other = itemById.get(String(p.otherId));
+      if (!other) continue;
+
+      const t1 = new Set((Array.isArray(it.tags) ? it.tags : []).map((x) => String(x || "").trim()).filter(Boolean));
+      const t2 = new Set((Array.isArray(other.tags) ? other.tags : []).map((x) => String(x || "").trim()).filter(Boolean));
+      const shared = [];
+      for (const t of t1) {
+        if (STOP_TAGS.has(t)) continue;
+        if (!t2.has(t)) continue;
+        const freq = (tagToItemIds.get(t) || []).length;
+        if (freq <= 1) continue;
+        if (freq > MAX_TAG_FREQ) continue;
+        shared.push({ tag: t, freq });
+      }
+      shared.sort((a, b) => a.freq - b.freq || String(a.tag).localeCompare(String(b.tag), "ko"));
+      const why = shared.slice(0, 3).map((x) => x.tag);
+
+      addLink(String(it.id), p.otherId, "rel_inferred", {
+        weight: Number(p.score.toFixed(3)),
+        tags: why.length ? why : null,
+      });
+    }
   }
 
   const payload = {

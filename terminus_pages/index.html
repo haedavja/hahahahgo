@@ -284,6 +284,14 @@
             <option value="2">2 (친구의 친구)</option>
             <option value="3">3 (확장)</option>
           </select>
+          <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">추정 관계 최소 점수</div>
+          <select id="relationMinScore">
+            <option value="0">0 (전부)</option>
+            <option value="0.12">0.12</option>
+            <option value="0.18" selected>0.18</option>
+            <option value="0.24">0.24</option>
+            <option value="0.3">0.30</option>
+          </select>
           <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">최대 노드</div>
           <select id="relationLimit">
             <option value="80">80</option>
@@ -293,7 +301,6 @@
             <option value="500">500</option>
           </select>
           <div class="row" style="margin-top: 10px; gap: 14px;">
-            <label class="checkbox"><input id="relationIncludeInferred" type="checkbox" checked /> 추정 관계(태그) 포함</label>
             <label class="checkbox"><input id="relationShowHierarchy" type="checkbox" /> 계층(도메인/카테고리)도 같이</label>
           </div>
         </div>
@@ -353,6 +360,7 @@
         <div class="row" style="margin-top: 12px; gap: 14px;">
           <label class="checkbox"><input id="showItems" type="checkbox" /> 항목 표시</label>
           <label class="checkbox"><input id="showRelations" type="checkbox" checked /> 관련 노드(점선)</label>
+          <label class="checkbox"><input id="showInferred" type="checkbox" checked /> 추정 관계(태그)</label>
         </div>
 
         <div id="itemControls" style="margin-top: 10px; display: none;">
@@ -441,6 +449,7 @@
       const elRole = document.getElementById("role");
       const elShowItems = document.getElementById("showItems");
       const elShowRelations = document.getElementById("showRelations");
+      const elShowInferred = document.getElementById("showInferred");
       const elMindmap = document.getElementById("mindmap");
       const elItemControls = document.getElementById("itemControls");
       const elItemLimit = document.getElementById("itemLimit");
@@ -458,8 +467,8 @@
       const elStatus = document.getElementById("status");
       const elControlRelation = document.getElementById("control-relation");
       const elRelationDepth = document.getElementById("relationDepth");
+      const elRelationMinScore = document.getElementById("relationMinScore");
       const elRelationLimit = document.getElementById("relationLimit");
-      const elRelationIncludeInferred = document.getElementById("relationIncludeInferred");
       const elRelationShowHierarchy = document.getElementById("relationShowHierarchy");
       const elDensity = document.getElementById("density");
 
@@ -481,8 +490,9 @@
         povFilter: "PLAYER",
         statusFilter: "ALL",
         relationDepth: 1,
+        inferredMinScore: 0.18,
         relationLimit: 200,
-        relationIncludeInferred: true,
+        showInferred: true,
         relationShowHierarchy: false,
         density: "normal",
         showItems: false,
@@ -819,17 +829,34 @@
         const shownItems = truncated ? candidateItems.slice(0, state.itemLimit) : candidateItems;
         for (const n of shownItems) visibleNodeIds.add(n.id);
 
-          const relationFocusId = state.showRelations ? state.selectedNodeId : null;
-          const links = (raw.links || []).filter((l) => {
-            const s = String(l.source);
-            const t = String(l.target);
-            if (!visibleNodeIds.has(s) || !visibleNodeIds.has(t)) return false;
-            if (l.type === "relation" || l.type === "rel_inferred") {
-              if (!relationFocusId) return false;
-              return s === relationFocusId || t === relationFocusId;
-            }
-            return true;
-          });
+        const relationFocusId = state.selectedNodeId ? String(state.selectedNodeId) : null;
+        const minScore = Number(state.inferredMinScore || 0);
+        const links = [];
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (!visibleNodeIds.has(String(s)) || !visibleNodeIds.has(String(t))) continue;
+
+          if (l.type === "relation") {
+            if (!state.showRelations || !relationFocusId) continue;
+            if (String(s) !== relationFocusId && String(t) !== relationFocusId) continue;
+            links.push({ source: String(s), target: String(t), type: "relation" });
+            continue;
+          }
+
+          if (l.type === "rel_inferred") {
+            if (!state.showInferred || !relationFocusId) continue;
+            if (String(s) !== relationFocusId && String(t) !== relationFocusId) continue;
+            const w = Number(l.weight || 0);
+            if (w < minScore) continue;
+            links.push({ source: String(s), target: String(t), type: "rel_inferred", weight: w, tags: l.tags || null });
+            continue;
+          }
+
+          // hierarchy 등은 그대로 유지(복사해서 raw 변형 방지)
+          links.push({ source: String(s), target: String(t), type: l.type });
+        }
 
         return {
           nodes: baseNodes.concat(shownItems),
@@ -1332,7 +1359,10 @@
           const t = getEndpointId(l.target);
           if (!s || !t) continue;
 
-          const isRel = l.type === "relation" || (state.relationIncludeInferred && l.type === "rel_inferred");
+          const w = Number(l.weight || 0);
+          const isRel =
+            (state.showRelations && l.type === "relation") ||
+            (state.showInferred && l.type === "rel_inferred" && w >= Number(state.inferredMinScore || 0));
           if (isRel) {
             if (!adj.has(s)) adj.set(s, new Set());
             if (!adj.has(t)) adj.set(t, new Set());
@@ -1418,11 +1448,15 @@
           if (!s || !t) continue;
           if (!inSet.has(String(s)) || !inSet.has(String(t))) continue;
 
-          if (l.type === "relation" || (state.relationIncludeInferred && l.type === "rel_inferred")) {
+          const w = Number(l.weight || 0);
+          if (
+            (state.showRelations && l.type === "relation") ||
+            (state.showInferred && l.type === "rel_inferred" && w >= Number(state.inferredMinScore || 0))
+          ) {
             const key = linkKey(s, t, l.type);
             if (seen.has(key)) continue;
             seen.add(key);
-            links.push({ source: s, target: t, type: l.type });
+            links.push({ source: s, target: t, type: l.type, weight: Number(l.weight || 0), tags: l.tags || null });
           }
 
           if (includeHierarchy && l.type === "hierarchy") {
@@ -1513,6 +1547,56 @@
               "</div></div>"
             : "";
 
+        let relHtml = "";
+        if (node.type === "item" && state.mode === "relation" && state.lastGraphData && state.lastById) {
+          const byId = state.lastById;
+          const links = state.lastGraphData.links || [];
+          const neighbors = [];
+          for (const l of links) {
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) continue;
+            if (String(s) !== String(node.id) && String(t) !== String(node.id)) continue;
+            const otherId = String(s) === String(node.id) ? String(t) : String(s);
+            const other = byId.get(otherId);
+            if (!other || other.type !== "item") continue;
+            const w = Number(l.weight || 0);
+            neighbors.push({ otherId, other, type: l.type, weight: w, tags: Array.isArray(l.tags) ? l.tags : [] });
+          }
+          neighbors.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+          const shown = neighbors.slice(0, 12);
+          if (shown.length) {
+            relHtml =
+              '<div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.4;">' +
+              '<div style="color: var(--muted); font-weight: 800;">근처 관계</div>' +
+              '<div class="list" style="margin-top:6px; max-height: 220px;">' +
+              shown
+                .map((n) => {
+                  const score = n.type === "rel_inferred" ? (n.weight ? " · 점수 " + n.weight.toFixed(2) : "") : "";
+                  const why = n.type === "rel_inferred" && n.tags.length ? " · " + n.tags.join(", ") : "";
+                  return (
+                    '<button type="button" data-select-id="' +
+                    n.otherId +
+                    '">' +
+                    '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+                    '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                    (n.other.label || "") +
+                    "</div>" +
+                    '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' +
+                    (n.type === "relation" ? "확정" : "추정") +
+                    score +
+                    why +
+                    "</div>" +
+                    "</div>" +
+                    "</button>"
+                  );
+                })
+                .join("") +
+              "</div>" +
+              "</div>";
+          }
+        }
+
         const showRelationBtn = node.type === "item";
 
         elSelectedBox.innerHTML =
@@ -1523,6 +1607,7 @@
           badges.join("") +
           "</div>" +
           tags +
+          relHtml +
           '<div style="display:flex; gap:8px; margin-top:12px;">' +
           '<button id="btn-open-notion" type="button" style="' +
           (node.url ? "" : "display:none;") +
@@ -1541,6 +1626,20 @@
             state.userInteracted = true;
             setModeKeepSelected("relation");
           });
+
+        // 관계 목록에서 이웃 노드로 빠르게 점프
+        for (const b of elSelectedBox.querySelectorAll("button[data-select-id]")) {
+          b.addEventListener("click", () => {
+            const id = b.getAttribute("data-select-id");
+            if (!id) return;
+            state.userInteracted = true;
+            state.selectedNodeId = String(id);
+            state.hoveredNodeId = null;
+            const hit = state.lastById && state.lastById.get(String(id));
+            if (hit) focusNode(hit);
+            refresh();
+          });
+        }
       }
 
       function renderItemList(graphData, byId) {
@@ -1703,9 +1802,14 @@
         elMindmap.disabled = !allowMindmap;
         if (elMindmap.parentElement) elMindmap.parentElement.style.opacity = allowMindmap ? "1" : "0.45";
 
-        const allowRelations = mode === "territory";
+        const allowRelations = mode === "territory" || mode === "relation";
         elShowRelations.disabled = !allowRelations;
         if (elShowRelations.parentElement) elShowRelations.parentElement.style.opacity = allowRelations ? "1" : "0.45";
+
+        if (elShowInferred) {
+          elShowInferred.disabled = !allowRelations;
+          if (elShowInferred.parentElement) elShowInferred.parentElement.style.opacity = allowRelations ? "1" : "0.45";
+        }
 
         const allowShowItems = mode !== "ui";
         elShowItems.disabled = !allowShowItems;
@@ -2147,6 +2251,8 @@
         if (!graphData) return;
         applyAnchors(graphData);
         const byId = computeById(graphData);
+        state.lastGraphData = graphData;
+        state.lastById = byId;
 
         if (state.selectedNodeId && !byId.has(String(state.selectedNodeId))) state.selectedNodeId = null;
         if (state.hoveredNodeId && !byId.has(String(state.hoveredNodeId))) state.hoveredNodeId = null;
@@ -2171,7 +2277,15 @@
             const t = getEndpointId(l.target);
             if (!s || !t) return 0.8;
             const key = linkKey(s, t, l.type);
-            const base = l.type === "transition" ? 1.6 : 0.9;
+            const w = Number(l.weight || 0);
+            const base =
+              l.type === "transition"
+                ? 1.6
+                : l.type === "relation"
+                  ? 1.2
+                  : l.type === "rel_inferred"
+                    ? Math.max(0.65, Math.min(1.8, 0.6 + w * 1.9))
+                    : 0.9;
             return highlight.highlightLinks.has(key) ? 2.2 : base;
           })
           .linkColor((l) => {
@@ -2228,11 +2342,12 @@
         state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
         state.relationDepth = elRelationDepth ? Number(elRelationDepth.value || 1) : 1;
         state.relationLimit = elRelationLimit ? Number(elRelationLimit.value || 200) : 200;
-        state.relationIncludeInferred = Boolean(elRelationIncludeInferred && elRelationIncludeInferred.checked);
+        state.inferredMinScore = elRelationMinScore ? Number(elRelationMinScore.value || 0.18) : 0.18;
         state.relationShowHierarchy = Boolean(elRelationShowHierarchy && elRelationShowHierarchy.checked);
         state.density = elDensity ? elDensity.value || "normal" : "normal";
         state.showItems = Boolean(elShowItems.checked);
         state.showRelations = Boolean(elShowRelations.checked);
+        state.showInferred = Boolean(elShowInferred && elShowInferred.checked);
         state.mindmapLayout = Boolean(elMindmap.checked);
         state.itemLimit = Number(elItemLimit.value || 250);
       }
@@ -2408,6 +2523,12 @@
         syncStateFromControls();
         refresh();
       });
+      if (elShowInferred) {
+        elShowInferred.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
       elMindmap.addEventListener("change", () => {
         state.autoFitDone = false;
         syncStateFromControls();
@@ -2442,6 +2563,13 @@
           refresh();
         });
       }
+      if (elRelationMinScore) {
+        elRelationMinScore.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
       if (elRelationLimit) {
         elRelationLimit.addEventListener("change", () => {
           state.autoFitDone = false;
@@ -2451,13 +2579,6 @@
       }
       if (elRelationShowHierarchy) {
         elRelationShowHierarchy.addEventListener("change", () => {
-          state.autoFitDone = false;
-          syncStateFromControls();
-          refresh();
-        });
-      }
-      if (elRelationIncludeInferred) {
-        elRelationIncludeInferred.addEventListener("change", () => {
           state.autoFitDone = false;
           syncStateFromControls();
           refresh();
