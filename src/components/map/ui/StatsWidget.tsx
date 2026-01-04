@@ -7,7 +7,7 @@ import { useState, useCallback, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/stats-bridge';
 
-type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'record';
+type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record';
 
 const WIDGET_STYLE: CSSProperties = {
   position: 'fixed',
@@ -120,6 +120,8 @@ const TABS: { id: TabType; label: string; emoji: string }[] = [
   { id: 'card', label: '카드', emoji: '🃏' },
   { id: 'relic', label: '상징', emoji: '💎' },
   { id: 'combo', label: '콤보', emoji: '🎯' },
+  { id: 'shop', label: '상점', emoji: '🛒' },
+  { id: 'event', label: '이벤트', emoji: '📜' },
   { id: 'record', label: '기록', emoji: '🏆' },
 ];
 
@@ -187,6 +189,8 @@ export const StatsWidget = memo(function StatsWidget() {
             {activeTab === 'card' && <CardTab detailed={detailed} />}
             {activeTab === 'relic' && <RelicTab detailed={detailed} />}
             {activeTab === 'combo' && <ComboTab detailed={detailed} />}
+            {activeTab === 'shop' && <ShopTab detailed={detailed} />}
+            {activeTab === 'event' && <EventTab detailed={detailed} />}
             {activeTab === 'record' && <RecordTab detailed={detailed} stats={stats} />}
 
             <button onClick={handleCopy} style={COPY_BUTTON_STYLE}>
@@ -444,6 +448,79 @@ function ComboTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> 
   );
 }
 
+function ShopTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const shopStats = detailed.shopStats;
+
+  if (!shopStats || shopStats.totalVisits === 0) {
+    return <p style={{ color: '#94a3b8' }}>아직 상점 방문 기록이 없습니다.</p>;
+  }
+
+  return (
+    <>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#a855f7' }}>🛒 상점 통계</h3>
+      <StatRow label="총 방문" value={`${shopStats.totalVisits}회`} />
+      <StatRow label="총 지출" value={`${shopStats.totalSpent?.toLocaleString() ?? 0}G`} />
+      <StatRow label="평균 지출" value={`${((shopStats.avgSpentPerVisit ?? 0)).toFixed(0)}G/회`} />
+      <StatRow label="카드 제거" value={`${shopStats.cardsRemoved ?? 0}회`} />
+
+      {shopStats.relicsPurchased && Object.keys(shopStats.relicsPurchased).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>구매한 상징</h4>
+          {Object.entries(shopStats.relicsPurchased as Record<string, number>)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id, count]) => (
+              <StatRow key={id} label={id} value={`${count}회`} />
+            ))}
+        </>
+      )}
+
+      {shopStats.itemsPurchased && Object.keys(shopStats.itemsPurchased).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>구매한 아이템</h4>
+          {Object.entries(shopStats.itemsPurchased as Record<string, number>)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id, count]) => (
+              <StatRow key={id} label={id} value={`${count}회`} />
+            ))}
+        </>
+      )}
+    </>
+  );
+}
+
+function EventTab({ detailed }: { detailed: ReturnType<typeof getDetailedStats> }) {
+  const eventStats = detailed.eventStats;
+
+  if (!eventStats || eventStats.size === 0) {
+    return <p style={{ color: '#94a3b8' }}>아직 이벤트 기록이 없습니다.</p>;
+  }
+
+  const sortedEvents = Array.from(eventStats.entries())
+    .sort((a, b) => (b[1].occurrences || 0) - (a[1].occurrences || 0));
+
+  return (
+    <>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f59e0b' }}>📜 이벤트 통계</h3>
+      {sortedEvents.map(([id, data]) => {
+        const successRate = data.occurrences > 0
+          ? ((data.successes / data.occurrences) * 100).toFixed(1)
+          : '0';
+        return (
+          <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={STAT_LABEL_STYLE}>{data.eventName || id}</span>
+              <span style={STAT_VALUE_STYLE}>{data.occurrences}회 발생</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>
+              성공률 {successRate}% | 성공 {data.successes}회
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetailedStats>; stats: ReturnType<typeof getCurrentStats> }) {
   const records = detailed.recordStats;
   const deathStats = detailed.deathStats;
@@ -498,8 +575,9 @@ function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetaile
       )}
 
       {/* 런 진행 통계 */}
-      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#3b82f6' }}>📈 진행 통계</h3>
+      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#3b82f6' }}>📈 런 통계</h3>
       <StatRow label="총 런" value={`${stats.totalRuns}회`} />
+      <StatRow label="클리어" value={`${stats.successfulRuns}회`} valueColor="#22c55e" />
       <StatRow
         label="클리어율"
         value={stats.totalRuns > 0 ? `${((stats.successfulRuns / stats.totalRuns) * 100).toFixed(1)}%` : '-'}
@@ -508,7 +586,30 @@ function RecordTab({ detailed, stats }: { detailed: ReturnType<typeof getDetaile
       {detailed.runStats && (
         <>
           <StatRow label="평균 도달 층" value={(detailed.runStats.avgLayerReached || 0).toFixed(1)} />
-          <StatRow label="평균 덱 크기" value={(detailed.runStats.avgFinalDeckSize || 0).toFixed(1)} />
+          <StatRow label="평균 전투 승리" value={(detailed.runStats.avgBattlesWon || 0).toFixed(1)} />
+          <StatRow label="평균 골드 획득" value={`${(detailed.runStats.avgGoldEarned || 0).toFixed(0)}G`} />
+          <StatRow label="평균 덱 크기" value={`${(detailed.runStats.avgFinalDeckSize || 0).toFixed(1)}장`} />
+          <StatRow label="평균 상징 수" value={`${(detailed.runStats.avgFinalRelicCount || 0).toFixed(1)}개`} />
+        </>
+      )}
+
+      {/* 사망 원인 통계 */}
+      {detailed.runStats?.deathCauses && Object.keys(detailed.runStats.deathCauses).length > 0 && (
+        <>
+          <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#94a3b8' }}>사망 원인</h4>
+          {Object.entries(detailed.runStats.deathCauses as Record<string, number>)
+            .sort((a, b) => b[1] - a[1])
+            .map(([cause, count]) => {
+              const rate = stats.totalRuns > 0 ? ((count / stats.totalRuns) * 100).toFixed(1) : '0';
+              return (
+                <StatRow
+                  key={cause}
+                  label={cause}
+                  value={`${count}회 (${rate}%)`}
+                  valueColor="#ef4444"
+                />
+              );
+            })}
         </>
       )}
     </>
@@ -583,6 +684,22 @@ function formatAllStatsForCopy(
   if (stats.totalRuns > 0) {
     lines.push(`- 클리어율: ${((stats.successfulRuns / stats.totalRuns) * 100).toFixed(1)}%`);
   }
+  if (detailed.runStats) {
+    lines.push(`- 평균 도달 층: ${(detailed.runStats.avgLayerReached || 0).toFixed(1)}`);
+    lines.push(`- 평균 전투 승리: ${(detailed.runStats.avgBattlesWon || 0).toFixed(1)}`);
+    lines.push(`- 평균 골드 획득: ${(detailed.runStats.avgGoldEarned || 0).toFixed(0)}G`);
+    lines.push(`- 평균 덱 크기: ${(detailed.runStats.avgFinalDeckSize || 0).toFixed(1)}장`);
+    lines.push(`- 평균 상징 수: ${(detailed.runStats.avgFinalRelicCount || 0).toFixed(1)}개`);
+
+    // 사망 원인
+    if (detailed.runStats.deathCauses && Object.keys(detailed.runStats.deathCauses).length > 0) {
+      lines.push('- 사망 원인:');
+      for (const [cause, count] of Object.entries(detailed.runStats.deathCauses as Record<string, number>).sort((a, b) => b[1] - a[1])) {
+        const rate = stats.totalRuns > 0 ? ((count / stats.totalRuns) * 100).toFixed(1) : '0';
+        lines.push(`  - ${cause}: ${count}회 (${rate}%)`);
+      }
+    }
+  }
 
   // 몬스터별 통계
   if (detailed.monsterStats && detailed.monsterStats.size > 0) {
@@ -640,6 +757,38 @@ function formatAllStatsForCopy(
         ? ((data.inWins / data.totalOccurrences) * 100).toFixed(1)
         : '0';
       lines.push(`- ${comboName}: ${data.totalOccurrences}회 발동 | 승률 ${winRate}% | 평균 에테르 ${(data.avgEtherGained || 0).toFixed(1)}`);
+    }
+  }
+
+  // 상점 통계
+  if (detailed.shopStats && detailed.shopStats.totalVisits > 0) {
+    lines.push('');
+    lines.push('## 상점 통계');
+    lines.push(`- 총 방문: ${detailed.shopStats.totalVisits}회`);
+    lines.push(`- 총 지출: ${detailed.shopStats.totalSpent?.toLocaleString() ?? 0}G`);
+    lines.push(`- 평균 지출: ${(detailed.shopStats.avgSpentPerVisit || 0).toFixed(0)}G/회`);
+    lines.push(`- 카드 제거: ${detailed.shopStats.cardsRemoved ?? 0}회`);
+
+    if (detailed.shopStats.relicsPurchased && Object.keys(detailed.shopStats.relicsPurchased).length > 0) {
+      lines.push('- 구매한 상징:');
+      for (const [id, count] of Object.entries(detailed.shopStats.relicsPurchased as Record<string, number>)) {
+        lines.push(`  - ${id}: ${count}회`);
+      }
+    }
+  }
+
+  // 이벤트 통계
+  if (detailed.eventStats && detailed.eventStats.size > 0) {
+    lines.push('');
+    lines.push('## 이벤트 통계');
+    const sortedEvents = Array.from(detailed.eventStats.entries())
+      .sort((a, b) => (b[1].occurrences || 0) - (a[1].occurrences || 0));
+
+    for (const [id, data] of sortedEvents) {
+      const successRate = data.occurrences > 0
+        ? ((data.successes / data.occurrences) * 100).toFixed(1)
+        : '0';
+      lines.push(`- ${data.eventName || id}: ${data.occurrences}회 발생 | 성공률 ${successRate}%`);
     }
   }
 
