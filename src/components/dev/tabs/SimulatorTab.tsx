@@ -10,6 +10,7 @@ import { ITEMS } from '../../../data/items';
 import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
+import type { SkillLevel } from '../../../simulator/core/battle-engine-types';
 import { analyzeStats, generateAnalysisGuidelines } from '../../../simulator/analysis/stats-analysis-framework';
 import { BalanceInsightAnalyzer, type BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
 
@@ -21,6 +22,15 @@ const STRATEGY_LABELS: Record<StrategyType, string> = {
   defensive: '방어적',
 };
 const ALL_STRATEGIES: StrategyType[] = ['balanced', 'aggressive', 'defensive'];
+
+// 스킬 레벨 레이블
+const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
+  beginner: '초보 (30% 실수)',
+  intermediate: '중급 (15% 실수)',
+  advanced: '고수 (5% 실수)',
+  optimal: 'AI 최적 (0% 실수)',
+};
+const ALL_SKILL_LEVELS: SkillLevel[] = ['beginner', 'intermediate', 'advanced', 'optimal'];
 
 // 전략별 통계 타입
 type StatsByStrategy = Record<StrategyType, DetailedStats | null>;
@@ -673,6 +683,7 @@ type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card
 const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
   const [difficulty, setDifficulty] = useState(1); // 기본 난이도 1 (실제 게임과 동일)
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>('intermediate'); // 기본 중급자 (실제 플레이어 수준)
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStrategy, setCurrentStrategy] = useState<StrategyType | null>(null);
@@ -757,6 +768,7 @@ const SimulatorTab = memo(function SimulatorTab() {
             },
             difficulty,
             strategy,
+            skillLevel, // 플레이어 스킬 레벨 (실수 확률)
             // 난이도 수정자 (Hades Heat / StS Ascension 스타일)
             difficultyModifiers: {
               enemyDamageMultiplier: enemyDamageMult,
@@ -784,7 +796,7 @@ const SimulatorTab = memo(function SimulatorTab() {
     } finally {
       setIsRunning(false);
     }
-  }, [runCount, difficulty, enemyDamageMult, startingHpMult, restHealMult, goldMult, shopPriceMult, enemySpeedBonus, startingCurseCards]);
+  }, [runCount, difficulty, skillLevel, enemyDamageMult, startingHpMult, restHealMult, goldMult, shopPriceMult, enemySpeedBonus, startingCurseCards]);
 
   const statTabs: { id: StatTab; label: string }[] = [
     { id: 'run', label: '런' },
@@ -827,6 +839,19 @@ const SimulatorTab = memo(function SimulatorTab() {
             <input type="number" min={1} max={20} value={difficulty}
               onChange={e => setDifficulty(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
               style={STYLES.input} disabled={isRunning} />
+          </div>
+          <div>
+            <label style={STYLES.label}>플레이어 수준</label>
+            <select
+              value={skillLevel}
+              onChange={e => setSkillLevel(e.target.value as SkillLevel)}
+              style={{ ...STYLES.input, minWidth: '140px' }}
+              disabled={isRunning}
+            >
+              {ALL_SKILL_LEVELS.map(level => (
+                <option key={level} value={level}>{SKILL_LEVEL_LABELS[level]}</option>
+              ))}
+            </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
