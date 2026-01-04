@@ -14,6 +14,7 @@ function usage() {
       "  node scripts/notion-terminus.mjs normalize-related [--apply] [--database <id>]",
       "  node scripts/notion-terminus.mjs analyze [--database <id>]",
       "  node scripts/notion-terminus.mjs autoclassify [--apply] [--limit <n>] [--force] [--database <id>]",
+      "  node scripts/notion-terminus.mjs autorole [--apply] [--limit <n>] [--force] [--strict] [--database <id>]",
       "  node scripts/notion-terminus.mjs export-graph [--out <path>] [--database <id>]",
       "",
       "필수:",
@@ -245,6 +246,68 @@ function inferCategoryFromRelated(related) {
   if (hasAny("설정")) return "설정";
 
   return null;
+}
+
+function inferRoleFromCategory(category) {
+  const c = String(category || "").trim();
+  if (!c) return null;
+
+  // 존재: 무엇이 존재하는가
+  if (c === "인물" || c === "세력" || c === "장소/지역" || c === "유물/아이템") return "존재";
+
+  // 사건: 무슨 일이 일어났는가
+  if (c === "역사/사건" || c === "플롯/에피소드") return "사건";
+
+  // 구조: 세계는 어떻게 작동하는가
+  if (c === "초법" || c === "기술" || c === "군사" || c === "시스템(게임)" || c === "용어/개념") return "구조";
+  if (c === "설정" || c === "메타") return "구조";
+
+  return null;
+}
+
+function inferRoleFromRelated(related) {
+  const tags = new Set(related);
+  const hasAny = (...candidates) => candidates.some((c) => tags.has(c));
+
+  if (hasAny("결과", "귀결", "후유증", "변화", "영향", "파급")) return "결과";
+
+  if (
+    hasAny(
+      "인물",
+      "캐릭터",
+      "세력",
+      "정부",
+      "국가",
+      "제국",
+      "왕국",
+      "교단",
+      "조직",
+      "배교자",
+      "지역",
+      "장소",
+      "도시",
+      "행성",
+    )
+  )
+    return "존재";
+  if (hasAny("사건", "역사", "전쟁", "플롯", "에피소드", "서사")) return "사건";
+  if (hasAny("시스템", "게임", "룰", "밸런스", "스탯", "스킬", "초법", "마법", "주술", "진법", "기술", "과학", "공학"))
+    return "구조";
+
+  return null;
+}
+
+function inferRole({ category, related, strict }) {
+  const fromCategory = inferRoleFromCategory(category);
+  if (fromCategory) return fromCategory;
+
+  const fromRelated = inferRoleFromRelated(related || []);
+  if (fromRelated) return fromRelated;
+
+  if (strict) return null;
+
+  // 단서가 부족하면 최소한 "미지정_*"로 수납해서 폭발을 막는다.
+  return "미지정_구조";
 }
 
 function inferDomains(category, related) {
@@ -683,6 +746,89 @@ async function autoclassify({ databaseId, apply, limit, force }) {
   console.log("완료: 대분류/도메인 자동 분류를 반영했습니다.");
 }
 
+async function autorole({ databaseId, apply, limit, force, strict }) {
+  await getMe();
+
+  const db = await getDatabase(databaseId);
+  const titlePropName = findDatabaseTitlePropName(db);
+
+  let cursor = undefined;
+  const updates = [];
+  const roleCounts = new Map();
+
+  while (true) {
+    const res = await queryDatabase(databaseId, { page_size: 100, start_cursor: cursor });
+    for (const page of res.results) {
+      const currentRole = getSelectName(page, "역할");
+      if (currentRole && !force) continue;
+
+      const related = page.properties?.["연관"]?.multi_select?.map((o) => o.name) || [];
+      const category = getSelectName(page, "대분류") || inferCategoryFromRelated(related) || "기타";
+
+      const nextRole = inferRole({ category, related, strict });
+      if (!nextRole) continue;
+
+      const title = getTitleFromDatabasePage(page, titlePropName);
+      updates.push({
+        id: page.id,
+        title,
+        category,
+        related,
+        before: currentRole || null,
+        after: nextRole,
+      });
+
+      roleCounts.set(nextRole, (roleCounts.get(nextRole) || 0) + 1);
+      if (limit && updates.length >= limit) break;
+    }
+    if (limit && updates.length >= limit) break;
+    if (!res.has_more) break;
+    cursor = res.next_cursor;
+  }
+
+  console.log(`대상 업데이트(역할): ${updates.length}${limit ? ` (limit=${limit})` : ""}`);
+  console.log("\n[역할] 업데이트 분포");
+  for (const [name, c] of [...roleCounts.entries()].sort((a, b) => b[1] - a[1])) {
+    console.log(`- ${name}: ${c}`);
+  }
+
+  const sample = updates.slice(0, 25);
+  if (sample.length > 0) {
+    console.log("\n샘플(최대 25개)");
+    for (const u of sample) {
+      const rel = u.related.slice(0, 12).join(", ");
+      console.log(
+        `- ${u.title || u.id}: 대분류=${u.category} | 역할 ${u.before || "(없음)"} -> ${u.after} | 연관=[${
+          rel
+        }${u.related.length > 12 ? ", ..." : ""}]`,
+      );
+    }
+  }
+
+  if (!apply) {
+    console.log("\n(dry-run) --apply를 붙이면 실제로 반영합니다.");
+    return;
+  }
+
+  for (let i = 0; i < updates.length; i++) {
+    const u = updates[i];
+    const patch = { properties: { 역할: { select: { name: u.after } } } };
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await patchPage(u.id, patch);
+        break;
+      } catch (e) {
+        if (attempt === 5) throw e;
+        await sleep(Math.min(5000, 350 * attempt * attempt));
+      }
+    }
+    if ((i + 1) % 50 === 0) console.log(`진행: ${i + 1}/${updates.length}`);
+    await sleep(350);
+  }
+
+  console.log("완료: 역할 자동 분류를 반영했습니다.");
+}
+
 async function exportGraph({ databaseId, outPath }) {
   await getMe();
 
@@ -867,6 +1013,7 @@ async function main() {
   const apply = Boolean(flags.get("apply"));
   const limit = flags.get("limit") ? Number(flags.get("limit")) : undefined;
   const force = Boolean(flags.get("force"));
+  const strict = Boolean(flags.get("strict"));
   const outPath = flags.get("out") || "public/terminus-graph.json";
   const databaseId = flags.get("database") || process.env.NOTION_DATABASE_ID || DEFAULT_DATABASE_ID;
   const parentPageId = flags.get("parent") || process.env.NOTION_PARENT_PAGE_ID || DEFAULT_PARENT_PAGE_ID;
@@ -886,6 +1033,10 @@ async function main() {
     }
     if (cmd === "autoclassify") {
       await autoclassify({ databaseId, apply, limit, force });
+      return;
+    }
+    if (cmd === "autorole") {
+      await autorole({ databaseId, apply, limit, force, strict });
       return;
     }
     if (cmd === "export-graph") {
