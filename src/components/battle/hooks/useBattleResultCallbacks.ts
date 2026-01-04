@@ -85,7 +85,8 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
   const handleExitToMap = useCallback(() => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp !== undefined && enemy.hp <= 0 ? 'victory' : (player && player.hp !== undefined && player.hp <= 0 ? 'defeat' : null));
     if (!outcome) return;
-    notifyBattleResult(outcome);
+    // 영혼파괴 여부도 함께 전달
+    notifyBattleResult(outcome, postCombatOptions?.isEtherVictory);
     if (typeof window !== 'undefined' && window.top === window) {
       setTimeout(() => { window.location.href = '/'; }, 100);
     }
