@@ -71,6 +71,17 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
     lines.push('');
   }
 
+  // 승리 방식 (영혼파괴/육체파괴)
+  const totalWins = (stats.runStats.soulDestructions ?? 0) + (stats.runStats.physicalDestructions ?? 0);
+  if (totalWins > 0) {
+    lines.push('#### 승리 방식 (파괴 유형)');
+    const soulRate = ((stats.runStats.soulDestructions ?? 0) / totalWins * 100).toFixed(1);
+    const physRate = ((stats.runStats.physicalDestructions ?? 0) / totalWins * 100).toFixed(1);
+    lines.push(`- 💜 영혼파괴: ${stats.runStats.soulDestructions ?? 0}회 (${soulRate}%)`);
+    lines.push(`- ❤️ 육체파괴: ${stats.runStats.physicalDestructions ?? 0}회 (${physRate}%)`);
+    lines.push('');
+  }
+
   // ==================== 2. 몬스터 통계 ====================
   if (stats.monsterStats.size > 0) {
     lines.push('### 2. 몬스터 전투');
@@ -1040,6 +1051,29 @@ const SimulatorTab = memo(function SimulatorTab() {
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 덱 크기</div><div style={STYLES.statValue}>{(stats.runStats.avgFinalDeckSize ?? 0).toFixed(1)}장</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 상징 수</div><div style={STYLES.statValue}>{(stats.runStats.avgFinalRelicCount ?? 0).toFixed(1)}개</div></div>
                 </div>
+
+                {/* 승리 방식 (영혼파괴/육체파괴) */}
+                {((stats.runStats.soulDestructions ?? 0) + (stats.runStats.physicalDestructions ?? 0)) > 0 && (
+                  <>
+                    <h5 style={{ margin: '16px 0 8px 0', color: '#cbd5e1' }}>승리 방식 (파괴 유형)</h5>
+                    <div style={STYLES.statsGrid}>
+                      <div style={STYLES.statItem}>
+                        <div style={STYLES.statLabel}>💜 영혼파괴</div>
+                        <div style={STYLES.statValue}>
+                          {stats.runStats.soulDestructions ?? 0}회
+                          ({(((stats.runStats.soulDestructions ?? 0) / ((stats.runStats.soulDestructions ?? 0) + (stats.runStats.physicalDestructions ?? 0))) * 100).toFixed(1)}%)
+                        </div>
+                      </div>
+                      <div style={STYLES.statItem}>
+                        <div style={STYLES.statLabel}>❤️ 육체파괴</div>
+                        <div style={STYLES.statValue}>
+                          {stats.runStats.physicalDestructions ?? 0}회
+                          ({(((stats.runStats.physicalDestructions ?? 0) / ((stats.runStats.soulDestructions ?? 0) + (stats.runStats.physicalDestructions ?? 0))) * 100).toFixed(1)}%)
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
