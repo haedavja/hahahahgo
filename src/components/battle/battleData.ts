@@ -1008,12 +1008,12 @@ export const CARDS = [
 
 export const ENEMY_CARDS = [
   // === 구울 카드 ===
-  { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 5, speedCost: 3, actionCost: 1, iconKey: "sword" },
+  { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 8, speedCost: 3, actionCost: 1, iconKey: "sword" },  // 5→8 피해 버프
   { id: "ghoul_block", name: "움츠리기", type: "general", block: 8, speedCost: 2, actionCost: 1, iconKey: "shield" },
 
   // === 약탈자 카드 ===
-  { id: "marauder_attack", name: "찌르기", type: "attack", damage: 3, speedCost: 2, actionCost: 1, iconKey: "sword" },
-  { id: "marauder_block", name: "막기", type: "general", block: 4, speedCost: 2, actionCost: 1, iconKey: "shield" },
+  { id: "marauder_attack", name: "찌르기", type: "attack", damage: 6, speedCost: 2, actionCost: 1, iconKey: "sword" },  // 3→6 피해 버프
+  { id: "marauder_block", name: "막기", type: "general", block: 5, speedCost: 2, actionCost: 1, iconKey: "shield" },  // 4→5 방어 버프
 
   // === 탈영병 카드 ===
   { id: "deserter_attack", name: "베기", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
@@ -1040,26 +1040,26 @@ export const ENEMY_CARDS = [
     appliedTokens: [{ id: 'dull', target: 'enemy' }] },
 
   // === 1막 신규 - 들쥐 카드 ===
-  { id: "wildrat_bite", name: "물기", type: "attack", damage: 2, speedCost: 1, actionCost: 1, iconKey: "sword" },
-  { id: "wildrat_swarm", name: "떼공격", type: "attack", damage: 1, hits: 3, speedCost: 3, actionCost: 1, iconKey: "sword" },
-  { id: "wildrat_flee", name: "도주", type: "general", block: 3, speedCost: 1, actionCost: 1, iconKey: "shield",
+  { id: "wildrat_bite", name: "물기", type: "attack", damage: 4, speedCost: 1, actionCost: 1, iconKey: "sword" },  // 2→4 피해 버프
+  { id: "wildrat_swarm", name: "떼공격", type: "attack", damage: 2, hits: 3, speedCost: 3, actionCost: 1, iconKey: "sword" },  // 1→2 피해 버프
+  { id: "wildrat_flee", name: "도주", type: "general", block: 4, speedCost: 1, actionCost: 1, iconKey: "shield",  // 3→4 방어 버프
     appliedTokens: [{ id: 'evasion', target: 'self' }] },
 
   // === 1막 신규 - 폭주자 카드 ===
-  { id: "berserker_slam", name: "내려찍기", type: "attack", damage: 8, speedCost: 5, actionCost: 1, iconKey: "flame" },
+  { id: "berserker_slam", name: "내려찍기", type: "attack", damage: 10, speedCost: 5, actionCost: 1, iconKey: "flame" },  // 8→10 피해 버프
   { id: "berserker_rage", name: "분노", type: "general", block: 0, speedCost: 2, actionCost: 1, iconKey: "flame",
     appliedTokens: [{ id: 'offense', stacks: 2, target: 'self' }] },
-  { id: "berserker_charge", name: "돌진", type: "attack", damage: 6, speedCost: 4, actionCost: 1, iconKey: "sword",
+  { id: "berserker_charge", name: "돌진", type: "attack", damage: 8, speedCost: 4, actionCost: 1, iconKey: "sword",  // 6→8 피해 버프
     special: "pushEnemyTimeline", pushAmount: 3 },
   { id: "berserker_roar", name: "포효", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
     appliedTokens: [{ id: 'shaken', target: 'enemy' }] },
 
   // === 1막 신규 - 오염체 카드 ===
-  { id: "polluted_spit", name: "독침", type: "attack", damage: 3, speedCost: 3, actionCost: 1, iconKey: "skull",
+  { id: "polluted_spit", name: "독침", type: "attack", damage: 5, speedCost: 3, actionCost: 1, iconKey: "skull",  // 3→5 피해 버프
     appliedTokens: [{ id: 'poison', target: 'enemy' }] },
-  { id: "polluted_cloud", name: "독안개", type: "general", block: 4, speedCost: 4, actionCost: 1, iconKey: "shield",
+  { id: "polluted_cloud", name: "독안개", type: "general", block: 5, speedCost: 4, actionCost: 1, iconKey: "shield",  // 4→5 방어 버프
     appliedTokens: [{ id: 'blur', target: 'self' }, { id: 'poison', target: 'enemy' }] },
-  { id: "polluted_explode", name: "자폭", type: "attack", damage: 12, speedCost: 6, actionCost: 1, iconKey: "flame",
+  { id: "polluted_explode", name: "자폭", type: "attack", damage: 15, speedCost: 6, actionCost: 1, iconKey: "flame",  // 12→15 피해 버프
     special: "selfDamage3" },  // 자해 3
 
   // === 1막 신규 - 현상금 사냥꾼 카드 (엘리트) ===

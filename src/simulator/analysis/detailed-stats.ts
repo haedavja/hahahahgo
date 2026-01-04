@@ -221,6 +221,9 @@ export class StatsCollector {
   // 카드 시너지 통계
   private cardPairCounts: Record<string, number> = {};
   private cardPairWins: Record<string, number> = {};
+  // 3-카드 조합 통계
+  private cardTripleCounts: Record<string, number> = {};
+  private cardTripleWins: Record<string, number> = {};
 
   // 기록 통계
   private currentWinStreak = 0;
@@ -1309,6 +1312,17 @@ export class StatsCollector {
         if (success) {
           this.cardPairWins[pair] = (this.cardPairWins[pair] || 0) + 1;
         }
+
+        // 3-카드 조합 통계 업데이트 (성능을 위해 상위 N개 카드만)
+        if (uniqueCards.length <= 15) {
+          for (let k = j + 1; k < uniqueCards.length; k++) {
+            const triple = [uniqueCards[i], uniqueCards[j], uniqueCards[k]].sort().join('+');
+            this.cardTripleCounts[triple] = (this.cardTripleCounts[triple] || 0) + 1;
+            if (success) {
+              this.cardTripleWins[triple] = (this.cardTripleWins[triple] || 0) + 1;
+            }
+          }
+        }
       }
     }
   }
@@ -1653,10 +1667,33 @@ export class StatsCollector {
       .sort((a, b) => b.winRate - a.winRate || b.frequency - a.frequency)
       .slice(0, 20);
 
+    // 3-카드 조합 승률 계산
+    const cardTripleWinRate: Record<string, number> = {};
+    for (const triple of Object.keys(this.cardTripleCounts)) {
+      const count = this.cardTripleCounts[triple] || 0;
+      const wins = this.cardTripleWins[triple] || 0;
+      cardTripleWinRate[triple] = count > 0 ? wins / count : 0;
+    }
+
+    // TOP 3-카드 조합 (빈도 2 이상, 승률 높은 순)
+    const topTripleSynergies = Object.entries(this.cardTripleCounts)
+      .filter(([, count]) => count >= 2)
+      .map(([triple, frequency]) => ({
+        triple,
+        frequency,
+        winRate: cardTripleWinRate[triple] || 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.frequency - a.frequency)
+      .slice(0, 15);
+
     return {
       cardPairFrequency: { ...this.cardPairCounts },
       cardPairWinRate,
       topSynergies,
+      // 3-카드 조합 통계 추가
+      cardTripleFrequency: { ...this.cardTripleCounts },
+      cardTripleWinRate,
+      topTripleSynergies,
     };
   }
 
@@ -2133,6 +2170,8 @@ export class StatsCollector {
     // 카드 시너지 통계 초기화
     this.cardPairCounts = {};
     this.cardPairWins = {};
+    this.cardTripleCounts = {};
+    this.cardTripleWins = {};
     // 기록 통계 초기화
     this.currentWinStreak = 0;
     this.longestWinStreak = 0;

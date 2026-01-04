@@ -608,6 +608,12 @@ export interface CardSynergyStats {
   cardPairWinRate: Record<string, number>;
   /** TOP 시너지 조합 */
   topSynergies: { pair: string; frequency: number; winRate: number }[];
+  /** 3-카드 조합별 횟수 */
+  cardTripleFrequency?: Record<string, number>;
+  /** 3-카드 조합별 승률 */
+  cardTripleWinRate?: Record<string, number>;
+  /** TOP 3-카드 시너지 조합 */
+  topTripleSynergies?: { triple: string; frequency: number; winRate: number }[];
 }
 
 /** 카드 심층 분석 통계 */
