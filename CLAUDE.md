@@ -1,6 +1,6 @@
 # Claude 작업 규칙 및 프로젝트 가이드
 
-**최종 업데이트**: 2025-12-31
+**최종 업데이트**: 2026-01-04
 **프로젝트**: 하하하GO (턴제 전략 카드 게임)
 
 ---
@@ -249,6 +249,30 @@ Task(subagent_type='Plan', prompt='에테르 시스템 리팩토링 계획을 �
 ### 스킬 (`.claude/skills/`)
 - `version-updater` - 버전 태그 자동 업데이트 알림
 - `agent-usage` - 에이전트 활용 가이드
+
+### ⚠️ 스킬 활용 필수 규칙
+
+**트리거 기반 자동 적용**:
+
+| 트리거 조건 | 적용할 스킬 | 필수 작업 |
+|------------|------------|----------|
+| `src/` 파일 수정 후 커밋 전 | `version-updater` | `PATCH_VERSION_TAG` 갱신 |
+| 여러 파일 탐색 필요 시 | `agent-usage` | Explore 에이전트 사용 |
+| 새 기능 구현 계획 시 | `agent-usage` | Plan 에이전트 사용 |
+
+**버전 태그 갱신 절차**:
+```bash
+# 1. 한국시간 확인
+TZ='Asia/Seoul' date '+%m-%d %H:%M'
+
+# 2. mapConfig.ts의 PATCH_VERSION_TAG 수정
+# 파일: src/components/map/utils/mapConfig.ts
+```
+
+**위반 시 발생하는 문제**:
+- ❌ 버전 태그 미갱신 → 사용자가 최신 버전인지 확인 불가
+- ❌ Explore 미사용 → 여러 파일 간 동기화 누락
+- ❌ Plan 미사용 → 구현 방향 혼란, 불완전한 작업
 
 ---
 
