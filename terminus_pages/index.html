@@ -233,6 +233,7 @@
 
         <div id="modeTabs" class="tabs" style="margin-top: 12px;">
           <button class="tab active" type="button" data-mode="territory">영역</button>
+          <button class="tab" type="button" data-mode="relation">관계</button>
           <button class="tab" type="button" data-mode="layer">레이어</button>
           <button class="tab" type="button" data-mode="pov">POV</button>
           <button class="tab" type="button" data-mode="state">상태전이</button>
@@ -274,6 +275,26 @@
             <option value="확정">확정</option>
             <option value="미지정">미지정</option>
           </select>
+        </div>
+
+        <div id="control-relation" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">관계 깊이</div>
+          <select id="relationDepth">
+            <option value="1" selected>1 (직접 연결)</option>
+            <option value="2">2 (친구의 친구)</option>
+            <option value="3">3 (확장)</option>
+          </select>
+          <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">최대 노드</div>
+          <select id="relationLimit">
+            <option value="80">80</option>
+            <option value="120">120</option>
+            <option value="200" selected>200</option>
+            <option value="320">320</option>
+            <option value="500">500</option>
+          </select>
+          <div class="row" style="margin-top: 10px; gap: 14px;">
+            <label class="checkbox"><input id="relationShowHierarchy" type="checkbox" /> 계층(도메인/카테고리)도 같이</label>
+          </div>
         </div>
 
         <div style="margin-top: 10px;">
@@ -392,6 +413,7 @@
 
       const MODES = [
         { id: "territory", label: "영역" },
+        { id: "relation", label: "관계" },
         { id: "layer", label: "레이어" },
         { id: "pov", label: "POV" },
         { id: "state", label: "상태전이" },
@@ -401,6 +423,7 @@
 
       const MODE_HINTS = {
         territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터(역할 포함) 또는 카테고리 클릭(펼침)으로 좁힌 뒤 표시하세요.",
+        relation: "선택한 항목을 중심으로 '연결된 것만' 모아서 보여줍니다. 먼저 항목을 하나 선택한 뒤 보세요.",
         layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. 기본은 추론, 노션 '레이어'가 있으면 그 값을 우선합니다. (카테고리 클릭 → 펼침)",
         pov: "관측자(POV)별 '무엇까지 보이는가'를 보여줍니다. 노션 '가시성'이 없으면 레이어 기반으로 추론합니다. (POV 클릭 → 펼침)",
         state: "상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (상태 노드 클릭 → 펼침)",
@@ -432,6 +455,10 @@
       const elPov = document.getElementById("pov");
       const elControlStatus = document.getElementById("control-status");
       const elStatus = document.getElementById("status");
+      const elControlRelation = document.getElementById("control-relation");
+      const elRelationDepth = document.getElementById("relationDepth");
+      const elRelationLimit = document.getElementById("relationLimit");
+      const elRelationShowHierarchy = document.getElementById("relationShowHierarchy");
       const elDensity = document.getElementById("density");
 
       const elSelectedEmpty = document.getElementById("selectedEmpty");
@@ -451,6 +478,9 @@
         layerFilter: "ALL",
         povFilter: "PLAYER",
         statusFilter: "ALL",
+        relationDepth: 1,
+        relationLimit: 200,
+        relationShowHierarchy: false,
         density: "normal",
         showItems: false,
         showRelations: true,
@@ -1266,8 +1296,149 @@
         };
       }
 
+      function computeRelationGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const focusId = state.selectedNodeId ? String(state.selectedNodeId) : null;
+        const root = getRootNode(raw);
+        if (!focusId) {
+          return {
+            nodes: [root],
+            links: [],
+            stats: { matchedItems: 0, shownItems: 0, truncated: false, emptyFocus: true },
+          };
+        }
+
+        const byRawId = new Map();
+        for (const n of raw.nodes || []) byRawId.set(String(n.id), n);
+
+        const focus = byRawId.get(focusId);
+        if (!focus || focus.type !== "item") {
+          return {
+            nodes: [root],
+            links: [],
+            stats: { matchedItems: 0, shownItems: 0, truncated: false, emptyFocus: true },
+          };
+        }
+
+        const adj = new Map(); // itemId -> Set(itemId)
+        const hierParents = new Map(); // itemId -> Set(parentId)
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+
+          if (l.type === "relation") {
+            if (!adj.has(s)) adj.set(s, new Set());
+            if (!adj.has(t)) adj.set(t, new Set());
+            adj.get(s).add(t);
+            adj.get(t).add(s);
+          }
+
+          if (l.type === "hierarchy") {
+            // category->item (또는 root->domain 같은 계층도 포함되지만, 여기서는 item의 부모만 필요)
+            const sn = byRawId.get(s);
+            const tn = byRawId.get(t);
+            if (tn && tn.type === "item") {
+              if (!hierParents.has(t)) hierParents.set(t, new Set());
+              hierParents.get(t).add(s);
+            }
+            if (sn && sn.type === "item") {
+              if (!hierParents.has(s)) hierParents.set(s, new Set());
+              hierParents.get(s).add(t);
+            }
+          }
+        }
+
+        const maxDepth = Math.max(1, Math.min(3, Number(state.relationDepth || 1)));
+        const maxNodes = Math.max(30, Math.min(800, Number(state.relationLimit || 200)));
+
+        const visited = new Set([focusId]);
+        const depthById = new Map([[focusId, 0]]);
+        const q = [{ id: focusId, depth: 0 }];
+
+        while (q.length) {
+          const cur = q.shift();
+          if (!cur) break;
+          if (cur.depth >= maxDepth) continue;
+          const ns = adj.get(cur.id);
+          if (!ns) continue;
+          for (const nb of ns) {
+            if (visited.has(nb)) continue;
+            const rawNb = byRawId.get(nb);
+            if (!rawNb || rawNb.type !== "item") continue;
+            visited.add(nb);
+            depthById.set(nb, cur.depth + 1);
+            q.push({ id: nb, depth: cur.depth + 1 });
+            if (visited.size >= maxNodes) break;
+          }
+          if (visited.size >= maxNodes) break;
+        }
+
+        const itemIds = Array.from(visited);
+        const nodes = [upsertCachedNode(root)];
+        const links = [];
+
+        const includeHierarchy = Boolean(state.relationShowHierarchy);
+        const parentIds = new Set();
+        if (includeHierarchy) {
+          // 깊이 0~1까지만 카테고리/도메인 컨텍스트를 붙여서 과도한 분산을 막음
+          for (const id of itemIds) {
+            const d = depthById.get(id) || 0;
+            if (d > 1) continue;
+            const ps = hierParents.get(id);
+            if (!ps) continue;
+            for (const p of ps) parentIds.add(String(p));
+          }
+        }
+
+        for (const pid of parentIds) {
+          const n = byRawId.get(pid);
+          if (!n) continue;
+          nodes.push(upsertCachedNode(n));
+        }
+
+        for (const id of itemIds) {
+          const n = byRawId.get(id);
+          if (!n) continue;
+          const depth = depthById.get(id) || 0;
+          nodes.push(upsertCachedNode({ ...n, depth }));
+        }
+
+        const inSet = new Set(nodes.map((n) => String(n.id)));
+        const seen = new Set();
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (!inSet.has(String(s)) || !inSet.has(String(t))) continue;
+
+          if (l.type === "relation") {
+            const key = linkKey(s, t, "relation");
+            if (seen.has(key)) continue;
+            seen.add(key);
+            links.push({ source: s, target: t, type: "relation" });
+          }
+
+          if (includeHierarchy && l.type === "hierarchy") {
+            const key = linkKey(s, t, "hierarchy");
+            if (seen.has(key)) continue;
+            seen.add(key);
+            links.push({ source: s, target: t, type: "hierarchy" });
+          }
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: itemIds.length, shownItems: itemIds.length, truncated: visited.size >= maxNodes },
+        };
+      }
+
       function computeGraphData() {
         if (state.mode === "territory") return computeTerritoryGraphData();
+        if (state.mode === "relation") return computeRelationGraphData();
         if (state.mode === "layer") return computeLayerGraphData();
         if (state.mode === "pov") return computePovGraphData();
         if (state.mode === "state") return computeStateGraphData();
@@ -1338,6 +1509,8 @@
               "</div></div>"
             : "";
 
+        const showRelationBtn = node.type === "item";
+
         elSelectedBox.innerHTML =
           '<div style="font-size:14px; font-weight:900; line-height:1.25;">' +
           (node.label || "") +
@@ -1350,10 +1523,20 @@
           '<button id="btn-open-notion" type="button" style="' +
           (node.url ? "" : "display:none;") +
           '">노션 열기</button>' +
+          '<button id="btn-open-relation" type="button" style="' +
+          (showRelationBtn ? "" : "display:none;") +
+          '">관계로 보기</button>' +
           "</div>";
 
         const btn = document.getElementById("btn-open-notion");
         if (btn) btn.addEventListener("click", () => openNotion(node));
+
+        const btnRel = document.getElementById("btn-open-relation");
+        if (btnRel)
+          btnRel.addEventListener("click", () => {
+            state.userInteracted = true;
+            setModeKeepSelected("relation");
+          });
       }
 
       function renderItemList(graphData, byId) {
@@ -1375,7 +1558,9 @@
           elItemList.innerHTML = "";
           elItemListHint.style.display = "";
 
-          if (state.mode === "territory") {
+          if (state.mode === "relation") {
+            elItemListHint.textContent = "항목을 하나 선택한 뒤, '관계로 보기'를 누르거나 관계 모드에서 선택된 항목을 기준으로 표시됩니다.";
+          } else if (state.mode === "territory") {
             elItemListHint.textContent = "검색/필터를 적용하거나, 카테고리 노드를 클릭해서 펼치면 항목이 표시됩니다.";
           } else if (state.mode === "layer" || state.mode === "pov" || state.mode === "state" || state.mode === "timeline") {
             elItemListHint.textContent = "그룹 노드를 클릭해서 펼치거나, 검색/필터로 범위를 줄이면 항목이 표시됩니다.";
@@ -1508,6 +1693,7 @@
         elControlLayer.style.display = mode === "layer" || mode === "ui" ? "" : "none";
         elControlPov.style.display = mode === "pov" ? "" : "none";
         elControlStatus.style.display = mode === "state" || mode === "ui" ? "" : "none";
+        if (elControlRelation) elControlRelation.style.display = mode === "relation" ? "" : "none";
 
         const allowMindmap = mode === "territory";
         elMindmap.disabled = !allowMindmap;
@@ -1522,18 +1708,23 @@
         if (elShowItems.parentElement) elShowItems.parentElement.style.opacity = allowShowItems ? "1" : "0.45";
       }
 
-      function setMode(nextMode) {
+      function setMode(nextMode, opts) {
         const next = String(nextMode || "").trim();
         if (!next) return;
         state.mode = next;
         state.userInteracted = false;
         state.autoFitDone = false;
         state.hoveredNodeId = null;
-        state.selectedNodeId = null;
+        const keepSelected = Boolean(opts && opts.keepSelected);
+        if (!keepSelected) state.selectedNodeId = null;
         state.expandedCategoryScope = null;
         state.expandedScope = null;
         updateModeUI();
         refresh();
+      }
+
+      function setModeKeepSelected(nextMode) {
+        setMode(nextMode, { keepSelected: true });
       }
 
       function getDagModeForMode() {
@@ -1671,8 +1862,10 @@
 
         const itemCount = (graphData.nodes || []).reduce((acc, n) => acc + (n.type === "item" ? 1 : 0), 0);
         const scale = Math.min(2.2, 1 + itemCount / 220);
-        const chargeStrength = Math.floor(baseCharge * scale);
-        const linkDistance = Math.floor(baseLink * Math.min(1.8, 1 + itemCount / 450));
+        const chargeStrength = Math.floor(baseCharge * scale * (state.mode === "relation" ? 0.78 : 1));
+        const linkDistance = Math.floor(
+          baseLink * Math.min(1.8, 1 + itemCount / 450) * (state.mode === "relation" ? 0.68 : 1),
+        );
 
         const charge = graph.d3Force && graph.d3Force("charge");
         if (charge && typeof charge.strength === "function") charge.strength(chargeStrength);
@@ -1682,6 +1875,7 @@
           link.distance((l) => {
             if (l.type === "relation") return 28;
             if (l.type === "transition") return 36;
+            if (state.mode === "relation") return Math.max(26, Math.floor(linkDistance * 0.9));
             if (state.mode === "territory") return Math.floor(linkDistance * (state.mindmapLayout ? 1.65 : 1.25));
             return linkDistance;
           });
@@ -1928,6 +2122,9 @@
           ) {
             state.expandedCategoryScope = null;
           }
+        } else if (state.mode === "relation") {
+          state.expandedCategoryScope = null;
+          state.expandedScope = null;
         } else {
           state.expandedCategoryScope = null;
           const q = state.query.trim();
@@ -2021,6 +2218,9 @@
         state.layerFilter = elLayer ? elLayer.value || "ALL" : "ALL";
         state.povFilter = elPov ? elPov.value || "PLAYER" : "PLAYER";
         state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
+        state.relationDepth = elRelationDepth ? Number(elRelationDepth.value || 1) : 1;
+        state.relationLimit = elRelationLimit ? Number(elRelationLimit.value || 200) : 200;
+        state.relationShowHierarchy = Boolean(elRelationShowHierarchy && elRelationShowHierarchy.checked);
         state.density = elDensity ? elDensity.value || "normal" : "normal";
         state.showItems = Boolean(elShowItems.checked);
         state.showRelations = Boolean(elShowRelations.checked);
@@ -2222,6 +2422,27 @@
       }
       if (elStatus) {
         elStatus.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationDepth) {
+        elRelationDepth.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationLimit) {
+        elRelationLimit.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationShowHierarchy) {
+        elRelationShowHierarchy.addEventListener("change", () => {
+          state.autoFitDone = false;
           syncStateFromControls();
           refresh();
         });
