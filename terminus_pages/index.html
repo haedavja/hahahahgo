@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TERMINUS</title>
+    <style>
+      :root {
+        --bg0: #020409;
+        --panel: rgba(2, 4, 9, 0.62);
+        --border: rgba(148, 163, 184, 0.22);
+        --muted: #94a3b8;
+        --text: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+        background: radial-gradient(circle at 20% 0%, rgba(34, 64, 122, 0.45), rgba(2, 4, 9, 0.96));
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      .page {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 360px 1fr;
+      }
+
+      .panel {
+        border-right: 1px solid var(--border);
+        background: var(--panel);
+        padding: 16px 14px;
+        overflow: auto;
+      }
+
+      .main {
+        position: relative;
+      }
+      #graph {
+        position: absolute;
+        inset: 0;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .row-between {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.6);
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      label {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.55);
+        color: var(--text);
+        outline: none;
+      }
+
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+        margin: 14px 0;
+      }
+
+      button {
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.45);
+        color: var(--text);
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(30, 41, 59, 0.55);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .list {
+        margin-top: 8px;
+        max-height: 240px;
+        overflow: auto;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 23, 42, 0.35);
+      }
+
+      .list button {
+        width: 100%;
+        text-align: left;
+        border: none;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 0;
+        background: transparent;
+        padding: 8px 10px;
+      }
+      .list button.selected {
+        background: rgba(59, 130, 246, 0.18);
+      }
+      .list button:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <aside class="panel">
+        <div class="row-between">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">테르미누스</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Notion DB → 그래프</div>
+          </div>
+          <div class="row" style="gap: 8px;">
+            <button id="btn-export" type="button" title="terminus-graph.json 다시 불러오기">갱신</button>
+            <button id="btn-fit" type="button">맞춤</button>
+          </div>
+        </div>
+
+        <div class="row" style="flex-wrap: wrap; margin-top: 12px;">
+          <span class="badge">view=terminus</span>
+          <span id="badge-export" class="badge" style="display: none;"></span>
+        </div>
+
+        <div id="stats" class="hint" style="margin-top: 12px;"></div>
+
+        <div style="margin-top: 14px;">
+          <label for="q">검색(제목)</label>
+          <div style="margin-top: 6px;">
+            <input id="q" type="text" placeholder="예: 초법, 설정, 캐릭터…" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top: 12px;">
+          <div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">도메인</div>
+            <select id="domain">
+              <option value="ALL">전체</option>
+              <option value="세계관">세계관</option>
+              <option value="소설">소설</option>
+              <option value="게임">게임</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">대분류</div>
+            <select id="category">
+              <option value="ALL">전체</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 12px; gap: 14px;">
+          <label class="checkbox"><input id="showItems" type="checkbox" /> 항목 표시</label>
+          <label class="checkbox"><input id="showRelations" type="checkbox" checked /> 관련 노드(점선)</label>
+        </div>
+
+        <div id="itemControls" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">항목 최대 표시</div>
+          <div class="row">
+            <select id="itemLimit">
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="250" selected>250</option>
+              <option value="400">400</option>
+              <option value="600">600</option>
+            </select>
+            <button id="btn-collapse" type="button" style="display: none; white-space: nowrap;">펼침 닫기</button>
+          </div>
+          <div id="itemStats" class="hint" style="margin-top: 6px; display: none;"></div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <label class="checkbox"><input id="mindmap" type="checkbox" checked /> 마인드맵 정렬(안정)</label>
+        </div>
+
+        <hr />
+
+        <div>
+          <div style="font-size: 12px; color: #cbd5e1; font-weight: 800;">선택 노드</div>
+          <div id="selectedEmpty" class="hint">노드를 클릭하면 상세가 나옵니다.</div>
+          <div id="selectedBox" style="display: none; margin-top: 8px;"></div>
+        </div>
+
+        <div id="itemListBox" style="display: none; margin-top: 14px;">
+          <div class="row-between">
+            <div style="font-size: 12px; color: #cbd5e1; font-weight: 800;">항목 목록</div>
+            <div id="itemListCount" style="font-size: 12px; color: var(--muted);"></div>
+          </div>
+          <div id="itemList" class="list"></div>
+          <div id="itemListHint" class="hint" style="display: none;"></div>
+        </div>
+
+        <hr />
+
+        <div class="hint">
+          - 항목이 겹치면 <b>검색/필터</b>로 줄이거나, 카테고리 노드 클릭(펼침)으로 좁히세요.<br />
+          - 관련 노드(점선)는 선택한 노드 주변만 표시합니다.
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="graph"></div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/force-graph@1.49.0/dist/force-graph.min.js"></script>
+
+    <script>
+      const DEFAULT_WARMUP_TICKS = 40;
+      const DEFAULT_COOLDOWN_TICKS = 220;
+      const ITEM_LIST_LIMIT = 120;
+
+      const elGraph = document.getElementById("graph");
+      const elStats = document.getElementById("stats");
+      const elExport = document.getElementById("badge-export");
+      const elQ = document.getElementById("q");
+      const elDomain = document.getElementById("domain");
+      const elCategory = document.getElementById("category");
+      const elShowItems = document.getElementById("showItems");
+      const elShowRelations = document.getElementById("showRelations");
+      const elMindmap = document.getElementById("mindmap");
+      const elItemControls = document.getElementById("itemControls");
+      const elItemLimit = document.getElementById("itemLimit");
+      const elItemStats = document.getElementById("itemStats");
+      const elBtnCollapse = document.getElementById("btn-collapse");
+
+      const elSelectedEmpty = document.getElementById("selectedEmpty");
+      const elSelectedBox = document.getElementById("selectedBox");
+      const elItemListBox = document.getElementById("itemListBox");
+      const elItemList = document.getElementById("itemList");
+      const elItemListCount = document.getElementById("itemListCount");
+      const elItemListHint = document.getElementById("itemListHint");
+
+      const state = {
+        raw: null,
+        query: "",
+        domainFilter: "ALL",
+        categoryFilter: "ALL",
+        showItems: false,
+        showRelations: true,
+        mindmapLayout: true,
+        itemLimit: 250,
+        expandedCategoryScope: null,
+        selectedNodeId: null,
+        hoveredNodeId: null,
+        userInteracted: false,
+        autoFitDone: false,
+      };
+
+      const nodeCache = new Map();
+
+      function includesCI(haystack, needle) {
+        return String(haystack || "").toLowerCase().includes(String(needle || "").toLowerCase());
+      }
+
+      function getEndpointId(value) {
+        if (!value) return null;
+        if (typeof value === "string" || typeof value === "number") return String(value);
+        if (typeof value === "object" && value.id != null) return String(value.id);
+        return null;
+      }
+
+      function linkKey(s, t, type) {
+        if (!s || !t) return "";
+        if (type === "relation") {
+          const a = [String(s), String(t)].sort();
+          return a[0] + "|" + a[1] + "|" + type;
+        }
+        return String(s) + "|" + String(t) + "|" + type;
+      }
+
+      function getNodeSize(node) {
+        if (node.type === "root") return 10;
+        if (node.type === "domain") return 8;
+        if (node.type === "category") return 6;
+        return 3;
+      }
+
+      function getNodeBaseColor(node) {
+        if (node.type === "root") return "#f8fafc";
+        if (node.type === "domain") {
+          if (node.domain === "세계관") return "#60a5fa";
+          if (node.domain === "소설") return "#f472b6";
+          if (node.domain === "게임") return "#34d399";
+          return "#93c5fd";
+        }
+        if (node.type === "category") {
+          switch (node.label) {
+            case "초법":
+              return "#a78bfa";
+            case "기술":
+              return "#60a5fa";
+            case "군사":
+              return "#34d399";
+            case "세력":
+              return "#fb7185";
+            case "인물":
+              return "#fbbf24";
+            case "장소/지역":
+              return "#f59e0b";
+            case "역사/사건":
+              return "#f97316";
+            case "용어/개념":
+              return "#94a3b8";
+            case "유물/아이템":
+              return "#ec4899";
+            case "플롯/에피소드":
+              return "#fde047";
+            case "시스템(게임)":
+              return "#22c55e";
+            case "메타":
+              return "#cbd5e1";
+            case "설정":
+              return "#a3a3a3";
+            default:
+              return "#93c5fd";
+          }
+        }
+        const primaryDomain = (node.domains && node.domains[0]) || node.domain || null;
+        if (primaryDomain === "세계관") return "rgba(96, 165, 250, 0.9)";
+        if (primaryDomain === "소설") return "rgba(244, 114, 182, 0.9)";
+        if (primaryDomain === "게임") return "rgba(52, 211, 153, 0.9)";
+        return "#9ca3af";
+      }
+
+      function upsertCachedNode(raw) {
+        const id = String(raw.id);
+        let node = nodeCache.get(id);
+        if (!node) {
+          node = { ...raw };
+          nodeCache.set(id, node);
+        } else {
+          Object.assign(node, raw);
+        }
+        return node;
+      }
+
+      function renderCategories(raw) {
+        const current = elCategory.value;
+        const set = new Set();
+        for (const n of raw.nodes || []) {
+          if (n.type === "category") set.add(n.label);
+        }
+        const cats = Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "ko"));
+
+        elCategory.innerHTML = "";
+        const optAll = document.createElement("option");
+        optAll.value = "ALL";
+        optAll.textContent = "전체";
+        elCategory.appendChild(optAll);
+        for (const c of cats) {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          elCategory.appendChild(opt);
+        }
+        elCategory.value = cats.includes(current) ? current : "ALL";
+      }
+
+      function computeGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const visibleNodeIds = new Set();
+
+        const expandedDomain = state.expandedCategoryScope ? state.expandedCategoryScope.domain : null;
+        const expandedCategory = state.expandedCategoryScope ? state.expandedCategoryScope.category : null;
+
+        const shouldShowItems =
+          state.showItems &&
+          (q.length > 0 ||
+            state.domainFilter !== "ALL" ||
+            state.categoryFilter !== "ALL" ||
+            expandedDomain !== null);
+
+        const baseNodes = [];
+        const candidateItems = [];
+
+        for (const n of raw.nodes || []) {
+          if (n.type === "root" || n.type === "domain") {
+            visibleNodeIds.add(n.id);
+            baseNodes.push(upsertCachedNode(n));
+            continue;
+          }
+
+          if (n.type === "category") {
+            const domainOk = state.domainFilter === "ALL" || n.domain === state.domainFilter;
+            const categoryOk = state.categoryFilter === "ALL" || n.label === state.categoryFilter;
+            if (!domainOk || !categoryOk) continue;
+            visibleNodeIds.add(n.id);
+            baseNodes.push(upsertCachedNode(n));
+            continue;
+          }
+
+          if (n.type !== "item") continue;
+          if (!shouldShowItems) continue;
+
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          const expandedOk = expandedDomain ? domains.includes(expandedDomain) && n.category === expandedCategory : true;
+          if (!domainOk || !categoryOk || !queryOk || !expandedOk) continue;
+
+          candidateItems.push(upsertCachedNode(n));
+        }
+
+        candidateItems.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        if (state.selectedNodeId) {
+          const idx = candidateItems.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = candidateItems.splice(idx, 1)[0];
+            candidateItems.unshift(keep);
+          }
+        }
+
+        const truncated = candidateItems.length > state.itemLimit;
+        const shownItems = truncated ? candidateItems.slice(0, state.itemLimit) : candidateItems;
+        for (const n of shownItems) visibleNodeIds.add(n.id);
+
+        const relationFocusId = state.showRelations ? state.selectedNodeId : null;
+        const links = (raw.links || []).filter((l) => {
+          const s = String(l.source);
+          const t = String(l.target);
+          if (!visibleNodeIds.has(s) || !visibleNodeIds.has(t)) return false;
+          if (l.type === "relation") {
+            if (!relationFocusId) return false;
+            return s === relationFocusId || t === relationFocusId;
+          }
+          return true;
+        });
+
+        return {
+          nodes: baseNodes.concat(shownItems),
+          links,
+          stats: { matchedItems: candidateItems.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computeById(graphData) {
+        const m = new Map();
+        for (const n of graphData.nodes || []) m.set(String(n.id), n);
+        return m;
+      }
+
+      function computeHighlight(graphData) {
+        const focusId = state.hoveredNodeId || state.selectedNodeId;
+        const highlightNodes = new Set();
+        const highlightLinks = new Set();
+        if (!graphData || !focusId) return { highlightNodes, highlightLinks };
+
+        highlightNodes.add(String(focusId));
+        for (const l of graphData.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (s !== String(focusId) && t !== String(focusId)) continue;
+          highlightNodes.add(s);
+          highlightNodes.add(t);
+          highlightLinks.add(linkKey(s, t, l.type));
+        }
+        return { highlightNodes, highlightLinks };
+      }
+
+      function openNotion(node) {
+        if (!node || !node.url) return;
+        window.open(node.url, "_blank", "noopener,noreferrer");
+      }
+
+      function updateSelectedUI(node) {
+        if (!node) {
+          elSelectedEmpty.style.display = "";
+          elSelectedBox.style.display = "none";
+          elSelectedBox.innerHTML = "";
+          return;
+        }
+
+        elSelectedEmpty.style.display = "none";
+        elSelectedBox.style.display = "";
+
+        const badges = [];
+        badges.push('<span class="badge">' + node.type + "</span>");
+        if (node.domain) badges.push('<span class="badge">domain: ' + node.domain + "</span>");
+        if (node.domains && node.domains.length)
+          badges.push('<span class="badge">domains: ' + node.domains.join(", ") + "</span>");
+        if (node.category) badges.push('<span class="badge">cat: ' + node.category + "</span>");
+        if (node.status) badges.push('<span class="badge">상태: ' + node.status + "</span>");
+
+        const tags =
+          node.tags && node.tags.length
+            ? '<div style="margin-top:10px; font-size:12px; color:#cbd5e1; line-height:1.4;"><div style="color: var(--muted);">연관</div><div>' +
+              node.tags.join(", ") +
+              "</div></div>"
+            : "";
+
+        elSelectedBox.innerHTML =
+          '<div style="font-size:14px; font-weight:900; line-height:1.25;">' +
+          (node.label || "") +
+          "</div>" +
+          '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">' +
+          badges.join("") +
+          "</div>" +
+          tags +
+          '<div style="display:flex; gap:8px; margin-top:12px;">' +
+          '<button id="btn-open-notion" type="button" style="' +
+          (node.url ? "" : "display:none;") +
+          '">노션 열기</button>' +
+          "</div>";
+
+        const btn = document.getElementById("btn-open-notion");
+        if (btn) btn.addEventListener("click", () => openNotion(node));
+      }
+
+      function renderItemList(graphData, byId) {
+        if (!state.showItems || !graphData) {
+          elItemListBox.style.display = "none";
+          elItemList.innerHTML = "";
+          return;
+        }
+
+        const items = (graphData.nodes || []).filter((n) => n.type === "item");
+        if (items.length === 0) {
+          elItemListBox.style.display = "none";
+          elItemList.innerHTML = "";
+          return;
+        }
+
+        elItemListBox.style.display = "";
+        elItemListCount.textContent = Math.min(ITEM_LIST_LIMIT, items.length) + "/" + items.length;
+        elItemListHint.style.display = "none";
+        elItemList.innerHTML = "";
+
+        const shown = items.slice(0, ITEM_LIST_LIMIT);
+        for (const n of shown) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = String(n.id) === String(state.selectedNodeId) ? "selected" : "";
+          btn.innerHTML =
+            '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+            '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+            (n.label || "") +
+            "</div>" +
+            (n.status ? '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' + n.status + "</div>" : "") +
+            "</div>";
+          btn.addEventListener("click", () => {
+            state.userInteracted = true;
+            state.selectedNodeId = String(n.id);
+            state.hoveredNodeId = null;
+            const hit = byId.get(String(n.id));
+            if (hit) focusNode(hit);
+            refresh();
+          });
+          elItemList.appendChild(btn);
+        }
+
+        if (items.length > ITEM_LIST_LIMIT) {
+          elItemListHint.textContent = "너무 많아서 " + ITEM_LIST_LIMIT + "개까지만 목록에 표시합니다. (검색/필터로 줄이기)";
+          elItemListHint.style.display = "";
+        }
+      }
+
+      function focusNode(node) {
+        if (!node || typeof node.x !== "number" || typeof node.y !== "number") return;
+        graph.centerAt(node.x, node.y, 450);
+        const currentZoom = graph.zoom() || 1;
+        if (currentZoom < 1.8) graph.zoom(2.6, 450);
+      }
+
+      function updateUiFromGraphData(graphData, byId) {
+        if (!state.raw) return;
+
+        const meta = state.raw.meta || {};
+        const exportedAt = meta.exportedAt || "";
+        if (exportedAt) {
+          elExport.textContent = "export: " + exportedAt;
+          elExport.style.display = "";
+        } else {
+          elExport.style.display = "none";
+        }
+
+        const nodeCount = (state.raw.nodes || []).length;
+        const linkCount = (state.raw.links || []).length;
+        const pageCount = meta.totalPagesFetched != null ? meta.totalPagesFetched : "?";
+        elStats.textContent = "nodes: " + nodeCount + " / links: " + linkCount + " / pages: " + pageCount;
+
+        if (state.showItems) {
+          elItemControls.style.display = "";
+          elItemStats.style.display = graphData.stats && (graphData.stats.matchedItems > 0 || state.expandedCategoryScope) ? "" : "none";
+          if (graphData.stats) {
+            let t = "항목: " + graphData.stats.shownItems + "/" + graphData.stats.matchedItems;
+            if (graphData.stats.truncated) t += " (최대 " + state.itemLimit + "개만 표시)";
+            if (state.expandedCategoryScope)
+              t += "\\n펼침: " + state.expandedCategoryScope.domain + " / " + state.expandedCategoryScope.category;
+            elItemStats.textContent = t;
+          }
+        } else {
+          elItemControls.style.display = "none";
+          elItemStats.style.display = "none";
+          state.expandedCategoryScope = null;
+        }
+
+        elBtnCollapse.style.display = state.expandedCategoryScope ? "" : "none";
+
+        const selected = state.selectedNodeId ? byId.get(String(state.selectedNodeId)) : null;
+        updateSelectedUI(selected);
+      }
+
+      function refresh() {
+        // Expand scope hygiene
+        const q = state.query.trim();
+        if (!state.showItems) state.expandedCategoryScope = null;
+        if (state.showItems && (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL")) {
+          state.expandedCategoryScope = null;
+        }
+
+        const graphData = computeGraphData();
+        if (!graphData) return;
+        const byId = computeById(graphData);
+
+        if (state.selectedNodeId && !byId.has(String(state.selectedNodeId))) state.selectedNodeId = null;
+        if (state.hoveredNodeId && !byId.has(String(state.hoveredNodeId))) state.hoveredNodeId = null;
+
+        const highlight = computeHighlight(graphData);
+
+        graph
+          .graphData(graphData)
+          .dagMode(state.mindmapLayout ? "radialout" : null)
+          .dagLevelDistance(state.mindmapLayout ? 110 : null)
+          .nodeVal((n) => getNodeSize(n))
+          .nodeColor((n) => {
+            const base = getNodeBaseColor(n);
+            if (highlight.highlightNodes.size === 0) return base;
+            if (highlight.highlightNodes.has(String(n.id))) return base;
+            return "rgba(148, 163, 184, 0.55)";
+          })
+          .linkWidth((l) => {
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) return 0.8;
+            const key = linkKey(s, t, l.type);
+            return highlight.highlightLinks.has(key) ? 2.2 : 0.9;
+          })
+          .linkColor((l) => {
+            if (l.type === "relation") return "rgba(248, 113, 113, 0.85)";
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) return "rgba(148, 163, 184, 0.18)";
+            const key = linkKey(s, t, l.type);
+            if (highlight.highlightLinks.size === 0) return "rgba(148, 163, 184, 0.18)";
+            return highlight.highlightLinks.has(key) ? "rgba(226, 232, 240, 0.5)" : "rgba(148, 163, 184, 0.08)";
+          })
+          .linkLineDash((l) => (l.type === "relation" ? [6, 4] : null))
+          .nodeCanvasObjectMode(() => "after")
+          .nodeCanvasObject((node, ctx, globalScale) => {
+            const label = node.label;
+            if (!label) return;
+
+            const alwaysLabel = node.type !== "item";
+            const isFocus = String(node.id) === String(state.selectedNodeId) || String(node.id) === String(state.hoveredNodeId);
+            const zoomedIn = globalScale > 2.2;
+            if (!alwaysLabel && !isFocus && !zoomedIn) return;
+
+            const fontSize = Math.max(10, 14 / globalScale);
+            ctx.font = fontSize + "px sans-serif";
+            const textWidth = ctx.measureText(label).width;
+            const padding = 6 / globalScale;
+
+            const x = node.x || 0;
+            const y = node.y || 0;
+            ctx.fillStyle = "rgba(2, 4, 9, 0.65)";
+            ctx.fillRect(x - textWidth / 2 - padding, y + 7 / globalScale, textWidth + padding * 2, fontSize + padding);
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillStyle = "#e2e8f0";
+            ctx.fillText(label, x, y + 7 / globalScale);
+          });
+
+        updateUiFromGraphData(graphData, byId);
+        renderItemList(graphData, byId);
+      }
+
+      function syncStateFromControls() {
+        state.query = elQ.value || "";
+        state.domainFilter = elDomain.value || "ALL";
+        state.categoryFilter = elCategory.value || "ALL";
+        state.showItems = Boolean(elShowItems.checked);
+        state.showRelations = Boolean(elShowRelations.checked);
+        state.mindmapLayout = Boolean(elMindmap.checked);
+        state.itemLimit = Number(elItemLimit.value || 250);
+      }
+
+      function resizeGraph() {
+        const rect = elGraph.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        graph.width(Math.floor(rect.width));
+        graph.height(Math.floor(rect.height));
+      }
+
+      async function loadRawGraph() {
+        const res = await fetch("./terminus-graph.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("terminus-graph.json 로드 실패: HTTP " + res.status);
+        return res.json();
+      }
+
+      async function doExportReload() {
+        try {
+          state.raw = await loadRawGraph();
+          renderCategories(state.raw);
+          state.autoFitDone = false;
+          refresh();
+        } catch (e) {
+          elStats.textContent = String((e && e.message) || e);
+        }
+      }
+
+      // Init graph
+      const graph = ForceGraph()(elGraph)
+        .backgroundColor("rgba(2, 4, 9, 0)")
+        .nodeId("id")
+        .linkSource("source")
+        .linkTarget("target")
+        .warmupTicks(DEFAULT_WARMUP_TICKS)
+        .cooldownTicks(DEFAULT_COOLDOWN_TICKS)
+        .d3VelocityDecay(0.55)
+        .onNodeHover((node) => {
+          state.hoveredNodeId = node && node.id != null ? String(node.id) : null;
+          refresh();
+        })
+        .onNodeClick((node) => {
+          if (!node || node.id == null) return;
+          state.userInteracted = true;
+
+          const id = String(node.id);
+          state.selectedNodeId = id;
+
+          if (
+            state.showItems &&
+            state.domainFilter === "ALL" &&
+            state.categoryFilter === "ALL" &&
+            state.query.trim().length === 0 &&
+            node.type === "category" &&
+            node.domain
+          ) {
+            const next = { domain: node.domain, category: node.label };
+            if (
+              state.expandedCategoryScope &&
+              state.expandedCategoryScope.domain === next.domain &&
+              state.expandedCategoryScope.category === next.category
+            ) {
+              state.expandedCategoryScope = null;
+            } else {
+              state.expandedCategoryScope = next;
+            }
+          }
+
+          focusNode(node);
+          refresh();
+        })
+        .onBackgroundClick(() => {
+          state.selectedNodeId = null;
+          refresh();
+        })
+        .onEngineStop(() => {
+          if (state.autoFitDone) return;
+          if (state.userInteracted) return;
+          graph.zoomToFit(450, 70);
+          state.autoFitDone = true;
+        });
+
+      // mark interaction
+      elGraph.addEventListener(
+        "pointerdown",
+        () => {
+          state.userInteracted = true;
+        },
+        { passive: true },
+      );
+
+      // Wire controls
+      elQ.addEventListener("input", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elDomain.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elCategory.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elShowItems.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elShowRelations.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elMindmap.addEventListener("change", () => {
+        state.autoFitDone = false;
+        syncStateFromControls();
+        refresh();
+      });
+      elItemLimit.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elBtnCollapse.addEventListener("click", () => {
+        state.expandedCategoryScope = null;
+        refresh();
+      });
+
+      document.getElementById("btn-fit").addEventListener("click", () => graph.zoomToFit(350, 50));
+      document.getElementById("btn-export").addEventListener("click", () => doExportReload());
+
+      window.addEventListener("resize", () => resizeGraph());
+
+      // Boot
+      syncStateFromControls();
+      resizeGraph();
+      doExportReload();
+    </script>
+  </body>
+</html>
