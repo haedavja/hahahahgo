@@ -2264,8 +2264,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
       {/* 상징 표시 */}
       <RelicDisplay
         orderedRelicList={orderedRelicList}
-        RELICS={RELICS as unknown as UIRelicsMap}
-        RELIC_RARITIES={RELIC_RARITIES as unknown as RelicRarities}
+        RELICS={RELICS}
+        RELIC_RARITIES={RELIC_RARITIES}
         RELIC_RARITY_COLORS={RELIC_RARITY_COLORS}
         relicActivated={relicActivated}
         activeRelicSet={activeRelicSet}

@@ -6,6 +6,7 @@
  */
 
 import type { RelicRarity } from '../types';
+import type { UIRelicsMap, RelicRarities } from '../types/ui';
 
 /** 상징 조건 평가용 상태 */
 interface RelicConditionState {
@@ -18,13 +19,13 @@ interface RelicConditionState {
 }
 
 /** 상징 희귀도 상수 */
-export const RELIC_RARITIES: Record<string, RelicRarity | 'dev'> = {
+export const RELIC_RARITIES: RelicRarities = {
   COMMON: 'common',
   RARE: 'rare',
   SPECIAL: 'special',
   LEGENDARY: 'legendary',
   DEV: 'dev',  // 개발자 전용
-} as const;
+};
 
 export const RELIC_TAGS = {
   ENERGY: 'energy',      // 행동력
@@ -52,7 +53,7 @@ export const RELIC_TAGS = {
  * - ON_CARD_DRAW: 카드 뽑을 때
  */
 
-export const RELICS = {
+export const RELICS: UIRelicsMap = {
   // ==================== 일반 등급 ====================
   etherCrystal: {
     id: 'etherCrystal',
