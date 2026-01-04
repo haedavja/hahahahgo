@@ -35,7 +35,6 @@ import type {
   ParryReadyState,
   EnemyPlan,
   BattleEvent,
-  BattleRef,
   VictoryCheckResult,
   PlayerBattleState,
   EnemyUnit,
@@ -46,6 +45,7 @@ import type {
   EtherCard,
   EtherAnimCard
 } from '../../../types';
+import type { BattleRefValue } from '../../../types/hooks';
 import type { FullBattleState } from '../reducer/battleReducerState';
 import type { PlayerState, EnemyState } from '../reducer/battleReducerActions';
 import type { BattleActions } from './useBattleState';
@@ -68,7 +68,7 @@ interface UseResolveExecutionParams {
   enemyPlan: EnemyPlan;
   relics: UIRelicsMap;
   orderedRelicList: Relic[];
-  battleRef: MutableRefObject<BattleRef | null>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   parryReadyStatesRef: MutableRefObject<ParryReadyState[]>;
   setParryReadyStates: Dispatch<SetStateAction<ParryReadyState[]>>;
   growingDefenseRef: MutableRefObject<number | null>;

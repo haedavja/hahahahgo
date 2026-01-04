@@ -42,7 +42,7 @@ interface UseEnemyPlanGenerationParams {
   enemy: EnemyState | null;
   enemyPlan: EnemyPlan;
   enemyCount: number;
-  battleRef: MutableRefObject<BattleRefValue>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   etherSlots: (pts: number) => number;
   actions: {
     setEnemyPlan: (plan: { mode: AIMode | null; actions: Card[] }) => void;

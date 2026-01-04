@@ -121,7 +121,7 @@ interface PathosSlotsProps {
   enemy: Combatant;
   cooldowns: PathosCooldowns;
   onPathosUsed: (result: PathosUseResult, newCooldowns: PathosCooldowns) => void;
-  battleRef: MutableRefObject<{ phase?: string } | null>;
+  battleRef: { current: { phase?: string; [key: string]: unknown } | null };
 }
 
 export const PathosSlots: FC<PathosSlotsProps> = memo(({

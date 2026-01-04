@@ -83,7 +83,7 @@ interface PathosNextCardEffects {
 
 /** 페이즈 전환 훅 파라미터 */
 interface UsePhaseTransitionParams {
-  battleRef: MutableRefObject<BattleRefValue>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   battlePhase: string;
   battleSelected: Card[];
   selected: Card[];

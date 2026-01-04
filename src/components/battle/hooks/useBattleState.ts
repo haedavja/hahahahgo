@@ -222,6 +222,9 @@ export interface BattleActions {
 
   // 기타
   dispatch: Dispatch<BattleAction>;
+
+  // 확장을 위한 인덱스 시그니처 - 훅 파라미터 타입과 호환성 확보
+  [key: string]: unknown;
 }
 
 /**

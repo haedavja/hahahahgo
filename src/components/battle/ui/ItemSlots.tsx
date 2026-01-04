@@ -135,11 +135,11 @@ type Enemy = ItemSlotsEnemy & { [key: string]: unknown };
 /** 적 계획 호환 타입 */
 type EnemyPlan = ItemSlotsEnemyPlan;
 
-/** 전투 참조 호환 타입 */
-type BattleRef = ItemSlotsBattleRef;
+/** 전투 참조 호환 타입 - BattleRefValue와 호환 */
+type BattleRef = ItemSlotsBattleRef & { [key: string]: unknown };
 
-/** 전투 액션 호환 타입 */
-type BattleActions = ItemSlotsBattleActions;
+/** 전투 액션 호환 타입 - BattleActions와 호환 */
+type BattleActions = ItemSlotsBattleActions & { [key: string]: unknown };
 
 interface ItemSlotsProps {
   phase: string;
@@ -147,7 +147,7 @@ interface ItemSlotsProps {
   player: Player;
   enemy: Enemy;
   enemyPlan: EnemyPlan | null;
-  battleRef: MutableRefObject<BattleRef | null>;
+  battleRef: { current: BattleRef | null };
 }
 
 export const ItemSlots: FC<ItemSlotsProps> = memo(({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
