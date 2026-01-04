@@ -5,7 +5,7 @@
  * 승리/패배 모두에서 사용
  */
 
-import { FC, memo, useCallback, useState } from 'react';
+import { FC, memo, useCallback, useState, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -252,9 +252,9 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
   const [showCopied, setShowCopied] = useState(false);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
 
-  // 통계 데이터
-  const simpleStats = getCurrentStats();
-  const detailedStats = getDetailedStats();
+  // 통계 데이터 (마운트 시 한 번만 계산)
+  const simpleStats = useMemo(() => getCurrentStats(), []);
+  const detailedStats = useMemo(() => getDetailedStats(), []);
 
   // 게임 상태에서 통계 수집
   const {
