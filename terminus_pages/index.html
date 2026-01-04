@@ -1513,7 +1513,12 @@
 
       function openNotion(node) {
         if (!node || !node.url) return;
-        window.open(node.url, "_blank", "noopener,noreferrer");
+        try {
+          const w = window.open(node.url, "_blank", "noopener,noreferrer");
+          if (!w) window.location.href = node.url;
+        } catch {
+          window.location.href = node.url;
+        }
       }
 
       function getNotionPageKey(node) {
