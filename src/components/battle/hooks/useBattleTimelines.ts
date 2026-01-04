@@ -24,7 +24,7 @@ import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { applyAgility } from '../../../lib/agilityUtils';
-import type { UseBattleTimelinesParams } from '../../../types/hooks';
+import type { UseBattleTimelinesParams, UseBattleTimelinesResult } from '../../../types/hooks';
 
 /**
  * 전투 타임라인 계산 훅
@@ -50,7 +50,7 @@ export function useBattleTimelines({
   enemyPlanActions,
   insightReveal,
   selected
-}: UseBattleTimelinesParams) {
+}: UseBattleTimelinesParams): UseBattleTimelinesResult {
   // 플레이어 타임라인 계산
   const playerTimeline = useMemo(() => {
     if (battlePhase === 'select') {

@@ -847,7 +847,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     finalComboMultiplier,
     enemyPlan,
     relics: orderedRelicList as unknown as UIRelicsMap,
-    orderedRelicList: orderedRelicList as unknown as Relic[],
+    orderedRelicList,
     battleRef,
     parryReadyStatesRef,
     setParryReadyStates,
@@ -1092,8 +1092,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         orderedRelicList,
         cardUpgrades: cardUpgrades as Record<string, unknown>,
         resolvedPlayerCards,
-        playerTimeline: playerTimeline as unknown as Card[],
-        relics: orderedRelicList as unknown as Relic[],
+        playerTimeline,
+        relics: orderedRelicList,
         triggeredRefs: {
           referenceBookTriggered: referenceBookTriggeredRef,
           devilDiceTriggered: devilDiceTriggeredRef
@@ -1929,10 +1929,10 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
     // fixedOrder도 다시 계산
     const newFixedOrder = createFixedOrder(
-      updatedSelected as unknown as import('../../types').OrderingCardInfo[],
-      enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
+      updatedSelected,
+      enemyPlan.actions,
       effectiveAgility,
-      player as unknown as { speedInstability?: number },
+      player,
       cardGrowth
     );
     actions.setFixedOrder(newFixedOrder);
@@ -1973,10 +1973,10 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
     // fixedOrder도 다시 계산
     const newFixedOrder = createFixedOrder(
-      updatedSelected as unknown as import('../../types').OrderingCardInfo[],
-      enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
+      updatedSelected,
+      enemyPlan.actions,
       effectiveAgility,
-      player as unknown as { speedInstability?: number },
+      player,
       cardGrowth
     );
     actions.setFixedOrder(newFixedOrder);
@@ -2122,7 +2122,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         {breachSelection && (
           <BreachSelectionModal
             breachSelection={breachSelection}
-            onSelect={handleBreachSelect as unknown as (card: import("../../types").BreachCard, idx: number) => void}
+            onSelect={handleBreachSelect}
             strengthBonus={player.strength || 0}
           />
         )}
@@ -2140,7 +2140,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         {cardReward && (
           <CardRewardModal
             rewardCards={cardReward.cards}
-            onSelect={handleRewardSelect as unknown as (card: import("../../types").RewardCard, idx: number) => void}
+            onSelect={handleRewardSelect}
             onSkip={handleRewardSkip}
           />
         )}
@@ -2148,7 +2148,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         {/* 함성 (recallCard) 카드 선택 모달 */}
         <RecallSelectionModal
           recallSelection={recallSelection}
-          onSelect={handleRecallSelect as unknown as (card: import("../../types").RecallCard) => void}
+          onSelect={handleRecallSelect}
           onSkip={handleRecallSkip}
         />
       </Suspense>
@@ -2179,7 +2179,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         battleActions={actions}
         player={battle.player}
         enemy={battle.enemy}
-        enemyPlan={battle.enemyPlan as unknown as ItemSlotsEnemyPlan}
+        enemyPlan={battle.enemyPlan}
         battleRef={battleRef}
       />
 
@@ -2198,14 +2198,14 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         <ExpectedDamagePreview
           player={player}
           enemy={enemy}
-          fixedOrder={(fixedOrder || playerTimeline) as unknown as import("../../types").UITimelineAction[] | null}
+          fixedOrder={fixedOrder || playerTimeline}
           willOverdrive={willOverdrive}
           enemyMode={(enemyPlan.mode ?? null) as string}
-          enemyActions={(enemyPlan.actions ?? []) as unknown as UITimelineAction[]}
+          enemyActions={enemyPlan.actions ?? []}
           phase={battle.phase}
           log={log}
           qIndex={battle.qIndex}
-          queue={battle.queue as unknown as UITimelineAction[]}
+          queue={battle.queue}
           stepOnce={stepOnce}
           runAll={runAll}
           finishTurn={finishTurn}
@@ -2216,7 +2216,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
-          simulatePreview={simulatePreview as unknown as (params: { player: ExpectedDamagePlayer; enemy: ExpectedDamageEnemy; fixedOrder: UITimelineAction[] | null; willOverdrive: boolean; enemyMode: string; enemyActions: UITimelineAction[]; turnNumber: number }) => SimulationResult}
+          simulatePreview={simulatePreview}
         />
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
@@ -2243,12 +2243,12 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         enemyOverdriveVisible={Boolean(enemyOverdriveVisible)}
         enemyOverdriveLabel={enemyOverdriveLabel}
         dulledLevel={dulledLevel}
-        playerTimeline={playerTimeline as unknown as import("../../types").UITimelineAction[]}
+        playerTimeline={playerTimeline}
         queue={queue}
         executingCardIndex={(executingCardIndex ?? null) as number}
         usedCardIndices={usedCardIndices}
         qIndex={qIndex}
-        enemyTimeline={enemyTimeline as unknown as import("../../types").UITimelineAction[]}
+        enemyTimeline={enemyTimeline}
         effectiveInsight={effectiveInsight}
         insightReveal={insightReveal}
         actions={{
@@ -2366,7 +2366,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
             {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
             {hasMultipleUnits ? (
               <EnemyUnitsDisplay
-                units={enemyUnits as unknown as import("../../types").EnemyUnitState[]}
+                units={enemyUnits}
                 selectedTargetUnit={selectedTargetUnit}
                 onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
                 previewDamage={previewDamage}
@@ -2407,7 +2407,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
                 enemySoulScale={enemySoulScale}
                 formatCompactValue={formatCompactValue}
                 frozenOrder={battle.frozenOrder}
-                graceState={(enemy as unknown as { grace?: import('../../data/monsterEther').MonsterGraceState }).grace}
+                graceState={enemy?.grace}
               />
             )}
           </div>
@@ -2442,21 +2442,21 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
       {/* 하단 고정 손패 영역 */}
       <HandArea
-        battle={battle as unknown as import("../../types").HandBattle}
+        battle={battle}
         player={player}
         enemy={enemy}
         selected={selected}
         getSortedHand={getSortedHand}
         toggle={toggle}
         handDisabled={handDisabled}
-        showCardTraitTooltip={showCardTraitTooltip as unknown as (card: Card, element: Element | null) => void}
+        showCardTraitTooltip={showCardTraitTooltip}
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
         renderNameWithBadge={memoizedRenderNameWithBadge}
-        fixedOrder={(fixedOrder ?? undefined) as unknown as HandAction[] | undefined}
+        fixedOrder={fixedOrder ?? undefined}
         moveUp={moveUp}
         moveDown={moveDown}
-        queue={(queue ?? undefined) as unknown as HandAction[] | undefined}
+        queue={queue ?? undefined}
         usedCardIndices={usedCardIndices}
         disappearingCards={disappearingCards}
         hiddenCards={hiddenCards}

@@ -14,6 +14,7 @@ import type {
   SimulationResult,
   PostCombatOptions,
   UITimelineAction,
+  Card,
 } from '../../../types';
 
 // =====================
@@ -76,7 +77,7 @@ interface ExpectedDamagePreviewProps {
   fixedOrder: UITimelineAction[] | null;
   willOverdrive: boolean;
   enemyMode: string;
-  enemyActions: UITimelineAction[];
+  enemyActions: Card[];
   phase: string;
   log: string[] | null;
   qIndex: number;
@@ -97,7 +98,7 @@ interface ExpectedDamagePreviewProps {
     fixedOrder: UITimelineAction[] | null;
     willOverdrive: boolean;
     enemyMode: string;
-    enemyActions: UITimelineAction[];
+    enemyActions: Card[];
     turnNumber: number;
   }) => SimulationResult;
 }

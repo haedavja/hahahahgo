@@ -12,8 +12,7 @@ import type {
   Card,
   PassiveStats,
   RelicTriggeredRefs,
-  RelicTrigger,
-  Relic
+  RelicTrigger
 } from '../../../types';
 
 /**
@@ -36,15 +35,15 @@ interface PlayerEtherAccumulationParams {
   orderedRelicList: string[];
   cardUpgrades: Record<string, unknown>;
   resolvedPlayerCards: number;
-  playerTimeline: Card[];
-  relics: Relic[];
+  playerTimeline: Array<{ [key: string]: unknown }>;
+  relics: string[];
   triggeredRefs: RelicTriggeredRefs;
   calculatePassiveEffects: (relicIds: string[]) => PassiveStats;
   getCardEtherGain: (card: Card | Partial<Card>) => number;
   collectTriggeredRelics: (params: {
     orderedRelicList: string[];
     resolvedPlayerCards: number;
-    playerTimeline: Card[];
+    playerTimeline: Array<{ [key: string]: unknown }> | null;
     triggeredRefs: RelicTriggeredRefs;
   }) => RelicTrigger[];
   playRelicActivationSequence: (

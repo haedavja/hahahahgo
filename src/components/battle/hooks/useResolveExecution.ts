@@ -31,7 +31,6 @@ import type {
   UIRelicsMap,
   CombatBattleContext,
   Card,
-  Relic,
   ParryReadyState,
   EnemyPlan,
   BattleEvent,
@@ -67,7 +66,7 @@ interface UseResolveExecutionParams {
   finalComboMultiplier: number;
   enemyPlan: EnemyPlan;
   relics: UIRelicsMap;
-  orderedRelicList: Relic[];
+  orderedRelicList: string[];
   battleRef: MutableRefObject<BattleRefValue | null>;
   parryReadyStatesRef: MutableRefObject<ParryReadyState[]>;
   setParryReadyStates: Dispatch<SetStateAction<ParryReadyState[]>>;
@@ -398,7 +397,7 @@ export function useResolveExecution({
   const runAll = useCallback(() => {
     if (battle.qIndex >= battle.queue.length) return;
     playSound(1000, 150);
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList.map(r => r.id));
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };

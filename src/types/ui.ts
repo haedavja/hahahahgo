@@ -105,13 +105,14 @@ export interface TimelineCard {
 }
 
 /**
- * UI용 타임라인 액션 - OrderItem과 호환
+ * UI용 타임라인 액션 - OrderItem과 완전 호환
  * useBattleTimelines 출력 및 battle.queue와 호환됨
  * ExpectedDamagePreview, TimelineDisplay 등에서 사용
+ * Card 타입 사용으로 OrderItem과 구조적 호환성 확보
  */
 export interface UITimelineAction {
   actor: 'player' | 'enemy';
-  card: TimelineCard | Card;
+  card: Card;
   sp?: number;
   idx?: number;
   originalIndex?: number;
@@ -246,10 +247,11 @@ export interface HandUnit {
   maxHp: number;
 }
 
-/** 손패 전투 상태 */
+/** 손패 전투 상태 - FullBattleState와 호환 */
 export interface HandBattle {
   phase: string;
   queue: HandAction[];
+  [key: string]: unknown;
 }
 
 /** 손패 플레이어 상태 */
@@ -674,11 +676,11 @@ export interface ItemSlotsEnemyAction {
 }
 
 /**
- * 적 계획 (아이템 슬롯용) - EnemyPlan과 호환
+ * 적 계획 (아이템 슬롯용) - EnemyPlan과 완전 호환
  */
 export interface ItemSlotsEnemyPlan {
-  mode?: string;
-  actions: ItemSlotsEnemyAction[] | unknown[];
+  mode?: string | null;
+  actions: Card[];
   manuallyModified?: boolean;
   [key: string]: unknown;
 }

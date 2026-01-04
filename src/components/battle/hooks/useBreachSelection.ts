@@ -59,7 +59,7 @@ export function useBreachSelection({
   const breachSelectionRef = useRef<BreachSelection | null>(null);
   const creationQueueRef = useRef<CreationQueueItem[]>([]);
 
-  const handleBreachSelect = useCallback((selectedCard: Card, idx?: number) => {
+  const handleBreachSelect = useCallback((selectedCard: Card, _idx: number) => {
     const breach = breachSelectionRef.current;
     if (!breach) return;
 

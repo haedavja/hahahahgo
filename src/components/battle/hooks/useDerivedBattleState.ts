@@ -13,13 +13,9 @@ import { useMemo } from 'react';
 import { hasEnemyUnits } from '../utils/battleUtils';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { applyAgility } from '../../../lib/agilityUtils';
-import type { TokenState } from '../../../types/core';
+import type { TokenState, EnemyUnitState } from '../../../types';
 
-interface EnemyUnit {
-  unitId: number;
-  hp: number;
-  [key: string]: unknown;
-}
+type EnemyUnit = EnemyUnitState;
 
 interface SelectedCard {
   actionCost: number;

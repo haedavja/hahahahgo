@@ -274,6 +274,25 @@ export interface UseBattleTimelinesParams {
   selected: Card[];
 }
 
+/** useBattleTimelines 반환 타입 - 타임라인 캐스트 제거용 */
+export interface UseBattleTimelinesResult {
+  playerTimeline: Array<{
+    actor: 'player' | 'enemy';
+    card: Card;
+    sp: number;
+    idx: number;
+    finalSpeed?: number;
+    [key: string]: unknown;
+  }>;
+  enemyTimeline: Array<{
+    actor: 'player' | 'enemy';
+    card: Card;
+    sp: number;
+    idx: number;
+    [key: string]: unknown;
+  }>;
+}
+
 // DeflationInfo는 ui.ts에서 import됨
 
 /** useEtherAnimation 파라미터 */

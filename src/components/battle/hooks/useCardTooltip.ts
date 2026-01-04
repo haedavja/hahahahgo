@@ -40,13 +40,15 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }: UseCardToo
     actions.setTooltipVisible(false);
   }, [battlePhase, actions]);
 
-  const showCardTraitTooltip = useCallback((card: Card, cardElement: HTMLElement) => {
+  const showCardTraitTooltip = useCallback((card: Card, element: Element | null) => {
+    if (!element) return;
+    const cardElement = element as HTMLElement;
     const hasTraits = card?.traits && card.traits.length > 0;
     const cardWithTokens = card as Card & { appliedTokens?: Array<{ id: string; stacks?: number; target?: string }> };
     const hasAppliedTokens = cardWithTokens?.appliedTokens && cardWithTokens.appliedTokens.length > 0;
     const cardWithEnhancement = card as Card & { enhancementLevel?: number };
     const hasEnhancement = cardWithEnhancement?.enhancementLevel && cardWithEnhancement.enhancementLevel > 0;
-    if ((!hasTraits && !hasAppliedTokens && !hasEnhancement) || !cardElement) return;
+    if ((!hasTraits && !hasAppliedTokens && !hasEnhancement)) return;
 
     const updatePos = () => {
       // 요소가 DOM에 있고 보이는지 확인
