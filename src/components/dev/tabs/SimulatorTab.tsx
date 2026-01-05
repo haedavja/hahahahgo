@@ -589,10 +589,10 @@ const SimulatorTab = memo(function SimulatorTab() {
                 <h4 style={{ margin: '0 0 12px 0', color: '#ef4444' }}>👹 몬스터 전투 통계</h4>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>몬스터</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>몬스터</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>신뢰도</th><th style={STYLES.th}>평균턴</th></tr></thead>
                     <tbody>
                       {Array.from(stats.monsterStats.entries()).sort((a: [string, { battles: number }], b: [string, { battles: number }]) => b[1].battles - a[1].battles).map(([id, m]: [string, { battles: number; wins: number; losses: number; avgTurns?: number }]) => (
-                        <tr key={id}><td style={STYLES.td}>{getMonsterName(id)}</td><td style={STYLES.td}>{m.battles}회</td><td style={STYLES.td}>{m.wins}회</td><td style={STYLES.td}>{m.losses}회</td><td style={STYLES.td}>{m.battles > 0 ? ((m.wins / m.battles) * 100).toFixed(0) : 0}%</td><td style={STYLES.td}>{(m.avgTurns ?? 0).toFixed(1)}</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getMonsterName(id)}</td><td style={STYLES.td}>{m.battles}회</td><td style={STYLES.td}>{m.wins}회</td><td style={STYLES.td}>{m.losses}회</td><td style={STYLES.td}>{m.battles > 0 ? ((m.wins / m.battles) * 100).toFixed(0) : 0}%</td><td style={STYLES.td}><ConfidenceBadge sampleSize={m.battles} /></td><td style={STYLES.td}>{(m.avgTurns ?? 0).toFixed(1)}</td></tr>
                       ))}
                     </tbody>
                   </table>

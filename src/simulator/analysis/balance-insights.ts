@@ -26,6 +26,8 @@ import {
   getConfidenceLevel,
   calculateProportionCI,
   testProportionSignificance,
+  calculateTrend,
+  detectSimpsonParadox,
 } from './stats-utils';
 
 // ==================== 타입 정의 ====================
@@ -224,6 +226,10 @@ export interface PlayerExperiencePrediction {
     description: string;
     satisfactionBoost: number;
   }[];
+  /** 층별 사망률 추세 (양수=상승, 음수=하락) */
+  difficultyTrend: number;
+  /** 추세 해석 */
+  difficultyTrendInterpretation: 'increasing' | 'stable' | 'decreasing';
   /** 전체 평가 */
   overallAssessment: string;
   /** 개선 우선순위 */
@@ -502,6 +508,9 @@ export class BalanceInsightAnalyzer {
     // 적 분석
     recommendations.push(...this.analyzeEnemyBalance());
 
+    // Simpson's Paradox 감지
+    recommendations.push(...this.detectSimpsonParadoxIssues());
+
     // 우선순위 순으로 정렬
     const priorityOrder: Record<BalancePriority, number> = {
       critical: 0,
@@ -728,6 +737,84 @@ export class BalanceInsightAnalyzer {
           confidence,
         });
       }
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Simpson's Paradox 감지
+   * 전체 통계와 하위 그룹 통계가 상반된 결론을 도출하는 경우를 감지
+   */
+  private detectSimpsonParadoxIssues(): BalanceRecommendation[] {
+    const recommendations: BalanceRecommendation[] = [];
+    const { monsterStats, runStats } = this.stats;
+
+    // 적별 승률 수집
+    const monsterWinRates: number[] = [];
+    const significantMonsters: Array<{ name: string; winRate: number; battles: number }> = [];
+
+    for (const [, stats] of monsterStats) {
+      if (stats.battles >= this.minSampleSize) {
+        monsterWinRates.push(stats.winRate);
+        significantMonsters.push({
+          name: stats.monsterName,
+          winRate: stats.winRate,
+          battles: stats.battles,
+        });
+      }
+    }
+
+    if (monsterWinRates.length < 3) {
+      return recommendations;
+    }
+
+    // 전체 런 승률과 개별 몬스터 승률의 관계 분석
+    // 전체 런 승률을 기준점으로, 각 몬스터 승률이 그보다 높은지 낮은지 비교
+    const overallWinRate = runStats.successRate;
+    const avgMonsterWinRate =
+      monsterWinRates.reduce((sum, wr) => sum + wr, 0) / monsterWinRates.length;
+
+    // 전체 런 승률 - 평균 몬스터 승률 차이를 기준 상관계수로 사용
+    const overallCorrelation = overallWinRate - avgMonsterWinRate;
+
+    // 각 몬스터의 개별 기여도 (해당 몬스터 승률 - 평균 몬스터 승률)
+    const subgroupCorrelations = monsterWinRates.map(wr => wr - avgMonsterWinRate);
+
+    const paradoxResult = detectSimpsonParadox(overallCorrelation, subgroupCorrelations);
+
+    if (paradoxResult.detected) {
+      // 역설이 발생한 원인 분석
+      const highWinRateMonsters = significantMonsters.filter(m => m.winRate > overallWinRate);
+      const lowWinRateMonsters = significantMonsters.filter(m => m.winRate <= overallWinRate);
+
+      let explanation = '';
+      if (highWinRateMonsters.length > lowWinRateMonsters.length && overallWinRate < avgMonsterWinRate) {
+        // 대부분의 몬스터에게 이기는데 전체 런 승률이 낮음
+        const troubleMonsters = lowWinRateMonsters.slice(0, 3).map(m => m.name).join(', ');
+        explanation = `대부분의 전투에서 승리하지만 ${troubleMonsters || '특정 적'}에서 집중적으로 패배하여 전체 런 승률이 낮습니다.`;
+      } else if (lowWinRateMonsters.length > highWinRateMonsters.length && overallWinRate > avgMonsterWinRate) {
+        // 대부분의 몬스터에게 지는데 전체 런 승률이 높음
+        explanation = '대부분의 전투에서 어려움을 겪지만, 핵심 적에서 승리하여 전체 런 승률이 높습니다.';
+      }
+
+      recommendations.push({
+        targetId: 'simpson_paradox',
+        targetName: "Simpson's Paradox 감지",
+        targetType: 'enemy',
+        priority: 'warning',
+        issueType: 'simpson_paradox',
+        issue: '전체 런 승률과 개별 전투 승률의 불일치 감지',
+        actionType: 'investigate',
+        suggestion: explanation || paradoxResult.explanation || '층별/적별 분포 검토 필요',
+        metrics: {
+          overallRunWinRate: `${(overallWinRate * 100).toFixed(1)}%`,
+          avgMonsterWinRate: `${(avgMonsterWinRate * 100).toFixed(1)}%`,
+          monstersAboveAvg: highWinRateMonsters.length,
+          monstersBelowAvg: lowWinRateMonsters.length,
+        },
+        confidence: getConfidenceLevel(runStats.totalRuns).score,
+      });
     }
 
     return recommendations;
@@ -1122,6 +1209,19 @@ export class BalanceInsightAnalyzer {
       });
     }
 
+    // 층별 사망률 추세 분석
+    const floorDeathRates: number[] = [];
+    const maxFloor = 11;
+    for (let floor = 1; floor <= maxFloor; floor++) {
+      const deaths = deathStats.deathsByFloor[floor] || 0;
+      const deathRate = deaths / Math.max(1, deathStats.totalDeaths);
+      floorDeathRates.push(deathRate);
+    }
+    const difficultyTrend = calculateTrend(floorDeathRates);
+    const difficultyTrendInterpretation: PlayerExperiencePrediction['difficultyTrendInterpretation'] =
+      difficultyTrend > 0.01 ? 'increasing' :
+      difficultyTrend < -0.01 ? 'decreasing' : 'stable';
+
     // 전체 평가
     let overallAssessment = '';
     if (overallDifficulty === 'balanced') {
@@ -1130,6 +1230,13 @@ export class BalanceInsightAnalyzer {
       overallAssessment = `난이도가 높음 (승률 ${(winRate * 100).toFixed(0)}%). 신규 플레이어 접근성 개선 필요.`;
     } else {
       overallAssessment = `난이도가 낮음 (승률 ${(winRate * 100).toFixed(0)}%). 숙련 플레이어 도전 요소 추가 고려.`;
+    }
+
+    // 추세 관련 평가 추가
+    if (difficultyTrendInterpretation === 'increasing') {
+      overallAssessment += ' 층이 높아질수록 사망률 증가 - 후반 난이도 스파이크 주의.';
+    } else if (difficultyTrendInterpretation === 'decreasing') {
+      overallAssessment += ' 층이 높아질수록 사망률 감소 - 후반 긴장감 부족 가능성.';
     }
 
     // 개선 우선순위
@@ -1143,6 +1250,9 @@ export class BalanceInsightAnalyzer {
     if (overallDifficulty === 'too_easy') {
       improvementPriorities.push('고난이도 콘텐츠 추가');
     }
+    if (difficultyTrendInterpretation === 'increasing') {
+      improvementPriorities.push('후반부 난이도 곡선 완화');
+    }
 
     return {
       overallDifficulty,
@@ -1151,6 +1261,8 @@ export class BalanceInsightAnalyzer {
       veteranSatisfactionScore,
       frustrationPoints,
       positiveExperiences,
+      difficultyTrend,
+      difficultyTrendInterpretation,
       overallAssessment,
       improvementPriorities,
     };

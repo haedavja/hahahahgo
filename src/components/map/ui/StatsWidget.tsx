@@ -291,11 +291,15 @@ function CardTab({ detailed }: { detailed: DetailedStats }) {
       <h3 style={{ ...SECTION_TITLE_STYLE, color: '#06b6d4' }}>🃏 카드 사용 통계 (상위 20)</h3>
       {cards.map(([id, data]) => {
         const winRate = data.winRateWith !== undefined ? (data.winRateWith * 100).toFixed(1) : '-';
+        const sampleSize = data.timesPlayed || 0;
         return (
           <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={STAT_LABEL_STYLE}>{data.cardName || id}</span>
-              <span style={STAT_VALUE_STYLE}>{data.timesPlayed || 0}회 사용</span>
+              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {sampleSize}회 사용
+                <ConfidenceBadge sampleSize={sampleSize} />
+              </span>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
               전투당 평균 {(data.avgPlaysPerBattle || 0).toFixed(1)}회 | 보유 시 승률 {winRate}%
@@ -351,11 +355,15 @@ function RelicTab({ detailed }: { detailed: DetailedStats }) {
       {relics.map(([id, data]) => {
         const contribution = data.contribution !== undefined ? data.contribution : 0;
         const contributionColor = contribution > 0 ? '#22c55e' : contribution < 0 ? '#ef4444' : '#94a3b8';
+        const sampleSize = data.timesAcquired || 0;
         return (
           <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={STAT_LABEL_STYLE}>{data.relicName || id}</span>
-              <span style={STAT_VALUE_STYLE}>{data.timesAcquired || 0}회 획득</span>
+              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {sampleSize}회 획득
+                <ConfidenceBadge sampleSize={sampleSize} />
+              </span>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
               보유 시 승률 {((data.winRateWith || 0) * 100).toFixed(1)}%
@@ -390,9 +398,12 @@ function ComboTab({ detailed }: { detailed: DetailedStats }) {
           : '0';
         return (
           <div key={comboName} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={STAT_LABEL_STYLE}>{comboName}</span>
-              <span style={STAT_VALUE_STYLE}>{data.totalOccurrences}회 발동</span>
+              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {data.totalOccurrences}회 발동
+                <ConfidenceBadge sampleSize={data.totalOccurrences} />
+              </span>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
               승리 시 {data.inWins}회 | 승률 {winRate}%
