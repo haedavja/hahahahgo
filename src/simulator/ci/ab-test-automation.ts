@@ -31,10 +31,13 @@ export interface CardStats {
   traits?: string[];
 }
 
+/** 필드 값 타입 (파싱된 값) */
+export type FieldValue = string | number | boolean | unknown[];
+
 export interface FieldChange {
   field: string;
-  before: any;
-  after: any;
+  before: FieldValue;
+  after: FieldValue;
   percentChange?: number;
 }
 
@@ -216,7 +219,7 @@ export class ABTestAutomation {
   /**
    * 값 파싱
    */
-  private parseValue(value: string): any {
+  private parseValue(value: string): FieldValue {
     const trimmed = value.trim().replace(/,\s*$/, '');
     if (trimmed === 'true') return true;
     if (trimmed === 'false') return false;
