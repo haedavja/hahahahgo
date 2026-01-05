@@ -9,9 +9,9 @@
 import { FC, useState, MouseEvent, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
-import { CardManagementModal } from "./CardManagementModal";
 
-// Lazy loading for heavy modal
+// Lazy loading for heavy modals
+const CardManagementModal = lazy(() => import("./CardManagementModal").then(m => ({ default: m.CardManagementModal })));
 const GrowthPyramidModal = lazy(() => import("../growth/GrowthPyramidModal").then(m => ({ default: m.GrowthPyramidModal })));
 import { TRAITS } from "../battle/battleData";
 import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
@@ -443,18 +443,20 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
 
       {/* 카드 관리 모달 */}
       {showOwnedCards && (
-        <CardManagementModal
-          onClose={handleCloseModal}
-          specialMode={specialMode}
-          setSpecialMode={setSpecialMode}
-          mainSpecials={mainSpecials}
-          subSpecials={subSpecials}
-          maxMainSlots={maxMainSlots}
-          maxSubSlots={maxSubSlots}
-          displayedCards={displayedCards}
-          showAllCards={showAllCards}
-          onCardClick={handleCardClick}
-        />
+        <Suspense fallback={null}>
+          <CardManagementModal
+            onClose={handleCloseModal}
+            specialMode={specialMode}
+            setSpecialMode={setSpecialMode}
+            mainSpecials={mainSpecials}
+            subSpecials={subSpecials}
+            maxMainSlots={maxMainSlots}
+            maxSubSlots={maxSubSlots}
+            displayedCards={displayedCards}
+            showAllCards={showAllCards}
+            onCardClick={handleCardClick}
+          />
+        </Suspense>
       )}
 
       {/* 성장 모달 */}

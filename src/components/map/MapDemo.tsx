@@ -7,7 +7,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { RelicsBar, PathosBar, RestModal, EventModal } from "./ui";
+import { RelicsBar, PathosBar, EventModal } from "./ui";
 import { StatsWidget } from "./ui/StatsWidget";
 
 // Lazy loading for heavy components
@@ -15,6 +15,7 @@ const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m =
 const DungeonExploration = lazy(() => import("../dungeon/DungeonExploration").then(m => ({ default: m.DungeonExploration })));
 const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
 const ShopModal = lazy(() => import("../shop/ShopModal").then(m => ({ default: m.ShopModal })));
+const RestModal = lazy(() => import("./ui/RestModal").then(m => ({ default: m.RestModal })));
 const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
 import {
   NODE_WIDTH,
@@ -523,24 +524,26 @@ function MapDemoComponent() {
       />
 
       {activeRest && (
-        <RestModal
-          memoryValue={memoryValue}
-          playerHp={playerHp}
-          maxHp={maxHp}
-          canAwaken={canAwaken}
-          playerTraits={playerTraits}
-          cardUpgrades={cardUpgrades}
-          cardGrowth={cardGrowth}
-          gold={resources.gold ?? 0}
-          ownedCards={ownedCards}
-          closeRest={closeRest}
-          awakenAtRest={awakenAtRest}
-          healAtRest={healAtRest}
-          upgradeCardRarity={upgradeCardRarity}
-          enhanceCard={enhanceCard}
-          specializeCard={specializeCard}
-          spendGold={spendGold}
-        />
+        <Suspense fallback={null}>
+          <RestModal
+            memoryValue={memoryValue}
+            playerHp={playerHp}
+            maxHp={maxHp}
+            canAwaken={canAwaken}
+            playerTraits={playerTraits}
+            cardUpgrades={cardUpgrades}
+            cardGrowth={cardGrowth}
+            gold={resources.gold ?? 0}
+            ownedCards={ownedCards}
+            closeRest={closeRest}
+            awakenAtRest={awakenAtRest}
+            healAtRest={healAtRest}
+            upgradeCardRarity={upgradeCardRarity}
+            enhanceCard={enhanceCard}
+            specializeCard={specializeCard}
+            spendGold={spendGold}
+          />
+        </Suspense>
       )}
 
       {activeBattle && (

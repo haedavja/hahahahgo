@@ -39,6 +39,13 @@ const LOG_LINE_BASE_STYLE: CSSProperties = {
   lineHeight: '1.5'
 };
 
+// 로그 라인 타입별 스타일 (매 렌더링마다 객체 생성 방지)
+const LOG_LINE_STYLES: Record<'player' | 'enemy' | 'neutral', CSSProperties> = {
+  player: { ...LOG_LINE_BASE_STYLE, color: '#60a5fa' },
+  enemy: { ...LOG_LINE_BASE_STYLE, color: '#fca5a5' },
+  neutral: { ...LOG_LINE_BASE_STYLE, color: '#cbd5e1' },
+};
+
 interface BattleLogProps {
   phase: string;
   log: string[] | null;
@@ -59,15 +66,9 @@ const classifyLogLine = (line: string): 'player' | 'enemy' | 'neutral' => {
 };
 
 /**
- * 로그 라인 색상 반환
+ * 로그 라인 스타일 반환 (미리 생성된 스타일 객체 사용)
  */
-const getLogColor = (type: 'player' | 'enemy' | 'neutral'): string => {
-  switch (type) {
-    case 'player': return '#60a5fa';
-    case 'enemy': return '#fca5a5';
-    default: return '#cbd5e1';
-  }
-};
+const getLogStyle = (type: 'player' | 'enemy' | 'neutral'): CSSProperties => LOG_LINE_STYLES[type];
 
 /**
  * 로그 필터링 조건
@@ -97,14 +98,10 @@ export const BattleLog: FC<BattleLogProps> = memo(({ phase, log, logContainerRef
       <div ref={logContainerRef} style={LOG_CONTAINER_STYLE}>
         {filteredLog.map((line, i) => {
           const lineType = classifyLogLine(line);
-          const color = getLogColor(lineType);
           return (
             <div
               key={`${i}-${line.substring(0, 20)}`}
-              style={{
-                ...LOG_LINE_BASE_STYLE,
-                color,
-              }}
+              style={getLogStyle(lineType)}
             >
               {line}
             </div>
