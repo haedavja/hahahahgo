@@ -214,7 +214,7 @@ class ConfigManager {
       throw new Error('Configuration is frozen and cannot be modified');
     }
 
-    this.config = this.deepMerge(this.config as unknown as Record<string, unknown>, overrides as DeepPartial<Record<string, unknown>>) as unknown as SimulatorConfig;
+    this.config = this.deepMerge<SimulatorConfig>(this.config, overrides);
 
     // 전투 상수 동기화
     if (overrides.battle) {
