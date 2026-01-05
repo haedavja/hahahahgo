@@ -468,9 +468,9 @@ function inferCategoryFromContent({ title, related = [], propText = "", blockTex
 
   scored.sort((a, b) => b.score - a.score);
   const best = scored[0];
-  if (!best) return { category: null, reasons: [] };
-  if (best.score < 3) return { category: null, reasons: best.reasons };
-  return { category: best.cat, reasons: best.reasons.slice(0, 8) };
+  if (!best) return { category: null, score: 0, reasons: [] };
+  if (best.score < 3) return { category: null, score: best.score, reasons: best.reasons };
+  return { category: best.cat, score: best.score, reasons: best.reasons.slice(0, 8) };
 }
 
 function inferRoleFromContent({ title, category, related = [], propText = "", blockText = "", strict } = {}) {
@@ -1203,26 +1203,55 @@ async function autoclassify({ databaseId, apply, limit, force, read }) {
       const currentDomains = (page.properties?.["도메인"]?.multi_select || []).map((o) => o.name);
 
       const treatCategoryAsEmpty = !currentCategory || String(currentCategory) === "기타";
-      if (!force && !treatCategoryAsEmpty && currentDomains.length > 0) continue;
+      const treatCategoryAsWeak = String(currentCategory) === "설정" || String(currentCategory) === "용어/개념";
+      if (!force && !treatCategoryAsEmpty && !treatCategoryAsWeak && currentDomains.length > 0) continue;
 
-      let nextCategory = treatCategoryAsEmpty ? inferCategoryFromRelated(related) : currentCategory;
-      let reasons = [];
-      if (!nextCategory && read) {
+      const categoryFromRelated = treatCategoryAsEmpty ? inferCategoryFromRelated(related) : null;
+
+      let contentInferred = null;
+      if (read && (treatCategoryAsEmpty || treatCategoryAsWeak || force)) {
         const title = getTitleFromDatabasePage(page, titlePropName);
         const propText = getPagePropertyText(page, { maxChars: 1600 });
         const blockText = await getPageBlockText(page.id, { maxBlocks: 35, maxChars: 2200, throttleMs: 120 });
-        const inferred = inferCategoryFromContent({ title, related, propText, blockText });
-        nextCategory = inferred.category;
-        reasons = inferred.reasons || [];
+        contentInferred = inferCategoryFromContent({ title, related, propText, blockText });
       }
+
+      let nextCategory = currentCategory;
+      let reasons = [];
+      let inferredScore = 0;
+      let overrideApplied = false;
+
+      if (force) {
+        const candidate = contentInferred?.category || currentCategory || categoryFromRelated || null;
+        nextCategory = candidate;
+        reasons = (contentInferred?.reasons || []).slice(0, 8);
+        inferredScore = Number(contentInferred?.score || 0);
+      } else if (treatCategoryAsEmpty) {
+        if (contentInferred?.category) {
+          nextCategory = contentInferred.category;
+          reasons = (contentInferred.reasons || []).slice(0, 8);
+          inferredScore = Number(contentInferred.score || 0);
+        } else {
+          nextCategory = categoryFromRelated;
+        }
+      } else if (treatCategoryAsWeak) {
+        if (contentInferred?.category && Number(contentInferred.score || 0) >= 8 && String(contentInferred.category) !== String(currentCategory)) {
+          nextCategory = contentInferred.category;
+          reasons = (contentInferred.reasons || []).slice(0, 8);
+          inferredScore = Number(contentInferred.score || 0);
+          overrideApplied = true;
+        } else {
+          nextCategory = currentCategory;
+        }
+      }
+
       if (!nextCategory) continue;
 
       const nextDomains = inferDomains(nextCategory, related);
 
       const patch = { properties: {} };
-      if (force || treatCategoryAsEmpty) {
-        patch.properties["대분류"] = { select: { name: nextCategory } };
-      }
+      const shouldUpdateCategory = force || treatCategoryAsEmpty || overrideApplied;
+      if (shouldUpdateCategory) patch.properties["대분류"] = { select: { name: nextCategory } };
       if (force || currentDomains.length === 0) {
         patch.properties["도메인"] = { multi_select: nextDomains.map((name) => ({ name })) };
       }
