@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useMemo, memo, useCallback, useEffect } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
@@ -148,6 +148,16 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
   const [showCardUpgradeModal, setShowCardUpgradeModal] = useState(false);
   const [cardUpgradePrice, setCardUpgradePrice] = useState(0);
+  const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Notification 타이머 cleanup
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
 
   const sellableItems = useMemo(() => {
     return items
@@ -180,8 +190,12 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
   const showNotification = useCallback((message: string, type = 'info') => {
+    // 이전 타이머가 있으면 취소
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 2000);
+    notificationTimerRef.current = setTimeout(() => setNotification(null), 2000);
   }, []);
 
   // 상점 방문 통계 기록 (마운트 시 1회만 기록)
