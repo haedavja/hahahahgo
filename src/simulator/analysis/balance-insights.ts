@@ -525,7 +525,7 @@ export class BalanceInsightAnalyzer {
       const pickRate = cardPickStats.pickRate[cardId] || 0;
       const timesOffered = cardPickStats.timesOffered[cardId] || 0;
       const contribution = cardContributionStats.contribution[cardId] || 0;
-      const confidence = this.calculateConfidence(timesOffered);
+      const confidence = getConfidenceLevel(timesOffered).score;
 
       if (timesOffered < this.minSampleSize) continue;
 
@@ -624,7 +624,7 @@ export class BalanceInsightAnalyzer {
     const { relicStats } = this.stats;
 
     for (const [relicId, stats] of relicStats) {
-      const confidence = this.calculateConfidence(stats.timesAcquired);
+      const confidence = getConfidenceLevel(stats.timesAcquired).score;
       if (stats.timesAcquired < this.minSampleSize) continue;
 
       // OP 상징
@@ -681,7 +681,7 @@ export class BalanceInsightAnalyzer {
     const { monsterStats, deathStats } = this.stats;
 
     for (const [monsterId, stats] of monsterStats) {
-      const confidence = this.calculateConfidence(stats.battles);
+      const confidence = getConfidenceLevel(stats.battles).score;
       if (stats.battles < this.minSampleSize) continue;
 
       // 너무 어려운 적
@@ -1230,14 +1230,6 @@ export class BalanceInsightAnalyzer {
   // ==================== 헬퍼 메서드 ====================
 
   /**
-   * 신뢰도 계산 (샘플 크기 기반)
-   */
-  private calculateConfidence(sampleSize: number): number {
-    // 100개 이상이면 신뢰도 1, 10개 이하면 0.1
-    return Math.min(1, Math.max(0.1, sampleSize / 100));
-  }
-
-  /**
    * 카드 티어 분류
    */
   private classifyCardTier(pickRate: number, contribution: number): string {
@@ -1597,7 +1589,7 @@ export class BalanceInsightAnalyzer {
             avgInvestment: avgInvestment.toFixed(2),
             winCorrelation: `+${(winCorrelation * 100).toFixed(1)}%`,
           },
-          confidence: this.calculateConfidence(investment),
+          confidence: getConfidenceLevel(investment).score,
         });
 
         mustHaveStats.push({
@@ -1623,7 +1615,7 @@ export class BalanceInsightAnalyzer {
             avgInvestment: avgInvestment.toFixed(2),
             winCorrelation: `${(winCorrelation * 100).toFixed(1)}%`,
           },
-          confidence: this.calculateConfidence(investment),
+          confidence: getConfidenceLevel(investment).score,
         });
       }
     }

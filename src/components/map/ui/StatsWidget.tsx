@@ -250,12 +250,15 @@ function MonsterTab({ detailed }: { detailed: DetailedStats }) {
 
         return (
           <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={STAT_LABEL_STYLE}>
                 {isBoss ? '👑 ' : ''}{displayName}
               </span>
-              <span style={{ ...STAT_VALUE_STYLE, color: Number(winRate) >= 50 ? '#22c55e' : '#ef4444' }}>
-                {battleCount}전 {data.wins}승 ({winRate}%)
+              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ color: Number(winRate) >= 50 ? '#22c55e' : '#ef4444' }}>
+                  {battleCount}전 {data.wins}승 ({winRate}%)
+                </span>
+                <ConfidenceBadge sampleSize={battleCount} />
               </span>
             </div>
             {battleCount > 0 && (
