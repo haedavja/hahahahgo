@@ -1,5 +1,6 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { handleBoundaryError } from '../lib/errorLogger';
+import { TEXT_COLORS, STATUS_COLORS, BG_COLORS } from './battle/ui/constants/colors';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -53,16 +54,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          background: '#0f172a',
-          color: '#e2e8f0',
+          background: BG_COLORS.dark,
+          color: TEXT_COLORS.primary,
           fontFamily: 'sans-serif',
           padding: '20px',
           textAlign: 'center',
         }}>
-          <h1 style={{ color: '#ef4444', marginBottom: '16px' }}>
+          <h1 style={{ color: STATUS_COLORS.error, marginBottom: '16px' }}>
             오류가 발생했습니다
           </h1>
-          <p style={{ color: '#94a3b8', marginBottom: '24px', maxWidth: '400px' }}>
+          <p style={{ color: TEXT_COLORS.secondary, marginBottom: '24px', maxWidth: '400px' }}>
             예기치 않은 오류가 발생했습니다.
             페이지를 새로고침하거나 게임을 초기화해주세요.
           </p>
@@ -71,7 +72,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               onClick={this.handleReload}
               style={{
                 padding: '12px 24px',
-                background: '#3b82f6',
+                background: STATUS_COLORS.info,
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -85,7 +86,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               onClick={this.handleReset}
               style={{
                 padding: '12px 24px',
-                background: '#374151',
+                background: BG_COLORS.button,
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -97,7 +98,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </button>
           </div>
           {this.state.errorId && (
-            <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '16px' }}>
+            <p style={{ color: TEXT_COLORS.muted, fontSize: '0.75rem', marginTop: '16px' }}>
               에러 ID: {this.state.errorId}
             </p>
           )}
@@ -105,10 +106,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <pre style={{
               marginTop: '24px',
               padding: '16px',
-              background: '#1e293b',
+              background: BG_COLORS.primary,
               borderRadius: '8px',
               fontSize: '0.75rem',
-              color: '#f87171',
+              color: STATUS_COLORS.errorLight,
               maxWidth: '600px',
               overflow: 'auto',
               textAlign: 'left',

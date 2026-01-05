@@ -7,6 +7,7 @@
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { handleBoundaryError } from '../../lib/errorLogger';
+import { TEXT_COLORS, STATUS_COLORS, BG_COLORS } from '../battle/ui/constants/colors';
 
 interface ModalErrorBoundaryProps {
   children: ReactNode;
@@ -68,24 +69,24 @@ export class ModalErrorBoundary extends Component<ModalErrorBoundaryProps, Modal
           zIndex: 9999,
         }}>
           <div style={{
-            background: '#1e293b',
+            background: BG_COLORS.primary,
             padding: '24px',
             borderRadius: '12px',
             maxWidth: '400px',
             textAlign: 'center',
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚠️</div>
-            <h3 style={{ color: '#f87171', marginBottom: '12px' }}>
+            <h3 style={{ color: STATUS_COLORS.errorLight, marginBottom: '12px' }}>
               {this.props.modalName || '모달'} 오류
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '16px' }}>
+            <p style={{ color: TEXT_COLORS.secondary, fontSize: '0.9rem', marginBottom: '16px' }}>
               창을 표시하는 중 문제가 발생했습니다.
             </p>
             <button
               onClick={this.handleClose}
               style={{
                 padding: '10px 20px',
-                background: '#3b82f6',
+                background: STATUS_COLORS.info,
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
