@@ -584,10 +584,10 @@
 
       function suggestRoleFromCategory(item) {
         const category = String(item && item.category ? item.category : "");
-        if (category === "인물" || category === "세력" || category === "장소/지역" || category === "유물/아이템") return "존재";
+        if (category === "인물" || category === "세력" || category === "장소/지역" || category === "유물/아이템" || category === "신격/판테온") return "존재";
         if (category === "역사/사건" || category === "플롯/에피소드") return "사건";
         if (category === "초법" || category === "기술" || category === "시스템(게임)") return "구조";
-        if (category === "용어/개념" || category === "설정" || category === "메타") return "구조";
+        if (category === "용어/개념" || category === "설정" || category === "메타" || category === "우주론/레이어" || category === "종교/신앙") return "구조";
         return null;
       }
 

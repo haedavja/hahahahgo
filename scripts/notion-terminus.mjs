@@ -408,6 +408,24 @@ function inferCategoryFromContent({ title, related = [], propText = "", blockTex
 
   const CATEGORY_RULES = [
     {
+      cat: "우주론/레이어",
+      weight: 5,
+      tags: ["우주론", "레이어", "다층", "구성막", "위상", "스펙트럼", "계층"],
+      kw: ["우주론", "레이어", "스펙트럼", "다층", "구성막", "계층", "위상", "상위", "하위", "중첩", "구성", "질서", "인과", "관측", "현상계", "초월", "차원"],
+    },
+    {
+      cat: "신격/판테온",
+      weight: 5,
+      tags: ["신격", "판테온", "만신", "만신전", "주신", "신명", "엘로힘", "아이온"],
+      kw: ["신격", "판테온", "만신", "만신전", "주신", "신명", "만신왕", "신좌", "신계", "엘로힘", "아이온", "데미우르고스", "고대신", "외신"],
+    },
+    {
+      cat: "종교/신앙",
+      weight: 4,
+      tags: ["종교", "신앙", "교리", "경전", "제전", "예배", "만신앙"],
+      kw: ["종교", "신앙", "교리", "경전", "성서", "제전", "예배", "숭배", "추앙", "기도", "성지", "성직", "성직자", "사제", "성녀", "이단", "배교"],
+    },
+    {
       cat: "시스템(게임)",
       weight: 5,
       tags: ["시스템", "게임", "룰", "밸런스", "스탯", "스킬"],
@@ -469,8 +487,8 @@ function inferRoleFromContent({ title, category, related = [], propText = "", bl
   const RULES = [
     { role: "결과", kw: ["결과", "여파", "후유증", "파급", "영향", "변화", "변이", "흉터", "붕괴", "재편"] },
     { role: "사건", kw: ["사건", "전쟁", "전투", "침공", "발발", "반란", "쿠데타", "학살", "조약", "회담", "재앙", "멸망", "휴거", "일식"] },
-    { role: "존재", kw: ["인물", "캐릭터", "세력", "조직", "국가", "제국", "왕국", "교단", "도시", "행성", "종족", "괴물", "병기", "유물"] },
-    { role: "구조", kw: ["규칙", "법칙", "원리", "조건", "시스템", "룰", "스탯", "스킬", "메커니즘", "프로토콜", "설정", "정의", "개념"] },
+    { role: "존재", kw: ["인물", "캐릭터", "세력", "조직", "국가", "제국", "왕국", "교단", "도시", "행성", "종족", "괴물", "병기", "유물", "신격", "주신", "신명", "만신"] },
+    { role: "구조", kw: ["규칙", "법칙", "원리", "조건", "시스템", "룰", "스탯", "스킬", "메커니즘", "프로토콜", "설정", "정의", "개념", "우주론", "레이어", "위상", "신앙", "교리", "경전"] },
   ];
 
   let best = null;
@@ -665,6 +683,9 @@ function inferCategoryFromRelated(related) {
 
   if (hasAny("시스템", "게임", "룰", "밸런스", "스탯", "스킬")) return "시스템(게임)";
   if (hasAny("스토리", "플롯", "에피소드", "개연성", "서사")) return "플롯/에피소드";
+  if (hasAny("우주론", "레이어", "다층", "구성막", "위상", "스펙트럼", "계층")) return "우주론/레이어";
+  if (hasAny("신격", "판테온", "만신", "만신전", "주신", "신명", "만신왕", "엘로힘", "아이온")) return "신격/판테온";
+  if (hasAny("종교", "신앙", "교리", "경전", "제전", "예배", "만신앙")) return "종교/신앙";
 
   if (hasAny("인물", "캐릭터")) return "인물";
   if (hasAny("세력", "정부", "국가", "제국", "왕국", "교단", "조직", "배교자")) return "세력";
@@ -687,13 +708,14 @@ function inferRoleFromCategory(category) {
   if (!c) return null;
 
   // 존재: 무엇이 존재하는가
-  if (c === "인물" || c === "세력" || c === "장소/지역" || c === "유물/아이템") return "존재";
+  if (c === "인물" || c === "세력" || c === "장소/지역" || c === "유물/아이템" || c === "신격/판테온") return "존재";
 
   // 사건: 무슨 일이 일어났는가
   if (c === "역사/사건" || c === "플롯/에피소드") return "사건";
 
   // 구조: 세계는 어떻게 작동하는가
   if (c === "초법" || c === "기술" || c === "군사" || c === "시스템(게임)" || c === "용어/개념") return "구조";
+  if (c === "우주론/레이어" || c === "종교/신앙") return "구조";
   if (c === "설정" || c === "메타") return "구조";
 
   return null;
@@ -766,11 +788,30 @@ async function setup({ databaseId, parentPageId, apply }) {
   const existingProps = db.properties || {};
   const propertiesPatch = {};
 
+  const mergeSelectOptionsByName = (existingOptions, desiredOptions) => {
+    const existing = Array.isArray(existingOptions) ? existingOptions : [];
+    const desired = Array.isArray(desiredOptions) ? desiredOptions : [];
+    const seen = new Set(existing.map((o) => String(o?.name || "").trim()).filter(Boolean));
+    const merged = [...existing];
+    for (const opt of desired) {
+      const name = String(opt?.name || "").trim();
+      if (!name) continue;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      merged.push(opt);
+    }
+    return merged;
+  };
+
   const ensureMultiSelect = (name, options) => {
     const existing = existingProps[name];
     if (existing) {
       if (existing.type !== "multi_select") {
         throw new Error(`DB에 이미 '${name}' 속성이 있는데 타입이 multi_select가 아닙니다: ${existing.type}`);
+      }
+      const merged = mergeSelectOptionsByName(existing.multi_select?.options, options);
+      if (merged.length !== (existing.multi_select?.options || []).length) {
+        propertiesPatch[name] = { multi_select: { options: merged } };
       }
       return;
     }
@@ -786,6 +827,10 @@ async function setup({ databaseId, parentPageId, apply }) {
     if (existing) {
       if (existing.type !== "select") {
         throw new Error(`DB에 이미 '${name}' 속성이 있는데 타입이 select가 아닙니다: ${existing.type}`);
+      }
+      const merged = mergeSelectOptionsByName(existing.select?.options, options);
+      if (merged.length !== (existing.select?.options || []).length) {
+        propertiesPatch[name] = { select: { options: merged } };
       }
       return;
     }
@@ -846,6 +891,9 @@ async function setup({ databaseId, parentPageId, apply }) {
     { name: "세력", color: "red" },
     { name: "장소/지역", color: "brown" },
     { name: "역사/사건", color: "orange" },
+    { name: "우주론/레이어", color: "purple" },
+    { name: "신격/판테온", color: "purple" },
+    { name: "종교/신앙", color: "yellow" },
     { name: "초법", color: "purple" },
     { name: "기술", color: "blue" },
     { name: "군사", color: "green" },
