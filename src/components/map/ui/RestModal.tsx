@@ -36,24 +36,7 @@ import {
 import { GrowthStatsPanel } from './rest/GrowthStatsPanel';
 import { EnhancePreviewPanel, StatBadge } from './rest/EnhancePreviewPanel';
 
-export function RestModal({
-  memoryValue,
-  playerHp,
-  maxHp,
-  canAwaken,
-  playerTraits,
-  cardUpgrades,
-  cardGrowth,
-  gold,
-  ownedCards,
-  closeRest,
-  awakenAtRest,
-  healAtRest,
-  upgradeCardRarity,
-  enhanceCard,
-  specializeCard,
-  spendGold,
-}: {
+interface RestModalProps {
   memoryValue: number;
   playerHp: number;
   maxHp: number;
@@ -70,7 +53,26 @@ export function RestModal({
   enhanceCard: (cardId: string) => void;
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
   spendGold: (amount: number) => void;
-}) {
+}
+
+export const RestModal = memo(function RestModal({
+  memoryValue,
+  playerHp,
+  maxHp,
+  canAwaken,
+  playerTraits,
+  cardUpgrades,
+  cardGrowth,
+  gold,
+  ownedCards,
+  closeRest,
+  awakenAtRest,
+  healAtRest,
+  upgradeCardRarity,
+  enhanceCard,
+  specializeCard,
+  spendGold,
+}: RestModalProps) {
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
   const [showPyramidModal, setShowPyramidModal] = useState(false);
   const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
@@ -311,7 +313,7 @@ export function RestModal({
       )}
     </div>
   );
-}
+});
 
 // EgoFormPanel 제거됨 - 새 성장 시스템(피라미드)으로 대체
 

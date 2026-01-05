@@ -230,16 +230,19 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
 }) => {
   if (!units || units.length === 0) return null;
 
-  // 살아있는 유닛만 표시
-  const aliveUnits = units.filter(u => u.hp > 0);
+  // 살아있는 유닛만 표시 (useMemo로 불필요한 재계산 방지)
+  const aliveUnits = useMemo(() => units.filter(u => u.hp > 0), [units]);
 
   if (aliveUnits.length === 0) return null;
 
   // 유닛이 1개면 기존 방식 유지 (선택 불필요)
   const showTargeting = aliveUnits.length > 1;
 
-  // 선택된 타겟 수
-  const selectedTargetCount = Object.values(damageDistribution).filter(v => v > 0).length;
+  // 선택된 타겟 수 (useMemo로 Object.values + filter 재계산 방지)
+  const selectedTargetCount = useMemo(
+    () => Object.values(damageDistribution).filter(v => v > 0).length,
+    [damageDistribution]
+  );
 
   // 에테르 스케일 계산
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
