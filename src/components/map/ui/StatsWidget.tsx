@@ -3,7 +3,7 @@
  * @description 게임 우측 상단 통계 버튼 위젯 - 전체 통계 표시
  */
 
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo, useMemo, useRef, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { getCurrentStats, getDetailedStats } from '../../../simulator/bridge/stats-bridge';
 import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
@@ -103,15 +103,28 @@ export const StatsWidget = memo(function StatsWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('battle');
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const stats = getCurrentStats();
   const detailed = getDetailedStats();
+
+  // 타이머 cleanup
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = useCallback(() => {
     const text = formatAllStatsForCopy(stats, detailed);
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     });
   }, [stats, detailed]);
 

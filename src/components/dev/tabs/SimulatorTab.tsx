@@ -3,7 +3,7 @@
  * 시뮬레이터 탭 - 게임 내에서 런 시뮬레이션 실행 및 상세 통계 확인
  */
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useRef, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 import type { SkillLevel } from '../../../simulator/core/battle-engine-types';
@@ -83,6 +83,16 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [activeStatTab, setActiveStatTab] = useState<StatTab>('run');
   const [activeStrategyTab, setActiveStrategyTab] = useState<StrategyType>('balanced');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 타이머 cleanup
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   // 난이도 수정자 상태 (Hades Heat / StS Ascension 스타일)
   const [showAdvancedDifficulty, setShowAdvancedDifficulty] = useState(false);
@@ -102,15 +112,20 @@ const SimulatorTab = memo(function SimulatorTab() {
   const copyForAI = useCallback(async () => {
     if (!hasAnyStats) return;
 
+    // 이전 타이머 정리
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current);
+    }
+
     try {
       const text = formatStatsForAI(statsByStrategy, { runCount, difficulty });
       await navigator.clipboard.writeText(text);
       setCopyStatus('copied');
-      setTimeout(() => setCopyStatus('idle'), 2000);
+      copyTimerRef.current = setTimeout(() => setCopyStatus('idle'), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
       setCopyStatus('error');
-      setTimeout(() => setCopyStatus('idle'), 2000);
+      copyTimerRef.current = setTimeout(() => setCopyStatus('idle'), 2000);
     }
   }, [statsByStrategy, hasAnyStats, runCount, difficulty]);
 
