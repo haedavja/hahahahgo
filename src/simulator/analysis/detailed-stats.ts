@@ -338,7 +338,17 @@ export class StatsCollector {
   /** 전투 결과 기록 */
   recordBattle(
     result: BattleResult,
-    monster: { id: string; name: string; tier?: number; isBoss?: boolean; isElite?: boolean },
+    monster: {
+      id: string;
+      name: string;
+      tier?: number;
+      isBoss?: boolean;
+      isElite?: boolean;
+      groupId?: string;
+      groupName?: string;
+      enemyCount?: number;
+      composition?: string[];
+    },
     context?: { floor?: number; playerMaxHp?: number }
   ) {
     const battleId = `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -493,6 +503,11 @@ export class StatsCollector {
 
     // 몬스터 통계 업데이트
     this.updateMonsterStats(monster, result);
+
+    // 적 그룹 통계 업데이트
+    if (monster.groupId) {
+      this.updateEnemyGroupStats(monster, result);
+    }
 
     // 연승 기록 업데이트 (개별 전투 승리 시에도 업데이트)
     if (isWin) {
@@ -679,6 +694,90 @@ export class StatsCollector {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([cardId, count]) => ({ cardId, count }));
+  }
+
+  /** 적 그룹 통계 업데이트 */
+  private updateEnemyGroupStats(
+    monster: {
+      groupId?: string;
+      groupName?: string;
+      enemyCount?: number;
+      composition?: string[];
+      tier?: number;
+      isBoss?: boolean;
+    },
+    result: BattleResult
+  ) {
+    const groupId = monster.groupId;
+    if (!groupId) return;
+
+    if (!this.enemyGroupStats.has(groupId)) {
+      // 동종 그룹 여부 확인 (모든 적이 같은 타입인지)
+      const composition = monster.composition || [];
+      const isHomogeneous = composition.length > 0 &&
+        composition.every(id => id === composition[0]);
+
+      this.enemyGroupStats.set(groupId, {
+        groupId,
+        groupName: monster.groupName || groupId,
+        composition,
+        enemyCount: monster.enemyCount || composition.length,
+        tier: monster.tier || 1,
+        isBoss: monster.isBoss || false,
+        battles: 0,
+        wins: 0,
+        losses: 0,
+        winRate: 0,
+        avgTurns: 0,
+        avgDamageTaken: 0,
+        maxDamageTaken: 0,
+        totalGroupHp: 0,
+        avgDamageDealt: 0,
+        avgHpRemainingOnWin: 0,
+        damageContribution: [],
+        killOrder: [],
+        nodeRange: null,
+        effectiveCards: [],
+        isHomogeneous,
+      });
+    }
+
+    const stats = this.enemyGroupStats.get(groupId)!;
+    stats.battles++;
+
+    const isWin = result.winner === 'player';
+    if (isWin) {
+      stats.wins++;
+    } else {
+      stats.losses++;
+    }
+    stats.winRate = stats.wins / stats.battles;
+
+    // 피해량 및 턴 수 업데이트
+    const damageTaken = result.playerDamageTaken || 0;
+    const damageDealt = result.enemyDamageTaken || 0;
+    const turns = result.turns || 0;
+
+    // 누적 평균 계산
+    const prevDamageTaken = stats.avgDamageTaken * (stats.battles - 1);
+    stats.avgDamageTaken = (prevDamageTaken + damageTaken) / stats.battles;
+
+    const prevDamageDealt = stats.avgDamageDealt * (stats.battles - 1);
+    stats.avgDamageDealt = (prevDamageDealt + damageDealt) / stats.battles;
+
+    const prevTurns = stats.avgTurns * (stats.battles - 1);
+    stats.avgTurns = (prevTurns + turns) / stats.battles;
+
+    // 최대 피해 기록
+    if (damageTaken > stats.maxDamageTaken) {
+      stats.maxDamageTaken = damageTaken;
+    }
+
+    // 승리 시 남은 HP 평균
+    if (isWin) {
+      const prevWinHp = stats.avgHpRemainingOnWin * (stats.wins - 1);
+      stats.avgHpRemainingOnWin = (prevWinHp + result.playerFinalHp) / stats.wins;
+    }
   }
 
   /** 이벤트 결과 기록 */

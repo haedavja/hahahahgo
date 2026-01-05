@@ -601,7 +601,33 @@ const SimulatorTab = memo(function SimulatorTab() {
             {/* 몬스터 통계 */}
             {activeStatTab === 'monster' && (
               <>
-                <h4 style={{ margin: '0 0 12px 0', color: '#ef4444' }}>👹 몬스터 전투 통계</h4>
+                {/* 적 그룹 통계 */}
+                {stats.enemyGroupStats && stats.enemyGroupStats.size > 0 && (
+                  <>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#f97316' }}>👥 적 그룹별 통계</h4>
+                    <div style={STYLES.scrollBox}>
+                      <table style={STYLES.table}>
+                        <thead><tr><th style={STYLES.th}>그룹</th><th style={STYLES.th}>마리수</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>신뢰도</th><th style={STYLES.th}>평균턴</th></tr></thead>
+                        <tbody>
+                          {Array.from(stats.enemyGroupStats.entries()).sort((a, b) => b[1].battles - a[1].battles).map(([id, g]) => (
+                            <tr key={id}>
+                              <td style={STYLES.td}>{g.isBoss ? '👑 ' : ''}{g.groupName || id}</td>
+                              <td style={STYLES.td}>{g.enemyCount || 1}</td>
+                              <td style={STYLES.td}>{g.battles}회</td>
+                              <td style={STYLES.td}>{g.wins}회</td>
+                              <td style={STYLES.td}>{g.losses}회</td>
+                              <td style={STYLES.td}>{g.battles > 0 ? ((g.wins / g.battles) * 100).toFixed(0) : 0}%</td>
+                              <td style={STYLES.td}><ConfidenceBadge sampleSize={g.battles} /></td>
+                              <td style={STYLES.td}>{(g.avgTurns ?? 0).toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+                {/* 개별 몬스터 통계 */}
+                <h4 style={{ margin: stats.enemyGroupStats && stats.enemyGroupStats.size > 0 ? '16px 0 12px 0' : '0 0 12px 0', color: '#ef4444' }}>👹 개별 몬스터 전투 통계</h4>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
                     <thead><tr><th style={STYLES.th}>몬스터</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>신뢰도</th><th style={STYLES.th}>평균턴</th></tr></thead>

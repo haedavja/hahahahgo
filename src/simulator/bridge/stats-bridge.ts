@@ -77,6 +77,14 @@ export interface GameEnemyInfo {
   isBoss?: boolean;
   isElite?: boolean;
   emoji?: string;
+  /** 적 그룹 ID (예: wildrat_swarm) */
+  groupId?: string;
+  /** 적 그룹 이름 (예: 들쥐 떼) */
+  groupName?: string;
+  /** 그룹 내 적 수 */
+  enemyCount?: number;
+  /** 그룹 구성 (적 ID 배열) */
+  composition?: string[];
 }
 
 /** 게임에서 전달하는 플레이어 정보 */
@@ -590,6 +598,11 @@ export function recordGameBattle(
       tier: enemyInfo.tier,
       isBoss: enemyInfo.isBoss,
       isElite: enemyInfo.isElite,
+      // 그룹 정보
+      groupId: enemyInfo.groupId,
+      groupName: enemyInfo.groupName,
+      enemyCount: enemyInfo.enemyCount,
+      composition: enemyInfo.composition,
     };
 
     // 컨텍스트 정보

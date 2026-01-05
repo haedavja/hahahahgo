@@ -244,6 +244,14 @@ export interface BattleConfig {
   enemyHp?: number;
   tier?: number;
   rewards?: BattleRewards;
+  /** 적 그룹 ID */
+  groupId?: string;
+  /** 적 그룹 이름 */
+  groupName?: string;
+  /** 그룹 내 적 수 */
+  enemyCount?: number;
+  /** 그룹 구성 (적 ID 배열) */
+  composition?: string[];
 }
 
 /** 전투 결과 */

@@ -243,36 +243,74 @@ function BattleTab({ stats }: { stats: ReturnType<typeof getCurrentStats> }) {
 }
 
 function MonsterTab({ detailed }: { detailed: DetailedStats }) {
+  // 적 그룹 통계
+  const groups = useMemo(() => {
+    if (!detailed.enemyGroupStats || detailed.enemyGroupStats.size === 0) return [];
+    return Array.from(detailed.enemyGroupStats.entries())
+      .sort((a, b) => (b[1].battles || 0) - (a[1].battles || 0));
+  }, [detailed.enemyGroupStats]);
+
+  // 개별 몬스터 통계
   const monsters = useMemo(() => {
     if (!detailed.monsterStats || detailed.monsterStats.size === 0) return [];
     return Array.from(detailed.monsterStats.entries())
       .sort((a, b) => (b[1].battles || 0) - (a[1].battles || 0));
   }, [detailed.monsterStats]);
 
-  if (monsters.length === 0) {
+  if (groups.length === 0 && monsters.length === 0) {
     return <p style={{ color: '#94a3b8' }}>아직 몬스터 통계가 없습니다.</p>;
   }
 
   return (
     <>
-      <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316' }}>👾 몬스터별 통계</h3>
-      {monsters.map(([id, data]) => {
-        const battleCount = data.battles || 0;
-        const winRate = battleCount > 0 ? ((data.wins / battleCount) * 100).toFixed(1) : '0';
-        const displayName = data.monsterName || id;
-        const isBoss = data.isBoss;
+      {/* 적 그룹 통계 */}
+      {groups.length > 0 && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316' }}>👥 적 그룹별 통계</h3>
+          {groups.map(([id, data]) => {
+            const battleCount = data.battles || 0;
+            const winRate = battleCount > 0 ? ((data.wins / battleCount) * 100).toFixed(1) : '0';
+            const displayName = data.groupName || id;
+            const enemyCount = data.enemyCount || 0;
+            const isBoss = data.isBoss;
 
-        return (
-          <DataListRow
-            key={id}
-            label={<>{isBoss ? '👑 ' : ''}{displayName}</>}
-            value={`${battleCount}전 ${data.wins}승 (${winRate}%)`}
-            valueColor={Number(winRate) >= 50 ? '#22c55e' : '#ef4444'}
-            badge={<ConfidenceBadge sampleSize={battleCount} />}
-            subtext={battleCount > 0 ? `평균 ${(data.avgTurns || 0).toFixed(1)}턴 | 가한 피해 ${(data.avgDamageDealt || 0).toFixed(0)} | 받은 피해 ${(data.avgDamageTaken || 0).toFixed(0)}` : undefined}
-          />
-        );
-      })}
+            return (
+              <DataListRow
+                key={id}
+                label={<>{isBoss ? '👑 ' : ''}{displayName} {enemyCount > 1 ? `(${enemyCount}마리)` : ''}</>}
+                value={`${battleCount}전 ${data.wins}승 (${winRate}%)`}
+                valueColor={Number(winRate) >= 50 ? '#22c55e' : '#ef4444'}
+                badge={<ConfidenceBadge sampleSize={battleCount} />}
+                subtext={battleCount > 0 ? `평균 ${(data.avgTurns || 0).toFixed(1)}턴 | 가한 피해 ${(data.avgDamageDealt || 0).toFixed(0)} | 받은 피해 ${(data.avgDamageTaken || 0).toFixed(0)}` : undefined}
+              />
+            );
+          })}
+        </>
+      )}
+
+      {/* 개별 몬스터 통계 */}
+      {monsters.length > 0 && (
+        <>
+          <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316', marginTop: groups.length > 0 ? '16px' : '0' }}>👾 개별 몬스터 통계</h3>
+          {monsters.map(([id, data]) => {
+            const battleCount = data.battles || 0;
+            const winRate = battleCount > 0 ? ((data.wins / battleCount) * 100).toFixed(1) : '0';
+            const displayName = data.monsterName || id;
+            const isBoss = data.isBoss;
+
+            return (
+              <DataListRow
+                key={id}
+                label={<>{isBoss ? '👑 ' : ''}{displayName}</>}
+                value={`${battleCount}전 ${data.wins}승 (${winRate}%)`}
+                valueColor={Number(winRate) >= 50 ? '#22c55e' : '#ef4444'}
+                badge={<ConfidenceBadge sampleSize={battleCount} />}
+                subtext={battleCount > 0 ? `평균 ${(data.avgTurns || 0).toFixed(1)}턴 | 가한 피해 ${(data.avgDamageDealt || 0).toFixed(0)} | 받은 피해 ${(data.avgDamageTaken || 0).toFixed(0)}` : undefined}
+              />
+            );
+          })}
+        </>
+      )}
     </>
   );
 }

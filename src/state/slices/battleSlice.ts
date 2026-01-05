@@ -83,8 +83,31 @@ export const createBattleActions: SliceCreator = (set) => ({
       const preview = { playerHand, enemyHand, timeline, tuLimit: 30 };
 
       const enemyInfo = enemy
-        ? { id: enemy.id, name: enemy.name, emoji: enemy.emoji, tier: enemy.tier, isBoss: enemy.isBoss || false }
-        : undefined;
+        ? {
+            id: enemy.id,
+            name: enemy.name,
+            emoji: enemy.emoji,
+            tier: enemy.tier,
+            isBoss: enemy.isBoss || false,
+            // 그룹 정보 (battleConfig에서 전달받은 경우)
+            groupId: battleConfig.groupId as string | undefined,
+            groupName: battleConfig.groupName as string | undefined,
+            enemyCount: battleConfig.enemyCount as number | undefined,
+            composition: battleConfig.composition as string[] | undefined,
+          }
+        : battleConfig.groupId
+          ? {
+              // 적 정보 없이 그룹 정보만 있는 경우
+              id: battleConfig.enemyId as string | undefined,
+              name: (battleConfig.groupName as string) || (battleConfig.label as string) || 'Unknown',
+              tier: battleConfig.tier as number | undefined,
+              isBoss: false,
+              groupId: battleConfig.groupId as string,
+              groupName: battleConfig.groupName as string | undefined,
+              enemyCount: battleConfig.enemyCount as number | undefined,
+              composition: battleConfig.composition as string[] | undefined,
+            }
+          : undefined;
 
       // Convert ResolverSimulationResult to SimulationResult format
       const simulationResult = simulation ? {
@@ -198,6 +221,11 @@ export const createBattleActions: SliceCreator = (set) => ({
             tier: enemyInfo?.tier,
             isBoss: enemyInfo?.isBoss,
             emoji: enemyInfo?.emoji,
+            // 그룹 정보 전달
+            groupId: enemyInfo?.groupId,
+            groupName: enemyInfo?.groupName,
+            enemyCount: enemyInfo?.enemyCount,
+            composition: enemyInfo?.composition,
           },
           {
             hp: finalPlayerHp,
