@@ -31,6 +31,7 @@ function usage() {
       "  node scripts/notion-terminus.mjs analyze [--database <id>]",
       "  node scripts/notion-terminus.mjs autoclassify [--apply] [--limit <n>] [--force] [--read] [--database <id>]",
       "  node scripts/notion-terminus.mjs autorole [--apply] [--limit <n>] [--force] [--strict] [--read] [--database <id>]",
+      "  node scripts/notion-terminus.mjs autotag [--apply] [--limit <n>] [--force] [--read] [--min-score <n>] [--max-add <n>] [--only-if-le <n>] [--database <id>]",
       "  node scripts/notion-terminus.mjs autolink [--apply] [--min-score <n>] [--max-add <n>] [--max-total <n>] [--limit-pages <n>] [--database <id>]",
       "  node scripts/notion-terminus.mjs export-graph [--out <path>] [--database <id>]",
       "",
@@ -781,6 +782,79 @@ function inferDomains(category, related) {
   return [...domains];
 }
 
+function normalizeTagName(s) {
+  return String(s || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[(){}\[\]<>]/g, "")
+    .trim();
+}
+
+function inferRelatedTagsFromContent({ title, category, role, propText = "", blockText = "" } = {}) {
+  const text = normalizeTextForMatch([title, category, role, propText, blockText].filter(Boolean).join("\n"));
+  const add = new Map(); // tag -> { score, why[] }
+
+  const bump = (tag, score, why) => {
+    const t = normalizeTagName(tag);
+    if (!t) return;
+    const prev = add.get(t) || { score: 0, why: [] };
+    prev.score += score;
+    if (why && prev.why.length < 4) prev.why.push(why);
+    add.set(t, prev);
+  };
+
+  const RULES = [
+    // 우주론/레이어
+    { tag: "레이어", kw: ["레이어", "다층", "구성막", "스펙트럼", "위상", "계층"], score: 3 },
+    { tag: "스트림", kw: ["스트림", "메인스트림", "서브스트림", "서드스트림", "아웃스트림"], score: 3 },
+    { tag: "인과", kw: ["인과", "원인", "결과"], score: 2 },
+    { tag: "에테르", kw: ["에테르"], score: 3 },
+    { tag: "초법", kw: ["초법", "초법력", "초인과성"], score: 3 },
+    { tag: "표면계", kw: ["표면계"], score: 2 },
+    { tag: "이면계", kw: ["이면계"], score: 2 },
+    { tag: "갑문", kw: ["갑문"], score: 2 },
+    { tag: "펑크", kw: ["펑크", "스팀펑크", "아톰펑크"], score: 2 },
+    { tag: "에고-스페이스", kw: ["에고-스페이스", "ego-space"], score: 2 },
+    { tag: "권주", kw: ["권주", "대권주"], score: 2 },
+
+    // 신격/판테온/종교
+    { tag: "만신전", kw: ["만신전"], score: 4 },
+    { tag: "판테온", kw: ["판테온"], score: 3 },
+    { tag: "신앙", kw: ["신앙", "숭배", "추앙", "예배", "제전"], score: 3 },
+    { tag: "만신앙", kw: ["만신앙"], score: 4 },
+    { tag: "아이온", kw: ["아이온"], score: 5 },
+    { tag: "고대신", kw: ["고대신"], score: 3 },
+    { tag: "주신", kw: ["주신"], score: 2 },
+    { tag: "명신", kw: ["명신", "드높은 신"], score: 2 },
+    { tag: "데미우르고스", kw: ["데미우르고스"], score: 4 },
+    { tag: "에이도스", kw: ["에이도스"], score: 3 },
+    { tag: "그라부스", kw: ["그라부스"], score: 3 },
+    { tag: "순환", kw: ["순환"], score: 2 },
+    { tag: "봉인", kw: ["봉인"], score: 2 },
+    { tag: "신들의 전쟁", kw: ["신들의 전쟁"], score: 4 },
+    { tag: "숙주", kw: ["숙주"], score: 3 },
+    { tag: "신격", kw: ["신격", "신성", "신"], score: 1 },
+  ];
+
+  for (const r of RULES) {
+    for (const raw of r.kw || []) {
+      const kw = normalizeTextForMatch(raw);
+      if (!kw) continue;
+      if (!text.includes(kw)) continue;
+      bump(r.tag, r.score, `kw:${raw}`);
+    }
+  }
+
+  // 카테고리 기반 가산
+  if (String(category || "").trim() === "우주론/레이어") bump("레이어", 2, "cat");
+  if (String(category || "").trim() === "신격/판테온") bump("만신전", 2, "cat");
+  if (String(category || "").trim() === "종교/신앙") bump("신앙", 2, "cat");
+
+  return [...add.entries()]
+    .map(([tag, v]) => ({ tag, score: v.score, why: v.why }))
+    .sort((a, b) => b.score - a.score || String(a.tag).localeCompare(String(b.tag), "ko"));
+}
+
 async function setup({ databaseId, parentPageId, apply }) {
   await getMe();
   const db = await getDatabase(databaseId);
@@ -1409,6 +1483,98 @@ async function autorole({ databaseId, apply, limit, force, strict, read }) {
   console.log("완료: 역할 자동 분류를 반영했습니다.");
 }
 
+async function autotag({ databaseId, apply, limit, force, read, minScore = 3, maxAdd = 8, onlyIfTagCountLe = 1 }) {
+  await getMe();
+
+  const db = await getDatabase(databaseId);
+  const titlePropName = findDatabaseTitlePropName(db);
+
+  let cursor = undefined;
+  const updates = [];
+  const addCounts = new Map();
+
+  while (true) {
+    const res = await queryDatabase(databaseId, { page_size: 100, start_cursor: cursor });
+    for (const page of res.results) {
+      const currentTags = getMultiSelectNames(page, "연관") || [];
+      if (!force && currentTags.length > Number(onlyIfTagCountLe)) continue;
+
+      const title = getTitleFromDatabasePage(page, titlePropName).trim();
+      if (!title) continue;
+
+      const category = getSelectName(page, "대분류") || inferCategoryFromRelated(currentTags) || "기타";
+      const role = getSelectName(page, "역할") || null;
+
+      let propText = "";
+      let blockText = "";
+      if (read) {
+        propText = getPagePropertyText(page, { maxChars: 1600 });
+        blockText = await getPageBlockText(page.id, { maxBlocks: 45, maxChars: 2600, throttleMs: 120 });
+      }
+
+      const inferred = inferRelatedTagsFromContent({ title, category, role, propText, blockText });
+      if (!inferred || inferred.length === 0) continue;
+
+      const existingSet = new Set(currentTags.map((t) => String(t || "").trim()).filter(Boolean));
+      const next = [];
+      const reasons = [];
+      for (const it of inferred) {
+        if (Number(it.score || 0) < Number(minScore)) continue;
+        if (existingSet.has(it.tag)) continue;
+        next.push(it.tag);
+        if (reasons.length < 6) reasons.push(`${it.tag}(${it.score})`);
+        if (next.length >= Number(maxAdd)) break;
+      }
+      if (next.length === 0) continue;
+
+      const merged = [...currentTags, ...next].map((name) => ({ name }));
+      const patch = { properties: { 연관: { multi_select: merged } } };
+      updates.push({ id: page.id, title, add: next, reasons, patch });
+      for (const t of next) addCounts.set(t, (addCounts.get(t) || 0) + 1);
+
+      if (limit && updates.length >= limit) break;
+    }
+    if (limit && updates.length >= limit) break;
+    if (!res.has_more) break;
+    cursor = res.next_cursor;
+  }
+
+  console.log(`대상 업데이트(연관): ${updates.length}${limit ? ` (limit=${limit})` : ""}`);
+  console.log("\n[연관] 추가 태그 분포(상위 30)");
+  for (const [name, c] of [...addCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30)) {
+    console.log(`- ${name}: ${c}`);
+  }
+
+  const sample = updates.slice(0, 20);
+  if (sample.length > 0) {
+    console.log("\n샘플(최대 20개)");
+    for (const u of sample) {
+      console.log(`- ${u.title}: +[${u.add.join(", ")}] | 근거=${u.reasons.join(", ")}`);
+    }
+  }
+
+  if (!apply) {
+    console.log("\n(dry-run) --apply를 붙이면 실제로 반영합니다.");
+    return;
+  }
+
+  for (let i = 0; i < updates.length; i++) {
+    const u = updates[i];
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await patchPage(u.id, u.patch);
+        break;
+      } catch (e) {
+        if (attempt === 5) throw e;
+        await sleep(Math.min(5000, 350 * attempt * attempt));
+      }
+    }
+    if ((i + 1) % 50 === 0) console.log(`진행: ${i + 1}/${updates.length}`);
+    await sleep(80);
+  }
+  console.log("완료: 연관 태그 자동 편성을 반영했습니다.");
+}
+
 async function autolink({
   databaseId,
   apply,
@@ -1905,6 +2071,20 @@ async function main() {
     }
     if (cmd === "autorole") {
       await autorole({ databaseId, apply, limit, force, strict, read });
+      return;
+    }
+    if (cmd === "autotag") {
+      const onlyIfLe = flags.get("only-if-le") != null ? Number(flags.get("only-if-le")) : 1;
+      await autotag({
+        databaseId,
+        apply,
+        limit,
+        force,
+        read,
+        minScore: minScore != null ? minScore : 3,
+        maxAdd: maxAdd != null ? maxAdd : 8,
+        onlyIfTagCountLe: onlyIfLe,
+      });
       return;
     }
     if (cmd === "autolink") {
