@@ -84,15 +84,16 @@ describe('tokenEffects', () => {
 
     it('공격력 감소 토큰이 적용되어야 함', () => {
       const card = createAttackCard({ damage: 10 });
-      const attackPenalty = createAttackPenaltyToken(1, 0.3);
+      const attackPenalty = createAttackPenaltyToken(1, 0.5);
       const entity = createEntityWithTokens({
         turn: [attackPenalty as unknown as TokenInstance],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'attack');
 
-      // 10 * (1 - 0.3) = 7
-      expect(result.modifiedCard.damage).toBe(7);
+      // 코어 함수: dull 토큰 → 0.5배
+      // 10 * 0.5 = 5
+      expect(result.modifiedCard.damage).toBe(5);
     });
 
     it('방어력 증가 토큰이 적용되어야 함', () => {
@@ -110,15 +111,16 @@ describe('tokenEffects', () => {
 
     it('방어력 감소 토큰이 적용되어야 함', () => {
       const card = createDefenseCard({ block: 10 });
-      const defensePenalty = createDefensePenaltyToken(1, 0.4);
+      const defensePenalty = createDefensePenaltyToken(1, 0.5);
       const entity = createEntityWithTokens({
         turn: [defensePenalty as unknown as TokenInstance],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'defense');
 
-      // 10 * (1 - 0.4) = 6
-      expect(result.modifiedCard.block).toBe(6);
+      // 코어 함수: shaken 토큰 → 0.5배
+      // 10 * 0.5 = 5
+      expect(result.modifiedCard.block).toBe(5);
     });
 
     it('사용소모 토큰은 소모 목록에 추가되어야 함', () => {
