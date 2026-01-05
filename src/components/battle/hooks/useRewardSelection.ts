@@ -81,7 +81,7 @@ export function useRewardSelection({
 
     // 통계 기록: 카드 픽
     const offeredCardIds = cardReward?.cards.map(c => c.id) || [];
-    recordCardPick(selectedCard.id, selectedCard.name, offeredCardIds, { source: 'battle_reward' });
+    recordCardPick(selectedCard.id, offeredCardIds);
 
     // 모달 닫기 및 post 페이즈로 전환
     setCardReward(null);

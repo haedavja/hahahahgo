@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
@@ -28,6 +28,7 @@ import {
   recordRelicAcquired,
   recordItemAcquired,
   recordCardUpgrade,
+  recordShopVisit,
 } from '../../simulator/bridge/stats-bridge';
 
 // 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
@@ -183,6 +184,11 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     setTimeout(() => setNotification(null), 2000);
   }, []);
 
+  // 상점 방문 통계 기록
+  useEffect(() => {
+    recordShopVisit({ gold });
+  }, []);
+
   const handleBuyRelic = (relicId: string, price: number) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
@@ -201,8 +207,8 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     showNotification(`${relicName}을(를) 구매했습니다!`, 'success');
 
     // 통계 기록
-    recordRelicAcquired(relicId, relicName, { source: 'shop' });
-    recordShopPurchase('relic', relicId, relicName, price);
+    recordRelicAcquired(relicId, { source: 'shop' });
+    recordShopPurchase('relic', relicId, price);
   };
 
   const handleBuyItem = (itemId: string, price: number) => {
@@ -226,7 +232,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
 
     // 통계 기록
     recordItemAcquired(itemId, itemName);
-    recordShopPurchase('item', itemId, itemName, price);
+    recordShopPurchase('item', itemId, price);
   };
 
   const handleBuyCard = (cardId: string, price: number) => {
@@ -244,8 +250,8 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     showNotification(`${cardName}을(를) 구매했습니다!`, 'success');
 
     // 통계 기록
-    recordCardPick(cardId, cardName, [], { source: 'shop' });
-    recordShopPurchase('card', cardId, cardName, price);
+    recordCardPick(cardId, []);
+    recordShopPurchase('card', cardId, price);
   };
 
   const handleSellItem = (slotIndex: number) => {
@@ -333,6 +339,10 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     enhanceCard(card.id);
     setShowCardUpgradeModal(false);
     showNotification(`${card.name} 카드를 강화했습니다!`, 'success');
+
+    // 통계 기록: 카드 강화
+    const currentLevel = cardUpgrades[card.id] ? 2 : 1;
+    recordCardUpgrade(card.id, currentLevel + 1, { cost: cardUpgradePrice });
   };
 
   const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
