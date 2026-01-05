@@ -1,0 +1,126 @@
+name: Balance Check
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'src/data/**'
+      - 'src/simulator/**'
+      - 'src/components/battle/**'
+
+jobs:
+  balance:
+    name: Balance Simulation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Balance Check
+        id: balance
+        run: |
+          npm run balance-check 2>&1 | tee balance-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Parse Results
+        id: parse
+        if: always()
+        run: |
+          # 결과 파싱
+          if grep -q "밸런스 체크 통과" balance-output.txt; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          elif grep -q "밸런스 경고 발생" balance-output.txt; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+          else
+            echo "status=error" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+
+          # 요약 추출
+          SUMMARY=$(grep -A5 "📊 요약:" balance-output.txt || echo "요약 없음")
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.parse.outputs.status }}';
+            const emoji = '${{ steps.parse.outputs.emoji }}';
+            const summary = `${{ steps.parse.outputs.summary }}`;
+
+            const body = `## ${emoji} 밸런스 체크 결과
+
+            **상태**: ${status === 'success' ? '통과' : status === 'warning' ? '경고' : '실패'}
+
+            \`\`\`
+            ${summary}
+            \`\`\`
+
+            <details>
+            <summary>상세 로그 보기</summary>
+
+            전체 로그는 Actions 탭에서 확인하세요.
+            </details>
+
+            ---
+            *자동 생성된 밸런스 체크 리포트*`;
+
+            // 기존 코멘트 찾기
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('밸런스 체크 결과')
+            );
+
+            if (botComment) {
+              // 기존 코멘트 업데이트
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // 새 코멘트 작성
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Upload Balance Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balance-report
+          path: balance-output.txt
+          retention-days: 7
+
+      - name: Check Exit Status
+        if: steps.balance.outputs.exit_code == '2'
+        run: |
+          echo "밸런스 체크 실패!"
+          exit 1

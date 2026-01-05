@@ -1,0 +1,457 @@
+/**
+ * ItemSlots.tsx
+ *
+ * 전투 화면용 아이템 슬롯 컴포넌트
+ * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
+ * 최적화: 스타일 상수 추출, useCallback 적용, memo
+ */
+
+import { FC, MutableRefObject, memo, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useGameStore } from "../../../state/gameStore";
+import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
+import { addToken } from "../../../lib/tokenUtils";
+import type {
+  Item,
+  TokenEntity,
+  ItemSlotsPlayer,
+  ItemSlotsEnemy,
+  ItemSlotsEnemyPlan,
+  ItemSlotsBattleRef,
+  ItemSlotsBattleActions,
+  FixedOrderAction,
+} from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  left: '20px',
+  top: '20px',
+  display: 'flex',
+  gap: '8px',
+  zIndex: 100,
+};
+
+const SLOT_BASE_STYLE: CSSProperties = {
+  position: 'relative',
+  width: '48px',
+  height: '48px',
+  borderRadius: '8px',
+  background: 'rgba(12, 18, 32, 0.9)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s',
+};
+
+const ICON_STYLE: CSSProperties = {
+  fontSize: '24px'
+};
+
+const EMPTY_ICON_STYLE: CSSProperties = {
+  fontSize: '18px',
+  color: 'rgba(100, 110, 130, 0.6)'
+};
+
+const PAUSE_BADGE_STYLE: CSSProperties = {
+  position: 'absolute',
+  bottom: '2px',
+  right: '2px',
+  fontSize: '10px',
+  color: 'rgba(255, 100, 100, 0.8)',
+};
+
+const TOOLTIP_BASE: CSSProperties = {
+  position: 'absolute',
+  left: '56px',
+  top: '0',
+  minWidth: '180px',
+  padding: '10px 12px',
+  background: 'rgba(15, 23, 42, 0.98)',
+  border: '1px solid rgba(100, 140, 200, 0.5)',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)',
+  opacity: 0,
+  visibility: 'hidden',
+  transition: 'opacity 0.15s, visibility 0.15s',
+  zIndex: 200,
+  pointerEvents: 'none',
+};
+
+const TOOLTIP_TITLE_STYLE: CSSProperties = {
+  fontWeight: 700,
+  fontSize: '13px',
+  color: '#fbbf24',
+  marginBottom: '6px'
+};
+
+const TOOLTIP_DESC_STYLE: CSSProperties = {
+  fontSize: '12px',
+  color: '#cbd5e1',
+  lineHeight: 1.4,
+  marginBottom: '6px'
+};
+
+const BUFF_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginLeft: '8px',
+};
+
+const BUFF_BADGE_STYLE: CSSProperties = {
+  padding: '4px 8px',
+  background: 'rgba(100, 200, 150, 0.2)',
+  border: '1px solid rgba(100, 200, 150, 0.5)',
+  borderRadius: '6px',
+  fontSize: '11px',
+  color: '#86efac',
+  whiteSpace: 'nowrap',
+};
+
+const HOVER_CSS = `
+  .battle-item-slot:hover .battle-item-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+`;
+
+const STAT_LABELS: Record<string, string> = {
+  strength: "힘",
+  agility: "민첩",
+  insight: "통찰",
+};
+
+/** 플레이어 호환 타입 - ItemSlotsPlayer 필드를 포함하는 모든 타입 */
+type Player = ItemSlotsPlayer & { [key: string]: unknown };
+
+/** 적 호환 타입 - ItemSlotsEnemy 필드를 포함하는 모든 타입 */
+type Enemy = ItemSlotsEnemy & { [key: string]: unknown };
+
+/** 적 계획 호환 타입 */
+type EnemyPlan = ItemSlotsEnemyPlan;
+
+/** 전투 참조 호환 타입 - BattleRefValue와 호환 */
+type BattleRef = ItemSlotsBattleRef & { [key: string]: unknown };
+
+/** 전투 액션 호환 타입 - BattleActions와 호환 */
+type BattleActions = ItemSlotsBattleActions & { [key: string]: unknown };
+
+interface ItemSlotsProps {
+  phase: string;
+  battleActions: BattleActions;
+  player: Player;
+  enemy: Enemy;
+  enemyPlan: EnemyPlan | null;
+  battleRef: { current: BattleRef | null };
+}
+
+export const ItemSlots: FC<ItemSlotsProps> = memo(({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
+  // 상태와 액션을 그룹화하여 셀렉터 최적화
+  const { items, itemBuffs } = useGameStore(
+    useShallow((state) => ({
+      items: (state as { items?: (Item | null)[] }).items || [null, null, null],
+      itemBuffs: (state as { itemBuffs?: Record<string, number> }).itemBuffs || {},
+    }))
+  );
+  const { useItem, removeItem } = useGameStore(
+    useShallow((state) => ({
+      useItem: (state as { useItem: (idx: number) => void }).useItem,
+      removeItem: (state as { removeItem: (idx: number) => void }).removeItem,
+    }))
+  );
+
+  // 전투용 아이템은 select/respond 단계에서만 사용 가능 (prop 기반, UI 표시용)
+  const canUseCombatItem = phase === 'select' || phase === 'respond';
+
+  // 최신 phase를 가져오는 헬퍼 함수 (실제 사용 시 검증용)
+  const getLatestPhase = useCallback((): string => battleRef?.current?.phase || phase, [battleRef, phase]);
+
+  // 전투용 아이템 효과 직접 적용
+  const applyCombatItemEffect = useCallback((item: Item, slotIdx: number): void => {
+    if (!item.effect || !battleActions) return;
+
+    const effect = item.effect;
+    let newPlayer: Player = { ...player };
+    let newEnemy: Enemy = { ...enemy };
+    let logMsg = '';
+
+    switch (effect.type) {
+      case 'damage':
+        newEnemy.hp = Math.max(0, newEnemy.hp - (effect.value || 0));
+        logMsg = `💥 ${item.name}: 적에게 ${effect.value} 피해!`;
+        break;
+      case 'defense':
+        newPlayer.block = (newPlayer.block || 0) + (effect.value || 0);
+        logMsg = `🛡️ ${item.name}: 방어력 ${effect.value} 획득!`;
+        break;
+      case 'turnEnergy': {
+        // 최대값 초과 허용
+        const beforeEnergy = newPlayer.energy || 0;
+        newPlayer.energy = beforeEnergy + (effect.value || 0);
+        logMsg = `⚡ ${item.name}: 에너지 +${effect.value}! (현재: ${newPlayer.energy})`;
+        break;
+      }
+      case 'maxEnergy':
+        newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + (effect.value || 0);
+        newPlayer.energy = (newPlayer.energy || 0) + (effect.value || 0);
+        logMsg = `📦 ${item.name}: 최대 에너지 +${effect.value}!`;
+        break;
+      case 'attackBoost':
+        newPlayer.strength = (newPlayer.strength || 0) + (effect.value || 0);
+        logMsg = `⚔️ ${item.name}: 힘 +${effect.value}!`;
+        break;
+      case 'grantTokens': {
+        // 여러 토큰을 부여 (effect.tokens: [{id, stacks}])
+        const tokenLogs: string[] = [];
+        if (effect.tokens) {
+          for (const tokenGrant of effect.tokens) {
+            const result = addToken(newPlayer, tokenGrant.id, tokenGrant.stacks || 1);
+            newPlayer.tokens = result.tokens;
+            tokenLogs.push(...result.logs);
+          }
+          const tokenNames = effect.tokens.map(t => t.id).join(', ');
+          logMsg = `⚔️ ${item.name}: ${tokenNames} 상태 획득!`;
+        }
+        break;
+      }
+      case 'etherMultiplier':
+        newPlayer.etherMultiplier = (newPlayer.etherMultiplier || 1) * (effect.value || 1);
+        logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배! (총 ${newPlayer.etherMultiplier}배)`;
+        break;
+      case 'etherSteal': {
+        const steal = Math.min(effect.value || 0, newEnemy.etherPts || 0);
+        newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
+        newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
+        logMsg = `🔮 ${item.name}: 적 에테르 ${steal} 흡수!`;
+        break;
+      }
+      case 'cardDestroy': {
+        // 적 카드 파괴 - enemyPlan.actions에서 N장 제거
+        if (!enemyPlan?.actions || enemyPlan.actions.length === 0) {
+          logMsg = `💨 ${item.name}: 파괴할 적 카드가 없습니다!`;
+          break;
+        }
+        const destroyCount = Math.min(effect.value || 0, enemyPlan.actions.length);
+        // 뒤에서부터 파괴할 카드 인덱스 계산
+        const startIdx = enemyPlan.actions.length - destroyCount;
+        const destroyedIndices: number[] = [];
+        for (let i = startIdx; i < enemyPlan.actions.length; i++) {
+          destroyedIndices.push(i);
+        }
+
+        // 파괴 애니메이션용 인덱스 설정
+        battleActions.setDestroyingEnemyCards?.(destroyedIndices);
+
+        // 파괴 사운드 재생
+        playCardDestroySound();
+
+        // battleRef에서 최신 enemyPlan 가져오기 (prop은 stale할 수 있음)
+        const currentEnemyPlan = (battleRef?.current?.enemyPlan || enemyPlan) as EnemyPlan;
+        const currentActions = currentEnemyPlan.actions || [];
+
+        // 즉시 카드 제거 (manuallyModified로 재생성 방지)
+        const actualDestroyCount = Math.min(destroyCount, currentActions.length);
+        const newActions = currentActions.slice(0, -actualDestroyCount);
+
+        // 명시적으로 새 enemyPlan 구성 (spread 대신 직접 설정)
+        const newEnemyPlan: EnemyPlan = {
+          mode: currentEnemyPlan.mode,
+          actions: newActions,
+          manuallyModified: true
+        };
+        battleActions.setEnemyPlan(newEnemyPlan);
+
+        // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
+        if (battleRef?.current) {
+          battleRef.current.enemyPlan = newEnemyPlan;
+        }
+
+        // 0.6초 후 애니메이션 상태 정리
+        setTimeout(() => {
+          battleActions.setDestroyingEnemyCards?.([]);
+        }, 600);
+
+        logMsg = `💥 ${item.name}: 적 카드 ${destroyCount}장 파괴!`;
+        removeItem(slotIdx);
+        if (logMsg) battleActions.addLog(logMsg);
+        return;
+      }
+      case 'cardFreeze': {
+        // 적 카드 빙결 - 플레이어 카드가 모두 먼저 발동
+        newPlayer.enemyFrozen = true;
+
+        // 빙결 사운드 재생
+        playFreezeSound();
+
+        // frozenOrder 카운터 설정 (effect.value = 지속 턴 수, 기본 1턴)
+        const freezeTurns = effect.value || 1;
+        const currentFrozenOrder = battleRef?.current?.frozenOrder || 0;
+        const newFrozenOrder = currentFrozenOrder + freezeTurns;
+
+        if (battleActions.setFrozenOrder) {
+          battleActions.setFrozenOrder(newFrozenOrder);
+          if (battleRef?.current) {
+            battleRef.current.frozenOrder = newFrozenOrder;
+          }
+        }
+
+        // 모든 적 카드에 빙결 애니메이션 적용
+        const currentEnemyPlan = (battleRef?.current?.enemyPlan || enemyPlan) as EnemyPlan | null;
+        const enemyCardCount = currentEnemyPlan?.actions?.length || 0;
+        if (enemyCardCount > 0 && battleActions.setFreezingEnemyCards) {
+          const allEnemyIndices = Array.from({ length: enemyCardCount }, (_, i) => i);
+          battleActions.setFreezingEnemyCards(allEnemyIndices);
+
+          // 0.7초 후 애니메이션 상태 정리
+          setTimeout(() => {
+            battleActions.setFreezingEnemyCards?.([]);
+          }, 700);
+        }
+
+        // respond 단계에서 사용 시 fixedOrder를 즉시 재정렬
+        const latestPhase = getLatestPhase();
+        if (latestPhase === 'respond' && battleRef?.current?.fixedOrder && battleActions.setFixedOrder) {
+          const currentFixedOrder = battleRef.current.fixedOrder as FixedOrderAction[];
+          // 플레이어 카드를 먼저, 적 카드를 나중에
+          const playerCards = currentFixedOrder.filter((x: FixedOrderAction) => x.actor === 'player');
+          const enemyCards = currentFixedOrder.filter((x: FixedOrderAction) => x.actor === 'enemy');
+          const frozenOrder = [...playerCards, ...enemyCards];
+
+          battleActions.setFixedOrder(frozenOrder);
+
+          // battleRef도 즉시 업데이트
+          if (battleRef?.current) {
+            battleRef.current.fixedOrder = frozenOrder;
+          }
+        }
+
+        logMsg = `❄️ ${item.name}: 적 카드 빙결! (플레이어 카드 우선 발동)`;
+        break;
+      }
+      default:
+        return;
+    }
+
+    // 상태 업데이트
+    battleActions.setPlayer(newPlayer);
+    battleActions.setEnemy(newEnemy);
+
+    // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
+    if (battleRef?.current) {
+      battleRef.current.player = newPlayer;
+      battleRef.current.enemy = newEnemy;
+    }
+
+    if (logMsg) battleActions.addLog(logMsg);
+
+    // 아이템 제거
+    removeItem(slotIdx);
+  }, [player, enemy, enemyPlan, battleActions, battleRef, removeItem, getLatestPhase]);
+
+  const handleUseItem = useCallback((idx: number): void => {
+    const item = items[idx];
+    if (!item) return;
+
+    // 범용 아이템은 항상 사용 가능 (치유, 스탯 버프)
+    if (item.usableIn === 'any') {
+      useItem(idx);
+      return;
+    }
+
+    // 전투용 아이템: 최신 phase를 확인하여 resolve 단계면 사용 불가
+    const latestPhase = getLatestPhase();
+    const canUseNow = latestPhase === 'select' || latestPhase === 'respond';
+
+    if (item.usableIn === 'combat' && canUseNow) {
+      applyCombatItemEffect(item, idx);
+    } else if (item.usableIn === 'combat' && !canUseNow) {
+      battleActions.addLog('⚠️ 진행 중에는 아이템을 사용할 수 없습니다!');
+    }
+  }, [items, useItem, getLatestPhase, applyCombatItemEffect, battleActions]);
+
+  const getItemUsability = useCallback((item: Item | null): boolean => {
+    if (!item) return false;
+    if (item.usableIn === 'any') return true;
+    if (item.usableIn === 'combat') return canUseCombatItem;
+    return false;
+  }, [canUseCombatItem]);
+
+  // 슬롯 스타일 생성 함수 메모이제이션
+  const getSlotStyle = useCallback((canUse: boolean, hasItem: boolean): CSSProperties => ({
+    ...SLOT_BASE_STYLE,
+    border: `2px solid ${canUse ? 'rgba(100, 220, 150, 0.9)' : hasItem ? 'rgba(120, 140, 180, 0.5)' : 'rgba(80, 90, 110, 0.5)'}`,
+    cursor: canUse ? 'pointer' : 'default',
+    boxShadow: canUse ? '0 0 8px rgba(100, 220, 150, 0.4)' : 'none',
+    opacity: hasItem && !canUse ? 0.6 : 1,
+  }), []);
+
+  // 버프 항목 메모이제이션
+  const buffEntries = useMemo(() => Object.entries(itemBuffs), [itemBuffs]);
+  const hasBuffs = buffEntries.length > 0;
+
+  return (
+    <div style={CONTAINER_STYLE}>
+      {items.map((item, idx) => {
+        const canUse = getItemUsability(item);
+        const slotStyle = getSlotStyle(canUse, !!item);
+        return (
+          <div
+            key={idx}
+            onClick={() => canUse && handleUseItem(idx)}
+            className="battle-item-slot"
+            style={slotStyle}
+          >
+            {item ? (
+              <>
+                <span style={ICON_STYLE}>{item.icon || '?'}</span>
+                {item.usableIn === 'combat' && !canUseCombatItem && (
+                  <span style={PAUSE_BADGE_STYLE}>⏸</span>
+                )}
+                {/* 아이템 툴팁 */}
+                <div style={TOOLTIP_BASE} className="battle-item-tooltip">
+                  <div style={TOOLTIP_TITLE_STYLE}>
+                    {item.name}
+                  </div>
+                  <div style={TOOLTIP_DESC_STYLE}>
+                    {item.description}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: canUseCombatItem ? '#86efac' : '#f87171',
+                    paddingTop: '4px',
+                    borderTop: '1px solid rgba(100, 120, 150, 0.3)',
+                  }}>
+                    {item.usableIn === 'combat'
+                      ? (canUseCombatItem ? '✓ 지금 사용 가능 (선택/대응 단계)' : '⏸ 선택/대응 단계에서만 사용 가능')
+                      : '✓ 언제든 사용 가능'
+                    }
+                  </div>
+                </div>
+              </>
+            ) : (
+              <span style={EMPTY_ICON_STYLE}>-</span>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 아이템 버프 표시 */}
+      {hasBuffs && (
+        <div style={BUFF_CONTAINER_STYLE}>
+          {buffEntries.map(([stat, value]) => (
+            <span key={stat} style={BUFF_BADGE_STYLE}>
+              {STAT_LABELS[stat] || stat} +{value}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <style>{HOVER_CSS}</style>
+    </div>
+  );
+});
