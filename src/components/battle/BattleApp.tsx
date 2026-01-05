@@ -104,6 +104,7 @@ import {
   TRAITS,
 } from "./battleData";
 import { calculateEtherSlots, MAX_SLOTS } from "../../lib/etherUtils";
+import { ANIMATION_TIMING } from "./ui/constants/layout";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { ItemSlots } from "./ui/ItemSlots";
@@ -1174,10 +1175,10 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           playHitSound();
           if (a.actor === 'player') {
             actions.setEnemyHit(true);
-            setTimeout(() => actions.setEnemyHit(false), 150);
+            setTimeout(() => actions.setEnemyHit(false), ANIMATION_TIMING.HIT_FLASH);
           } else {
             actions.setPlayerHit(true);
-            setTimeout(() => actions.setPlayerHit(false), 150);
+            setTimeout(() => actions.setPlayerHit(false), ANIMATION_TIMING.HIT_FLASH);
           }
         }
       };

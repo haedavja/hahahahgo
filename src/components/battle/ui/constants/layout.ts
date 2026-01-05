@@ -95,20 +95,35 @@ export const Z_INDEX = {
 } as const;
 
 // ==================== 애니메이션 타이밍 ====================
+// 모든 setTimeout, transition 값은 여기서 관리
 
 export const ANIMATION_TIMING = {
+  /** 피격 플래시 */
+  HIT_FLASH: 150,
+  /** 카드 흔들림 딜레이 */
+  CARD_SHAKE: 200,
   /** 타임라인 이동 딜레이 */
   TIMELINE_MOVE: 250,
   /** 카드 액션 딜레이 */
   CARD_ACTION: 250,
-  /** 카드 흔들림 딜레이 */
-  CARD_SHAKE: 200,
-  /** 자동 진행 딜레이 (450ms 미만으로 줄이면 카드 실행 버그 발생!) */
-  AUTO_PROGRESS: 450,
-  /** 에테르 전송 애니메이션 */
-  ETHER_TRANSFER: 800,
+  /** 흔들림 효과 */
+  SHAKE_EFFECT: 300,
   /** HP 바 트랜지션 */
   HP_BAR_TRANSITION: 400,
+  /** 자동 진행 딜레이 (450ms 미만으로 줄이면 카드 실행 버그 발생!) */
+  AUTO_PROGRESS: 450,
+  /** 상징 활성화 표시 */
+  RELIC_ACTIVATION: 500,
+  /** 오버드라이브 플래시 */
+  OVERDRIVE_FLASH: 650,
+  /** 에테르 전송 애니메이션 */
+  ETHER_TRANSFER: 800,
+  /** 통찰 레벨 애니메이션 */
+  INSIGHT_ANIMATION: 1000,
+  /** 알림/복사 상태 표시 */
+  NOTIFICATION: 2000,
+  /** 경고/메시지 표시 */
+  WARNING_MESSAGE: 3000,
 } as const;
 
 // ==================== 레이아웃 스타일 프리셋 ====================

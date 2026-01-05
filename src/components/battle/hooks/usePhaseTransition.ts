@@ -37,6 +37,7 @@ import { applyTraitModifiers, markCrossedCards } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
 import { playCardSubmitSound, playProceedSound } from '../../../lib/soundUtils';
 import { ETHER_THRESHOLD } from '../battleData';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 /** 되감기 스냅샷 */
 interface RespondSnapshot {
@@ -286,14 +287,14 @@ export function usePhaseTransition({
       actions.setPlayer({ ...player, etherPts: (player.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
       playSound(1400, 220);
-      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
+      setTimeout(() => actions.setPlayerOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if (enemyWillOD) {
       actions.setEnemy({ ...enemy, etherPts: (enemy.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setEnemyOverdriveFlash(true);
       playSound(900, 220);
-      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
+      setTimeout(() => actions.setEnemyOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('☄️ 적 에테르 폭주 발동!');
     }
 
