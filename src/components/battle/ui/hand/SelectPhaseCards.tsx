@@ -63,13 +63,23 @@ export const SelectPhaseCards: FC<SelectPhaseCardsProps> = memo(function SelectP
     };
   }, [selected]);
 
+  // 선택된 카드 인덱스 맵 (O(n²) → O(1) 조회)
+  const selectedIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    selected.forEach((s, i) => {
+      const uid = s.__handUid || s.__uid;
+      if (uid) map.set(uid, i);
+    });
+    return map;
+  }, [selected]);
+
   return (
     <div className="hand-cards" data-testid="hand-cards">
       {hand.map((c, idx) => {
         const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
         const usageCount = player?.comboUsageCount?.[c.id] || 0;
-        const cardUid = c.__handUid || c.__uid;
-        const selIndex = selected.findIndex((s) => (s.__handUid || s.__uid) === cardUid);
+        const cardUid = c.__handUid || c.__uid || '';
+        const selIndex = selectedIndexMap.get(cardUid) ?? -1;
         const sel = selIndex !== -1;
         const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
         const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });

@@ -218,6 +218,23 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     return offsets;
   }, [enemyTimeline]);
 
+  // 그리드라인 메모이제이션 (매 렌더링마다 Array.from 방지)
+  const playerGridlines = useMemo(() =>
+    Array.from({ length: playerMax + 1 }, (_, i) => ({
+      key: `p-grid-${i}`,
+      left: `${(i / playerMax) * 100}%`
+    })),
+    [playerMax]
+  );
+
+  const enemyGridlines = useMemo(() =>
+    Array.from({ length: enemyMax + 1 }, (_, i) => ({
+      key: `e-grid-${i}`,
+      left: `${(i / enemyMax) * 100}%`
+    })),
+    [enemyMax]
+  );
+
   // 여유/무리 범위 계산 (분리된 훅 사용)
   const leisureCardRanges = useLeisureRanges({ playerTimeline, spOffsets, cardGrowth });
   const strainCardRanges = useStrainRanges({ playerTimeline, spOffsets, cardGrowth });
@@ -306,8 +323,8 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 onMouseLeave={handleDragEnd}
               >
                 {/* 그리드라인 */}
-                {Array.from({ length: playerMax + 1 }, (_, i) => (
-                  <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
+                {playerGridlines.map(g => (
+                  <div key={g.key} className="timeline-gridline" style={{ left: g.left }} />
                 ))}
 
                 {/* 여유 범위 인디케이터 */}
@@ -393,8 +410,8 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               <div className="timeline-lane enemy-lane" style={enemyLaneStyle} data-testid="enemy-timeline-lane">
                 {!hideEnemyTimeline && (
                   <>
-                    {Array.from({ length: enemyMax + 1 }, (_, i) => (
-                      <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
+                    {enemyGridlines.map(g => (
+                      <div key={g.key} className="timeline-gridline" style={{ left: g.left }} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
