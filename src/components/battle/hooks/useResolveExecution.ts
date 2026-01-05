@@ -417,6 +417,16 @@ export function useResolveExecution({
     let localTurnEther = turnEtherAccumulated;
     let localEnemyTurnEther = enemyTurnEtherAccumulated;
 
+    // 최적화: 루프 외부에서 카테고리 Set 초기화 (기존: 매 반복마다 slice+filter+map+Set 생성)
+    const usedCategoriesSet = new Set<string>();
+    // qIndex 이전에 실행된 플레이어 카드의 카테고리 미리 수집
+    for (let j = 0; j < qIndex; j++) {
+      const q = battle.queue[j];
+      if (q.actor === 'player' && q.card?.cardCategory) {
+        usedCategoriesSet.add(q.card.cardCategory);
+      }
+    }
+
     for (let i = qIndex; i < battle.queue.length; i++) {
       const a = battle.queue[i];
 
@@ -424,8 +434,8 @@ export function useResolveExecution({
         continue;
       }
 
-      const executedPlayerCards = battle.queue.slice(0, i).filter((q: OrderItem) => q.actor === 'player');
-      const usedCardCategories = [...new Set(executedPlayerCards.map((q: OrderItem) => q.card?.cardCategory).filter(Boolean))];
+      // 최적화: 현재 인덱스 이전 카드의 카테고리 누적 (O(n²) → O(n))
+      const usedCardCategories = [...usedCategoriesSet];
       const previewNextTurnEffects = battle.nextTurnEffects || {};
 
       const battleContext = {
@@ -445,6 +455,10 @@ export function useResolveExecution({
       events.forEach(ev => addLog(ev.msg));
 
       if (a.actor === 'player') {
+        // 카테고리 누적 (다음 반복에서 사용)
+        if (a.card?.cardCategory) {
+          usedCategoriesSet.add(a.card.cardCategory);
+        }
         const gain = Math.floor(getCardEtherGain(a.card as EtherCard) * passiveRelicEffects.etherMultiplier);
         localTurnEther += gain;
       } else if (a.actor === 'enemy') {
