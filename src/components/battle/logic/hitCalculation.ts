@@ -36,6 +36,9 @@ import {
 } from '../../../lib/ethosEffects';
 import { applyGunCritEthosEffects, applyGunCritReloadEffect } from '../utils/criticalEffects';
 import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse } from '../../../lib/logosEffects';
+import { UNIFIED_CORE_FLAGS } from '../../../core/combat/types';
+import * as EffectCore from '../../../core/combat/effect-core';
+import { toUnifiedTokens, fromUnifiedTokens } from '../../../core/combat/token-core';
 
 /**
  * 반격 처리
@@ -534,22 +537,58 @@ export function calculateSingleHit(
         }
       }
 
-      const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
-      if (totalCounter > 0 && finalDmg > 0) {
-        const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName, totalCounter, battleContext);
-        updatedAttacker = counterResult.attacker;
-        events.push(...counterResult.events);
-        logs.push(...counterResult.logs);
-        damageTaken += counterResult.damage;
-      }
+      // 반격 처리 - Effect Core 사용 시 통합 로직 적용
+      if (UNIFIED_CORE_FLAGS.useEffectCore && finalDmg > 0) {
+        const defenderUnifiedTokens = toUnifiedTokens(updatedDefender.tokens);
+        const enemyName = battleContext.enemyDisplayName || '몬스터';
 
-      if (finalDmg > 0 && hasToken(updatedDefender, 'counterShot')) {
-        const counterShotResult = applyCounterShot(updatedDefender, updatedAttacker, attackerName, battleContext);
-        updatedDefender = counterShotResult.defender;
-        updatedAttacker = counterShotResult.attacker;
-        events.push(...counterShotResult.events);
-        logs.push(...counterShotResult.logs);
-        damageTaken += counterShotResult.damage;
+        // 반격 토큰 처리 (counter, counterPlus)
+        const counterResult = EffectCore.processCounterEffect(defenderUnifiedTokens);
+        if (counterResult.triggered) {
+          const totalCounterDmg = counterResult.damage + (tokenDamageResult.reflected || 0);
+          const beforeHP = updatedAttacker.hp;
+          updatedAttacker = { ...updatedAttacker, hp: Math.max(0, updatedAttacker.hp - totalCounterDmg) };
+          updatedDefender = { ...updatedDefender, tokens: fromUnifiedTokens(counterResult.newTokens) };
+
+          const cmsg = `${attackerName === 'player' ? `${enemyName} -> 플레이어` : `플레이어 -> ${enemyName}`} • 반격 ${totalCounterDmg} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+          events.push({ actor: 'counter', value: totalCounterDmg, msg: cmsg });
+          logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`);
+          damageTaken += totalCounterDmg;
+        }
+
+        // 대응사격 토큰 처리
+        const csResult = EffectCore.processCounterShotEffect(toUnifiedTokens(updatedDefender.tokens));
+        if (csResult.triggered) {
+          const beforeHP = updatedAttacker.hp;
+          updatedAttacker = { ...updatedAttacker, hp: Math.max(0, updatedAttacker.hp - csResult.damage) };
+          updatedDefender = { ...updatedDefender, tokens: fromUnifiedTokens(csResult.newTokens) };
+
+          const defenderName = attackerName === 'player' ? enemyName : '플레이어';
+          const targetName = attackerName === 'player' ? '플레이어' : enemyName;
+          const csmsg = `${defenderName} -> ${targetName} • 🔫 대응사격 ${csResult.damage} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+          events.push({ actor: 'counterShot', type: 'hit' as const, dmg: csResult.damage, msg: csmsg });
+          logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${csmsg}`);
+          damageTaken += csResult.damage;
+        }
+      } else {
+        // 레거시 반격 로직
+        const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
+        if (totalCounter > 0 && finalDmg > 0) {
+          const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName, totalCounter, battleContext);
+          updatedAttacker = counterResult.attacker;
+          events.push(...counterResult.events);
+          logs.push(...counterResult.logs);
+          damageTaken += counterResult.damage;
+        }
+
+        if (finalDmg > 0 && hasToken(updatedDefender, 'counterShot')) {
+          const counterShotResult = applyCounterShot(updatedDefender, updatedAttacker, attackerName, battleContext);
+          updatedDefender = counterShotResult.defender;
+          updatedAttacker = counterShotResult.attacker;
+          events.push(...counterShotResult.events);
+          logs.push(...counterShotResult.logs);
+          damageTaken += counterShotResult.damage;
+        }
       }
 
       // 비의 눈물 효과 (공격받기만 해도 발동)

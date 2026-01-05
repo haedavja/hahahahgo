@@ -605,3 +605,88 @@ export function checkRevive(tokens: UnifiedTokenState): { canRevive: boolean; he
 export function checkImmunity(tokens: UnifiedTokenState): boolean {
   return hasToken(tokens, 'invulnerable') || hasToken(tokens, 'immunity');
 }
+
+// ==================== 게임-시뮬레이터 토큰 변환 ====================
+
+/**
+ * 게임 토큰 인스턴스 타입
+ */
+interface GameTokenInstance {
+  id: string;
+  stacks: number;
+  grantedAt?: { turn: number; sp: number };
+}
+
+/**
+ * 게임 토큰 상태 타입
+ */
+interface GameTokenState {
+  usage?: GameTokenInstance[];
+  turn?: GameTokenInstance[];
+  permanent?: GameTokenInstance[];
+  [key: string]: GameTokenInstance[] | undefined;
+}
+
+/**
+ * 게임 토큰 상태를 UnifiedTokenState로 변환
+ * @param gameTokens 게임의 분류된 토큰 상태
+ * @returns 단순화된 토큰 맵 (tokenId -> stacks)
+ */
+export function toUnifiedTokens(gameTokens: GameTokenState | undefined): UnifiedTokenState {
+  if (!gameTokens) return {};
+
+  const result: UnifiedTokenState = {};
+  const categories = ['usage', 'turn', 'permanent'] as const;
+
+  for (const category of categories) {
+    const tokens = gameTokens[category];
+    if (Array.isArray(tokens)) {
+      for (const token of tokens) {
+        if (token.id && token.stacks > 0) {
+          result[token.id] = (result[token.id] || 0) + token.stacks;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * UnifiedTokenState를 게임 토큰 상태로 변환
+ * 주의: 토큰 타입(usage/turn/permanent) 정보가 손실되므로,
+ * 모든 토큰을 usage 카테고리로 배치합니다.
+ * 정확한 카테고리가 필요하면 definitions를 사용하세요.
+ *
+ * @param unifiedTokens 단순화된 토큰 맵
+ * @param definitions 토큰 정의 (카테고리 결정용, 선택적)
+ * @returns 게임의 분류된 토큰 상태
+ */
+export function fromUnifiedTokens(
+  unifiedTokens: UnifiedTokenState,
+  definitions?: TokenDefinitionMap
+): GameTokenState {
+  const result: GameTokenState = {
+    usage: [],
+    turn: [],
+    permanent: [],
+  };
+
+  for (const [tokenId, stacks] of Object.entries(unifiedTokens)) {
+    if (stacks > 0) {
+      const instance: GameTokenInstance = { id: tokenId, stacks };
+
+      // 정의가 있으면 해당 카테고리에 배치, 없으면 usage로
+      const def = definitions?.[tokenId];
+      const category = def?.type || 'usage';
+
+      if (result[category]) {
+        result[category]!.push(instance);
+      } else {
+        result.usage!.push(instance);
+      }
+    }
+  }
+
+  return result;
+}
