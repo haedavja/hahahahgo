@@ -114,11 +114,11 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
       const newState = applyInitialRelicEffects(createInitialState());
       // 새 런 시작 시 통계 초기화
       const deck = newState.characterBuild?.ownedCards || [];
-      const relics = (newState.relics || []) as string[];
+      const relics = newState.relics || [];
       recordRunStart(deck, relics);
-      return newState as unknown as Partial<GameStore>;
+      return newState as Partial<GameStore>;
     }),
-  } as unknown as GameStore;
+  } as GameStore;
 }));
 
 // ==================== 셀렉터 ====================

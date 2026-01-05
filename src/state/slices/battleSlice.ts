@@ -148,7 +148,7 @@ export const createBattleActions: SliceCreator = (set) => ({
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const autoResult = pickOutcome(state.activeBattle.simulation as unknown as Parameters<typeof pickOutcome>[0], 'victory');
+      const autoResult = pickOutcome(state.activeBattle.simulation ?? null, 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
         ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
@@ -231,7 +231,7 @@ export const createBattleActions: SliceCreator = (set) => ({
             hp: finalPlayerHp,
             maxHp: newMaxHp,
             deck: state.activeBattle.playerLibrary?.map(c => c.id) || [],
-            relics: state.relics?.map(r => r.id) || [],
+            relics: state.relics || [],
           }
         );
 
@@ -242,7 +242,7 @@ export const createBattleActions: SliceCreator = (set) => ({
             false,
             currentFloor,
             state.activeBattle.playerLibrary?.map(c => c.id) || [],
-            state.relics?.map(r => r.id) || []
+            state.relics || []
           );
         }
 
@@ -253,7 +253,7 @@ export const createBattleActions: SliceCreator = (set) => ({
             true,
             currentFloor,
             state.activeBattle.playerLibrary?.map(c => c.id) || [],
-            state.relics?.map(r => r.id) || []
+            state.relics || []
           );
         }
       } catch (error) {

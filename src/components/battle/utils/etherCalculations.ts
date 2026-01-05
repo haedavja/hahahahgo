@@ -93,8 +93,8 @@ export function applyEtherDeflation(
 /**
  * 카드의 에테르 획득량 반환
  */
-export const getCardEtherGain = (card: EtherCard): number =>
-  CARD_ETHER_BY_RARITY[getCardRarity(card as unknown as BattleCard)] || CARD_ETHER_BY_RARITY.common;
+export const getCardEtherGain = (card: EtherCard | Card): number =>
+  CARD_ETHER_BY_RARITY[getCardRarity(card as BattleCard)] || CARD_ETHER_BY_RARITY.common;
 
 /**
  * 카드 배열의 총 에테르 계산
