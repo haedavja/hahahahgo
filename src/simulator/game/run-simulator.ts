@@ -61,6 +61,12 @@ interface EnemyGroup {
   isBoss?: boolean;
 }
 
+// 적 그룹 선택 결과 타입
+interface EnemyGroupSelection {
+  enemies: EnemyState[];
+  group?: EnemyGroup;
+}
+
 const log = getLogger('RunSimulator');
 
 // 카드 타입 분류 (전략별 선택용)
@@ -694,7 +700,7 @@ export class RunSimulator {
   /**
    * 적 그룹 선택 (노드 기반, 다중 적 지원)
    */
-  private selectEnemyGroup(nodeType: MapNodeType, layer: number): EnemyState[] {
+  private selectEnemyGroup(nodeType: MapNodeType, layer: number): EnemyGroupSelection {
     // 기본 적 (라이브러리가 없을 때)
     const defaultEnemy = (): EnemyState => ({
       id: 'ghoul',
@@ -710,7 +716,7 @@ export class RunSimulator {
     });
 
     if (this.enemyLibrary.length === 0) {
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     // 보스/엘리트는 단일 적
@@ -718,18 +724,18 @@ export class RunSimulator {
       const bosses = this.enemyLibrary.filter(e => e.isBoss === true);
       if (bosses.length > 0) {
         const boss = getGlobalRandom().pick(bosses);
-        return [this.convertToEnemyState(boss)];
+        return { enemies: [this.convertToEnemyState(boss)] };
       }
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     if (nodeType === 'elite') {
       const elites = this.enemyLibrary.filter(e => e.tier === 2 && !e.isBoss);
       if (elites.length > 0) {
         const elite = getGlobalRandom().pick(elites);
-        return [this.convertToEnemyState(elite)];
+        return { enemies: [this.convertToEnemyState(elite)] };
       }
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     // 일반 전투: 적 그룹 사용 (노드 범위 기반)
@@ -752,7 +758,7 @@ export class RunSimulator {
         }
 
         if (enemies.length > 0) {
-          return enemies;
+          return { enemies, group: selectedGroup };
         }
       }
     }
@@ -761,10 +767,10 @@ export class RunSimulator {
     const tier1Enemies = this.enemyLibrary.filter(e => e.tier === 1 && !e.isBoss);
     if (tier1Enemies.length > 0) {
       const enemy = getGlobalRandom().pick(tier1Enemies);
-      return [this.convertToEnemyState(enemy)];
+      return { enemies: [this.convertToEnemyState(enemy)] };
     }
 
-    return [defaultEnemy()];
+    return { enemies: [defaultEnemy()] };
   }
 
   /**
@@ -789,7 +795,7 @@ export class RunSimulator {
    * 단일 적 선택 (하위 호환성)
    */
   private selectEnemy(nodeType: MapNodeType, layer: number): EnemyState {
-    return this.selectEnemyGroup(nodeType, layer)[0];
+    return this.selectEnemyGroup(nodeType, layer).enemies[0];
   }
 
   /**
@@ -852,7 +858,7 @@ export class RunSimulator {
     const isBoss = node.type === 'boss';
 
     // 적 그룹 선택 (다중 적 지원)
-    const enemies = this.selectEnemyGroup(node.type, node.layer);
+    const { enemies, group: selectedGroup } = this.selectEnemyGroup(node.type, node.layer);
 
     // 난이도에 따른 적 강화
     const mods = config.difficultyModifiers || {};
@@ -1083,6 +1089,11 @@ export class RunSimulator {
           tier: isBoss ? 3 : isElite ? 2 : 1,
           isBoss,
           isElite,
+          // 그룹 정보 전달
+          groupId: selectedGroup?.id,
+          groupName: selectedGroup?.name,
+          enemyCount: selectedGroup?.enemies.length,
+          composition: selectedGroup?.enemies,
         });
       }
     }
