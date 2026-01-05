@@ -262,6 +262,14 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   const destroyingSet = useMemo(() => new Set(destroyingEnemyCards), [destroyingEnemyCards]);
   const freezingSet = useMemo(() => new Set(freezingEnemyCards), [freezingEnemyCards]);
 
+  // queue.findIndex() O(n²) → O(1) Map 조회로 최적화
+  const queueIndexMap = useMemo(() => {
+    if (!queue || battle.phase !== 'resolve') return null;
+    const map = new Map<TimelineAction, number>();
+    queue.forEach((q, i) => map.set(q, i));
+    return map;
+  }, [queue, battle.phase]);
+
   return (
     <>
       {/* 타임라인 숫자 오버레이 */}
@@ -370,13 +378,13 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const currentTimelineSp = battle.phase === 'resolve'
                     ? Math.floor((timelineProgress / 100) * playerMax)
                     : 0;
-                  const globalIdx = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                  const cardAlreadyUsed = globalIdx !== -1 && globalIdx < qIndex;
+                  // queueIndexMap으로 O(1) 조회 (기존 queue.findIndex O(n) 대체)
+                  const globalIndex = queueIndexMap?.get(a) ?? -1;
+                  const cardAlreadyUsed = globalIndex !== -1 && globalIndex < qIndex;
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
 
-                  const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
 
@@ -419,7 +427,8 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                       <div key={g.key} className="timeline-gridline" style={{ left: g.left }} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
-                      const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                      // queueIndexMap으로 O(1) 조회
+                      const globalIndex = queueIndexMap?.get(a) ?? -1;
                       const isExecuting = executingCardIndex === globalIndex;
                       const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
                       const isDestroying = destroyingSet.has(idx);
