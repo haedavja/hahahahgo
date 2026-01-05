@@ -1,14 +1,17 @@
 /**
  * @file enemy-patterns.ts
- * @description 적 AI 패턴 시스템 - 실제 게임과 동기화된 단순 AI
+ * @description 적 AI 패턴 시스템
  *
- * ## 패턴 타입 (단순화 - 실제 게임과 동일)
+ * ## 기본 패턴 (3종)
  * - aggressive: 공격 우선
  * - defensive: 방어 우선
  * - balanced: 균형 있게 대응
  *
- * 복잡한 패턴(tactical, berserk, support, assassin)은
- * 실제 게임에서 사용하지 않으므로 단순화
+ * ## 확장 패턴 (4종)
+ * - tactical: 전술적 판단 (balanced 기반 + 특수효과 중시)
+ * - berserk: 광폭화 (aggressive 기반 + HP 낮을 때 더 공격적)
+ * - support: 지원 (defensive 기반 + 힐 우선)
+ * - assassin: 암살자 (aggressive 기반 + 빠른 고피해)
  */
 
 import type { GameCard, EnemyState, PlayerState, TokenState } from '../core/game-types';
@@ -55,14 +58,15 @@ export interface CardScore {
 
 export interface EnemyDecision {
   selectedCards: GameCard[];
-  pattern: EnemyPattern;
+  pattern: ExtendedEnemyPattern;
   reasoning: string[];
 }
 
 // ==================== 패턴 설정 ====================
 
-// 단순화된 패턴 설정 (실제 게임과 동일)
-const PATTERN_CONFIGS: Record<EnemyPattern, PatternConfig> = {
+// 패턴 설정 (기본 + 확장)
+const PATTERN_CONFIGS: Record<ExtendedEnemyPattern, PatternConfig> = {
+  // 기본 패턴
   aggressive: {
     attackWeight: 1.8,
     defenseWeight: 0.6,
@@ -87,9 +91,42 @@ const PATTERN_CONFIGS: Record<EnemyPattern, PatternConfig> = {
     lowHpBehavior: 'more_defensive',
     criticalBehavior: 'all_in',
   },
+  // 확장 패턴
+  tactical: {
+    attackWeight: 1.3,
+    defenseWeight: 1.3,
+    specialWeight: 1.5,
+    hpThresholds: { low: 0.35, critical: 0.15 },
+    lowHpBehavior: 'more_defensive',
+    criticalBehavior: 'all_in',
+  },
+  berserk: {
+    attackWeight: 2.0,
+    defenseWeight: 0.4,
+    specialWeight: 0.8,
+    hpThresholds: { low: 0.5, critical: 0.2 },
+    lowHpBehavior: 'berserk',
+    criticalBehavior: 'all_in',
+  },
+  support: {
+    attackWeight: 0.8,
+    defenseWeight: 1.5,
+    specialWeight: 1.8,
+    hpThresholds: { low: 0.4, critical: 0.2 },
+    lowHpBehavior: 'more_defensive',
+    criticalBehavior: 'heal_priority',
+  },
+  assassin: {
+    attackWeight: 2.2,
+    defenseWeight: 0.3,
+    specialWeight: 1.2,
+    hpThresholds: { low: 0.25, critical: 0.1 },
+    lowHpBehavior: 'more_aggressive',
+    criticalBehavior: 'all_in',
+  },
 };
 
-// 확장 패턴을 기본 패턴으로 매핑
+// 확장 패턴을 기본 패턴으로 매핑 (레거시 함수 - 일부 기능에서 사용)
 function normalizePattern(pattern: ExtendedEnemyPattern): EnemyPattern {
   switch (pattern) {
     case 'tactical':
@@ -107,25 +144,37 @@ function normalizePattern(pattern: ExtendedEnemyPattern): EnemyPattern {
   }
 }
 
+// 확장 패턴 유효성 검사
+function isValidExtendedPattern(pattern: string): pattern is ExtendedEnemyPattern {
+  return ['aggressive', 'defensive', 'balanced', 'tactical', 'berserk', 'support', 'assassin'].includes(pattern);
+}
+
 // ==================== 적 AI 클래스 ====================
 
 export class EnemyAI {
   private cards: Record<string, GameCard>;
-  private pattern: EnemyPattern;
+  private pattern: ExtendedEnemyPattern;
   private config: PatternConfig;
 
   constructor(cards: Record<string, GameCard>, pattern: ExtendedEnemyPattern = 'balanced') {
     this.cards = cards;
-    this.pattern = normalizePattern(pattern);
+    this.pattern = pattern;
     this.config = PATTERN_CONFIGS[this.pattern];
   }
 
   /**
-   * 패턴 변경 (확장 패턴도 지원하지만 내부적으로 기본 패턴으로 변환)
+   * 패턴 변경 (확장 패턴 완전 지원)
    */
   setPattern(pattern: ExtendedEnemyPattern): void {
-    this.pattern = normalizePattern(pattern);
+    this.pattern = pattern;
     this.config = PATTERN_CONFIGS[this.pattern];
+  }
+
+  /**
+   * 현재 패턴 반환
+   */
+  getPattern(): ExtendedEnemyPattern {
+    return this.pattern;
   }
 
   /**
@@ -560,27 +609,36 @@ export function createEnemyAI(
 }
 
 /**
- * 적 ID에서 패턴 추출 (단순화)
- * - 반환값은 확장 패턴이지만 AI 내부에서 기본 패턴으로 정규화됨
+ * 적 ID에서 패턴 추출
+ * - 각 적에 맞는 확장 패턴 반환
  */
-export function getPatternForEnemy(enemyId: string): EnemyPattern {
-  // 단순화된 패턴 매핑 (실제 게임과 동일하게 3종류로)
-  const patterns: Record<string, EnemyPattern> = {
+export function getPatternForEnemy(enemyId: string): ExtendedEnemyPattern {
+  const patterns: Record<string, ExtendedEnemyPattern> = {
     // 공격적 적
     ghoul: 'aggressive',
     marauder: 'aggressive',
     wildrat: 'aggressive',
-    berserker: 'aggressive',
     slaughterer: 'aggressive',
+
+    // 광폭화 적
+    berserker: 'berserk',
+    warlord: 'berserk',
 
     // 방어적 적
     deserter: 'defensive',
     slurthim: 'defensive',
     polluted: 'defensive',
 
-    // 균형형 적 (엘리트/보스)
-    hunter: 'balanced',
-    captain: 'balanced',
+    // 전술적 적 (엘리트/보스)
+    hunter: 'tactical',
+    captain: 'tactical',
+    overlord: 'tactical',
+
+    // 지원형 적
+    alchemist: 'support',
+
+    // 암살자형 적
+    nemesis: 'assassin',
   };
 
   return patterns[enemyId] || 'balanced';
