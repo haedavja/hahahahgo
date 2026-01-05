@@ -14,7 +14,7 @@
  * @property {number} currentIndex - 현재 인덱스
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface TimelineOptions {
   speed?: number;
@@ -192,17 +192,21 @@ export function useCardExecution(executingCardIndex = null, duration = 500) {
  * @returns {Function} isCardVisible - 카드 가시성 확인 함수
  */
 export function useCardDisappearance(disappearingCards: number[] = [], hiddenCards: number[] = []) {
+  // O(n) includes → O(1) Set 조회로 최적화
+  const hiddenSet = useMemo(() => new Set(hiddenCards), [hiddenCards]);
+  const disappearingSet = useMemo(() => new Set(disappearingCards), [disappearingCards]);
+
   const isCardVisible = useCallback((index: number) => {
-    return !hiddenCards.includes(index);
-  }, [hiddenCards]);
+    return !hiddenSet.has(index);
+  }, [hiddenSet]);
 
   const isCardDisappearing = useCallback((index: number) => {
-    return disappearingCards.includes(index);
-  }, [disappearingCards]);
+    return disappearingSet.has(index);
+  }, [disappearingSet]);
 
   const isCardHidden = useCallback((index: number) => {
-    return hiddenCards.includes(index);
-  }, [hiddenCards]);
+    return hiddenSet.has(index);
+  }, [hiddenSet]);
 
   return {
     isCardVisible,
