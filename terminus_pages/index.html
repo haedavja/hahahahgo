@@ -925,7 +925,9 @@
           state.expandedScope.layer &&
           state.expandedScope.category;
 
-        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("layer"));
+        const narrowing = hasNarrowingForItemsForMode("layer");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
 
         let toShow = [];
         if (shouldShowItems) {
@@ -933,8 +935,61 @@
             toShow = matched.filter(
               (n) => String(n.layer) === String(state.expandedScope.layer) && String(n.category) === String(state.expandedScope.category),
             );
-          } else {
+          } else if (narrowing) {
             toShow = matched.slice();
+          } else {
+            const statusRank = (it) => {
+              const s = String(it && it.status ? it.status : "미지정");
+              if (s === "확정") return 0;
+              if (s === "정리중") return 1;
+              if (s === "초안") return 2;
+              return 3;
+            };
+
+            const buckets = new Map(); // layer -> Map(cat -> items[])
+            for (const it of matched) {
+              const layer = inferLayerFromItem(it);
+              const cat = String(it.category || "기타");
+              if (!buckets.has(layer)) buckets.set(layer, new Map());
+              const m = buckets.get(layer);
+              if (!m.has(cat)) m.set(cat, []);
+              m.get(cat).push(it);
+            }
+
+            for (const [, m] of buckets.entries()) {
+              for (const [, list] of m.entries()) {
+                list.sort((a, b) => {
+                  const ra = statusRank(a);
+                  const rb = statusRank(b);
+                  if (ra !== rb) return ra - rb;
+                  return String(a.label || "").localeCompare(String(b.label || ""), "ko");
+                });
+              }
+            }
+
+            const PER_LAYER = 24;
+            const picked = [];
+            const seen = new Set();
+            for (const layer of LAYERS) {
+              const m = buckets.get(layer);
+              if (!m) continue;
+              const cats = Array.from(m.entries()).sort((a, b) => (b[1].length || 0) - (a[1].length || 0));
+              let pass = 0;
+              while (pass < 3 && cats.length) {
+                for (const [, list] of cats) {
+                  const it = list[pass];
+                  if (!it) continue;
+                  const id = String(it.id);
+                  if (seen.has(id)) continue;
+                  picked.push(it);
+                  seen.add(id);
+                  if (picked.filter((x) => inferLayerFromItem(x) === layer).length >= PER_LAYER) break;
+                }
+                if (picked.filter((x) => inferLayerFromItem(x) === layer).length >= PER_LAYER) break;
+                pass++;
+              }
+            }
+            toShow = picked;
           }
         }
 
@@ -952,14 +1007,48 @@
         const nodes = [];
         const links = [];
 
-        nodes.push(getRootNode(raw));
+        const root = getRootNode(raw);
+        nodes.push(root);
 
         const layerNodeId = new Map();
         for (const l of LAYERS) {
           const id = makeId("__layer", l);
           layerNodeId.set(l, id);
           nodes.push(upsertCachedNode({ id, type: "layer", label: LAYER_LABEL[l] || l, layer: l }));
-          links.push({ source: getRootNode(raw).id, target: id, type: "hierarchy" });
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        if (previewMode) {
+          const layerCount = new Map();
+          for (const item of matched) {
+            const layer = inferLayerFromItem(item);
+            const id = layerNodeId.get(layer);
+            if (!id) continue;
+            layerCount.set(id, (layerCount.get(id) || 0) + 1);
+          }
+
+          for (const node of nodes) {
+            if (node.type !== "layer") continue;
+            const id = String(node.id);
+            const c = layerCount.get(id) || 0;
+            node.count = c;
+            const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.layer || node.label);
+            node.label = (LAYER_LABEL[node.layer] || base) + " (" + c + ")";
+          }
+
+          for (const item of shownItems) {
+            const layer = inferLayerFromItem(item);
+            const lid = layerNodeId.get(layer);
+            if (!lid) continue;
+            nodes.push(item);
+            links.push({ source: lid, target: item.id, type: "hierarchy" });
+          }
+
+          return {
+            nodes,
+            links,
+            stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+          };
         }
 
         const catNodeId = new Map();
@@ -1044,14 +1133,40 @@
           state.expandedScope.mode === "pov" &&
           state.expandedScope.pov;
 
-        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("pov"));
+        const narrowing = hasNarrowingForItemsForMode("pov");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
 
         let toShow = [];
         if (shouldShowItems) {
           if (expanded && showAll) {
             toShow = matched.filter((n) => String(n.pov) === String(state.expandedScope.pov));
-          } else {
+          } else if (narrowing) {
             toShow = matched.slice();
+          } else {
+            const bucketToItems = new Map();
+            for (const it of matched) {
+              const key = String(showAll ? it.pov : povFilter);
+              if (!bucketToItems.has(key)) bucketToItems.set(key, []);
+              bucketToItems.get(key).push(it);
+            }
+            for (const list of bucketToItems.values()) {
+              list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+            }
+
+            const PER_BUCKET = 36;
+            const picked = [];
+            const seen = new Set();
+            for (const p of povs) {
+              const list = bucketToItems.get(String(p)) || [];
+              for (const it of list.slice(0, PER_BUCKET)) {
+                const id = String(it.id);
+                if (seen.has(id)) continue;
+                picked.push(it);
+                seen.add(id);
+              }
+            }
+            toShow = picked;
           }
         }
 
@@ -1146,14 +1261,40 @@
           state.expandedScope.mode === "state" &&
           state.expandedScope.status;
 
-        const shouldShowItems = Boolean(state.showItems) && (expanded || hasNarrowingForItemsForMode("state"));
+        const narrowing = hasNarrowingForItemsForMode("state");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
 
         let toShow = [];
         if (shouldShowItems) {
           if (expanded && state.statusFilter === "ALL") {
             toShow = matched.filter((n) => String(n.status || "미지정") === String(state.expandedScope.status));
-          } else {
+          } else if (narrowing) {
             toShow = matched.slice();
+          } else {
+            const bucketToItems = new Map();
+            for (const it of matched) {
+              const key = String(it.status || "미지정");
+              if (!bucketToItems.has(key)) bucketToItems.set(key, []);
+              bucketToItems.get(key).push(it);
+            }
+            for (const list of bucketToItems.values()) {
+              list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+            }
+
+            const PER_BUCKET = 40;
+            const picked = [];
+            const seen = new Set();
+            for (const s of STATUS_NODES) {
+              const list = bucketToItems.get(String(s)) || [];
+              for (const it of list.slice(0, PER_BUCKET)) {
+                const id = String(it.id);
+                if (seen.has(id)) continue;
+                picked.push(it);
+                seen.add(id);
+              }
+            }
+            toShow = picked;
           }
         }
 
@@ -1622,6 +1763,49 @@
         return { highlightNodes, highlightLinks };
       }
 
+      function pickDefaultRelationFocusId(raw) {
+        if (!raw) return null;
+        const nodes = raw.nodes || [];
+        const byId = new Map();
+        for (const n of nodes) byId.set(String(n.id), n);
+
+        const degree = new Map();
+        for (const l of raw.links || []) {
+          if (!l) continue;
+          if (l.type !== "relation" && l.type !== "rel_inferred") continue;
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          const sn = byId.get(String(s));
+          const tn = byId.get(String(t));
+          if (!sn || !tn) continue;
+          if (sn.type !== "item" || tn.type !== "item") continue;
+          degree.set(String(s), (degree.get(String(s)) || 0) + 1);
+          degree.set(String(t), (degree.get(String(t)) || 0) + 1);
+        }
+
+        let bestId = null;
+        let bestDeg = -1;
+        let bestLabel = "";
+        for (const [id, d] of degree.entries()) {
+          const node = byId.get(String(id));
+          const label = node && node.label ? String(node.label) : "";
+          if (d > bestDeg) {
+            bestDeg = d;
+            bestId = id;
+            bestLabel = label;
+            continue;
+          }
+          if (d === bestDeg) {
+            if (String(label).localeCompare(String(bestLabel), "ko") < 0) {
+              bestId = id;
+              bestLabel = label;
+            }
+          }
+        }
+        return bestId;
+      }
+
       function openNotion(node) {
         if (!node || !node.url) return;
         try {
@@ -2056,7 +2240,10 @@
         const nodes = graphData.nodes || [];
         const shouldAnchorTerritory = state.mode === "territory" && Boolean(state.mindmapLayout);
         const shouldAnchorTimeline = state.mode === "timeline";
-        const shouldAnchor = shouldAnchorTerritory || shouldAnchorTimeline;
+        const shouldAnchorPov = state.mode === "pov";
+        const shouldAnchorState = state.mode === "state";
+        const shouldAnchorLayer = state.mode === "layer" && !nodes.some((n) => n && n.type === "category");
+        const shouldAnchor = shouldAnchorTerritory || shouldAnchorTimeline || shouldAnchorPov || shouldAnchorState || shouldAnchorLayer;
 
         for (const n of nodes) {
           if (!n) continue;
@@ -2067,6 +2254,125 @@
         }
 
         if (!shouldAnchor) return;
+
+        function anchorBucketGrid({ bucketType, bucketOrder, bucketLabelKey, bucketSortKey }) {
+          const density = state.density || "normal";
+          const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+
+          const cols = density === "compact" ? 4 : density === "spacious" ? 2 : 3;
+          const bucketX = 0;
+          const itemX0 = Math.floor(280 * mult);
+          const itemGapX = Math.floor(190 * mult);
+          const itemGapY = Math.floor(30 * mult);
+          const headerH = Math.floor(62 * mult);
+          const bucketPad = Math.floor(52 * mult);
+
+          const byId = new Map();
+          for (const n of nodes) byId.set(String(n.id), n);
+
+          const orderIndex = new Map();
+          if (Array.isArray(bucketOrder)) {
+            for (let i = 0; i < bucketOrder.length; i++) orderIndex.set(String(bucketOrder[i]), i);
+          }
+
+          const bucketNodes = nodes
+            .filter((n) => n && n.type === bucketType)
+            .slice()
+            .sort((a, b) => {
+              if (bucketSortKey) {
+                const sa = Number(a && a[bucketSortKey] != null ? a[bucketSortKey] : Number.POSITIVE_INFINITY);
+                const sb = Number(b && b[bucketSortKey] != null ? b[bucketSortKey] : Number.POSITIVE_INFINITY);
+                if (sa !== sb) return sa - sb;
+              }
+              if (bucketLabelKey) {
+                const la = String(a && a[bucketLabelKey] != null ? a[bucketLabelKey] : "");
+                const lb = String(b && b[bucketLabelKey] != null ? b[bucketLabelKey] : "");
+                if (la && lb && la !== lb) return la.localeCompare(lb, "ko");
+              }
+              const ba = stripCountSuffix(a && a.label ? a.label : "");
+              const bb = stripCountSuffix(b && b.label ? b.label : "");
+              const ia = orderIndex.has(ba) ? orderIndex.get(ba) : Number.POSITIVE_INFINITY;
+              const ib = orderIndex.has(bb) ? orderIndex.get(bb) : Number.POSITIVE_INFINITY;
+              if (ia !== ib) return ia - ib;
+              return String(ba).localeCompare(String(bb), "ko");
+            });
+
+          const bucketItems = new Map(); // bucketId -> itemNodes[]
+          for (const l of graphData.links || []) {
+            if (!l || l.type !== "hierarchy") continue;
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) continue;
+            const sn = byId.get(String(s));
+            const tn = byId.get(String(t));
+            if (!sn || !tn) continue;
+
+            if (sn.type === bucketType && tn.type === "item") {
+              const key = String(sn.id);
+              if (!bucketItems.has(key)) bucketItems.set(key, []);
+              bucketItems.get(key).push(tn);
+            } else if (tn.type === bucketType && sn.type === "item") {
+              const key = String(tn.id);
+              if (!bucketItems.has(key)) bucketItems.set(key, []);
+              bucketItems.get(key).push(sn);
+            }
+          }
+
+          for (const list of bucketItems.values()) {
+            list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+          }
+
+          let y = 0;
+          for (const b of bucketNodes) {
+            const items = bucketItems.get(String(b.id)) || [];
+
+            b.fx = bucketX;
+            b.fy = y;
+
+            for (let i = 0; i < items.length; i++) {
+              const it = items[i];
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              it.fx = itemX0 + col * itemGapX;
+              it.fy = y + headerH + row * itemGapY;
+            }
+
+            const rows = Math.max(1, Math.ceil(items.length / Math.max(1, cols)));
+            const bucketH = headerH + rows * itemGapY;
+            y += bucketH + bucketPad;
+          }
+
+          const root = nodes.find((n) => n.type === "root");
+          if (root) {
+            root.fx = -Math.floor(240 * mult);
+            root.fy = Math.floor(y / 2);
+          }
+
+          // bucket+item+root 외에는 고정값 제거
+          for (const n of nodes) {
+            if (!n) continue;
+            if (n.type === "root" || n.type === bucketType || n.type === "item") continue;
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+        }
+
+        if (shouldAnchorPov) {
+          anchorBucketGrid({ bucketType: "pov", bucketOrder: PERSPECTIVES });
+          return;
+        }
+
+        if (shouldAnchorState) {
+          anchorBucketGrid({ bucketType: "state", bucketOrder: ["초안", "정리중", "확정", "미지정"] });
+          return;
+        }
+
+        if (shouldAnchorLayer) {
+          anchorBucketGrid({ bucketType: "layer", bucketOrder: LAYERS.map((l) => LAYER_LABEL[l] || l) });
+          return;
+        }
 
         if (shouldAnchorTimeline) {
           const density = state.density || "normal";
@@ -2486,6 +2792,11 @@
       function refresh() {
         if (!state.raw) return;
 
+        if (state.mode === "relation" && !state.selectedNodeId) {
+          const id = pickDefaultRelationFocusId(state.raw);
+          if (id) state.selectedNodeId = String(id);
+        }
+
         if (state.mode === "ui") {
           elGraph.style.display = "none";
           elAltView.style.display = "";
@@ -2888,7 +3199,7 @@
       // Mode tabs
       for (const btn of elModeTabs.querySelectorAll("button[data-mode]")) {
         btn.addEventListener("click", () => {
-          setMode(btn.dataset.mode);
+          setMode(btn.dataset.mode, { keepSelected: true });
         });
       }
 
