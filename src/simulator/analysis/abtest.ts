@@ -14,6 +14,25 @@ import { loadCards, type CardData } from '../data/loader';
 import type { SimulatorInterface } from './balance';
 import { deepClone } from './base-analyzer';
 
+/** 패치 가능한 카드 속성 */
+type PatchableStat = 'attack' | 'defense' | 'cost';
+
+/** 카드 속성 접근 헬퍼 - 타입 안전한 동적 접근 */
+function getCardStat(card: CardData, stat: PatchableStat): number {
+  return card[stat] ?? 0;
+}
+
+/** 카드 속성 설정 헬퍼 - 타입 안전한 동적 설정 */
+function setCardStat(card: CardData, stat: PatchableStat, value: number): void {
+  if (stat === 'cost') {
+    card.cost = value;
+  } else if (stat === 'attack') {
+    card.attack = value;
+  } else if (stat === 'defense') {
+    card.defense = value;
+  }
+}
+
 // ==================== A/B 테스트 관리자 ====================
 
 export interface ABTestOptions {
@@ -335,12 +354,18 @@ export class ABTestManager {
     const patched = deepClone(cards);
 
     for (const change of changes) {
-      if (patched[change.cardId]) {
-        (patched[change.cardId] as any)[change.stat] = change.newValue;
+      const card = patched[change.cardId];
+      if (card && this.isPatchableStat(change.stat)) {
+        setCardStat(card, change.stat, change.newValue);
       }
     }
 
     return patched;
+  }
+
+  /** 타입 가드: stat이 패치 가능한 속성인지 확인 */
+  private isPatchableStat(stat: string): stat is PatchableStat {
+    return stat === 'attack' || stat === 'defense' || stat === 'cost';
   }
 
   // ==================== 히스토리 ====================
@@ -372,7 +397,7 @@ export function createPatchChange(
 ): CardPatchChange {
   const cards = loadCards();
   const card = cards[cardId];
-  const oldValue = (card as any)?.[stat] || 0;
+  const oldValue = card ? getCardStat(card, stat) : 0;
 
   return {
     cardId,

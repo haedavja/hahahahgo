@@ -63,6 +63,27 @@ interface CardPatch {
   newValue: number;
 }
 
+/** 패치 가능한 GameCard 속성 */
+type PatchableGameCardStat = 'damage' | 'block' | 'cost' | 'hits';
+
+/** 타입 가드: stat이 패치 가능한 속성인지 확인 */
+function isPatchableGameCardStat(stat: string): stat is PatchableGameCardStat {
+  return stat === 'damage' || stat === 'block' || stat === 'cost' || stat === 'hits';
+}
+
+/** GameCard 속성 설정 헬퍼 - 타입 안전한 동적 설정 */
+function setGameCardStat(card: GameCard, stat: PatchableGameCardStat, value: number): void {
+  if (stat === 'damage') {
+    card.damage = value;
+  } else if (stat === 'block') {
+    card.block = value;
+  } else if (stat === 'cost') {
+    card.cost = value;
+  } else if (stat === 'hits') {
+    card.hits = value;
+  }
+}
+
 // ==================== A/B 테스트 러너 ====================
 
 export class ABTestRunner {
@@ -215,8 +236,8 @@ export class ABTestRunner {
   private applyPatches(patches: CardPatch[]): void {
     for (const patch of patches) {
       const card = CARDS.find(c => c.id === patch.cardId);
-      if (card) {
-        (card as any)[patch.field] = patch.newValue;
+      if (card && isPatchableGameCardStat(patch.field)) {
+        setGameCardStat(card, patch.field, patch.newValue);
       }
     }
   }
@@ -227,8 +248,8 @@ export class ABTestRunner {
   private rollbackPatches(patches: CardPatch[]): void {
     for (const patch of patches) {
       const card = CARDS.find(c => c.id === patch.cardId);
-      if (card) {
-        (card as any)[patch.field] = patch.originalValue;
+      if (card && isPatchableGameCardStat(patch.field)) {
+        setGameCardStat(card, patch.field, patch.originalValue);
       }
     }
   }

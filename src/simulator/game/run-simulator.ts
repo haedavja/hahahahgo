@@ -325,11 +325,11 @@ export class RunSimulator {
     try {
       // 이벤트 데이터 로드
       const { NEW_EVENT_LIBRARY } = await import('../../data/newEvents');
-      this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY as any);
+      this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY);
 
       // 카드 데이터 로드 (CARD_LIBRARY 사용)
       const { CARD_LIBRARY } = await import('../../data/cards');
-      this.shopSimulator.loadCardData(CARD_LIBRARY as any);
+      this.shopSimulator.loadCardData(CARD_LIBRARY as Record<string, { id: string; rarity?: string }>);
       this.shopSimulator.loadFullCardLibrary(CARD_LIBRARY as Record<string, Card>);
       this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
       this.gameCardLibrary = CARD_LIBRARY as unknown as Record<string, GameCard>;
@@ -348,7 +348,7 @@ export class RunSimulator {
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
-      this.shopSimulator.loadRelicData(RELICS as any);
+      this.shopSimulator.loadRelicData(RELICS as Record<string, { id: string; rarity?: string }>);
       this.dungeonSimulator.loadRelicData(RELICS as Record<string, { id: string; rarity?: string }>);
       this.relicLibrary = RELICS as Record<string, { id: string; rarity?: string }>;
 
@@ -360,7 +360,7 @@ export class RunSimulator {
       // 아이템 데이터 로드
       const { ITEMS } = await import('../../data/items');
       this.itemLibrary = ITEMS as Record<string, Item>;
-      this.shopSimulator.loadItemData(ITEMS as any);
+      this.shopSimulator.loadItemData(ITEMS as Record<string, { id: string; tier?: number }>);
 
       log.info('Game data loaded successfully', {
         events: Object.keys(NEW_EVENT_LIBRARY).length,
