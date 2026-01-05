@@ -184,9 +184,10 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     setTimeout(() => setNotification(null), 2000);
   }, []);
 
-  // 상점 방문 통계 기록
+  // 상점 방문 통계 기록 (마운트 시 1회만 기록)
   useEffect(() => {
     recordShopVisit({ gold });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBuyRelic = (relicId: string, price: number) => {
