@@ -317,6 +317,7 @@ export class TimelineBattleEngine {
    * @param anomalyId 이변 ID 또는 다중 이변 설정 (보스 전투용)
    * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
    * @param playerItems 플레이어 아이템 (선택사항)
+   * @param deckConfig 덱 구성 (주특기/부특기 구분, 선택사항)
    */
   runBattle(
     playerDeck: string[],
@@ -324,7 +325,8 @@ export class TimelineBattleEngine {
     enemy: EnemyState,
     anomalyId?: string | { id: string; level?: number }[],
     cardEnhancements?: Record<string, number>,
-    playerItems?: string[]
+    playerItems?: string[],
+    deckConfig?: { mainSpecials?: string[]; subSpecials?: string[] }
   ): BattleResult {
     this.events = [];
 
@@ -338,8 +340,8 @@ export class TimelineBattleEngine {
     // 강화된 카드 캐시 생성
     this.buildEnhancedCardCache();
 
-    // 플레이어 초기화
-    const player = this.initializePlayer(playerDeck, playerRelics, playerItems);
+    // 플레이어 초기화 (주특기/부특기 구분 지원)
+    const player = this.initializePlayer(playerDeck, playerRelics, playerItems, deckConfig);
 
     // 상징 초기화
     if (this.config.enableRelics) {
@@ -2686,8 +2688,31 @@ export class TimelineBattleEngine {
 
   // ==================== 유틸리티 ====================
 
-  private initializePlayer(deck: string[], relics: string[], items?: string[]): PlayerState {
+  private initializePlayer(
+    deck: string[],
+    relics: string[],
+    items?: string[],
+    deckConfig?: { mainSpecials?: string[]; subSpecials?: string[] }
+  ): PlayerState {
     const passives = this.relicSystem.getPassiveEffects();
+
+    // 주특기/부특기 분리
+    const mainSpecials = deckConfig?.mainSpecials || [];
+    const subSpecials = deckConfig?.subSpecials || [];
+    const mainSet = new Set(mainSpecials);
+    const subSet = new Set(subSpecials);
+
+    // 덱 구성: 부특기 우선, 그 다음 일반 카드 (주특기 제외)
+    // 게임과 동일하게: 주특기는 매 턴 무덤에서 자동 복귀하므로 덱에서 제외
+    const ownedCards = deck.filter(id => !mainSet.has(id));
+    const subSpecialsInDeck = ownedCards.filter(id => subSet.has(id));
+    const normalCards = ownedCards.filter(id => !subSet.has(id));
+
+    // 일반 카드만 셔플
+    this.shuffle(normalCards);
+
+    // 덱 = 부특기 + 셔플된 일반 카드
+    const finalDeck = [...subSpecialsInDeck, ...normalCards];
 
     return {
       hp: 100 + passives.maxHp,
@@ -2702,8 +2727,10 @@ export class TimelineBattleEngine {
       ether: 0,
       gold: 100, // 시뮬레이션 기본 골드
       hand: [],
-      deck: [...deck],
+      deck: finalDeck,
       discard: [],
+      mainSpecials: [...mainSpecials],  // 주특기 목록 저장
+      subSpecials: [...subSpecials],    // 부특기 목록 저장
       relics: [...relics],
       items: items ? [...items] : [],
       insight: 0,
@@ -2834,16 +2861,41 @@ export class TimelineBattleEngine {
       player.repeatCards = [];
     }
 
+    // 주특기 자동 복귀: 무덤에 있는 주특기를 손패로 이동 (게임과 동일)
+    const mainSpecialSet = new Set(player.mainSpecials || []);
+    const vanishedSet = new Set(state?.vanishedCards || []);
+    const mainSpecialsFromDiscard = player.discard.filter(
+      id => mainSpecialSet.has(id) && !vanishedSet.has(id)
+    );
+    if (mainSpecialsFromDiscard.length > 0) {
+      for (const cardId of mainSpecialsFromDiscard) {
+        if (!player.hand.includes(cardId)) {
+          player.hand.push(cardId);
+        }
+      }
+      // 무덤에서 주특기 제거
+      player.discard = player.discard.filter(id => !mainSpecialSet.has(id));
+    }
+
     // 탈주 카드 필터링
     const escapeCards = new Set(player.escapeCards || []);
 
+    // 부특기 Set 생성 (리셔플 시 우선 처리용)
+    const subSpecialSet = new Set(player.subSpecials || []);
+
     for (let i = 0; i < effectiveCount; i++) {
       if (player.deck.length === 0) {
-        // 버린 더미 셔플 (소멸된 카드 제외)
+        // 버린 더미 셔플 (소멸된 카드 제외, 부특기 우선)
         const vanished = new Set(state?.vanishedCards || []);
-        player.deck = player.discard.filter(id => !vanished.has(id));
+        const validDiscard = player.discard.filter(id => !vanished.has(id));
+
+        // 게임과 동일: 부특기는 먼저, 일반 카드는 셔플
+        const subSpecialsFromDiscard = validDiscard.filter(id => subSpecialSet.has(id));
+        const normalCardsFromDiscard = validDiscard.filter(id => !subSpecialSet.has(id));
+        this.shuffle(normalCardsFromDiscard);
+
+        player.deck = [...subSpecialsFromDiscard, ...normalCardsFromDiscard];
         player.discard = [];
-        this.shuffle(player.deck);
       }
 
       if (player.deck.length > 0) {

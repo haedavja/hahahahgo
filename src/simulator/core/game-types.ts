@@ -285,6 +285,8 @@ export interface PlayerState extends CombatantState {
   hand: string[];
   deck: string[];
   discard: string[];
+  mainSpecials: string[];           // 주특기 카드 ID 목록 (매 턴 자동 복귀)
+  subSpecials: string[];            // 부특기 카드 ID 목록 (리셔플 시 우선)
   relics: string[];
   items?: string[];               // 소모성 아이템 목록
   insight: number;
