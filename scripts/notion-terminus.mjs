@@ -29,8 +29,8 @@ function usage() {
       "  node scripts/notion-terminus.mjs setup [--apply] [--database <id>] [--parent <pageId>]",
       "  node scripts/notion-terminus.mjs normalize-related [--apply] [--database <id>]",
       "  node scripts/notion-terminus.mjs analyze [--database <id>]",
-      "  node scripts/notion-terminus.mjs autoclassify [--apply] [--limit <n>] [--force] [--database <id>]",
-      "  node scripts/notion-terminus.mjs autorole [--apply] [--limit <n>] [--force] [--strict] [--database <id>]",
+      "  node scripts/notion-terminus.mjs autoclassify [--apply] [--limit <n>] [--force] [--read] [--database <id>]",
+      "  node scripts/notion-terminus.mjs autorole [--apply] [--limit <n>] [--force] [--strict] [--read] [--database <id>]",
       "  node scripts/notion-terminus.mjs autolink [--apply] [--min-score <n>] [--max-add <n>] [--max-total <n>] [--limit-pages <n>] [--database <id>]",
       "  node scripts/notion-terminus.mjs export-graph [--out <path>] [--database <id>]",
       "",
@@ -39,6 +39,7 @@ function usage() {
       "",
       "팁:",
       "  repo 루트에 `.env.local` 파일을 만들고 NOTION_TOKEN=... 을 넣으면 자동으로 읽습니다.",
+      "  --read를 붙이면 노션 페이지 본문(블록)도 읽어서 분류 품질을 올립니다. (느릴 수 있음)",
     ].join("\n"),
   );
 }
@@ -248,6 +249,10 @@ function getRichTextPlain(page, propName) {
   return "";
 }
 
+function richTextPlain(richText) {
+  return (richText || []).map((t) => t.plain_text).join("");
+}
+
 function normalizePropName(name) {
   return String(name || "")
     .trim()
@@ -305,6 +310,180 @@ const KNOWN_NON_TIMELINE_PROPS = [
   "관련노드",
   "관련 노드",
 ];
+
+async function listBlockChildren(blockId, { cursor, pageSize = 50 } = {}) {
+  const id = normalizeNotionId(blockId);
+  const params = new URLSearchParams();
+  params.set("page_size", String(Math.max(1, Math.min(100, Number(pageSize) || 50))));
+  if (cursor) params.set("start_cursor", String(cursor));
+  return notionFetch("GET", `https://api.notion.com/v1/blocks/${id}/children?${params.toString()}`);
+}
+
+function getBlockPlainText(block) {
+  if (!block || !block.type) return "";
+  const t = String(block.type);
+  const body = block[t];
+  if (!body) return "";
+
+  if (t === "child_page") return String(body.title || "");
+  if (t === "child_database") return String(body.title || "");
+
+  if (Array.isArray(body.rich_text)) return richTextPlain(body.rich_text);
+  return "";
+}
+
+async function getPageBlockText(pageId, { maxBlocks = 40, maxChars = 2400, throttleMs = 120 } = {}) {
+  let cursor = undefined;
+  let blocksSeen = 0;
+  let out = "";
+
+  while (true) {
+    if (throttleMs) await sleep(throttleMs);
+    const res = await listBlockChildren(pageId, { cursor, pageSize: 50 });
+    for (const b of res.results || []) {
+      blocksSeen++;
+      const text = getBlockPlainText(b).trim();
+      if (text) {
+        const next = out ? out + "\n" + text : text;
+        out = next.length > maxChars ? next.slice(0, maxChars) : next;
+      }
+      if (blocksSeen >= maxBlocks || out.length >= maxChars) break;
+    }
+    if (blocksSeen >= maxBlocks || out.length >= maxChars) break;
+    if (!res.has_more) break;
+    cursor = res.next_cursor;
+  }
+  return out.trim();
+}
+
+function normalizeTextForMatch(text) {
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .replace(/[(){}\[\]<>]/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function scoreByKeywords(text, keywords) {
+  const s = normalizeTextForMatch(text);
+  let score = 0;
+  const hits = [];
+  for (const kw of keywords) {
+    const k = String(kw || "").trim().toLowerCase();
+    if (!k) continue;
+    if (!s.includes(k)) continue;
+    score += 1;
+    if (hits.length < 6) hits.push(kw);
+  }
+  return { score, hits };
+}
+
+function getPagePropertyText(page, { maxChars = 1800 } = {}) {
+  const parts = [];
+  let len = 0;
+  for (const [name, prop] of Object.entries(page?.properties || {})) {
+    if (!prop) continue;
+    if (KNOWN_NON_TIMELINE_PROPS.includes(name)) continue;
+
+    let text = "";
+    if (prop.type === "rich_text") text = richTextPlain(prop.rich_text);
+    else if (prop.type === "title") text = richTextPlain(prop.title);
+
+    text = String(text || "").trim();
+    if (!text) continue;
+
+    const chunk = `${name}: ${text}`;
+    parts.push(chunk);
+    len += chunk.length;
+    if (len >= maxChars) break;
+  }
+  const joined = parts.join("\n");
+  return joined.length > maxChars ? joined.slice(0, maxChars) : joined;
+}
+
+function inferCategoryFromContent({ title, related = [], propText = "", blockText = "" } = {}) {
+  const t = String(title || "");
+  const tags = new Set((related || []).map((x) => String(x || "").trim()).filter(Boolean));
+  const text = [t, propText, blockText].filter(Boolean).join("\n");
+
+  const CATEGORY_RULES = [
+    {
+      cat: "시스템(게임)",
+      weight: 5,
+      tags: ["시스템", "게임", "룰", "밸런스", "스탯", "스킬"],
+      kw: ["스탯", "스킬", "밸런스", "룰", "쿨다운", "턴", "UI", "인벤", "퀘스트", "레벨", "경험치"],
+    },
+    { cat: "플롯/에피소드", weight: 4, tags: ["스토리", "플롯", "에피소드", "서사"], kw: ["에피소드", "챕터", "프롤로그", "에필로그", "서사", "플롯", "스토리", "전개", "개연성", "1막", "2막", "3막"] },
+    { cat: "역사/사건", weight: 4, tags: ["역사", "사건", "전쟁", "전투"], kw: ["전쟁", "사건", "발발", "침공", "반란", "쿠데타", "조약", "회담", "학살", "전투", "전역", "재앙", "멸망", "휴거", "일식"] },
+    { cat: "군사", weight: 3, tags: ["군사", "병기", "편제", "전술", "유닛"], kw: ["병기", "전술", "편제", "작전", "부대", "사단", "연대", "대대", "소대", "병과", "함대", "전함", "전투기", "유닛", "무장"] },
+    { cat: "인물", weight: 4, tags: ["인물", "캐릭터"], kw: ["인물", "캐릭터", "주인공", "황제", "왕", "공주", "왕자", "기사", "장군", "사령관", "추기경", "성녀", "사제", "선견자", "용병"] },
+    { cat: "세력", weight: 4, tags: ["세력", "정부", "국가", "제국", "왕국", "교단", "조직"], kw: ["제국", "왕국", "연합", "연맹", "교단", "기사단", "군단", "길드", "조직", "협회", "단체", "정부"] },
+    { cat: "장소/지역", weight: 4, tags: ["지역", "장소", "도시", "행성"], kw: ["도시", "행성", "대륙", "성", "요새", "기지", "구역", "지대", "산", "강", "바다", "사막", "빙하", "협곡", "영역", "차원", "지옥", "공허"] },
+    { cat: "초법", weight: 4, tags: ["초법", "마법", "주술", "진법"], kw: ["초법", "마법", "주술", "진법", "주문", "의식", "룬", "정령", "저주", "축복", "성역", "기적", "심연"] },
+    { cat: "기술", weight: 4, tags: ["기술", "과학", "공학"], kw: ["기술", "과학", "공학", "기계", "로봇", "AI", "인공지능", "네트워크", "프로토콜", "나노", "드론", "메카", "엔진", "연구", "실험"] },
+    { cat: "유물/아이템", weight: 3, tags: ["유물", "아이템", "월물"], kw: ["유물", "아이템", "장비", "무기", "방어구", "성물", "도구", "재료", "소모품", "아티팩트", "월물"] },
+    { cat: "용어/개념", weight: 3, tags: ["용어", "개념"], kw: ["개념", "용어", "정의", "원리", "이론", "법칙", "현상", "규칙", "조건", "상태", "메커니즘", "구조", "프로토콜"] },
+    { cat: "설정", weight: 2, tags: ["설정"], kw: ["설정", "배경", "세계관", "문화", "종교", "경제", "정치", "지리", "역사"] },
+    { cat: "메타", weight: 2, tags: ["메타"], kw: ["메타", "작업", "todo", "기획", "개발", "패치노트"] },
+  ];
+
+  const scored = [];
+  for (const rule of CATEGORY_RULES) {
+    let score = 0;
+    const reasons = [];
+
+    for (const tag of rule.tags || []) {
+      if (tags.has(tag)) {
+        score += rule.weight * 3;
+        reasons.push(`tag:${tag}`);
+      }
+    }
+
+    const k = scoreByKeywords(text, rule.kw || []);
+    if (k.score) {
+      score += k.score * rule.weight;
+      for (const h of k.hits) reasons.push(`kw:${h}`);
+    }
+
+    if (score > 0) scored.push({ cat: rule.cat, score, reasons });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  if (!best) return { category: null, reasons: [] };
+  if (best.score < 3) return { category: null, reasons: best.reasons };
+  return { category: best.cat, reasons: best.reasons.slice(0, 8) };
+}
+
+function inferRoleFromContent({ title, category, related = [], propText = "", blockText = "", strict } = {}) {
+  const t = String(title || "");
+  const text = [t, propText, blockText].filter(Boolean).join("\n");
+  const tags = new Set((related || []).map((x) => String(x || "").trim()).filter(Boolean));
+
+  const fromCategory = inferRoleFromCategory(category);
+  if (fromCategory) return { role: fromCategory, reasons: [`category:${category}`] };
+
+  const fromRelated = inferRoleFromRelated(Array.from(tags));
+  if (fromRelated) return { role: fromRelated, reasons: ["tag-based"] };
+
+  const RULES = [
+    { role: "결과", kw: ["결과", "여파", "후유증", "파급", "영향", "변화", "변이", "흉터", "붕괴", "재편"] },
+    { role: "사건", kw: ["사건", "전쟁", "전투", "침공", "발발", "반란", "쿠데타", "학살", "조약", "회담", "재앙", "멸망", "휴거", "일식"] },
+    { role: "존재", kw: ["인물", "캐릭터", "세력", "조직", "국가", "제국", "왕국", "교단", "도시", "행성", "종족", "괴물", "병기", "유물"] },
+    { role: "구조", kw: ["규칙", "법칙", "원리", "조건", "시스템", "룰", "스탯", "스킬", "메커니즘", "프로토콜", "설정", "정의", "개념"] },
+  ];
+
+  let best = null;
+  for (const r of RULES) {
+    const k = scoreByKeywords(text, r.kw);
+    if (!k.score) continue;
+    if (!best || k.score > best.score) best = { role: r.role, score: k.score, reasons: k.hits.map((h) => `kw:${h}`) };
+  }
+
+  if (best && best.role) return { role: best.role, reasons: best.reasons.slice(0, 8) };
+  if (strict) return { role: null, reasons: [] };
+  return { role: "미지정_구조", reasons: [] };
+}
 
 function getTimelineDateStart(page) {
   const direct =
@@ -919,7 +1098,7 @@ async function analyze({ databaseId }) {
   for (const [name, c] of top) console.log(`- ${name}: ${c}`);
 }
 
-async function autoclassify({ databaseId, apply, limit, force }) {
+async function autoclassify({ databaseId, apply, limit, force, read }) {
   await getMe();
 
   const db = await getDatabase(databaseId);
@@ -933,12 +1112,21 @@ async function autoclassify({ databaseId, apply, limit, force }) {
     const res = await queryDatabase(databaseId, { page_size: 100, start_cursor: cursor });
     for (const page of res.results) {
       const related = page.properties?.["연관"]?.multi_select?.map((o) => o.name) || [];
-      if (related.length === 0) continue;
-
       const currentCategory = page.properties?.["대분류"]?.select?.name || null;
       const currentDomains = (page.properties?.["도메인"]?.multi_select || []).map((o) => o.name);
 
-      const nextCategory = inferCategoryFromRelated(related);
+      if (!force && currentCategory && currentDomains.length > 0) continue;
+
+      let nextCategory = currentCategory || inferCategoryFromRelated(related);
+      let reasons = [];
+      if (!nextCategory && read) {
+        const title = getTitleFromDatabasePage(page, titlePropName);
+        const propText = getPagePropertyText(page, { maxChars: 1600 });
+        const blockText = await getPageBlockText(page.id, { maxBlocks: 35, maxChars: 2200, throttleMs: 120 });
+        const inferred = inferCategoryFromContent({ title, related, propText, blockText });
+        nextCategory = inferred.category;
+        reasons = inferred.reasons || [];
+      }
       if (!nextCategory) continue;
 
       const nextDomains = inferDomains(nextCategory, related);
@@ -954,7 +1142,7 @@ async function autoclassify({ databaseId, apply, limit, force }) {
       if (Object.keys(patch.properties).length === 0) continue;
 
       const title = getTitleFromDatabasePage(page, titlePropName);
-      updates.push({ id: page.id, title, related, patch, nextCategory, nextDomains });
+      updates.push({ id: page.id, title, related, patch, nextCategory, nextDomains, reasons });
       categoryCounts.set(nextCategory, (categoryCounts.get(nextCategory) || 0) + 1);
 
       if (limit && updates.length >= limit) break;
@@ -975,7 +1163,8 @@ async function autoclassify({ databaseId, apply, limit, force }) {
     console.log("\n샘플(최대 20개)");
     for (const u of sample) {
       const rel = u.related.join(", ");
-      console.log(`- ${u.title || u.id}: 연관=[${rel}] -> 대분류=${u.nextCategory}, 도메인=[${u.nextDomains.join(", ")}]`);
+      const why = u.reasons && u.reasons.length ? ` | 근거=${u.reasons.slice(0, 6).join(", ")}` : "";
+      console.log(`- ${u.title || u.id}: 연관=[${rel}] -> 대분류=${u.nextCategory}, 도메인=[${u.nextDomains.join(", ")}]${why}`);
     }
   }
 
@@ -1001,7 +1190,7 @@ async function autoclassify({ databaseId, apply, limit, force }) {
   console.log("완료: 대분류/도메인 자동 분류를 반영했습니다.");
 }
 
-async function autorole({ databaseId, apply, limit, force, strict }) {
+async function autorole({ databaseId, apply, limit, force, strict, read }) {
   await getMe();
 
   const db = await getDatabase(databaseId);
@@ -1020,10 +1209,26 @@ async function autorole({ databaseId, apply, limit, force, strict }) {
       const related = page.properties?.["연관"]?.multi_select?.map((o) => o.name) || [];
       const category = getSelectName(page, "대분류") || inferCategoryFromRelated(related) || "기타";
 
-      const nextRole = inferRole({ category, related, strict });
-      if (!nextRole) continue;
-
       const title = getTitleFromDatabasePage(page, titlePropName);
+
+      const quickRole = inferRole({ category, related, strict: true });
+      let nextRole = quickRole;
+      let reasons = nextRole ? [`quick:${category}`] : [];
+
+      if (!nextRole) {
+        if (read) {
+          const propText = getPagePropertyText(page, { maxChars: 1600 });
+          const blockText = await getPageBlockText(page.id, { maxBlocks: 45, maxChars: 2600, throttleMs: 120 });
+          const inferred = inferRoleFromContent({ title, category, related, propText, blockText, strict });
+          nextRole = inferred.role;
+          reasons = inferred.reasons || [];
+        } else {
+          nextRole = inferRole({ category, related, strict });
+          reasons = [];
+        }
+      }
+
+      if (!nextRole) continue;
       updates.push({
         id: page.id,
         title,
@@ -1031,6 +1236,7 @@ async function autorole({ databaseId, apply, limit, force, strict }) {
         related,
         before: currentRole || null,
         after: nextRole,
+        reasons,
       });
 
       roleCounts.set(nextRole, (roleCounts.get(nextRole) || 0) + 1);
@@ -1052,10 +1258,11 @@ async function autorole({ databaseId, apply, limit, force, strict }) {
     console.log("\n샘플(최대 25개)");
     for (const u of sample) {
       const rel = u.related.slice(0, 12).join(", ");
+      const why = u.reasons && u.reasons.length ? ` | 근거=${u.reasons.slice(0, 6).join(", ")}` : "";
       console.log(
         `- ${u.title || u.id}: 대분류=${u.category} | 역할 ${u.before || "(없음)"} -> ${u.after} | 연관=[${
           rel
-        }${u.related.length > 12 ? ", ..." : ""}]`,
+        }${u.related.length > 12 ? ", ..." : ""}]${why}`,
       );
     }
   }
@@ -1552,6 +1759,7 @@ async function main() {
   const limit = flags.get("limit") ? Number(flags.get("limit")) : undefined;
   const force = Boolean(flags.get("force"));
   const strict = Boolean(flags.get("strict"));
+  const read = Boolean(flags.get("read"));
   const outPath = flags.get("out") || "public/terminus-graph.json";
   const databaseId = flags.get("database") || process.env.NOTION_DATABASE_ID || DEFAULT_DATABASE_ID;
   const parentPageId = flags.get("parent") || process.env.NOTION_PARENT_PAGE_ID || DEFAULT_PARENT_PAGE_ID;
@@ -1574,11 +1782,11 @@ async function main() {
       return;
     }
     if (cmd === "autoclassify") {
-      await autoclassify({ databaseId, apply, limit, force });
+      await autoclassify({ databaseId, apply, limit, force, read });
       return;
     }
     if (cmd === "autorole") {
-      await autorole({ databaseId, apply, limit, force, strict });
+      await autorole({ databaseId, apply, limit, force, strict, read });
       return;
     }
     if (cmd === "autolink") {
