@@ -28,6 +28,8 @@ import {
   BASE_CRIT_CHANCE,
   CRIT_MULTIPLIER,
 } from '../../lib/battleCalculations';
+import * as DamageCore from '../../core/combat/damage-core';
+import { UNIFIED_CORE_FLAGS } from '../../core/combat/types';
 
 // ==================== 상수 (설정 가능) ====================
 
@@ -221,6 +223,10 @@ export interface DamageContext {
   card: CardDefinition;
   comboMultiplier?: number;
   isCritical?: boolean;
+  /** 교차 특성 배율 */
+  crossMultiplier?: number;
+  /** 방어 무시 */
+  ignoreBlock?: boolean;
 }
 
 export function calculateDamage(ctx: DamageContext): {
@@ -229,7 +235,47 @@ export function calculateDamage(ctx: DamageContext): {
   blocked: number;
   isCritical: boolean;
   lifesteal: number;
+  isDodged: boolean;
 } {
+  // 코어 사용 시 damage-core 함수 활용
+  if (UNIFIED_CORE_FLAGS.useDamageCore) {
+    const strengthBonus = getTokenStacks(ctx.attacker.tokens, 'strength');
+    const comboMult = ctx.comboMultiplier || 1;
+    const crossMult = ctx.crossMultiplier || 1;
+
+    const result = DamageCore.calculateDamage({
+      baseDamage: ctx.baseDamage,
+      attackerTokens: ctx.attacker.tokens,
+      defenderTokens: ctx.defender.tokens,
+      defenderBlock: ctx.defender.block,
+      defenderHp: ctx.defender.hp,
+      defenderMaxHp: ctx.defender.maxHp,
+      damageBonus: strengthBonus,
+      damageMultiplier: comboMult * crossMult,
+      guaranteedCrit: ctx.isCritical,
+      ignoreBlock: ctx.ignoreBlock,
+    });
+
+    // 흡수 계산
+    let lifesteal = 0;
+    if (hasToken(ctx.attacker.tokens, 'absorb')) {
+      lifesteal = Math.floor(result.finalDamage * 0.5);
+    }
+    if (ctx.card.effects?.lifesteal) {
+      lifesteal += Math.floor(result.finalDamage * ctx.card.effects.lifesteal);
+    }
+
+    return {
+      finalDamage: result.finalDamage + result.blockedDamage,
+      actualDamage: result.finalDamage,
+      blocked: result.blockedDamage,
+      isCritical: result.isCritical,
+      lifesteal,
+      isDodged: result.isDodged,
+    };
+  }
+
+  // 레거시 로직 (useDamageCore = false 시)
   let damage = ctx.baseDamage;
 
   // 힘 보너스
@@ -255,6 +301,11 @@ export function calculateDamage(ctx: DamageContext): {
     damage = Math.floor(damage * ctx.comboMultiplier);
   }
 
+  // 교차 배율
+  if (ctx.crossMultiplier && ctx.crossMultiplier > 1) {
+    damage = Math.floor(damage * ctx.crossMultiplier);
+  }
+
   // 치명타 계산
   let isCritical = ctx.isCritical || false;
   if (!isCritical) {
@@ -269,8 +320,12 @@ export function calculateDamage(ctx: DamageContext): {
   const finalDamage = damage;
 
   // 방어력 적용
-  const blocked = Math.min(ctx.defender.block, damage);
-  const actualDamage = Math.max(0, damage - ctx.defender.block);
+  let blocked = 0;
+  let actualDamage = damage;
+  if (!ctx.ignoreBlock && ctx.defender.block > 0) {
+    blocked = Math.min(ctx.defender.block, damage);
+    actualDamage = Math.max(0, damage - ctx.defender.block);
+  }
 
   // 흡수 (피해의 50% 회복)
   let lifesteal = 0;
@@ -281,23 +336,90 @@ export function calculateDamage(ctx: DamageContext): {
     lifesteal += Math.floor(actualDamage * ctx.card.effects.lifesteal);
   }
 
-  return { finalDamage, actualDamage, blocked, isCritical, lifesteal };
+  return { finalDamage, actualDamage, blocked, isCritical, lifesteal, isDodged: false };
 }
 
 // ==================== 방어력 계산 ====================
 
+export interface BlockContext {
+  baseBlock: number;
+  defender: SimPlayerState | SimEnemyState;
+  card?: CardDefinition;
+  /** 교차 특성 배율 */
+  crossMultiplier?: number;
+  /** 타임라인 위치 (성장방어용) */
+  timelinePosition?: number;
+  /** 최대 체력 방어 (홀로그램) */
+  useMaxHpAsBlock?: boolean;
+}
+
 export function calculateBlock(
-  baseBlock: number,
-  defender: SimPlayerState | SimEnemyState
+  baseBlockOrContext: number | BlockContext,
+  defender?: SimPlayerState | SimEnemyState
 ): number {
+  // 호환성: 기존 호출 방식 지원
+  let baseBlock: number;
+  let defenderEntity: SimPlayerState | SimEnemyState;
+  let crossMult = 1;
+  let timelinePos = 0;
+  let useMaxHp = false;
+  let card: CardDefinition | undefined;
+
+  if (typeof baseBlockOrContext === 'number') {
+    baseBlock = baseBlockOrContext;
+    defenderEntity = defender!;
+  } else {
+    baseBlock = baseBlockOrContext.baseBlock;
+    defenderEntity = baseBlockOrContext.defender;
+    crossMult = baseBlockOrContext.crossMultiplier || 1;
+    timelinePos = baseBlockOrContext.timelinePosition || 0;
+    useMaxHp = baseBlockOrContext.useMaxHpAsBlock || false;
+    card = baseBlockOrContext.card;
+  }
+
+  // 홀로그램: 최대 체력을 방어력으로
+  if (useMaxHp || (card?.traits?.includes('hologram'))) {
+    baseBlock = defenderEntity.maxHp;
+  }
+
+  // 코어 사용 시
+  if (UNIFIED_CORE_FLAGS.useDamageCore) {
+    const coreBlock = DamageCore.calculateBlock(
+      baseBlock,
+      defenderEntity.tokens,
+      getTokenStacks(defenderEntity.tokens, 'dexterity')
+    );
+
+    // 교차 배율 적용
+    let finalBlock = Math.floor(coreBlock * crossMult);
+
+    // 성장방어: 타임라인 위치에 따른 보너스
+    if (card?.traits?.includes('growingDefense') && timelinePos > 0) {
+      const growthBonus = Math.floor(timelinePos / 5) * 2; // 타임라인 5칸당 +2 방어력
+      finalBlock += growthBonus;
+    }
+
+    return finalBlock;
+  }
+
+  // 레거시 로직
   let block = baseBlock;
 
   // 민첩 보너스
-  block += getTokenStacks(defender.tokens, 'dexterity');
+  block += getTokenStacks(defenderEntity.tokens, 'dexterity');
 
   // 방어 토큰 (50% 추가)
-  if (hasToken(defender.tokens, 'defensive')) {
+  if (hasToken(defenderEntity.tokens, 'defensive')) {
     block = Math.floor(block * 1.5);
+  }
+
+  // 교차 배율 적용
+  block = Math.floor(block * crossMult);
+
+  // 성장방어: 타임라인 위치에 따른 보너스
+  if (card?.traits?.includes('growingDefense') && timelinePos > 0) {
+    const growthBonus = Math.floor(timelinePos / 5) * 2;
+    block += growthBonus;
   }
 
   return block;
@@ -642,15 +764,37 @@ export class BattleEngine {
           baseDamage = this.anomalySystem.modifyDamage(baseDamage, isPlayer ? 'player' : 'enemy', gameState);
         }
 
+        // 교차 특성 처리 (cross trait에서 배율 별도 추출)
+        const hasCrossTrait = card.traits?.includes('cross');
+        let crossMultiplier = 1;
+        if (hasCrossTrait && i === 0) {
+          const oppositeTypes = ['attack', 'defense', 'skill'].filter(t => t !== card.type);
+          const crossActive = oppositeTypes.some(t => hasToken(attacker.tokens, `cross_${t}`));
+          if (crossActive) {
+            crossMultiplier = BATTLE_CONSTANTS.CROSS_MULTIPLIER;
+          }
+        }
+
+        // 방어 무시 (pierce trait 등)
+        const hasPierceTrait = card.traits?.includes('pierce') || card.traits?.includes('ignoreBlock');
+
         const result = calculateDamage({
           baseDamage,
           attacker,
           defender,
           card,
           comboMultiplier: i === 0 ? totalMultiplier : 1,  // 첫 타격에만 콤보/특성 적용
+          crossMultiplier,
+          ignoreBlock: hasPierceTrait,
         });
 
-        defender.block = Math.max(0, defender.block - result.finalDamage);
+        // 회피 처리
+        if (result.isDodged) {
+          log.push(`${prefix}: ${card.name} → 빗나감! (회피)`);
+          continue;
+        }
+
+        defender.block = Math.max(0, defender.block - result.blocked);
         defender.hp -= result.actualDamage;
         damageDealt += result.actualDamage;
 
@@ -701,7 +845,34 @@ export class BattleEngine {
 
     // 방어
     if (card.block) {
-      let block = calculateBlock(card.block, attacker);
+      // 교차 특성 처리 (방어 카드용)
+      const hasDefenseCross = card.traits?.includes('cross');
+      let defenseBlockCrossMult = 1;
+      if (hasDefenseCross) {
+        const oppositeTypes = ['attack', 'defense', 'skill'].filter(t => t !== card.type);
+        const crossActive = oppositeTypes.some(t => hasToken(attacker.tokens, `cross_${t}`));
+        if (crossActive) {
+          defenseBlockCrossMult = BATTLE_CONSTANTS.CROSS_MULTIPLIER;
+        }
+        // 현재 타입 토큰 설정
+        for (const t of ['attack', 'defense', 'skill']) {
+          attacker.tokens = removeToken(attacker.tokens, `cross_${t}`, 1);
+        }
+        this.addTokenTracked(attacker, `cross_${card.type}`, 1);
+      }
+
+      // 홀로그램/성장방어 지원
+      const hasHologram = card.traits?.includes('hologram');
+      const hasGrowingDefense = card.traits?.includes('growingDefense');
+
+      let block = calculateBlock({
+        baseBlock: card.block,
+        defender: attacker,
+        card,
+        crossMultiplier: defenseBlockCrossMult,
+        timelinePosition: 0, // 시뮬레이터에서는 단순화된 턴 기반 사용
+        useMaxHpAsBlock: hasHologram,
+      });
 
       // 이변으로 블록 수정
       if (this.options.enableAnomalies) {
@@ -713,8 +884,11 @@ export class BattleEngine {
         block = this.anomalySystem.modifyBlock(block, gameState);
       }
 
+      const crossText = defenseBlockCrossMult > 1 ? ' (교차!)' : '';
+      const holoText = hasHologram ? ' (홀로그램)' : '';
+      const growText = hasGrowingDefense ? ' (성장)' : '';
       attacker.block += block;
-      log.push(`${prefix}: ${card.name} → ${block} 방어`);
+      log.push(`${prefix}: ${card.name} → ${block} 방어${crossText}${holoText}${growText}`);
 
       // 카드 사용 시 상징 트리거 (V2 - 블록 생성 카드도 포함)
       if (isPlayer && this.options.enableRelics) {

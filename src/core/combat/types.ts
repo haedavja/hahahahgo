@@ -235,7 +235,7 @@ export const UNIFIED_CORE_FLAGS = {
   /** 토큰 코어 사용 */
   useTokenCore: true,
   /** 피해 계산 코어 사용 */
-  useDamageCore: false,
+  useDamageCore: true,
   /** 효과 코어 사용 */
   useEffectCore: false,
 } as const;
