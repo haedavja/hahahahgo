@@ -1238,28 +1238,6 @@ export class BalanceInsightAnalyzer {
   }
 
   /**
-   * Gini 계수 계산
-   */
-  private calculateGini(values: number[]): number {
-    if (values.length === 0) return 0;
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const n = sorted.length;
-    const mean = sorted.reduce((a, b) => a + b, 0) / n;
-
-    if (mean === 0) return 0;
-
-    let sumOfDifferences = 0;
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        sumOfDifferences += Math.abs(sorted[i] - sorted[j]);
-      }
-    }
-
-    return sumOfDifferences / (2 * n * n * mean);
-  }
-
-  /**
    * 카드 티어 분류
    */
   private classifyCardTier(pickRate: number, contribution: number): string {

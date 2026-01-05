@@ -8,6 +8,7 @@ export { StatRow, type StatRowProps } from './StatRow';
 export { StatsGrid, type StatsGridProps, type StatItem } from './StatsGrid';
 export { StatsTable, type StatsTableProps, type StatsTableColumn } from './StatsTable';
 export { SectionTitle, type SectionTitleProps } from './SectionTitle';
+export { ConfidenceBadge, WinRateWithCI, type ConfidenceBadgeProps, type WinRateWithCIProps } from './ConfidenceBadge';
 
 // 스타일
 export {

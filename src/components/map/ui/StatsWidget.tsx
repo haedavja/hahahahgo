@@ -21,6 +21,8 @@ import {
   STAT_LABEL_STYLE,
   STAT_VALUE_STYLE,
   getWinRateColor,
+  ConfidenceBadge,
+  WinRateWithCI,
 } from '../../stats';
 import { Z_INDEX } from '../../battle/ui/constants/layout';
 
@@ -177,7 +179,6 @@ export const StatsWidget = memo(function StatsWidget() {
 // ==================== 탭 컴포넌트들 ====================
 
 function BattleTab({ stats }: { stats: ReturnType<typeof getCurrentStats> }) {
-  const winRate = stats.battles > 0 ? ((stats.wins / stats.battles) * 100).toFixed(1) : '0';
   const soulRate = stats.wins > 0 ? ((stats.soulDestructions / stats.wins) * 100).toFixed(1) : '0';
   const physRate = stats.wins > 0 ? ((stats.physicalDestructions / stats.wins) * 100).toFixed(1) : '0';
 
@@ -197,8 +198,7 @@ function BattleTab({ stats }: { stats: ReturnType<typeof getCurrentStats> }) {
       />
       <StatRow
         label="승률"
-        value={`${winRate}%`}
-        valueColor={Number(winRate) >= 50 ? '#22c55e' : '#ef4444'}
+        value={<WinRateWithCI wins={stats.wins} total={stats.battles} showCI={stats.battles >= 10} />}
       />
       <StatRow label="평균 턴" value={stats.avgTurns.toFixed(1)} />
       <StatRow label="평균 가한 피해" value={stats.avgDamageDealt.toFixed(1)} />

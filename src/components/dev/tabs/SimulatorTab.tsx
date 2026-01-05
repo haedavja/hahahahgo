@@ -15,6 +15,7 @@ import {
   TH_STYLE,
   TD_STYLE,
   SECTION_BOX_STYLE,
+  ConfidenceBadge,
 } from '../../stats';
 import {
   formatSingleStrategyStats,
@@ -420,7 +421,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                 <h4 style={{ margin: '0 0 12px 0', color: '#22c55e' }}>📊 {STRATEGY_LABELS[activeStrategyTab]} 전략 런 통계</h4>
                 <div style={STYLES.statsGrid}>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>총 런</div><div style={STYLES.statValue}>{stats.runStats.totalRuns ?? 0}회</div></div>
-                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>성공률</div><div style={STYLES.statValue}>{((stats.runStats.successRate ?? 0) * 100).toFixed(1)}%</div></div>
+                  <div style={STYLES.statItem}><div style={STYLES.statLabel}>성공률</div><div style={{ ...STYLES.statValue, display: 'flex', alignItems: 'center', gap: '6px' }}>{((stats.runStats.successRate ?? 0) * 100).toFixed(1)}% <ConfidenceBadge sampleSize={stats.runStats.totalRuns ?? 0} /></div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 도달 층</div><div style={STYLES.statValue}>{(stats.runStats.avgLayerReached ?? 0).toFixed(1)}</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 전투 승리</div><div style={STYLES.statValue}>{(stats.runStats.avgBattlesWon ?? 0).toFixed(1)}</div></div>
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 골드 획득</div><div style={STYLES.statValue}>{(stats.runStats.avgGoldEarned ?? 0).toFixed(0)}G</div></div>
