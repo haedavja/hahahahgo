@@ -53,7 +53,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       if (battleConfig.enemyId) {
         enemy = ENEMIES.find((e) => e.id === battleConfig.enemyId) || null;
       } else if (battleConfig.tier) {
-        enemy = getRandomEnemy(battleConfig.tier as number) || null;
+        enemy = getRandomEnemy(battleConfig.tier) || null;
       }
 
       if (enemy) {
@@ -71,7 +71,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         : drawHand(playerDrawPile, 3);
 
       const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
-      const enemyHp = (battleConfig.enemyHp as number) || enemy?.hp || 30;
+      const enemyHp = battleConfig.enemyHp ?? enemy?.hp ?? 30;
 
       const battleStats = {
         player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
@@ -90,22 +90,22 @@ export const createBattleActions: SliceCreator = (set) => ({
             tier: enemy.tier,
             isBoss: enemy.isBoss || false,
             // 그룹 정보 (battleConfig에서 전달받은 경우)
-            groupId: battleConfig.groupId as string | undefined,
-            groupName: battleConfig.groupName as string | undefined,
-            enemyCount: battleConfig.enemyCount as number | undefined,
-            composition: battleConfig.composition as string[] | undefined,
+            groupId: battleConfig.groupId,
+            groupName: battleConfig.groupName,
+            enemyCount: battleConfig.enemyCount,
+            composition: battleConfig.composition,
           }
         : battleConfig.groupId
           ? {
               // 적 정보 없이 그룹 정보만 있는 경우
-              id: battleConfig.enemyId as string | undefined,
-              name: (battleConfig.groupName as string) || (battleConfig.label as string) || 'Unknown',
-              tier: battleConfig.tier as number | undefined,
+              id: battleConfig.enemyId,
+              name: battleConfig.groupName ?? battleConfig.label ?? 'Unknown',
+              tier: battleConfig.tier,
               isBoss: false,
-              groupId: battleConfig.groupId as string,
-              groupName: battleConfig.groupName as string | undefined,
-              enemyCount: battleConfig.enemyCount as number | undefined,
-              composition: battleConfig.composition as string[] | undefined,
+              groupId: battleConfig.groupId,
+              groupName: battleConfig.groupName,
+              enemyCount: battleConfig.enemyCount,
+              composition: battleConfig.composition,
             }
           : undefined;
 
@@ -120,10 +120,10 @@ export const createBattleActions: SliceCreator = (set) => ({
       } : undefined;
 
       const activeBattle: GameStore['activeBattle'] = {
-        nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
-        kind: (battleConfig.kind as string) || 'combat',
-        label: (battleConfig.label as string) || enemy?.name || '던전 몬스터',
-        rewards: (battleConfig.rewards as BattleRewards) || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
+        nodeId: battleConfig.nodeId ?? 'dungeon-combat',
+        kind: battleConfig.kind ?? 'combat',
+        label: battleConfig.label ?? enemy?.name ?? '던전 몬스터',
+        rewards: battleConfig.rewards ?? { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
         difficulty: enemy?.tier || 2,
         enemyInfo,
         playerLibrary: toBattleCards(playerLibrary),
