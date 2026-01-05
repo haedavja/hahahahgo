@@ -11,6 +11,7 @@ import type { ActiveEvent } from '../../types';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { CARDS } from '../../components/battle/battleData';
 import { canAfford, payCost, grantRewards, resolveAmount, extractResourceDelta } from '../gameStoreHelpers';
+import { recordEventChoice } from '../../simulator/bridge/stats-bridge';
 
 export type EventActionsSlice = EventSliceActions;
 
@@ -109,6 +110,19 @@ export const createEventActions: SliceCreator = (set) => ({
       const pendingNextEvent = choice.nextEvent && NEW_EVENT_LIBRARY[choice.nextEvent]
         ? choice.nextEvent
         : state.pendingNextEvent;
+
+      // 통계 기록: 이벤트 선택
+      if (eventId) {
+        const hpChange = newPlayerHp - state.playerHp;
+        const goldChange = (resources.gold ?? 0) - (state.resources.gold ?? 0);
+        const cardsGained = newOwnedCards.filter(c => !(state.characterBuild?.ownedCards || []).includes(c));
+        recordEventChoice(eventId, choiceId, {
+          success: true,
+          hpChange,
+          goldChange,
+          cardsGained,
+        });
+      }
 
       return {
         ...state,
