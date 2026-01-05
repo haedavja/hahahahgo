@@ -12,6 +12,7 @@ import type { DetailedStats } from '../../../simulator/analysis/detailed-stats-t
 import {
   StatRow,
   SectionTitle,
+  DataListRow,
   STATS_COLORS,
   TAB_CONTAINER_STYLE,
   getTabStyle,
@@ -249,24 +250,14 @@ function MonsterTab({ detailed }: { detailed: DetailedStats }) {
         const isBoss = data.isBoss;
 
         return (
-          <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={STAT_LABEL_STYLE}>
-                {isBoss ? '👑 ' : ''}{displayName}
-              </span>
-              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color: Number(winRate) >= 50 ? '#22c55e' : '#ef4444' }}>
-                  {battleCount}전 {data.wins}승 ({winRate}%)
-                </span>
-                <ConfidenceBadge sampleSize={battleCount} />
-              </span>
-            </div>
-            {battleCount > 0 && (
-              <div style={{ fontSize: '11px', color: '#64748b' }}>
-                평균 {(data.avgTurns || 0).toFixed(1)}턴 | 가한 피해 {(data.avgDamageDealt || 0).toFixed(0)} | 받은 피해 {(data.avgDamageTaken || 0).toFixed(0)}
-              </div>
-            )}
-          </div>
+          <DataListRow
+            key={id}
+            label={<>{isBoss ? '👑 ' : ''}{displayName}</>}
+            value={`${battleCount}전 ${data.wins}승 (${winRate}%)`}
+            valueColor={Number(winRate) >= 50 ? '#22c55e' : '#ef4444'}
+            badge={<ConfidenceBadge sampleSize={battleCount} />}
+            subtext={battleCount > 0 ? `평균 ${(data.avgTurns || 0).toFixed(1)}턴 | 가한 피해 ${(data.avgDamageDealt || 0).toFixed(0)} | 받은 피해 ${(data.avgDamageTaken || 0).toFixed(0)}` : undefined}
+          />
         );
       })}
     </>
@@ -293,19 +284,13 @@ function CardTab({ detailed }: { detailed: DetailedStats }) {
         const winRate = data.winRateWith !== undefined ? (data.winRateWith * 100).toFixed(1) : '-';
         const sampleSize = data.timesPlayed || 0;
         return (
-          <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={STAT_LABEL_STYLE}>{data.cardName || id}</span>
-              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {sampleSize}회 사용
-                <ConfidenceBadge sampleSize={sampleSize} />
-              </span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>
-              전투당 평균 {(data.avgPlaysPerBattle || 0).toFixed(1)}회 | 보유 시 승률 {winRate}%
-              {data.avgDamageDealt ? ` | 평균 피해 ${data.avgDamageDealt.toFixed(0)}` : ''}
-            </div>
-          </div>
+          <DataListRow
+            key={id}
+            label={data.cardName || id}
+            value={`${sampleSize}회 사용`}
+            badge={<ConfidenceBadge sampleSize={sampleSize} />}
+            subtext={`전투당 평균 ${(data.avgPlaysPerBattle || 0).toFixed(1)}회 | 보유 시 승률 ${winRate}%${data.avgDamageDealt ? ` | 평균 피해 ${data.avgDamageDealt.toFixed(0)}` : ''}`}
+          />
         );
       })}
 
@@ -357,22 +342,19 @@ function RelicTab({ detailed }: { detailed: DetailedStats }) {
         const contributionColor = contribution > 0 ? '#22c55e' : contribution < 0 ? '#ef4444' : '#94a3b8';
         const sampleSize = data.timesAcquired || 0;
         return (
-          <div key={id} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={STAT_LABEL_STYLE}>{data.relicName || id}</span>
-              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {sampleSize}회 획득
-                <ConfidenceBadge sampleSize={sampleSize} />
-              </span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>
+          <DataListRow
+            key={id}
+            label={data.relicName || id}
+            value={`${sampleSize}회 획득`}
+            badge={<ConfidenceBadge sampleSize={sampleSize} />}
+            subtext={<>
               보유 시 승률 {((data.winRateWith || 0) * 100).toFixed(1)}%
               <span style={{ color: contributionColor }}>
                 {' '}({contribution >= 0 ? '+' : ''}{(contribution * 100).toFixed(1)}%p)
               </span>
               {data.avgAcquireFloor !== undefined && ` | 평균 획득 ${data.avgAcquireFloor.toFixed(1)}층`}
-            </div>
-          </div>
+            </>}
+          />
         );
       })}
     </>
@@ -397,19 +379,13 @@ function ComboTab({ detailed }: { detailed: DetailedStats }) {
           ? ((data.inWins / data.totalOccurrences) * 100).toFixed(1)
           : '0';
         return (
-          <div key={comboName} style={{ ...STAT_ROW_STYLE, flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={STAT_LABEL_STYLE}>{comboName}</span>
-              <span style={{ ...STAT_VALUE_STYLE, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {data.totalOccurrences}회 발동
-                <ConfidenceBadge sampleSize={data.totalOccurrences} />
-              </span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>
-              승리 시 {data.inWins}회 | 승률 {winRate}%
-              | 평균 에테르 {(data.avgEtherGained || 0).toFixed(1)}
-            </div>
-          </div>
+          <DataListRow
+            key={comboName}
+            label={comboName}
+            value={`${data.totalOccurrences}회 발동`}
+            badge={<ConfidenceBadge sampleSize={data.totalOccurrences} />}
+            subtext={`승리 시 ${data.inWins}회 | 승률 ${winRate}% | 평균 에테르 ${(data.avgEtherGained || 0).toFixed(1)}`}
+          />
         );
       })}
 
