@@ -6,16 +6,12 @@
 import { getAllTokens, removeToken } from '../../../lib/tokenUtils';
 import { hasSpecial } from './cardSpecialEffects';
 import { adjustFinesseGain } from '../../../lib/anomalyEffectUtils';
-import type { TokenEntity, TokenInstance, TokenState } from '../../../types';
+import type { TokenEntity, TokenState } from '../../../types';
 import type { Card } from '../../../types/core';
 
 interface AnomalyPlayerState {
   finesseBlockLevel?: number;
   [key: string]: unknown;
-}
-
-interface TokenEffect {
-  type: string;
 }
 
 export interface ExecutionParams {
@@ -43,11 +39,10 @@ export function processViolentMortExecution(params: ExecutionParams): ExecutionR
   if (hasSpecial(card, 'violentMort') && actor === 'player' && card.type === 'attack') {
     if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
       // 부활 토큰 제거 후 처형
-      const reviveToken = (getAllTokens(E as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>)
-        .find((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'REVIVE');
+      const reviveToken = getAllTokens(E).find(t => t.effect?.type === 'REVIVE');
 
       if (reviveToken) {
-        const reviveRemoveResult = removeToken(E as TokenEntity, reviveToken.id, 'usage', reviveToken.stacks || 1);
+        const reviveRemoveResult = removeToken(E, reviveToken.id, 'usage', reviveToken.stacks || 1);
         E = { ...E, tokens: reviveRemoveResult.tokens };
         addLog(`💀 처형: 부활 무시!`);
       }

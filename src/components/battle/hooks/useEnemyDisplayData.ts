@@ -12,6 +12,7 @@
 import { useMemo } from 'react';
 import { getEnemyNameCounts, getGroupedEnemyMembers } from '../utils/enemyDisplayUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
+import type { Card } from '../../../types/core';
 
 interface EnemyState {
   composition?: unknown[];
@@ -23,7 +24,7 @@ interface EnemyState {
 }
 
 interface EnemyPlan {
-  actions?: unknown[];
+  actions?: Card[];
   mode?: unknown;
 }
 

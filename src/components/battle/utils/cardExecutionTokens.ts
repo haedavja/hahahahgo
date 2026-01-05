@@ -47,7 +47,7 @@ export function createCardExecutionTokenActions({
       if (isCritical) {
         addLog(`💥 치명타! ${tokenId} +1 강화`);
       }
-      const result = addToken(P as TokenEntity, tokenId, actualStacks, grantedAt);
+      const result = addToken(P, tokenId, actualStacks, grantedAt);
       P.tokens = result.tokens;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: { ...P } };
@@ -58,7 +58,7 @@ export function createCardExecutionTokenActions({
     },
 
     removeTokenFromPlayer: (tokenId: string, tokenType: TokenType, stacks = 1) => {
-      const result = removeToken(P as TokenEntity, tokenId, tokenType, stacks);
+      const result = removeToken(P, tokenId, tokenType, stacks);
       P.tokens = result.tokens;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: { ...P } };
@@ -79,7 +79,7 @@ export function createCardExecutionTokenActions({
       if (currentUnits.length > 0 && targetUnitIdForAttack !== null) {
         const updatedUnits = currentUnits.map(u => {
           if (u.unitId === targetUnitIdForAttack) {
-            const unitResult = addToken(u as unknown as TokenEntity, tokenId, actualStacks, grantedAt);
+            const unitResult = addToken(u as TokenEntity, tokenId, actualStacks, grantedAt);
             return { ...u, tokens: unitResult.tokens };
           }
           return u;
@@ -100,7 +100,7 @@ export function createCardExecutionTokenActions({
       }
 
       // 단일 적 또는 타겟 없음: 기존 방식
-      const result = addToken(E as TokenEntity, tokenId, actualStacks, grantedAt);
+      const result = addToken(E, tokenId, actualStacks, grantedAt);
       E.tokens = result.tokens;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, enemy: { ...E } };
@@ -111,7 +111,7 @@ export function createCardExecutionTokenActions({
     },
 
     resetTokenForPlayer: (tokenId: string, tokenType: TokenType, newStacks = 0) => {
-      const result = setTokenStacks(P as TokenEntity, tokenId, tokenType, newStacks);
+      const result = setTokenStacks(P, tokenId, tokenType, newStacks);
       P.tokens = result.tokens;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: { ...P } };

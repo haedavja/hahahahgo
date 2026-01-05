@@ -25,7 +25,8 @@ export type CardTrait =
   | 'followup' | 'finisher' | 'multiTarget' | 'stun'
   | 'strongbone' | 'weakbone' | 'destroyer' | 'slaughter' | 'pinnacle'
   | 'cooperation' | 'swift' | 'slow' | 'mastery' | 'boredom'
-  | 'escape' | 'double_edge' | 'training' | 'leisure' | 'strain';
+  | 'escape' | 'double_edge' | 'training' | 'leisure' | 'strain'
+  | 'creation' | 'guard_stance';
 
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';

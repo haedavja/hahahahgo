@@ -4,7 +4,7 @@
  */
 
 import type { EnemyDefinition } from '../../types/enemy';
-import type { BattleTokenActions } from '../../types/core';
+import type { Card, BattleTokenActions } from '../../types/core';
 
 // Re-export for backwards compatibility
 export type { EnemyDefinition };
@@ -90,7 +90,7 @@ export const TRAITS = {
   strain: { id: "strain", name: "무리", type: "positive", weight: 1, description: "클릭 시 행동력 1을 사용해 속도를 최대 3까지 앞당김" }
 };
 
-export const CARDS = [
+export const CARDS: Card[] = [
   // === 펜싱 카드 ===
   {
     id: "marche",
@@ -985,7 +985,7 @@ export const CARDS = [
   },
 ];
 
-export const ENEMY_CARDS = [
+export const ENEMY_CARDS: Card[] = [
   // === 구울 카드 ===
   { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 8, speedCost: 3, actionCost: 1, iconKey: "sword" },  // 5→8 피해 버프
   { id: "ghoul_block", name: "움츠리기", type: "general", block: 8, speedCost: 2, actionCost: 1, iconKey: "shield" },

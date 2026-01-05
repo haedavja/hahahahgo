@@ -35,7 +35,7 @@ interface EnemyState {
 }
 
 interface EnemyPlan {
-  actions?: unknown[];
+  actions?: Card[];
   mode?: unknown;
 }
 
