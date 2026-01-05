@@ -1115,9 +1115,10 @@ async function autoclassify({ databaseId, apply, limit, force, read }) {
       const currentCategory = page.properties?.["대분류"]?.select?.name || null;
       const currentDomains = (page.properties?.["도메인"]?.multi_select || []).map((o) => o.name);
 
-      if (!force && currentCategory && currentDomains.length > 0) continue;
+      const treatCategoryAsEmpty = !currentCategory || String(currentCategory) === "기타";
+      if (!force && !treatCategoryAsEmpty && currentDomains.length > 0) continue;
 
-      let nextCategory = currentCategory || inferCategoryFromRelated(related);
+      let nextCategory = treatCategoryAsEmpty ? inferCategoryFromRelated(related) : currentCategory;
       let reasons = [];
       if (!nextCategory && read) {
         const title = getTitleFromDatabasePage(page, titlePropName);
@@ -1132,7 +1133,7 @@ async function autoclassify({ databaseId, apply, limit, force, read }) {
       const nextDomains = inferDomains(nextCategory, related);
 
       const patch = { properties: {} };
-      if (force || !currentCategory) {
+      if (force || treatCategoryAsEmpty) {
         patch.properties["대분류"] = { select: { name: nextCategory } };
       }
       if (force || currentDomains.length === 0) {
@@ -1204,7 +1205,8 @@ async function autorole({ databaseId, apply, limit, force, strict, read }) {
     const res = await queryDatabase(databaseId, { page_size: 100, start_cursor: cursor });
     for (const page of res.results) {
       const currentRole = getSelectName(page, "역할");
-      if (currentRole && !force) continue;
+      const treatRoleAsEmpty = !currentRole || String(currentRole).startsWith("미지정");
+      if (!force && !treatRoleAsEmpty) continue;
 
       const related = page.properties?.["연관"]?.multi_select?.map((o) => o.name) || [];
       const category = getSelectName(page, "대분류") || inferCategoryFromRelated(related) || "기타";

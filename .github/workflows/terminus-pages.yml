@@ -44,8 +44,8 @@ jobs:
           mkdir -p terminus_pages
           # (대분류/도메인) 본문까지 읽어 최소한 채웁니다. (기존 값이 있으면 건드리지 않음)
           node scripts/notion-terminus.mjs autoclassify --apply --limit 1600 --read
-          # 미지정(역할 없음) 항목을 자동 분류해서 '역할'을 채웁니다.
-          # - 기존에 역할이 있는 항목은 건드리지 않습니다(기본 동작).
+          # 미지정(역할 없음/미지정_*) 항목을 자동 분류해서 '역할'을 채웁니다.
+          # - 이미 역할이 확정된 항목은 건드리지 않습니다(기본 동작).
           # - 너무 많으면 다음 스케줄(매시간)에서 이어서 처리됩니다.
           node scripts/notion-terminus.mjs autorole --apply --limit 1600 --read
           # 확정 관계(관련 노드)를 자동으로 늘립니다. (고신뢰 추정 관계만 일부 승격)
