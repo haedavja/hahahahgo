@@ -22,6 +22,13 @@ import {
 } from '../../data/shop';
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal, CardUpgradeModal, type ShopService } from './ShopTabs';
 import type { BattleCard, GameItem } from '../../state/slices/types';
+import {
+  recordShopPurchase,
+  recordCardPick,
+  recordRelicAcquired,
+  recordItemAcquired,
+  recordCardUpgrade,
+} from '../../simulator/bridge/stats-bridge';
 
 // 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
 
@@ -189,7 +196,13 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${RELICS[relicId as keyof typeof RELICS]?.name}을(를) 구매했습니다!`, 'success');
+
+    const relicName = RELICS[relicId as keyof typeof RELICS]?.name || relicId;
+    showNotification(`${relicName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordRelicAcquired(relicId, relicName, { source: 'shop' });
+    recordShopPurchase('relic', relicId, relicName, price);
   };
 
   const handleBuyItem = (itemId: string, price: number) => {
@@ -207,7 +220,13 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${ITEMS[itemId as keyof typeof ITEMS]?.name}을(를) 구매했습니다!`, 'success');
+
+    const itemName = ITEMS[itemId as keyof typeof ITEMS]?.name || itemId;
+    showNotification(`${itemName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordItemAcquired(itemId, itemName);
+    recordShopPurchase('item', itemId, itemName, price);
   };
 
   const handleBuyCard = (cardId: string, price: number) => {
@@ -219,8 +238,14 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addOwnedCard(cardId);
     setPurchasedCards((prev) => new Set([...prev, cardId]));
+
     const card = CARDS.find(c => c.id === cardId);
-    showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
+    const cardName = card?.name || cardId;
+    showNotification(`${cardName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordCardPick(cardId, cardName, [], { source: 'shop' });
+    recordShopPurchase('card', cardId, cardName, price);
   };
 
   const handleSellItem = (slotIndex: number) => {

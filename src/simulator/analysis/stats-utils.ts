@@ -335,8 +335,9 @@ function interpretProportionEffect(
 
 /**
  * 표준 정규 분포 누적 분포 함수 (CDF)
+ * Abramowitz and Stegun 근사 사용
  */
-function normalCDF(x: number): number {
+export function normalCDF(x: number): number {
   const a1 = 0.254829592;
   const a2 = -0.284496736;
   const a3 = 1.421413741;

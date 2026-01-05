@@ -1081,7 +1081,7 @@ export class BalanceInsightAnalyzer {
 
     return {
       giniCoefficient,
-      top10PercentShare: top10Sum / totalSum,
+      top10PercentShare,
       unusedCount,
       unusedRate: unusedCount / Math.max(1, acquisitionRates.length),
       healthRating,

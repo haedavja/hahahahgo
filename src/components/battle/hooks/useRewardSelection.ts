@@ -16,6 +16,7 @@ import type { Card, NextTurnEffects } from '../../../types';
 import type { UseRewardSelectionParams } from '../../../types/hooks';
 import { shuffle } from '../../../lib/randomUtils';
 import { TRAITS } from '../battleData';
+import { recordCardPick } from '../../../simulator/bridge/stats-bridge';
 
 /** 카드 보상 상태 타입 */
 export interface CardRewardState {
@@ -78,11 +79,15 @@ export function useRewardSelection({
     // 선택한 카드를 대기 카드(ownedCards)에 추가 (Zustand 스토어 업데이트)
     useGameStore.getState().addOwnedCard(selectedCard.id);
 
+    // 통계 기록: 카드 픽
+    const offeredCardIds = cardReward?.cards.map(c => c.id) || [];
+    recordCardPick(selectedCard.id, selectedCard.name, offeredCardIds, { source: 'battle_reward' });
+
     // 모달 닫기 및 post 페이즈로 전환
     setCardReward(null);
     actions.setPostCombatOptions({ type: 'victory' });
     actions.setPhase('post');
-  }, [addLog, actions]);
+  }, [addLog, actions, cardReward]);
 
   // 카드 보상 건너뛰기
   const handleRewardSkip = useCallback(() => {
