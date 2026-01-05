@@ -3,6 +3,7 @@
  * @description 손패 영역 유틸리티 함수
  */
 
+import { memo } from 'react';
 import type { FC, MouseEvent } from 'react';
 import { CARD_COLORS } from './handStyles';
 
@@ -16,13 +17,15 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-/** X 아이콘 */
-export const XIcon: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
+/** X 아이콘 (React.memo로 불필요한 리렌더링 방지) */
+export const XIcon: FC<IconProps> = memo(function XIcon({ size = 24, className = "", strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+});
 
 // =====================
 // 헬퍼 함수
