@@ -19,6 +19,14 @@ import type {
   DeathAnalysis,
   FloorDetailedStats,
 } from './detailed-stats-types';
+import {
+  calculateGini as calculateGiniUtil,
+  calculateDiversityScore,
+  calculateTopConcentration,
+  getConfidenceLevel,
+  calculateProportionCI,
+  testProportionSignificance,
+} from './stats-utils';
 
 // ==================== 타입 정의 ====================
 
@@ -1844,13 +1852,55 @@ export class BalanceInsightAnalyzer {
       });
     }
 
-    // 특성 시너지 분석 (간단히)
+    // 특성 시너지 분석
     const traitSynergies: CardTraitAnalysis['traitSynergies'] = [];
-    // TODO: 더 정교한 시너지 분석 추가 가능
+    const traitIds = Array.from(traitCardMap.keys());
 
-    // 다양성 점수
+    // 모든 특성 쌍에 대해 시너지 분석
+    for (let i = 0; i < traitIds.length; i++) {
+      for (let j = i + 1; j < traitIds.length; j++) {
+        const trait1 = traitIds[i];
+        const trait2 = traitIds[j];
+        const cards1 = traitCardMap.get(trait1) || [];
+        const cards2 = traitCardMap.get(trait2) || [];
+
+        // 같은 카드가 두 특성 모두를 가지는 경우 (coOccurrence)
+        const overlappingCards = cards1.filter(c1 =>
+          cards2.some(c2 => c2.cardId === c1.cardId)
+        );
+
+        if (overlappingCards.length >= 2) {
+          // 공통 카드들의 평균 승률
+          const combinedWinRate = overlappingCards.reduce((sum, c) => sum + c.winRate, 0) / overlappingCards.length;
+
+          // 개별 특성 평균 승률
+          const trait1AvgWinRate = cards1.reduce((sum, c) => sum + c.winRate, 0) / cards1.length;
+          const trait2AvgWinRate = cards2.reduce((sum, c) => sum + c.winRate, 0) / cards2.length;
+          const expectedWinRate = (trait1AvgWinRate + trait2AvgWinRate) / 2;
+
+          // 시너지 보너스 = 실제 - 예상
+          const synergyBonus = combinedWinRate - expectedWinRate;
+
+          // 의미있는 시너지만 추가 (|보너스| > 2%)
+          if (Math.abs(synergyBonus) >= 0.02) {
+            traitSynergies.push({
+              trait1: traitNames[trait1] || trait1,
+              trait2: traitNames[trait2] || trait2,
+              coOccurrences: overlappingCards.length,
+              combinedWinRate,
+              synergyBonus,
+            });
+          }
+        }
+      }
+    }
+
+    // 시너지 보너스 순으로 정렬 (높은 순)
+    traitSynergies.sort((a, b) => b.synergyBonus - a.synergyBonus);
+
+    // 다양성 점수 (stats-utils 사용)
     const traitUsage = traitStats.map(t => t.cardCount);
-    const diversityScore = 1 - this.calculateGini(traitUsage);
+    const diversityScore = calculateDiversityScore(traitUsage);
 
     return {
       traitStats,
