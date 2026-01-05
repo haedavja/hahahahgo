@@ -947,12 +947,8 @@ export class BalanceInsightAnalyzer {
       });
     }
 
-    const giniCoefficient = this.calculateGini(pickRates);
-    const sortedRates = [...pickRates].sort((a, b) => b - a);
-    const top10Count = Math.ceil(pickRates.length * 0.1);
-    const top10Sum = sortedRates.slice(0, top10Count).reduce((a, b) => a + b, 0);
-    const totalSum = pickRates.reduce((a, b) => a + b, 0) || 1;
-    const top10PercentShare = top10Sum / totalSum;
+    const giniCoefficient = calculateGiniUtil(pickRates);
+    const top10PercentShare = calculateTopConcentration(pickRates, 0.1);
 
     const healthRating: 'healthy' | 'imbalanced' | 'critical' =
       giniCoefficient < 0.4 ? 'healthy' :
@@ -989,11 +985,8 @@ export class BalanceInsightAnalyzer {
       if (rate === 0) unusedCount++;
     }
 
-    const giniCoefficient = this.calculateGini(acquisitionRates);
-    const sortedRates = [...acquisitionRates].sort((a, b) => b - a);
-    const top10Count = Math.ceil(acquisitionRates.length * 0.1);
-    const top10Sum = sortedRates.slice(0, top10Count).reduce((a, b) => a + b, 0);
-    const totalSum = acquisitionRates.reduce((a, b) => a + b, 0) || 1;
+    const giniCoefficient = calculateGiniUtil(acquisitionRates);
+    const top10PercentShare = calculateTopConcentration(acquisitionRates, 0.1);
 
     const healthRating: 'healthy' | 'imbalanced' | 'critical' =
       giniCoefficient < 0.4 ? 'healthy' :
@@ -1666,7 +1659,7 @@ export class BalanceInsightAnalyzer {
 
     // 다양성 점수 계산
     const investmentRates = allStats.map(s => (growthStats.statInvestments[s] || 0) / totalInvestments);
-    const diversityScore = 1 - this.calculateGini(investmentRates);
+    const diversityScore = calculateDiversityScore(investmentRates);
 
     return {
       statContributions: statContributions.sort((a, b) => b.winCorrelation - a.winCorrelation),
@@ -1974,7 +1967,7 @@ export class BalanceInsightAnalyzer {
     // 경로 다양성
     const pathCounts = pathStats.map(p => p.count);
     const uniquePaths = pathStats.length;
-    const giniCoefficient = this.calculateGini(pathCounts);
+    const giniCoefficient = calculateGiniUtil(pathCounts);
     const healthRating: 'healthy' | 'imbalanced' | 'critical' =
       giniCoefficient < 0.4 ? 'healthy' :
       giniCoefficient < 0.6 ? 'imbalanced' : 'critical';
