@@ -257,6 +257,11 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     onStrainOffsetChange: actions.onStrainOffsetChange,
   });
 
+  // O(n) includes → O(1) Set 조회로 최적화
+  const usedCardSet = useMemo(() => new Set(usedCardIndices), [usedCardIndices]);
+  const destroyingSet = useMemo(() => new Set(destroyingEnemyCards), [destroyingEnemyCards]);
+  const freezingSet = useMemo(() => new Set(freezingEnemyCards), [freezingEnemyCards]);
+
   return (
     <>
       {/* 타임라인 숫자 오버레이 */}
@@ -373,7 +378,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
 
                   const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
-                  const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                  const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
 
                   const hasLeisure = hasCardTrait(a.card, 'leisure');
                   const hasStrain = hasCardTrait(a.card, 'strain');
@@ -416,9 +421,9 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                     {enemyTimeline.map((a, idx) => {
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                       const isExecuting = executingCardIndex === globalIndex;
-                      const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                      const isDestroying = destroyingEnemyCards.includes(idx);
-                      const isFreezing = freezingEnemyCards.includes(idx);
+                      const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
+                      const isDestroying = destroyingSet.has(idx);
+                      const isFreezing = freezingSet.has(idx);
                       const isFrozen = frozenOrder > 0 && !isFreezing;
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;
