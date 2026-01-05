@@ -64,15 +64,34 @@ export const DIMENSIONS = {
 } as const;
 
 // ==================== Z-Index 레이어 ====================
+// 일관된 UI 레이어 관리를 위한 상수
+// 새 레이어 추가 시 기존 값 사이에 배치
 
 export const Z_INDEX = {
+  /** 기본 요소 */
   BASE: 1,
+  /** 카드 요소 */
   CARD: 10,
+  /** 일반 툴팁 */
   TOOLTIP: 100,
+  /** 오버레이 (배경 딤) */
   OVERLAY: 1000,
+  /** HP 바 등 고정 UI */
   HP_BAR: 3000,
+  /** 일반 모달 */
   MODAL: 5000,
+  /** 드래그 중인 요소 */
+  DRAGGING: 8000,
+  /** 위젯 (StatsWidget 등) */
+  WIDGET: 9000,
+  /** 최상위 모달/드롭다운 */
+  DROPDOWN: 9999,
+  /** 개발 도구, 긴급 모달 */
+  DEV_TOOLS: 10000,
+  /** 우선순위 툴팁 */
   TOOLTIP_PRIORITY: 10000,
+  /** 최상위 팝업 (카드 상세 등) */
+  POPUP_CRITICAL: 99999,
 } as const;
 
 // ==================== 애니메이션 타이밍 ====================

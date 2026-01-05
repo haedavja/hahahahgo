@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import type { GameStore } from '../../state/slices/types';
 import type { DevToolsTab as Tab } from '../../types';
+import { Z_INDEX } from '../battle/ui/constants/layout';
 
 // Lazy load all tabs to reduce initial bundle size (~100KB savings)
 const ResourcesTab = lazy(() => import('./tabs/ResourcesTab').then(m => ({ default: m.ResourcesTab })));
@@ -38,7 +39,7 @@ const CONTAINER_STYLE: CSSProperties = {
   border: '2px solid #3b82f6',
   borderRadius: '12px',
   boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
-  zIndex: 10000,
+  zIndex: Z_INDEX.DEV_TOOLS,
   overflow: 'hidden',
   display: 'flex',
   flexDirection: 'column',

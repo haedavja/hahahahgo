@@ -22,6 +22,7 @@ import {
   STAT_VALUE_STYLE,
   getWinRateColor,
 } from '../../stats';
+import { Z_INDEX } from '../../battle/ui/constants/layout';
 
 type TabType = 'battle' | 'monster' | 'card' | 'relic' | 'combo' | 'shop' | 'event' | 'record' | 'dungeon' | 'item' | 'growth' | 'advanced';
 
@@ -29,7 +30,7 @@ const WIDGET_STYLE: CSSProperties = {
   position: 'fixed',
   top: '12px',
   right: '12px',
-  zIndex: 9999,
+  zIndex: Z_INDEX.WIDGET,
 };
 
 const BUTTON_STYLE: CSSProperties = {
@@ -52,7 +53,7 @@ const MODAL_OVERLAY_STYLE: CSSProperties = {
   right: 0,
   bottom: 0,
   background: 'rgba(0, 0, 0, 0.7)',
-  zIndex: 10000,
+  zIndex: Z_INDEX.DEV_TOOLS,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',

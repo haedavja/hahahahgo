@@ -16,6 +16,7 @@ import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
 import type { PopupCard as Card, CharacterBuild } from '../../../types';
+import { Z_INDEX } from './constants/layout';
 
 // =====================
 // 스타일 상수
@@ -67,7 +68,7 @@ const TOOLTIP_STYLE: CSSProperties = {
   padding: '14px',
   minWidth: '240px',
   maxWidth: '320px',
-  zIndex: 200000,
+  zIndex: Z_INDEX.POPUP_CRITICAL + 100000, // 카드 툴팁은 항상 최상위
   pointerEvents: 'none',
   boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
 };
@@ -89,7 +90,7 @@ const OVERLAY_STYLE: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 99999,
+  zIndex: Z_INDEX.POPUP_CRITICAL,
   pointerEvents: 'auto'
 };
 
