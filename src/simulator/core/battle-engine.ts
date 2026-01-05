@@ -29,6 +29,7 @@ import {
   CRIT_MULTIPLIER,
 } from '../../lib/battleCalculations';
 import * as DamageCore from '../../core/combat/damage-core';
+import * as EffectCore from '../../core/combat/effect-core';
 import { UNIFIED_CORE_FLAGS } from '../../core/combat/types';
 
 // ==================== 상수 (설정 가능) ====================
@@ -817,11 +818,28 @@ export class BattleEngine {
         log.push(`${prefix}: ${card.name}${hits > 1 ? ` (${i + 1}/${hits})` : ''}${multiplierText} → ${result.actualDamage} 피해${critText}`);
 
         // 반격 처리 (defender가 counter 토큰 보유 시)
-        if (hasToken(defender.tokens, 'counter') && result.actualDamage > 0) {
-          const counterDamage = getTokenStacks(defender.tokens, 'counter') * 2;
-          attacker.hp -= counterDamage;
-          defender.tokens = removeToken(defender.tokens, 'counter', 1);
-          log.push(`  ⚔️ 반격! ${counterDamage} 피해`);
+        if (result.actualDamage > 0) {
+          if (UNIFIED_CORE_FLAGS.useEffectCore) {
+            // 효과 코어 사용
+            const counterResult = EffectCore.processCounterEffect(defender.tokens);
+            if (counterResult.triggered) {
+              attacker.hp -= counterResult.damage;
+              defender.tokens = counterResult.newTokens;
+              log.push(`  ⚔️ 반격! ${counterResult.damage} 피해`);
+            }
+            // 가시 효과 (공격받을 때 반사 피해)
+            const thornResult = EffectCore.processThornEffect(defender.tokens);
+            if (thornResult.damage > 0) {
+              attacker.hp -= thornResult.damage;
+              log.push(`  🌵 가시 반사! ${thornResult.damage} 피해`);
+            }
+          } else if (hasToken(defender.tokens, 'counter')) {
+            // 레거시 로직
+            const counterDamage = getTokenStacks(defender.tokens, 'counter') * 2;
+            attacker.hp -= counterDamage;
+            defender.tokens = removeToken(defender.tokens, 'counter', 1);
+            log.push(`  ⚔️ 반격! ${counterDamage} 피해`);
+          }
         }
 
         // 처형 체크 (카드 효과)
@@ -1113,6 +1131,28 @@ export class BattleEngine {
   // ==================== DOT 데미지 ====================
 
   private applyDotDamage(entity: SimPlayerState | SimEnemyState, log: string[]): void {
+    // 효과 코어 사용 시
+    if (UNIFIED_CORE_FLAGS.useEffectCore) {
+      // 턴 종료 패시브 (독 처리)
+      const turnEndResult = EffectCore.processTurnEndPassives(entity.tokens);
+      if (turnEndResult.hpChange !== 0) {
+        entity.hp += turnEndResult.hpChange;
+        entity.tokens = turnEndResult.newTokens;
+        log.push(...turnEndResult.logs.map(l => `☠️ ${l}`));
+      }
+
+      // 화상은 턴 시작에 처리되지만 여기서도 확인 (호환성)
+      const burn = getTokenStacks(entity.tokens, 'burn');
+      if (burn > 0) {
+        const burnDamage = burn * 3; // effect-core의 화상 피해량
+        entity.hp -= burnDamage;
+        log.push(`🔥 화상으로 ${burnDamage} 피해`);
+        entity.tokens = removeToken(entity.tokens, 'burn', 1);
+      }
+      return;
+    }
+
+    // 레거시 로직
     const burn = getTokenStacks(entity.tokens, 'burn');
     if (burn > 0) {
       entity.hp -= burn;
