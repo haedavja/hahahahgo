@@ -187,6 +187,10 @@ export const createBattleActions: SliceCreator = (set) => ({
             damageTaken: outcome.damageTaken || calculatedDamageTaken,
             battleLog,
             isEtherVictory: outcome.isEtherVictory,
+            // P1: 새 통계 필드 추가
+            enemyFinalHp: resultLabel === 'victory' ? 0 : (outcome.enemyRemainingHp ?? totalEnemyHp),
+            enemyMaxHp: totalEnemyHp,
+            floor: state.map?.baseLayer,
           },
           {
             id: enemyInfo?.id,
