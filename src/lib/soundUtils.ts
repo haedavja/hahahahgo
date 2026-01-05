@@ -14,6 +14,11 @@
 
 let audioContext: AudioContext | null = null;
 
+// WebKit AudioContext 지원을 위한 타입 확장
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 /** 개발 모드에서만 오디오 에러 로깅 */
 function logAudioError(context: string, error: unknown): void {
   if (import.meta.env.DEV) {
@@ -26,7 +31,11 @@ function logAudioError(context: string, error: unknown): void {
  */
 function getAudioContext(): AudioContext {
   if (!audioContext) {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const windowWithWebkit = window as WindowWithWebkitAudio;
+    const AudioContextClass = window.AudioContext || windowWithWebkit.webkitAudioContext;
+    if (!AudioContextClass) {
+      throw new Error('AudioContext not supported');
+    }
     audioContext = new AudioContextClass();
   }
   return audioContext;
@@ -484,7 +493,9 @@ export function playParrySound(): void {
  */
 export function playSound(frequency = 800, duration = 100): void {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const windowWithWebkit = window as WindowWithWebkitAudio;
+    const AudioContextClass = window.AudioContext || windowWithWebkit.webkitAudioContext;
+    if (!AudioContextClass) return;
     const audioContext = new AudioContextClass();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();

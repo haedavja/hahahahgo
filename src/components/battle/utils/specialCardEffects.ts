@@ -39,8 +39,8 @@ export function processBreachEffect({
   addLog(`👻 "${action.card.name}" 발동! 카드를 선택하세요.`);
   accumulateEther(action.card);
 
-  breachSelectionRef.current = breachState as BreachSelection;
-  setBreachSelection(breachState as BreachSelection);
+  breachSelectionRef.current = breachState;
+  setBreachSelection(breachState);
 
   return { shouldReturn: true };
 }
@@ -76,8 +76,8 @@ export function processFencingEffect({
     addLog(`👻 "${action.card.name}" 발동! 검격 카드 창조 1/3: 카드를 선택하세요.`);
     accumulateEther(action.card);
 
-    breachSelectionRef.current = firstSelection as BreachSelection;
-    setBreachSelection(firstSelection as BreachSelection);
+    breachSelectionRef.current = firstSelection;
+    setBreachSelection(firstSelection);
 
     return { shouldReturn: true, creationQueue };
   }
@@ -116,8 +116,8 @@ export function processExecutionSquadEffect({
     addLog(`👻 "${action.card.name}" 발동! 총격 카드 창조 1/4: 카드를 선택하세요.`);
     accumulateEther(action.card);
 
-    breachSelectionRef.current = firstSelection as BreachSelection;
-    setBreachSelection(firstSelection as BreachSelection);
+    breachSelectionRef.current = firstSelection;
+    setBreachSelection(firstSelection);
 
     return { shouldReturn: true, creationQueue };
   }

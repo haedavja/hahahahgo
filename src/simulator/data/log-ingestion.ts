@@ -74,19 +74,45 @@ export interface CardPlayedPayload {
   effectsApplied?: string[];
 }
 
-// 타입 안전한 페이로드 접근 헬퍼
-// Note: Record<string, unknown>에서 특정 페이로드 타입으로 변환하려면
-// 런타임 검증 없이 as unknown as를 사용해야 함 (타입 간 겹침 없음)
+// 타입 가드 함수
+function isBattleEndPayload(payload: Record<string, unknown>): payload is BattleEndPayload {
+  return typeof payload.battleId === 'string' &&
+         (payload.winner === 'player' || payload.winner === 'enemy') &&
+         typeof payload.turns === 'number';
+}
+
+function isCardPlayedPayload(payload: Record<string, unknown>): payload is CardPlayedPayload {
+  return typeof payload.battleId === 'string' &&
+         typeof payload.turn === 'number' &&
+         typeof payload.cardId === 'string';
+}
+
+function isBattleStartPayload(payload: Record<string, unknown>): payload is BattleStartPayload {
+  return typeof payload.battleId === 'string' &&
+         typeof payload.enemyId === 'string';
+}
+
+// 타입 안전한 페이로드 접근 헬퍼 (런타임 검증 후 타입 반환)
 function getBattleEndPayload(entry: GameLogEntry): BattleEndPayload {
-  return entry.payload as unknown as BattleEndPayload;
+  if (!isBattleEndPayload(entry.payload)) {
+    // 기본값 반환하여 런타임 오류 방지
+    return { battleId: '', winner: 'enemy', turns: 0, playerFinalHp: 0, enemyFinalHp: 0, cardsPlayed: [], duration: 0 };
+  }
+  return entry.payload;
 }
 
 function getCardPlayedPayload(entry: GameLogEntry): CardPlayedPayload {
-  return entry.payload as unknown as CardPlayedPayload;
+  if (!isCardPlayedPayload(entry.payload)) {
+    return { battleId: '', turn: 0, cardId: '' };
+  }
+  return entry.payload;
 }
 
 function getBattleStartPayload(entry: GameLogEntry): BattleStartPayload {
-  return entry.payload as unknown as BattleStartPayload;
+  if (!isBattleStartPayload(entry.payload)) {
+    return { battleId: '', enemyId: '', enemyHp: 0, playerHp: 0, playerMaxHp: 0, deck: [], relics: [] };
+  }
+  return entry.payload;
 }
 
 export interface LogFilter {
