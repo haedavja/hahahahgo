@@ -112,6 +112,11 @@ const UNIT_EMOJI_STYLE: CSSProperties = {
   fontSize: '48px'
 };
 
+const UNIT_EMOJI_STYLE_DEAD: CSSProperties = {
+  fontSize: '48px',
+  filter: 'grayscale(1)'
+};
+
 const DAMAGE_PREVIEW_STYLE: CSSProperties = {
   color: '#fbbf24',
   fontWeight: '600'
@@ -285,10 +290,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
             {/* 유닛 이모지 */}
             <div
               className={`unit-emoji ${enemyHit && isSelected ? 'hit-animation' : ''}`}
-              style={{
-                ...UNIT_EMOJI_STYLE,
-                filter: unit.hp <= 0 ? 'grayscale(1)' : 'none',
-              }}
+              style={unit.hp <= 0 ? UNIT_EMOJI_STYLE_DEAD : UNIT_EMOJI_STYLE}
             >
               {unit.emoji || '👾'}
             </div>

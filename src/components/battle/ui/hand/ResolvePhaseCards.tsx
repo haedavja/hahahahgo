@@ -11,7 +11,10 @@ import { Sword, Shield } from '../BattleIcons';
 import {
   ORDER_BADGE_STYLE,
   TARGET_BADGE_OTHER,
-  CARD_WRAPPER_BASE,
+  CARD_WRAPPER_NORMAL_FIRST,
+  CARD_WRAPPER_NORMAL,
+  CARD_WRAPPER_DIMMED_FIRST,
+  CARD_WRAPPER_DIMMED,
   CARD_HEADER_STYLE,
   CARD_HEADER_INNER,
   CARD_COLORS,
@@ -93,13 +96,11 @@ export const ResolvePhaseCards: FC<ResolvePhaseCardsProps> = memo(function Resol
               showCardTraitTooltip(card, cardEl);
             }}
             onMouseLeave={hideCardTraitTooltip}
-            style={{
-              ...CARD_WRAPPER_BASE,
-              marginLeft: i === 0 ? '0' : '8px',
-              opacity: isDimmed ? 0.4 : 1,
-              filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none',
-              transition: 'opacity 0.3s ease, filter 0.3s ease'
-            }}
+            style={
+              isDimmed
+                ? (i === 0 ? CARD_WRAPPER_DIMMED_FIRST : CARD_WRAPPER_DIMMED)
+                : (i === 0 ? CARD_WRAPPER_NORMAL_FIRST : CARD_WRAPPER_NORMAL)
+            }
           >
             <div style={ORDER_BADGE_STYLE}>
               {i + 1}

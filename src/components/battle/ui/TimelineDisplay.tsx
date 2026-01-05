@@ -218,11 +218,11 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     return offsets;
   }, [enemyTimeline]);
 
-  // 그리드라인 메모이제이션 (매 렌더링마다 Array.from 방지)
+  // 그리드라인 메모이제이션 (스타일 객체도 미리 생성)
   const playerGridlines = useMemo(() =>
     Array.from({ length: playerMax + 1 }, (_, i) => ({
       key: `p-grid-${i}`,
-      left: `${(i / playerMax) * 100}%`
+      style: { left: `${(i / playerMax) * 100}%` } as React.CSSProperties
     })),
     [playerMax]
   );
@@ -230,7 +230,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   const enemyGridlines = useMemo(() =>
     Array.from({ length: enemyMax + 1 }, (_, i) => ({
       key: `e-grid-${i}`,
-      left: `${(i / enemyMax) * 100}%`
+      style: { left: `${(i / enemyMax) * 100}%` } as React.CSSProperties
     })),
     [enemyMax]
   );
@@ -337,7 +337,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               >
                 {/* 그리드라인 */}
                 {playerGridlines.map(g => (
-                  <div key={g.key} className="timeline-gridline" style={{ left: g.left }} />
+                  <div key={g.key} className="timeline-gridline" style={g.style} />
                 ))}
 
                 {/* 여유 범위 인디케이터 */}
@@ -424,7 +424,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 {!hideEnemyTimeline && (
                   <>
                     {enemyGridlines.map(g => (
-                      <div key={g.key} className="timeline-gridline" style={{ left: g.left }} />
+                      <div key={g.key} className="timeline-gridline" style={g.style} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
                       // queueIndexMap으로 O(1) 조회

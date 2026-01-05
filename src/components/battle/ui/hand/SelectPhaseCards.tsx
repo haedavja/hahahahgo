@@ -13,7 +13,10 @@ import { Sword, Shield } from '../BattleIcons';
 import {
   COOPERATION_ACTIVE_STYLE,
   TARGET_BADGE_SELECT,
-  CARD_WRAPPER_BASE,
+  SELECT_CARD_WRAPPER_FIRST,
+  SELECT_CARD_WRAPPER_FIRST_DISABLED,
+  SELECT_CARD_WRAPPER,
+  SELECT_CARD_WRAPPER_DISABLED,
   CARD_HEADER_STYLE,
   CARD_HEADER_INNER,
   CARD_COLORS,
@@ -102,7 +105,11 @@ export const SelectPhaseCards: FC<SelectPhaseCardsProps> = memo(function SelectP
               showCardTraitTooltip(c, cardEl);
             }}
             onMouseLeave={hideCardTraitTooltip}
-            style={{ ...CARD_WRAPPER_BASE, cursor: disabled ? 'not-allowed' : 'pointer', marginLeft: idx === 0 ? '0' : '-20px' }}
+            style={
+              disabled
+                ? (idx === 0 ? SELECT_CARD_WRAPPER_FIRST_DISABLED : SELECT_CARD_WRAPPER_DISABLED)
+                : (idx === 0 ? SELECT_CARD_WRAPPER_FIRST : SELECT_CARD_WRAPPER)
+            }
           >
             <div
               className={`game-card-large select-phase-card ${getCardTypeClass(c.type)} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
