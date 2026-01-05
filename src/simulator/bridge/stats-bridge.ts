@@ -26,6 +26,47 @@ export interface GameBattleContext {
   battleLog?: string[];
   /** 영혼파괴 승리 여부 */
   isEtherVictory?: boolean;
+  /** 적의 최종 HP (정확한 값) */
+  enemyFinalHp?: number;
+  /** 적의 최대 HP */
+  enemyMaxHp?: number;
+  /** 턴별 이벤트 기록 */
+  turnEvents?: TurnEvent[];
+  /** 상징 발동 기록 */
+  relicTriggers?: RelicTriggerRecord[];
+  /** 토큰 효과 기록 */
+  tokenEffects?: TokenEffectRecord[];
+}
+
+/** 턴별 이벤트 */
+export interface TurnEvent {
+  turn: number;
+  phase: 'select' | 'respond' | 'resolve' | 'end';
+  actor: 'player' | 'enemy';
+  action: string;
+  cardId?: string;
+  damage?: number;
+  block?: number;
+  healing?: number;
+  tokens?: Record<string, number>;
+}
+
+/** 상징 발동 기록 */
+export interface RelicTriggerRecord {
+  relicId: string;
+  turn: number;
+  trigger: string;
+  effect: string;
+  value?: number;
+}
+
+/** 토큰 효과 기록 */
+export interface TokenEffectRecord {
+  tokenId: string;
+  turn: number;
+  stacks: number;
+  effectType: 'damage' | 'block' | 'heal' | 'special';
+  value: number;
 }
 
 /** 게임에서 전달하는 적 정보 */
@@ -44,6 +85,65 @@ export interface GamePlayerInfo {
   maxHp: number;
   deck?: string[];
   relics?: string[];
+}
+
+// ==================== 기본값 헬퍼 ====================
+
+/**
+ * GameBattleContext 기본값 생성
+ * 선택사항 필드에 안전한 기본값 제공
+ */
+export function createDefaultBattleContext(
+  partial: Partial<GameBattleContext> = {}
+): GameBattleContext {
+  return {
+    nodeId: partial.nodeId ?? 'unknown',
+    kind: partial.kind ?? 'battle',
+    floor: partial.floor ?? 1,
+    turn: partial.turn ?? 1,
+    damageDealt: partial.damageDealt ?? 0,
+    damageTaken: partial.damageTaken ?? 0,
+    cardUsage: partial.cardUsage ?? {},
+    comboUsage: partial.comboUsage ?? {},
+    tokenUsage: partial.tokenUsage ?? {},
+    battleLog: partial.battleLog ?? [],
+    isEtherVictory: partial.isEtherVictory ?? false,
+    enemyFinalHp: partial.enemyFinalHp,
+    enemyMaxHp: partial.enemyMaxHp,
+    turnEvents: partial.turnEvents ?? [],
+    relicTriggers: partial.relicTriggers ?? [],
+    tokenEffects: partial.tokenEffects ?? [],
+  };
+}
+
+/**
+ * GameEnemyInfo 기본값 생성
+ */
+export function createDefaultEnemyInfo(
+  partial: Partial<GameEnemyInfo> = {}
+): GameEnemyInfo {
+  return {
+    id: partial.id ?? 'unknown',
+    name: partial.name ?? 'Unknown Enemy',
+    tier: partial.tier ?? 1,
+    isBoss: partial.isBoss ?? false,
+    isElite: partial.isElite ?? false,
+    emoji: partial.emoji ?? '👾',
+  };
+}
+
+/**
+ * GamePlayerInfo 기본값 생성
+ */
+export function createDefaultPlayerInfo(
+  partial: Partial<GamePlayerInfo> = {}
+): GamePlayerInfo {
+  return {
+    hp: partial.hp ?? 80,
+    maxHp: partial.maxHp ?? 80,
+    deck: partial.deck ?? [],
+    relics: partial.relics ?? [],
+  };
 }
 
 /** 변환된 통계용 전투 결과 */
@@ -238,12 +338,32 @@ export function adaptGameBattleResult(
     message: `${enemyInfo.name}와(과) 전투 시작`,
   });
 
-  // 로그에서 이벤트 추출 시도
-  for (let i = 0; i < battleLog.length; i++) {
-    const logEntry = battleLog[i];
-    const event = parseLogToEvent(logEntry, i + 1);
-    if (event) {
-      events.push(event);
+  // turnEvents가 있으면 우선 사용 (더 정확)
+  if (context.turnEvents && context.turnEvents.length > 0) {
+    for (const te of context.turnEvents) {
+      events.push(convertTurnEventToBattleEvent(te));
+    }
+  } else {
+    // 로그에서 이벤트 추출 시도 (폴백)
+    for (let i = 0; i < battleLog.length; i++) {
+      const logEntry = battleLog[i];
+      const event = parseLogToEvent(logEntry, Math.floor(i / 2) + 1);
+      if (event) {
+        events.push(event);
+      }
+    }
+  }
+
+  // 상징 발동 이벤트 추가
+  if (context.relicTriggers) {
+    for (const rt of context.relicTriggers) {
+      events.push({
+        type: 'relic_trigger',
+        turn: rt.turn,
+        actor: 'player',
+        message: `[${rt.relicId}] ${rt.effect}`,
+        value: rt.value,
+      });
     }
   }
 
@@ -254,6 +374,25 @@ export function adaptGameBattleResult(
     message: winner === 'player' ? '승리!' : '패배...',
   });
 
+  // enemyFinalHp 결정: context에서 전달된 값 > 추정값
+  let finalEnemyHp: number;
+  if (context.enemyFinalHp !== undefined) {
+    finalEnemyHp = context.enemyFinalHp;
+  } else {
+    // 폴백: 승리면 0, 패배면 남은 HP 추정
+    finalEnemyHp = winner === 'player' ? 0 : (context.enemyMaxHp ?? 1);
+  }
+
+  // timeline 구성
+  const timeline = context.turnEvents?.map(te => ({
+    turn: te.turn,
+    phase: te.phase,
+    actor: te.actor,
+    cardId: te.cardId,
+    damage: te.damage,
+    block: te.block,
+  })) || [];
+
   return {
     source: 'game',
     winner,
@@ -261,7 +400,7 @@ export function adaptGameBattleResult(
     playerDamageDealt: context.damageDealt || 0,
     enemyDamageDealt: context.damageTaken || 0,
     playerFinalHp: gameResult.playerHp ?? playerInfo.hp,
-    enemyFinalHp: winner === 'player' ? 0 : 1,  // 게임에서 정확한 값 없음
+    enemyFinalHp: finalEnemyHp,
     etherGained: gameResult.deltaEther || 0,
     goldChange: 0,
     battleLog,
@@ -269,7 +408,7 @@ export function adaptGameBattleResult(
     cardUsage: context.cardUsage || {},
     comboStats: context.comboUsage || {},
     tokenStats: context.tokenUsage || {},
-    timeline: [],
+    timeline,
     victory: winner === 'player',
     enemyId: enemyInfo.id,
     isEtherVictory: context.isEtherVictory || gameResult.isEtherVictory,
@@ -277,37 +416,146 @@ export function adaptGameBattleResult(
 }
 
 /**
+ * TurnEvent를 BattleEvent로 변환
+ */
+function convertTurnEventToBattleEvent(te: TurnEvent): BattleEvent {
+  let type: BattleEvent['type'] = 'card_execute';
+
+  if (te.damage && te.damage > 0) {
+    type = 'damage_dealt';
+  } else if (te.block && te.block > 0) {
+    type = 'block_gained';
+  } else if (te.healing && te.healing > 0) {
+    type = 'heal';
+  }
+
+  return {
+    type,
+    turn: te.turn,
+    actor: te.actor,
+    cardId: te.cardId,
+    value: te.damage || te.block || te.healing,
+    message: `[${te.phase}] ${te.actor}: ${te.action}`,
+  };
+}
+
+/**
  * 로그 문자열을 BattleEvent로 변환 시도
+ * 개선된 파싱: 더 많은 이벤트 타입 지원
  */
 function parseLogToEvent(logEntry: string, turn: number): BattleEvent | null {
   const lower = logEntry.toLowerCase();
+  const numMatch = logEntry.match(/(\d+)/);
+  const value = numMatch ? parseInt(numMatch[1], 10) : 0;
 
-  // 피해 관련
-  if (lower.includes('damage') || lower.includes('피해')) {
-    const match = logEntry.match(/(\d+)/);
+  // 치명타
+  if (lower.includes('치명') || lower.includes('crit')) {
     return {
       type: 'damage_dealt',
       turn,
-      value: match ? parseInt(match[1], 10) : 0,
+      value,
       message: logEntry,
+      actor: lower.includes('적') || lower.includes('enemy') ? 'enemy' : 'player',
+    };
+  }
+
+  // 피해 관련 (다양한 패턴)
+  if (lower.includes('damage') || lower.includes('피해') || lower.includes('→')) {
+    const isDot = lower.includes('화상') || lower.includes('독') || lower.includes('burn') || lower.includes('poison');
+    return {
+      type: isDot ? 'dot_damage' : 'damage_dealt',
+      turn,
+      value,
+      message: logEntry,
+      actor: lower.includes('적') || lower.includes('enemy') ? 'enemy' : 'player',
     };
   }
 
   // 방어 관련
-  if (lower.includes('block') || lower.includes('방어')) {
-    const match = logEntry.match(/(\d+)/);
+  if (lower.includes('block') || lower.includes('방어') || lower.includes('막')) {
     return {
       type: 'block_gained',
       turn,
-      value: match ? parseInt(match[1], 10) : 0,
+      value,
+      message: logEntry,
+    };
+  }
+
+  // 회복
+  if (lower.includes('heal') || lower.includes('회복') || lower.includes('재생')) {
+    return {
+      type: 'heal',
+      turn,
+      value,
+      message: logEntry,
+    };
+  }
+
+  // 토큰 획득/소모
+  if (lower.includes('스택') || lower.includes('stack') || lower.includes('토큰')) {
+    const isGain = lower.includes('획득') || lower.includes('추가') || lower.includes('+');
+    return {
+      type: isGain ? 'token_gained' : 'token_consumed',
+      turn,
+      value,
+      message: logEntry,
+    };
+  }
+
+  // 콤보 발동
+  if (lower.includes('콤보') || lower.includes('combo') || lower.includes('페어') || lower.includes('트리플')) {
+    return {
+      type: 'combo_triggered',
+      turn,
+      message: logEntry,
+    };
+  }
+
+  // 상징 발동
+  if (lower.includes('상징') || lower.includes('relic') || lower.includes('발동')) {
+    return {
+      type: 'relic_trigger',
+      turn,
+      value,
+      message: logEntry,
+    };
+  }
+
+  // 회피
+  if (lower.includes('회피') || lower.includes('dodge') || lower.includes('빗나감')) {
+    return {
+      type: 'dodge',
+      turn,
+      message: logEntry,
+    };
+  }
+
+  // 반격
+  if (lower.includes('반격') || lower.includes('counter')) {
+    return {
+      type: 'counter',
+      turn,
+      value,
       message: logEntry,
     };
   }
 
   // 카드 사용
-  if (lower.includes('사용') || lower.includes('play')) {
+  if (lower.includes('사용') || lower.includes('play') || lower.includes(':')) {
+    // 카드 이름 추출 시도
+    const cardMatch = logEntry.match(/[【\[]([^\]】]+)[】\]]/);
     return {
       type: 'card_execute',
+      turn,
+      cardId: cardMatch?.[1],
+      message: logEntry,
+    };
+  }
+
+  // 턴 관련
+  if (lower.includes('턴') || lower.includes('turn')) {
+    return {
+      type: 'turn_start',
       turn,
       message: logEntry,
     };
