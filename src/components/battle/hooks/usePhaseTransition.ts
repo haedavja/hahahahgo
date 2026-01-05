@@ -306,9 +306,6 @@ export function usePhaseTransition({
     actions.setPhase('resolve');
     addLog('▶ 진행 시작');
 
-    setTimeout(() => {}, 100);
-    setTimeout(() => {}, 500);
-
     actions.setResolveStartPlayer({ ...player });
     actions.setResolveStartEnemy({ ...enemy });
     actions.setResolvedPlayerCards(0);

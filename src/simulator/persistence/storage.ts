@@ -344,8 +344,10 @@ export class SqliteStorage implements StorageAdapter {
   constructor(dbPath?: string) {
     this.dbPath = dbPath || join(__dirname, '../../data/simulator.db');
 
-    // SQLite 초기화는 런타임에 수행
-    this.initDatabase();
+    // SQLite 초기화는 런타임에 수행 (에러 무시 - SQLite 미설치 환경 지원)
+    this.initDatabase().catch(() => {
+      // SQLite 미설치 환경에서는 초기화 실패 무시
+    });
   }
 
   private async initDatabase(): Promise<void> {
