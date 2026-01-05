@@ -162,6 +162,7 @@ const BreachSelectionModal = lazy(() => import("./ui/BreachSelectionModal").then
 const CardRewardModal = lazy(() => import("./ui/CardRewardModal").then(m => ({ default: m.CardRewardModal })));
 const RecallSelectionModal = lazy(() => import("./ui/RecallSelectionModal").then(m => ({ default: m.RecallSelectionModal })));
 const TraitRewardModal = lazy(() => import("./ui/TraitRewardModal").then(m => ({ default: m.TraitRewardModal })));
+const RunSummaryOverlay = lazy(() => import("./ui/RunSummaryOverlay").then(m => ({ default: m.RunSummaryOverlay })));
 import { BattleControlButtons } from "./ui/BattleControlButtons";
 import { EnergyDisplayFixed } from "./ui/EnergyDisplayFixed";
 import { EtherBar } from "./ui/EtherBar";
@@ -170,7 +171,6 @@ import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUti
 import { createReducerEnemyState } from "../../state/battleHelpers";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { DefeatOverlay } from "./ui/DefeatOverlay";
-import { RunSummaryOverlay } from "./ui/RunSummaryOverlay";
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 import { distributeUnitDamage, type EnemyUnit } from "./utils/unitDamageDistribution";
@@ -2431,14 +2431,15 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           setDevForceAllCards={setDevForceAllCards}
         />
       )}
-      {/* 패배 시 런 요약 오버레이 */}
-      {postCombatOptions?.type === 'defeat' && (
-        <RunSummaryOverlay result="defeat" onExit={handleExitToMap} />
-      )}
-      {/* 보스 승리 시 런 요약 오버레이 */}
-      {postCombatOptions?.type === 'victory' && isBoss && (
-        <RunSummaryOverlay result="victory" onExit={handleExitToMap} />
-      )}
+      {/* 패배/승리 시 런 요약 오버레이 (lazy loaded) */}
+      <Suspense fallback={null}>
+        {postCombatOptions?.type === 'defeat' && (
+          <RunSummaryOverlay result="defeat" onExit={handleExitToMap} />
+        )}
+        {postCombatOptions?.type === 'victory' && isBoss && (
+          <RunSummaryOverlay result="victory" onExit={handleExitToMap} />
+        )}
+      </Suspense>
 
       {/* 하단 고정 손패 영역 */}
       <HandArea
