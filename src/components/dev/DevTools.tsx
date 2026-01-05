@@ -9,20 +9,18 @@ import { useState, memo, useCallback, lazy, Suspense } from 'react';
 import type { CSSProperties } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import type { GameStore } from '../../state/slices/types';
-import {
-  ResourcesTab,
-  MapTab,
-  BattleTab,
-  RelicsTab,
-  ItemsTab,
-  EventTab,
-  CardsTab,
-  BalanceTab,
-  StatsTab
-} from './DevToolsTabs';
 import type { DevToolsTab as Tab } from '../../types';
 
-// Lazy load SimulatorTab to defer ~100KB of simulator code
+// Lazy load all tabs to reduce initial bundle size (~100KB savings)
+const ResourcesTab = lazy(() => import('./tabs/ResourcesTab').then(m => ({ default: m.ResourcesTab })));
+const MapTab = lazy(() => import('./tabs/MapTab').then(m => ({ default: m.MapTab })));
+const BattleTab = lazy(() => import('./tabs/BattleTab').then(m => ({ default: m.BattleTab })));
+const RelicsTab = lazy(() => import('./tabs/RelicsTab').then(m => ({ default: m.RelicsTab })));
+const ItemsTab = lazy(() => import('./tabs/ItemsTab').then(m => ({ default: m.ItemsTab })));
+const EventTab = lazy(() => import('./tabs/EventTab').then(m => ({ default: m.EventTab })));
+const CardsTab = lazy(() => import('./tabs/CardsTab').then(m => ({ default: m.CardsTab })));
+const StatsTab = lazy(() => import('./tabs/StatsTab').then(m => ({ default: m.StatsTab })));
+const BalanceTab = lazy(() => import('./tabs/BalanceTab').then(m => ({ default: m.BalanceTab })));
 const SimulatorTab = lazy(() => import('./tabs/SimulatorTab'));
 
 // =====================
@@ -219,95 +217,95 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
         ))}
       </div>
 
-      {/* 탭 컨텐츠 */}
+      {/* 탭 컨텐츠 - 모든 탭 lazy loading으로 Suspense 적용 */}
       <div style={CONTENT_STYLE}>
-        {activeTab === 'resources' && (
-          <ResourcesTab
-            resources={resources}
-            setResources={setResources}
-            devOpenRest={devOpenRest}
-            awakenAtRest={awakenAtRest}
-            closeRest={closeRest}
-            devUnlockAllGrowth={devUnlockAllGrowth as () => void}
-          />
-        )}
-        {activeTab === 'map' && (
-          <MapTab
-            map={map}
-            mapRisk={mapRisk}
-            setMapRisk={setMapRisk}
-            selectNode={selectNode}
-            devClearAllNodes={devClearAllNodes}
-            devTeleportToNode={devTeleportToNode}
-            devForcedCrossroad={devForcedCrossroad}
-            setDevForcedCrossroad={setDevForcedCrossroad}
-          />
-        )}
-        {activeTab === 'battle' && (
-          <BattleTab
-            activeBattle={activeBattle}
-            playerStrength={playerStrength}
-            playerAgility={playerAgility}
-            playerInsight={playerInsight}
-            devDulledLevel={devDulledLevel}
-            setDevDulledLevel={setDevDulledLevel}
-            devForcedAnomalies={devForcedAnomalies}
-            setDevForcedAnomalies={setDevForcedAnomalies}
-            devForceWin={devForceWin}
-            devForceLose={devForceLose}
-            updatePlayerStrength={updatePlayerStrength}
-            updatePlayerAgility={updatePlayerAgility}
-            updatePlayerInsight={updatePlayerInsight}
-            devAddBattleToken={devAddBattleToken}
-            devStartBattle={devStartBattle}
-          />
-        )}
-        {activeTab === 'relics' && (
-          <RelicsTab
-            relics={relics}
-            addRelic={addRelic}
-            removeRelic={removeRelic}
-            setRelics={setRelics}
-          />
-        )}
-        {activeTab === 'items' && (
-          <ItemsTab
-            items={items}
-            addItem={addItem}
-            removeItem={removeItem}
-            devSetItems={devSetItems}
-          />
-        )}
-        {activeTab === 'event' && (
-          <EventTab />
-        )}
-        {activeTab === 'cards' && (
-          <CardsTab
-            cardUpgrades={cardUpgrades}
-            upgradeCardRarity={upgradeCardRarity}
-            characterBuild={characterBuild}
-            updateCharacterBuild={updateCharacterBuild}
-            addOwnedCard={addOwnedCard}
-            removeOwnedCard={removeOwnedCard}
-            clearOwnedCards={clearOwnedCards}
-            showAllCards={showAllCards}
-            setShowAllCards={setShowAllCards}
-            cardGrowth={cardGrowth || {}}
-            enhanceCard={enhanceCard}
-            specializeCard={specializeCard}
-          />
-        )}
-        {activeTab === 'stats' && (
-          <StatsTab />
-        )}
-        {activeTab === 'simulator' && (
-          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading Simulator...</div>}>
+        <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading...</div>}>
+          {activeTab === 'resources' && (
+            <ResourcesTab
+              resources={resources}
+              setResources={setResources}
+              devOpenRest={devOpenRest}
+              awakenAtRest={awakenAtRest}
+              closeRest={closeRest}
+              devUnlockAllGrowth={devUnlockAllGrowth as () => void}
+            />
+          )}
+          {activeTab === 'map' && (
+            <MapTab
+              map={map}
+              mapRisk={mapRisk}
+              setMapRisk={setMapRisk}
+              selectNode={selectNode}
+              devClearAllNodes={devClearAllNodes}
+              devTeleportToNode={devTeleportToNode}
+              devForcedCrossroad={devForcedCrossroad}
+              setDevForcedCrossroad={setDevForcedCrossroad}
+            />
+          )}
+          {activeTab === 'battle' && (
+            <BattleTab
+              activeBattle={activeBattle}
+              playerStrength={playerStrength}
+              playerAgility={playerAgility}
+              playerInsight={playerInsight}
+              devDulledLevel={devDulledLevel}
+              setDevDulledLevel={setDevDulledLevel}
+              devForcedAnomalies={devForcedAnomalies}
+              setDevForcedAnomalies={setDevForcedAnomalies}
+              devForceWin={devForceWin}
+              devForceLose={devForceLose}
+              updatePlayerStrength={updatePlayerStrength}
+              updatePlayerAgility={updatePlayerAgility}
+              updatePlayerInsight={updatePlayerInsight}
+              devAddBattleToken={devAddBattleToken}
+              devStartBattle={devStartBattle}
+            />
+          )}
+          {activeTab === 'relics' && (
+            <RelicsTab
+              relics={relics}
+              addRelic={addRelic}
+              removeRelic={removeRelic}
+              setRelics={setRelics}
+            />
+          )}
+          {activeTab === 'items' && (
+            <ItemsTab
+              items={items}
+              addItem={addItem}
+              removeItem={removeItem}
+              devSetItems={devSetItems}
+            />
+          )}
+          {activeTab === 'event' && (
+            <EventTab />
+          )}
+          {activeTab === 'cards' && (
+            <CardsTab
+              cardUpgrades={cardUpgrades}
+              upgradeCardRarity={upgradeCardRarity}
+              characterBuild={characterBuild}
+              updateCharacterBuild={updateCharacterBuild}
+              addOwnedCard={addOwnedCard}
+              removeOwnedCard={removeOwnedCard}
+              clearOwnedCards={clearOwnedCards}
+              showAllCards={showAllCards}
+              setShowAllCards={setShowAllCards}
+              cardGrowth={cardGrowth || {}}
+              enhanceCard={enhanceCard}
+              specializeCard={specializeCard}
+            />
+          )}
+          {activeTab === 'stats' && (
+            <StatsTab />
+          )}
+          {activeTab === 'simulator' && (
             <SimulatorTab />
-          </Suspense>
-        )}
-        {activeTab === 'balance' && (
-          <BalanceTab />
-        )}
+          )}
+          {activeTab === 'balance' && (
+            <BalanceTab />
+          )}
+        </Suspense>
       </div>
 
       {/* 푸터 */}

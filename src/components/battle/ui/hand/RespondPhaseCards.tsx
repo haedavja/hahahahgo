@@ -3,7 +3,7 @@
  * @description 대응 단계 카드 표시
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import type { FC, MouseEvent } from 'react';
 import { TraitBadgeList } from '../TraitBadge';
 import { CardStatsSidebar } from '../CardStatsSidebar';
@@ -50,7 +50,11 @@ export const RespondPhaseCards: FC<RespondPhaseCardsProps> = memo(function Respo
   moveDown,
   isSimplified,
 }) {
-  const playerActions = fixedOrder.filter(a => a.actor === 'player');
+  // useMemo로 매 렌더링마다 filter 재계산 방지
+  const playerActions = useMemo(
+    () => fixedOrder.filter(a => a.actor === 'player'),
+    [fixedOrder]
+  );
 
   return (
     <div className="hand-cards" style={{ justifyContent: 'center' }}>
