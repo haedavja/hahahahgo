@@ -1152,6 +1152,45 @@ async function autoclassify({ databaseId, apply, limit, force, read }) {
   const db = await getDatabase(databaseId);
   const titlePropName = findDatabaseTitlePropName(db);
 
+  // 새 대분류(예: 우주론/레이어, 신격/판테온, 종교/신앙)를 실제로 쓰기 전에
+  // DB select 옵션에 미리 추가해둔다 (Notion API 환경에 따라 자동 생성이 불안정할 수 있음).
+  {
+    const prop = db.properties?.["대분류"];
+    if (prop && prop.type === "select") {
+      const desired = [
+        { name: "설정", color: "gray" },
+        { name: "인물", color: "yellow" },
+        { name: "세력", color: "red" },
+        { name: "장소/지역", color: "brown" },
+        { name: "역사/사건", color: "orange" },
+        { name: "우주론/레이어", color: "purple" },
+        { name: "신격/판테온", color: "purple" },
+        { name: "종교/신앙", color: "yellow" },
+        { name: "초법", color: "purple" },
+        { name: "기술", color: "blue" },
+        { name: "군사", color: "green" },
+        { name: "용어/개념", color: "gray" },
+        { name: "유물/아이템", color: "pink" },
+        { name: "시스템(게임)", color: "green" },
+        { name: "플롯/에피소드", color: "yellow" },
+        { name: "메타", color: "gray" },
+        { name: "기타", color: "gray" },
+      ];
+      const existing = prop.select?.options || [];
+      const existingNames = new Set(existing.map((o) => String(o?.name || "").trim()).filter(Boolean));
+      const missing = desired.filter((o) => !existingNames.has(o.name));
+      if (missing.length) {
+        console.log(`DB '대분류' 옵션 추가 필요: ${missing.map((o) => o.name).join(", ")}`);
+        if (apply) {
+          await patchDatabase(databaseId, { properties: { 대분류: { select: { options: [...existing, ...missing] } } } });
+          console.log("DB '대분류' 옵션 추가 완료.");
+        } else {
+          console.log("(dry-run) --apply를 붙이면 DB '대분류' 옵션을 실제로 추가합니다.");
+        }
+      }
+    }
+  }
+
   let cursor = undefined;
   const updates = [];
   const categoryCounts = new Map();
