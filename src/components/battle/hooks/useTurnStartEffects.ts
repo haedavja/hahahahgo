@@ -30,6 +30,7 @@ import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 import {
   updateGraceOnTurnStart,
   processAutoPrayers,
@@ -136,7 +137,7 @@ export function useTurnStartEffects({
       if (relic && 'effects' in relic && (relic.effects as { type?: string })?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
         playSound(800, 200);
-        setTimeout(() => actions.setRelicActivated(null), 500);
+        setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
       }
     });
 

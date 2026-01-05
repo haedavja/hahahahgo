@@ -8,6 +8,7 @@ import type {
   Combatant,
   NextTurnEffects
 } from '../../../types';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 interface RelicProcessActions {
   setRelicActivated: (relicId: string | null) => void;
@@ -58,7 +59,7 @@ export function playTurnEndRelicAnimations({
       if (!condition || condition({ cardsPlayedThisTurn, player, enemy })) {
         actions.setRelicActivated(relicId);
         playSound(800, 200);
-        setTimeout(() => actions.setRelicActivated(null), 500);
+        setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
       }
     }
   });

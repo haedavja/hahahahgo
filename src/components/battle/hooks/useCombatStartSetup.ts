@@ -10,6 +10,7 @@
 
 import { useEffect, type MutableRefObject } from 'react';
 import { useGameStore } from '../../../state/gameStore';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 import { createReducerEnemyState } from '../../../state/battleHelpers';
 import { RELICS } from '../../../data/relics';
 import { applyCombatStartEffects } from '../../../lib/relicEffects';
@@ -71,7 +72,7 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           actions.setRelicActivated(relicId);
           playSound(800, 200);
-          setTimeout(() => actions.setRelicActivated(null), 500);
+          setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
         }
       });
 

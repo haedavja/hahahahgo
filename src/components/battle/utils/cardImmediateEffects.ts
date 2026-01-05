@@ -5,6 +5,7 @@
 
 import type { Card, NextTurnEffects } from '../../../types';
 import type { AddLogFn } from '../../../types/hooks';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 import { hasTrait } from "./battleUtils";
 import { applyCardPlayedEffects } from "../../../lib/relicEffects";
@@ -119,7 +120,7 @@ export function processCardPlayedRelicEffects({
       playerState.hp = healed;
       addLog(`🎭 상징 효과: 체력 +${healDelta} (불멸의 가면 등)`);
       setRelicActivated('immortalMask');
-      setTimeout(() => setRelicActivated(null), 500);
+      setTimeout(() => setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
       return true;
     }
   }
