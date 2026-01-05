@@ -6,13 +6,26 @@
  * - usage: 1회 사용 후 소멸
  * - turn: 해당 턴 동안 지속
  * - permanent: 전투 중 지속
+ *
+ * 기본 토큰 조작은 공통 코어(src/core/combat/token-core.ts)를 사용하고,
+ * 시뮬레이터 전용 확장 기능은 이 파일에서 구현
  */
 
 import type { TokenState, GameToken, TokenType, TokenCategory } from './game-types';
 import { syncAllTokens } from '../data/game-data-sync';
 import { getLogger } from './logger';
 
+// 코어에서 기본 토큰 함수 가져오기
+import * as TokenCore from '../../core/combat/token-core';
+
 const log = getLogger('TokenSystem');
+
+// ==================== 코어 함수 재내보내기 ====================
+// 기본 토큰 조작 함수들은 코어에서 직접 사용
+export const addToken = TokenCore.addTokenSimple;
+export const removeToken = TokenCore.removeTokenSimple;
+export const hasToken = TokenCore.hasToken;
+export const getTokenStacks = TokenCore.getTokenStacks;
 
 // ==================== 토큰 정의 캐시 ====================
 
@@ -25,32 +38,7 @@ function getTokenDefinitions(): Record<string, GameToken> {
   return tokenCache;
 }
 
-// ==================== 토큰 조작 함수 ====================
-
-/**
- * 토큰 추가
- */
-export function addToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
-  const newTokens = { ...tokens };
-  newTokens[tokenId] = (newTokens[tokenId] || 0) + stacks;
-  log.debug('토큰 추가', { tokenId, stacks, total: newTokens[tokenId] });
-  return newTokens;
-}
-
-/**
- * 토큰 제거
- */
-export function removeToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
-  const newTokens = { ...tokens };
-  if (newTokens[tokenId]) {
-    newTokens[tokenId] = Math.max(0, newTokens[tokenId] - stacks);
-    if (newTokens[tokenId] === 0) {
-      delete newTokens[tokenId];
-    }
-    log.debug('토큰 제거', { tokenId, stacks, remaining: newTokens[tokenId] || 0 });
-  }
-  return newTokens;
-}
+// ==================== 시뮬레이터 전용 토큰 함수 ====================
 
 /**
  * 토큰 완전 제거
@@ -59,20 +47,6 @@ export function clearToken(tokens: TokenState, tokenId: string): TokenState {
   const newTokens = { ...tokens };
   delete newTokens[tokenId];
   return newTokens;
-}
-
-/**
- * 토큰 보유 확인
- */
-export function hasToken(tokens: TokenState, tokenId: string): boolean {
-  return (tokens[tokenId] || 0) > 0;
-}
-
-/**
- * 토큰 스택 수 조회
- */
-export function getTokenStacks(tokens: TokenState, tokenId: string): number {
-  return tokens[tokenId] || 0;
 }
 
 /**

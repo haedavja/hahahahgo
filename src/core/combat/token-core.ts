@@ -27,7 +27,45 @@ export type TokenCategory = 'positive' | 'negative';
 /** 토큰 정의 맵 */
 export type TokenDefinitionMap = Record<string, TokenDefinition>;
 
-// ==================== 기본 토큰 연산 ====================
+// ==================== 단순 토큰 연산 (Simple) ====================
+// 로그 없이 토큰 상태만 반환하는 간단한 버전
+
+/**
+ * 토큰 추가 (단순 버전)
+ * @returns 새로운 토큰 상태만 반환
+ */
+export function addTokenSimple(tokens: UnifiedTokenState, tokenId: string, stacks: number = 1): UnifiedTokenState {
+  const newTokens = { ...tokens };
+  newTokens[tokenId] = (newTokens[tokenId] || 0) + stacks;
+  return newTokens;
+}
+
+/**
+ * 토큰 제거 (단순 버전)
+ * @returns 새로운 토큰 상태만 반환
+ */
+export function removeTokenSimple(tokens: UnifiedTokenState, tokenId: string, stacks: number = 1): UnifiedTokenState {
+  const newTokens = { ...tokens };
+  if (newTokens[tokenId]) {
+    newTokens[tokenId] = Math.max(0, newTokens[tokenId] - stacks);
+    if (newTokens[tokenId] === 0) {
+      delete newTokens[tokenId];
+    }
+  }
+  return newTokens;
+}
+
+/**
+ * 토큰 완전 제거 (단순 버전)
+ * @returns 새로운 토큰 상태만 반환
+ */
+export function clearTokenSimple(tokens: UnifiedTokenState, tokenId: string): UnifiedTokenState {
+  const newTokens = { ...tokens };
+  delete newTokens[tokenId];
+  return newTokens;
+}
+
+// ==================== 기본 토큰 연산 (결과 객체 반환) ====================
 
 /**
  * 토큰 추가
