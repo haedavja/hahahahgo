@@ -143,14 +143,21 @@ export function generateEnemyActions(
   const validCandidates = candidates.filter(c => c.length >= minCards);
   const targetCandidates = validCandidates.length > 0 ? validCandidates : candidates;
 
+  // 최적화: 6번 순회 → 1번 reduce로 모든 통계 계산
   function stat(list: AICard[]): AICardStats {
-    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.actionCost || 0), 0);
-    const def = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.actionCost || 0), 0);
-    const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
-    const blk = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
-    const sp = list.reduce((a, c) => a + (c.speedCost || 0), 0);
-    const en = list.reduce((a, c) => a + (c.actionCost || 0), 0);
-    return { atk, def, dmg, blk, sp, en };
+    return list.reduce((acc, c) => {
+      const isAttack = c.type === 'attack';
+      const isDefense = c.type === 'general' || c.type === 'defense';
+      const actionCost = c.actionCost || 0;
+      return {
+        atk: acc.atk + (isAttack ? actionCost : 0),
+        def: acc.def + (isDefense ? actionCost : 0),
+        dmg: acc.dmg + (isAttack ? (c.damage || 0) * (c.hits || 1) : 0),
+        blk: acc.blk + (isDefense ? (c.block || 0) : 0),
+        sp: acc.sp + (c.speedCost || 0),
+        en: acc.en + actionCost,
+      };
+    }, { atk: 0, def: 0, dmg: 0, blk: 0, sp: 0, en: 0 });
   }
 
   // mode 키 추출 (객체면 key, 문자열이면 그대로)
