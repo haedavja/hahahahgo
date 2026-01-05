@@ -132,26 +132,43 @@ export const StatsWidget = memo(function StatsWidget() {
     setIsOpen(false);
   }, []);
 
+  // Escape 키로 모달 닫기
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose]);
+
   return (
     <div style={WIDGET_STYLE}>
       <button
         onClick={() => setIsOpen(true)}
         style={BUTTON_STYLE}
         title="게임 통계 보기"
+        aria-label="게임 통계 보기"
       >
         <span>📊</span>
         <span>{stats.wins}승 {stats.losses}패</span>
       </button>
 
       {isOpen && (
-        <div style={MODAL_OVERLAY_STYLE} onClick={handleClose}>
+        <div
+          style={MODAL_OVERLAY_STYLE}
+          onClick={handleClose}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="stats-modal-title"
+        >
           <div
             style={{ ...MODAL_CONTENT_STYLE, position: 'relative' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button style={CLOSE_BUTTON_STYLE} onClick={handleClose}>✕</button>
+            <button style={CLOSE_BUTTON_STYLE} onClick={handleClose} aria-label="통계 모달 닫기">✕</button>
 
-            <h2 style={{ margin: '0 0 16px', color: '#22c55e' }}>📊 게임 통계</h2>
+            <h2 id="stats-modal-title" style={{ margin: '0 0 16px', color: '#22c55e' }}>📊 게임 통계</h2>
 
             {/* 탭 네비게이션 */}
             <div style={TAB_CONTAINER_STYLE}>

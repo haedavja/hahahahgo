@@ -51,7 +51,7 @@ const OVERLAY_STYLE: CSSProperties = {
 };
 
 const MODAL_CONTAINER_STYLE: CSSProperties = {
-  width: '800px',
+  width: 'min(90vw, 800px)',
   maxHeight: '85vh',
   background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
   borderRadius: '16px',
@@ -158,6 +158,20 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
       }
     };
   }, []);
+
+  // Escape 키로 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // 상점 방문 통계 기록
+  useEffect(() => {
+    recordShopVisit(merchantType);
+  }, [merchantType]);
 
   const sellableItems = useMemo(() => {
     return items
@@ -363,14 +377,21 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
 
   return (
-    <div style={OVERLAY_STYLE} onClick={onClose} data-testid="shop-modal-overlay">
+    <div
+      style={OVERLAY_STYLE}
+      onClick={onClose}
+      data-testid="shop-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shop-modal-title"
+    >
       <div onClick={handleContainerClick} style={MODAL_CONTAINER_STYLE} data-testid="shop-modal">
         {/* 헤더 */}
         <div style={HEADER_STYLE} data-testid="shop-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '2rem' }}>{merchant.emoji}</span>
             <div>
-              <h2 style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }} data-testid="shop-merchant-name">{merchant.name}</h2>
+              <h2 id="shop-modal-title" style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }} data-testid="shop-merchant-name">{merchant.name}</h2>
               <p style={{ fontSize: '0.875rem', margin: '4px 0 0', color: '#94a3b8', fontStyle: 'italic' }}>
                 "{merchant.greeting}"
               </p>
@@ -381,7 +402,12 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
               <span style={{ fontSize: '1.25rem' }}>💰</span>
               <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }} data-testid="shop-gold-amount">{gold}G</span>
             </div>
-            <button onClick={onClose} style={EXIT_BUTTON_STYLE} data-testid="shop-exit-btn">
+            <button
+              onClick={onClose}
+              style={EXIT_BUTTON_STYLE}
+              data-testid="shop-exit-btn"
+              aria-label="상점 닫기"
+            >
               나가기
             </button>
           </div>
