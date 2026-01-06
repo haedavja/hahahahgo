@@ -5,17 +5,28 @@
 
 import type { EnemyDefinition } from '../../types/enemy';
 import type { Card, BattleTokenActions } from '../../types/core';
+import {
+  MAX_SPEED as CONFIG_MAX_SPEED,
+  DEFAULT_PLAYER_MAX_SPEED as CONFIG_PLAYER_MAX_SPEED,
+  DEFAULT_ENEMY_MAX_SPEED as CONFIG_ENEMY_MAX_SPEED,
+  BASE_PLAYER_ENERGY as CONFIG_BASE_ENERGY,
+  MAX_SUBMIT_CARDS as CONFIG_MAX_SUBMIT,
+  ETHER_THRESHOLD as CONFIG_ETHER_THRESHOLD,
+  DEFAULT_DRAW_COUNT as CONFIG_DRAW_COUNT,
+  TIMELINE,
+} from '../../config/balanceConfig';
 
 // Re-export for backwards compatibility
 export type { EnemyDefinition };
 
-export const MAX_SPEED = 30; // 기본 최대 속도 (레거시 호환용)
-export const DEFAULT_PLAYER_MAX_SPEED = 30; // 플레이어 기본 최대 속도
-export const DEFAULT_ENEMY_MAX_SPEED = 30; // 적 기본 최대 속도
-export const BASE_PLAYER_ENERGY = 6;
-export const MAX_SUBMIT_CARDS = 5;
-export const ETHER_THRESHOLD = 100;
-export const DEFAULT_DRAW_COUNT = 5; // 턴 시작 시 기본 드로우 수
+// 밸런스 상수 - balanceConfig.ts에서 가져옴
+export const MAX_SPEED = CONFIG_MAX_SPEED;
+export const DEFAULT_PLAYER_MAX_SPEED = CONFIG_PLAYER_MAX_SPEED;
+export const DEFAULT_ENEMY_MAX_SPEED = CONFIG_ENEMY_MAX_SPEED;
+export const BASE_PLAYER_ENERGY = CONFIG_BASE_ENERGY;
+export const MAX_SUBMIT_CARDS = CONFIG_MAX_SUBMIT;
+export const ETHER_THRESHOLD = CONFIG_ETHER_THRESHOLD;
+export const DEFAULT_DRAW_COUNT = CONFIG_DRAW_COUNT;
 
 // 기본 시작 덱 (게임 시작 시 플레이어가 갖고 시작하는 카드)
 export const DEFAULT_STARTING_DECK = [

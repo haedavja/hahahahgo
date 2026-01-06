@@ -13,6 +13,12 @@ import { calculatePassiveEffects } from "../lib/relicEffects";
 import { getRunBonuses, updateStats } from "./metaProgress";
 import type { MapNode, Resources, ActiveEvent, NewEventDefinition, ResourceValue, ResourceDelta, EventRewards } from "../types";
 import type { BattleRewards } from "./slices/types";
+import {
+  MEMORY_GAIN_PER_NODE as CONFIG_MEMORY_GAIN,
+  AWAKEN_COST as CONFIG_AWAKEN_COST,
+  MAX_PLAYER_SELECTION as CONFIG_MAX_SELECTION,
+  BATTLE_REWARDS as CONFIG_BATTLE_REWARDS,
+} from "../config/balanceConfig";
 
 // ==================== 타입 export ====================
 
@@ -213,20 +219,15 @@ export const applyInitialRelicEffects = <T extends InitialState>(state: T): T & 
   };
 };
 
-// ==================== 상수 ====================
+// ==================== 상수 (balanceConfig.ts에서 가져옴) ====================
 
-export const MEMORY_GAIN_PER_NODE = 10;
-export const AWAKEN_COST = 100;
-export const MAX_PLAYER_SELECTION = 3;
+export const MEMORY_GAIN_PER_NODE = CONFIG_MEMORY_GAIN;
+export const AWAKEN_COST = CONFIG_AWAKEN_COST;
+export const MAX_PLAYER_SELECTION = CONFIG_MAX_SELECTION;
 
 export const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
 
-export const BATTLE_REWARDS: Record<string, BattleRewards> = {
-  battle: { gold: { min: 10, max: 16 }, loot: { min: 1, max: 2 }, memory: { min: 15, max: 25 } },
-  elite: { gold: { min: 18, max: 26 }, loot: { min: 2, max: 3 }, intel: 1, memory: { min: 30, max: 45 } },
-  boss: { gold: { min: 30, max: 40 }, loot: { min: 3, max: 4 }, intel: 2, material: 1, memory: { min: 60, max: 100 } },
-  dungeon: { gold: { min: 20, max: 32 }, loot: { min: 2, max: 4 }, memory: { min: 20, max: 35 } },
-};
+export const BATTLE_REWARDS: Record<string, BattleRewards> = CONFIG_BATTLE_REWARDS;
 
 export const BATTLE_LABEL = {
   battle: "전투",
