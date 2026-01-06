@@ -28,9 +28,9 @@ import type {
   BattleAction,
   PlayerBattleState,
   EnemyUnit,
-  EnemyPlan,
-  AICard
+  EnemyPlan
 } from '../../../types';
+import { aiCardsToCards, cardsToAICards } from '../../../types/systems';
 import type { BattleRefValue } from '../../../types/hooks';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
 import { applyTraitModifiers, markCrossedCards } from '../utils/battleUtils';
@@ -157,7 +157,7 @@ export function usePhaseTransition({
     let generatedActions: Card[];
     if (willRegenerate) {
       const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts ?? 0), cardsPerTurn, Math.min(1, cardsPerTurn));
-      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []) as unknown as Card[];
+      generatedActions = aiCardsToCards(assignSourceUnitToActions(rawActions, enemy?.units || []));
     } else {
       generatedActions = currentEnemyPlan.actions;
     }
@@ -282,7 +282,7 @@ export function usePhaseTransition({
     actions.setEnemyCurrentDeflation(null);
 
     // 에테르 폭주 체크
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions as unknown as AICard[], enemy.etherPts ?? 0, turnNumber) && etherSlots(enemy.etherPts ?? 0) > 0;
+    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, cardsToAICards(enemyPlan.actions), enemy.etherPts ?? 0, turnNumber) && etherSlots(enemy.etherPts ?? 0) > 0;
     if (willOverdrive && etherSlots(player.etherPts ?? 0) > 0) {
       actions.setPlayer({ ...player, etherPts: (player.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);

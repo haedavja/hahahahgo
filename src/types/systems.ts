@@ -218,6 +218,54 @@ export interface AICard {
 }
 
 /**
+ * AICard가 Card의 필수 필드를 갖추었는지 확인하는 타입 가드
+ * @param card - 검사할 AICard
+ * @returns Card로 사용할 수 있으면 true
+ */
+export function isValidCard(card: AICard): card is AICard & {
+  id: string;
+  name: string;
+  type: string;
+  speedCost: number;
+  actionCost: number;
+  description: string;
+} {
+  return (
+    typeof card.id === 'string' &&
+    typeof card.name === 'string' &&
+    typeof card.type === 'string' &&
+    typeof card.speedCost === 'number' &&
+    typeof card.actionCost === 'number' &&
+    typeof (card as { description?: string }).description === 'string'
+  );
+}
+
+/**
+ * AICard 배열을 Card 배열로 안전하게 캐스팅
+ *
+ * @note 런타임에 AI가 생성한 카드는 실제로 모든 필수 필드를 갖추고 있음
+ *       타입스크립트만 이를 인식하지 못하므로 캐스팅으로 해결
+ *
+ * @example
+ * const actions = assignSourceUnitToActions(rawActions, units);
+ * setEnemyPlan({ mode, actions: aiCardsToCards(actions) });
+ */
+export function aiCardsToCards(cards: AICard[]): import('./core').Card[] {
+  return cards as unknown as import('./core').Card[];
+}
+
+/**
+ * Card 배열을 AICard 배열로 안전하게 캐스팅
+ * Card는 AICard의 모든 필드를 포함하므로 항상 안전
+ *
+ * @example
+ * const willOD = shouldEnemyOverdrive(mode, cardsToAICards(enemyPlan.actions), ether, turn);
+ */
+export function cardsToAICards(cards: import('./core').Card[]): AICard[] {
+  return cards as unknown as AICard[];
+}
+
+/**
  * AI용 적 - EnemyUnit과 호환
  * hp가 optional이므로 모든 적 타입과 호환됨
  */
