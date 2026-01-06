@@ -74,6 +74,7 @@ import { useBattleRefs } from "./hooks/useBattleRefs";
 import { useDevModeEffects } from "./hooks/useDevModeEffects";
 import { usePhaseEffects } from "./hooks/usePhaseEffects";
 import { useResolveProgressEffects } from "./hooks/useResolveProgressEffects";
+import { useTimelineProgression } from "./hooks/useTimelineProgression";
 import { useEnemyPlanGeneration } from "./hooks/useEnemyPlanGeneration";
 import { useQueueRecovery } from "./hooks/useQueueRecovery";
 import { useAnomalyNotification } from "./hooks/useAnomalyNotification";
@@ -457,6 +458,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
   }, [setShowAnomalyNotification]);
 
   const stepOnceRef = useRef<(() => void) | null>(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
+  const executeCardActionRef = useRef<(() => void) | null>(null); // executeCardAction 함수 참조 (타임라인 훅에서 사용)
 
   // 브리치 카드 선택 (커스텀 훅으로 분리)
   const {
@@ -866,138 +868,38 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     actions
   });
 
-  const stepOnce = () => {
-    // 브리치 선택 대기 중이면 진행 차단
-    if (breachSelectionRef.current) return;
-
-    const currentBattle = battleRef.current;
-    if (currentBattle.qIndex >= currentBattle.queue.length) return;
-    const a = currentBattle.queue[currentBattle.qIndex];
-
-    // 죽은 적의 카드 스킵 (적 체력 0 이하이고 적 카드인 경우)
-    const currentEnemy = currentBattle.enemy || enemy;
-    if (a.actor === 'enemy' && currentEnemy.hp <= 0) {
-      // 다음 카드로 진행
-      const newQIndex = currentBattle.qIndex + 1;
-      actions.setQIndex(newQIndex);
-      battleRef.current = { ...battleRef.current, qIndex: newQIndex };
-      return;
-    }
-
-    // 타임라인 밖 적 카드 스킵 (sp > maxSpeed인 경우)
-    const enemyMaxSpeedCheck = currentEnemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
-    if (a.actor === 'enemy' && (a.sp ?? 0) > enemyMaxSpeedCheck) {
-      addLog(`🚫 "${a.card?.name}" 타임라인 범위 초과로 실행 불가 (sp: ${a.sp} > ${enemyMaxSpeedCheck})`);
-      const newQIndex = currentBattle.qIndex + 1;
-      actions.setQIndex(newQIndex);
-      battleRef.current = { ...battleRef.current, qIndex: newQIndex };
-      return;
-    }
-
-    const currentQIndex = currentBattle.qIndex; // Capture current qIndex
-
-    // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
-    const playerMaxSpeed = player?.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
-    const enemyMaxSpeed = enemy?.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
-    const commonMaxSpeed = Math.max(playerMaxSpeed, enemyMaxSpeed);
-    const targetProgress = ((a.sp ?? 0) / commonMaxSpeed) * 100;
-
-    // 이전 애니메이션 정리
-    if (timelineAnimationRef.current) {
-      cancelAnimationFrame(timelineAnimationRef.current);
-      timelineAnimationRef.current = null;
-    }
-
-    // 부드러운 타임라인 진행 애니메이션 (방어자세 실시간 방어력용)
-    const startProgress = currentBattle.timelineProgress || 0;
-    const animationDuration = TIMING.CARD_EXECUTION_DELAY; // 애니메이션 지속시간
-    const startTime = performance.now();
-
-    const animateProgress = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / animationDuration, 1);
-      // linear 보간 (시곗바늘이 일정 속도로 이동)
-      const currentProgress = startProgress + (targetProgress - startProgress) * progress;
-
-      // 방어자세 실시간 방어력 업데이트
-      if (growingDefenseRef.current) {
-        const currentTimelineSp = Math.floor((currentProgress / 100) * commonMaxSpeed);
-        const { activatedSp, totalDefenseApplied = 0 } = growingDefenseRef.current;
-        const totalDefenseNeeded = Math.max(0, currentTimelineSp - activatedSp);
-        const defenseDelta = totalDefenseNeeded - totalDefenseApplied;
-        if (defenseDelta > 0) {
-          const currentPlayer = battleRef.current?.player || player;
-          const newBlock = (currentPlayer.block || 0) + defenseDelta;
-          actions.setPlayer({ ...currentPlayer, block: newBlock, def: true });
-          if (battleRef.current) {
-            battleRef.current.player = { ...battleRef.current.player, block: newBlock, def: true };
-          }
-          growingDefenseRef.current.totalDefenseApplied = totalDefenseNeeded;
-        }
-      }
-
-      // flushSync로 강제 동기 렌더링 (방어자세 실시간 업데이트용)
-      flushSync(() => {
-        actions.setTimelineProgress(currentProgress);
-      });
-
-      if (progress < 1) {
-        timelineAnimationRef.current = requestAnimationFrame(animateProgress);
-      } else {
-        timelineAnimationRef.current = null;
-      }
-    };
-
-    timelineAnimationRef.current = requestAnimationFrame(animateProgress);
-
-    // 시곗바늘 이동 완료 후 카드 발동 및 실행
-    setTimeout(() => {
-      // 실행 중인 카드 표시 (흔들림 애니메이션)
-      actions.setExecutingCardIndex(currentQIndex);
-
-      // 흔들림 애니메이션 종료 후 빛 바래짐 처리
-      setTimeout(() => {
-        actions.setExecutingCardIndex(null);
-        // 흔들림이 끝난 후 사용된 카드로 표시 (빛 바래짐)
-        const currentBattle = battleRef.current;
-        const currentUsedIndices = currentBattle.usedCardIndices || [];
-        actions.setUsedCardIndices([...currentUsedIndices, currentQIndex]);
-      }, TIMING.CARD_SHAKE_DURATION);
-
-      // 마지막 카드면 페이드아웃
-      if (currentQIndex >= currentBattle.queue.length - 1) {
-        setTimeout(() => {
-          actions.setTimelineIndicatorVisible(false);
-        }, TIMING.CARD_FADEOUT_DELAY);
-      }
-
-      // 카드 소멸 이펙트는 플레이어만 적용
-      if (a.actor === 'player') {
-        if (hasTrait(a.card, 'escape' as import("../../types/core").CardTrait)) {
-          escapeUsedThisTurnRef.current.add(a.card.id);
-        }
-        setTimeout(() => {
-          // 카드가 사용된 후 사라지는 애니메이션 시작
-          const currentBattle = battleRef.current;
-          const currentDisappearing = currentBattle.disappearingCards || [];
-          actions.setDisappearingCards([...currentDisappearing, currentQIndex]);
-          setTimeout(() => {
-            // 애니메이션 후 완전히 숨김
-            const currentBattle = battleRef.current;
-            const currentHidden = currentBattle.hiddenCards || [];
-            const currentDisappearing2 = currentBattle.disappearingCards || [];
-            actions.setHiddenCards([...currentHidden, currentQIndex]);
-            actions.setDisappearingCards(currentDisappearing2.filter(i => i !== currentQIndex));
-          }, TIMING.CARD_DISAPPEAR_DURATION);
-        }, TIMING.CARD_DISAPPEAR_START);
-      }
-
-      executeCardAction();
-    }, TIMING.CARD_EXECUTION_DELAY);
-  };
-
-  // stepOnce를 ref에 저장 (브리치 선택 후 진행 재개용)
-  stepOnceRef.current = stepOnce;
+  // 타임라인 진행 로직 (useTimelineProgression 훅으로 분리)
+  const { stepOnce } = useTimelineProgression({
+    battleRef: battleRef as import('react').MutableRefObject<{
+      queue: HandAction[];
+      qIndex: number;
+      player: TokenEntity & { hp: number; block?: number; def?: boolean; maxSpeed?: number };
+      enemy: TokenEntity & { hp: number; block?: number; def?: boolean; maxSpeed?: number };
+      timelineProgress?: number;
+      usedCardIndices?: number[];
+      disappearingCards?: number[];
+      hiddenCards?: number[];
+    } | null>,
+    breachSelectionRef,
+    timelineAnimationRef,
+    growingDefenseRef: growingDefenseRef as import('react').MutableRefObject<{ activatedSp: number; totalDefenseApplied?: number } | null>,
+    escapeUsedThisTurnRef: escapeUsedThisTurnRef as import('react').MutableRefObject<Set<string>>,
+    stepOnceRef,
+    player: player as TokenEntity & { hp: number; block?: number; maxSpeed?: number },
+    enemy: enemy as TokenEntity & { hp: number; block?: number; maxSpeed?: number },
+    actions: {
+      setQIndex: actions.setQIndex,
+      setTimelineProgress: actions.setTimelineProgress,
+      setExecutingCardIndex: actions.setExecutingCardIndex,
+      setUsedCardIndices: actions.setUsedCardIndices,
+      setTimelineIndicatorVisible: actions.setTimelineIndicatorVisible,
+      setDisappearingCards: actions.setDisappearingCards,
+      setHiddenCards: actions.setHiddenCards,
+      setPlayer: actions.setPlayer,
+    },
+    addLog,
+    executeCardAction: () => executeCardActionRef.current?.(),
+  });
 
   const executeCardAction = async () => {
     // 중복 실행 방지 (StrictMode 등에서 발생 가능)
@@ -1904,6 +1806,9 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
     isExecutingCardRef.current = false;
   };
+
+  // executeCardAction을 ref에 저장 (타임라인 훅에서 사용)
+  executeCardActionRef.current = executeCardAction;
 
   // resolve 단계 진행 관련 효과 통합 (커스텀 훅으로 분리)
   useResolveProgressEffects({
