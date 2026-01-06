@@ -1,0 +1,13 @@
+{
+  "ENERGY": "energy",
+  "DRAW": "draw",
+  "DEFENSE": "defense",
+  "HP": "hp",
+  "HEAL": "heal",
+  "STRENGTH": "strength",
+  "AGILITY": "agility",
+  "ETHER": "ether",
+  "SPEED": "speed",
+  "TIMELINE": "timeline",
+  "TOKEN": "token"
+}

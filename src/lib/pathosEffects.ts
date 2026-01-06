@@ -48,22 +48,42 @@ export interface PathosUseResult {
 
 /**
  * 현재 성장 상태에서 장착된 파토스 목록 조회
+ * (React 환경에서 사용 - useGameStore 의존)
  */
 export function getEquippedPathos(): Pathos[] {
   const growth = useGameStore.getState().growth || initialGrowthState;
-  return growth.equippedPathos
+  return getEquippedPathosPure(growth);
+}
+
+/**
+ * 성장 상태에서 장착된 파토스 목록 조회 (순수 함수)
+ * (Godot 포팅용 - 외부 의존성 없음)
+ */
+export function getEquippedPathosPure(growth: GrowthState | null | undefined): Pathos[] {
+  const g = growth || initialGrowthState;
+  return g.equippedPathos
     .map(id => PATHOS[id])
     .filter((p): p is Pathos => !!p);
 }
 
 /**
  * 파토스 사용 가능 여부 확인
+ * (React 환경에서 사용 - useGameStore 의존)
  */
 export function canUsePathos(pathosId: string, cooldowns: PathosCooldowns): boolean {
   const growth = useGameStore.getState().growth || initialGrowthState;
+  return canUsePathosPure(pathosId, cooldowns, growth);
+}
+
+/**
+ * 파토스 사용 가능 여부 확인 (순수 함수)
+ * (Godot 포팅용 - 외부 의존성 없음)
+ */
+export function canUsePathosPure(pathosId: string, cooldowns: PathosCooldowns, growth: GrowthState | null | undefined): boolean {
+  const g = growth || initialGrowthState;
 
   // 장착 여부 확인
-  if (!growth.equippedPathos.includes(pathosId)) {
+  if (!g.equippedPathos.includes(pathosId)) {
     return false;
   }
 

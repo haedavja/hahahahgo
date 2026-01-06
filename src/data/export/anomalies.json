@@ -1,0 +1,86 @@
+{
+  "DEFLATION_CURSE": {
+    "id": "deflation_curse",
+    "name": "디플레이션의 저주",
+    "emoji": "💸",
+    "color": "#ef4444",
+    "description": "에테르 획득이 불가능합니다."
+  },
+  "ENERGY_DRAIN": {
+    "id": "energy_drain",
+    "name": "활력 고갈",
+    "emoji": "🔋",
+    "color": "#f59e0b",
+    "description": "최대 행동력이 감소합니다."
+  },
+  "TIME_DISTORTION": {
+    "id": "time_distortion",
+    "name": "시간 왜곡",
+    "emoji": "⏰",
+    "color": "#8b5cf6",
+    "description": "최대 속도가 감소합니다."
+  },
+  "DRAW_INTERFERENCE": {
+    "id": "draw_interference",
+    "name": "뽑기 방해",
+    "emoji": "🎴",
+    "color": "#06b6d4",
+    "description": "뽑기 확률이 감소합니다."
+  },
+  "COGNITIVE_FOG": {
+    "id": "cognitive_fog",
+    "name": "인지 안개",
+    "emoji": "🌫️",
+    "color": "#64748b",
+    "description": "통찰이 감소합니다."
+  },
+  "VALUE_DOWN": {
+    "id": "value_down",
+    "name": "가치 하락",
+    "emoji": "📉",
+    "color": "#dc2626",
+    "description": "공격력과 방어력이 감소합니다."
+  },
+  "BACKFLOW": {
+    "id": "backflow",
+    "name": "역류",
+    "emoji": "🔄",
+    "color": "#be185d",
+    "description": "방어 카드 사용 시 자해 피해를 입습니다."
+  },
+  "INSTABILITY": {
+    "id": "instability",
+    "name": "불안정",
+    "emoji": "🎲",
+    "color": "#7c3aed",
+    "description": "모든 카드의 속도가 무작위로 변동됩니다."
+  },
+  "VULNERABILITY": {
+    "id": "vulnerability",
+    "name": "취약",
+    "emoji": "💔",
+    "color": "#e11d48",
+    "description": "받는 모든 피해가 증가합니다."
+  },
+  "SILENCE": {
+    "id": "silence",
+    "name": "침묵",
+    "emoji": "🤐",
+    "color": "#475569",
+    "description": "카드의 특성 효과가 비활성화됩니다."
+  },
+  "ISOLATION": {
+    "id": "isolation",
+    "name": "고립",
+    "emoji": "🚫",
+    "color": "#0891b2",
+    "description": "연계와 후속 효과가 무효화됩니다."
+  },
+  "MADNESS": {
+    "id": "madness",
+    "name": "광기",
+    "emoji": "🌀",
+    "color": "#c026d3",
+    "description": "기교를 획득할 수 없습니다."
+  }
+}

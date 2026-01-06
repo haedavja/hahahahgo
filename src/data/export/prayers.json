@@ -1,0 +1,58 @@
+{
+  "immunity": {
+    "id": "immunity",
+    "name": "면역",
+    "emoji": "🛡️",
+    "description": "영혼을 보호하는 방어막 형성. 다음 영혼 피해를 무효화.",
+    "graceCost": 2,
+    "effect": {
+      "action": "soulShield",
+      "value": 1
+    }
+  },
+  "blessing": {
+    "id": "blessing",
+    "name": "가호",
+    "emoji": "✨",
+    "description": "3턴 동안 추가 에테르 획득.",
+    "graceCost": 2,
+    "effect": {
+      "action": "bonusGrace",
+      "value": 50,
+      "duration": 3
+    }
+  },
+  "healing": {
+    "id": "healing",
+    "name": "회복",
+    "emoji": "💚",
+    "description": "체력을 35% 회복합니다.",
+    "graceCost": 3,
+    "effect": {
+      "action": "healPercent",
+      "percent": 35
+    }
+  },
+  "offense": {
+    "id": "offense",
+    "name": "공세",
+    "emoji": "⚔️",
+    "description": "공격 1회 또는 방어 1회 획득.",
+    "graceCost": 2,
+    "effect": {
+      "action": "gainAttackOrBlock",
+      "value": 1
+    }
+  },
+  "veil": {
+    "id": "veil",
+    "name": "장막",
+    "emoji": "💨",
+    "description": "회피 1회 획득.",
+    "graceCost": 1,
+    "effect": {
+      "action": "gainEvade",
+      "value": 1
+    }
+  }
+}

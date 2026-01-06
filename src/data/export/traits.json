@@ -1,0 +1,240 @@
+{
+  "swift": {
+    "id": "swift",
+    "name": "신속함",
+    "type": "positive",
+    "weight": 1,
+    "description": "속도 -2"
+  },
+  "repeat": {
+    "id": "repeat",
+    "name": "반복",
+    "type": "positive",
+    "weight": 1,
+    "description": "다음턴에도 손패에 확정적으로 등장"
+  },
+  "strongbone": {
+    "id": "strongbone",
+    "name": "강골",
+    "type": "positive",
+    "weight": 1,
+    "description": "피해량/방어력 25% 증가"
+  },
+  "crush": {
+    "id": "crush",
+    "name": "분쇄",
+    "type": "positive",
+    "weight": 1,
+    "description": "상대방 방어력에 2배 피해"
+  },
+  "cooperation": {
+    "id": "cooperation",
+    "name": "협동",
+    "type": "positive",
+    "weight": 1,
+    "description": "조합에 포함되면 공격력을 50% 추가 획득합니다."
+  },
+  "mastery": {
+    "id": "mastery",
+    "name": "숙련",
+    "type": "positive",
+    "weight": 1,
+    "description": "카드 쓸수록 시간 -2, 최소값 1"
+  },
+  "training": {
+    "id": "training",
+    "name": "단련",
+    "type": "positive",
+    "weight": 1,
+    "description": "사용 후 힘 +1"
+  },
+  "chain": {
+    "id": "chain",
+    "name": "연계",
+    "type": "positive",
+    "weight": 1,
+    "description": "다음 카드가 검격이면 타임라인 3 앞당김"
+  },
+  "followup": {
+    "id": "followup",
+    "name": "후속",
+    "type": "positive",
+    "weight": 1,
+    "description": "연계하면 성능 50% 증폭"
+  },
+  "finisher": {
+    "id": "finisher",
+    "name": "마무리",
+    "type": "positive",
+    "weight": 2,
+    "description": "연계되면 피해 50% 증가, 후속되면 기교 1 획득"
+  },
+  "general": {
+    "id": "general",
+    "name": "장군",
+    "type": "positive",
+    "weight": 2,
+    "description": "다음턴 보조특기 등장률 25% 증가"
+  },
+  "knockback": {
+    "id": "knockback",
+    "name": "넉백",
+    "type": "positive",
+    "weight": 2,
+    "description": "상대 타임라인 3 뒤로 밀기"
+  },
+  "advance": {
+    "id": "advance",
+    "name": "앞당김",
+    "type": "positive",
+    "weight": 2,
+    "description": "내 타임라인 3 앞당김"
+  },
+  "cross": {
+    "id": "cross",
+    "name": "교차",
+    "type": "positive",
+    "weight": 2,
+    "description": "타임라인 상 한 번이라도 적 카드와 겹친 적 있으면 효과 발동/증폭"
+  },
+  "destroyer": {
+    "id": "destroyer",
+    "name": "파괴자",
+    "type": "positive",
+    "weight": 2,
+    "description": "공격력 50% 증가"
+  },
+  "warmup": {
+    "id": "warmup",
+    "name": "몸풀기",
+    "type": "positive",
+    "weight": 2,
+    "description": "다음턴 행동력 +2"
+  },
+  "stun": {
+    "id": "stun",
+    "name": "기절",
+    "type": "positive",
+    "weight": 3,
+    "description": "타임라인 5범위내 상대 카드 파괴"
+  },
+  "slaughter": {
+    "id": "slaughter",
+    "name": "도살",
+    "type": "positive",
+    "weight": 3,
+    "description": "기본피해량 75% 증가"
+  },
+  "pinnacle": {
+    "id": "pinnacle",
+    "name": "정점",
+    "type": "positive",
+    "weight": 5,
+    "description": "피해량 2.5배"
+  },
+  "outcast": {
+    "id": "outcast",
+    "name": "소외",
+    "type": "negative",
+    "weight": 1,
+    "description": "조합 제외, 행동력 -1"
+  },
+  "double_edge": {
+    "id": "double_edge",
+    "name": "양날의 검",
+    "type": "negative",
+    "weight": 1,
+    "description": "사용시 1 피해"
+  },
+  "weakbone": {
+    "id": "weakbone",
+    "name": "약골",
+    "type": "negative",
+    "weight": 1,
+    "description": "피해량/방어력 20% 감소"
+  },
+  "slow": {
+    "id": "slow",
+    "name": "굼뜸",
+    "type": "negative",
+    "weight": 1,
+    "description": "속도 +3"
+  },
+  "escape": {
+    "id": "escape",
+    "name": "탈주",
+    "type": "negative",
+    "weight": 1,
+    "description": "다음턴 손패에 미등장"
+  },
+  "stubborn": {
+    "id": "stubborn",
+    "name": "고집",
+    "type": "negative",
+    "weight": 1,
+    "description": "대응단계 순서변경 불가"
+  },
+  "boredom": {
+    "id": "boredom",
+    "name": "싫증",
+    "type": "negative",
+    "weight": 1,
+    "description": "사용시마다 시간 +2"
+  },
+  "exhaust": {
+    "id": "exhaust",
+    "name": "탈진",
+    "type": "negative",
+    "weight": 2,
+    "description": "다음턴 행동력 -2"
+  },
+  "vanish": {
+    "id": "vanish",
+    "name": "소멸",
+    "type": "negative",
+    "weight": 2,
+    "description": "사용 후 게임에서 제외"
+  },
+  "last": {
+    "id": "last",
+    "name": "마지막",
+    "type": "negative",
+    "weight": 2,
+    "description": "타임라인 마지막에 발동"
+  },
+  "robber": {
+    "id": "robber",
+    "name": "날강도",
+    "type": "negative",
+    "weight": 2,
+    "description": "사용시 10골드 소실"
+  },
+  "ruin": {
+    "id": "ruin",
+    "name": "파탄",
+    "type": "negative",
+    "weight": 3,
+    "description": "다음턴 주특기만 등장"
+  },
+  "oblivion": {
+    "id": "oblivion",
+    "name": "망각",
+    "type": "negative",
+    "weight": 3,
+    "description": "이후 에테르 획득 불가"
+  },
+  "leisure": {
+    "id": "leisure",
+    "name": "여유",
+    "type": "positive",
+    "weight": 1,
+    "description": "카드 속도의 1~2배 범위 내 원하는 위치에 배치"
+  },
+  "strain": {
+    "id": "strain",
+    "name": "무리",
+    "type": "positive",
+    "weight": 1,
+    "description": "클릭 시 행동력 1을 사용해 속도를 최대 3까지 앞당김"
+  }
+}
