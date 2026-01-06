@@ -23,6 +23,8 @@ import {
 // Lazy loading for heavy modals
 const CardGrowthModal = lazy(() => import('./CardGrowthModal').then(m => ({ default: m.CardGrowthModal })));
 const GrowthPyramidModal = lazy(() => import('../../growth/GrowthPyramidModal').then(m => ({ default: m.GrowthPyramidModal })));
+const AwakenModal = lazy(() => import('./rest/AwakenModal').then(m => ({ default: m.AwakenModal })));
+const BlessingModal = lazy(() => import('./rest/BlessingModal').then(m => ({ default: m.BlessingModal })));
 
 // 분리된 컴포넌트들
 import {
@@ -98,13 +100,12 @@ export const RestModal = memo(function RestModal({
 
   // 핸들러 메모이제이션
   const handleStopPropagation = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
-  const handleAwakenBrave = useCallback(() => awakenAtRest("brave"), [awakenAtRest]);
-  const handleAwakenSturdy = useCallback(() => awakenAtRest("sturdy"), [awakenAtRest]);
-  const handleAwakenCold = useCallback(() => awakenAtRest("cold"), [awakenAtRest]);
-  const handleAwakenThorough = useCallback(() => awakenAtRest("thorough"), [awakenAtRest]);
-  const handleAwakenPassionate = useCallback(() => awakenAtRest("passionate"), [awakenAtRest]);
-  const handleAwakenLively = useCallback(() => awakenAtRest("lively"), [awakenAtRest]);
-  const handleAwakenRandom = useCallback(() => awakenAtRest("random"), [awakenAtRest]);
+
+  // 각성 핸들러 (모달에서 타입을 받아 처리)
+  const handleAwaken = useCallback((type: string) => {
+    awakenAtRest(type);
+    setShowAwakenOptions(false);
+  }, [awakenAtRest]);
 
   const handleHeal = useCallback(() => {
     const heal = Math.max(1, Math.round((maxHp || 0) * 0.3));
@@ -127,18 +128,10 @@ export const RestModal = memo(function RestModal({
   }, [specializeCard]);
 
   // 축복 핸들러 (은총화 1개 소모, 5노드 동안 스탯 버프)
-  const handleBlessStrength = useCallback(() => {
+  const handleBless = useCallback((buff: TempBuff) => {
     if (grace < 1 || blessingUsed) return;
     spendGrace(1);
-    applyTempBuff({ stat: 'strength', value: 2, remainingNodes: 5 });
-    setBlessingUsed(true);
-    setShowBlessingOptions(false);
-  }, [grace, blessingUsed, spendGrace, applyTempBuff]);
-
-  const handleBlessAgility = useCallback(() => {
-    if (grace < 1 || blessingUsed) return;
-    spendGrace(1);
-    applyTempBuff({ stat: 'agility', value: 1, remainingNodes: 5 });
+    applyTempBuff(buff);
     setBlessingUsed(true);
     setShowBlessingOptions(false);
   }, [grace, blessingUsed, spendGrace, applyTempBuff]);
@@ -310,173 +303,29 @@ export const RestModal = memo(function RestModal({
         </Suspense>
       )}
 
-      {/* 각성 선택 모달 */}
+      {/* 각성 선택 모달 (lazy loaded) */}
       {showAwakenOptions && (
-        <div
-          className="event-modal-overlay"
-          onClick={() => setShowAwakenOptions(false)}
-          style={{ zIndex: 1001 }}
-        >
-          <div
-            className="event-modal"
-            onClick={handleStopPropagation}
-            style={{ maxWidth: '500px' }}
-          >
-            <header>
-              <h3>✨ 각성 선택</h3>
-              <small>기억 100을 소모하여 개성을 획득합니다</small>
-            </header>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '16px' }}>
-              {/* 전사 */}
-              <div style={{
-                padding: '12px',
-                background: 'rgba(248, 113, 113, 0.15)',
-                border: '1px solid rgba(248, 113, 113, 0.4)',
-                borderRadius: '8px',
-              }}>
-                <div style={{ fontWeight: 'bold', color: '#f87171', marginBottom: '8px', fontSize: '14px' }}>⚔️ 전사</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button className="btn" onClick={handleAwakenBrave} data-testid="rest-btn-brave" style={{ fontSize: '13px' }}>
-                    용맹 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+힘 1</span>
-                  </button>
-                  <button className="btn" onClick={handleAwakenSturdy} data-testid="rest-btn-sturdy" style={{ fontSize: '13px' }}>
-                    굳건 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+체력 10</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 현자 */}
-              <div style={{
-                padding: '12px',
-                background: 'rgba(96, 165, 250, 0.15)',
-                border: '1px solid rgba(96, 165, 250, 0.4)',
-                borderRadius: '8px',
-              }}>
-                <div style={{ fontWeight: 'bold', color: '#60a5fa', marginBottom: '8px', fontSize: '14px' }}>📖 현자</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button className="btn" onClick={handleAwakenCold} data-testid="rest-btn-cold" style={{ fontSize: '13px' }}>
-                    냉철 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+통찰 1</span>
-                  </button>
-                  <button className="btn" onClick={handleAwakenThorough} data-testid="rest-btn-thorough" style={{ fontSize: '13px' }}>
-                    철저 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+보조슬롯 1</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 영웅 */}
-              <div style={{
-                padding: '12px',
-                background: 'rgba(251, 191, 36, 0.15)',
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                borderRadius: '8px',
-              }}>
-                <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px', fontSize: '14px' }}>🦸 영웅</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button className="btn" onClick={handleAwakenPassionate} data-testid="rest-btn-passionate" style={{ fontSize: '13px' }}>
-                    열정 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+속도 5</span>
-                  </button>
-                  <button className="btn" onClick={handleAwakenLively} data-testid="rest-btn-lively" style={{ fontSize: '13px' }}>
-                    활력 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>+행동력 1</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 신앙 */}
-              <div style={{
-                padding: '12px',
-                background: 'rgba(167, 139, 250, 0.15)',
-                border: '1px solid rgba(167, 139, 250, 0.4)',
-                borderRadius: '8px',
-              }}>
-                <div style={{ fontWeight: 'bold', color: '#a78bfa', marginBottom: '8px', fontSize: '14px' }}>🙏 신앙</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button className="btn" onClick={handleAwakenRandom} data-testid="rest-btn-random" style={{ fontSize: '13px' }}>
-                    랜덤 개성 <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>???</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-              <button className="btn" onClick={() => setShowAwakenOptions(false)}>닫기</button>
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <AwakenModal
+            isOpen={showAwakenOptions}
+            onClose={() => setShowAwakenOptions(false)}
+            onAwaken={handleAwaken}
+            memoryValue={memoryValue}
+          />
+        </Suspense>
       )}
 
-      {/* 축복 선택 모달 */}
+      {/* 축복 선택 모달 (lazy loaded) */}
       {showBlessingOptions && (
-        <div
-          className="event-modal-overlay"
-          onClick={() => setShowBlessingOptions(false)}
-          style={{ zIndex: 1001 }}
-        >
-          <div
-            className="event-modal"
-            onClick={handleStopPropagation}
-            style={{ maxWidth: '400px' }}
-          >
-            <header>
-              <h3>🙏 축복 선택</h3>
-              <small>은총화 1개를 소모하여 5노드 동안 스탯 버프를 받습니다</small>
-            </header>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-              {/* 힘 축복 */}
-              <button
-                className="btn"
-                onClick={handleBlessStrength}
-                style={{
-                  padding: '16px',
-                  background: 'rgba(248, 113, 113, 0.15)',
-                  border: '1px solid rgba(248, 113, 113, 0.4)',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                }}
-                data-testid="rest-btn-bless-strength"
-              >
-                <div style={{ fontWeight: 'bold', color: '#f87171', fontSize: '15px' }}>
-                  ⚔️ 전투의 축복
-                </div>
-                <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
-                  5노드 동안 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>힘 +2</span>
-                </div>
-              </button>
-
-              {/* 민첩 축복 */}
-              <button
-                className="btn"
-                onClick={handleBlessAgility}
-                style={{
-                  padding: '16px',
-                  background: 'rgba(96, 165, 250, 0.15)',
-                  border: '1px solid rgba(96, 165, 250, 0.4)',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                }}
-                data-testid="rest-btn-bless-agility"
-              >
-                <div style={{ fontWeight: 'bold', color: '#60a5fa', fontSize: '15px' }}>
-                  💨 신속의 축복
-                </div>
-                <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
-                  5노드 동안 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>민첩 +1</span>
-                </div>
-              </button>
-            </div>
-
-            <div style={{ marginTop: '16px', padding: '8px', background: 'rgba(167, 139, 250, 0.1)', borderRadius: '6px', textAlign: 'center' }}>
-              <span style={{ fontSize: '13px', color: '#a78bfa' }}>
-                비용: 은총화 1개 (보유: {grace}개)
-              </span>
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-              <button className="btn" onClick={() => setShowBlessingOptions(false)}>닫기</button>
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <BlessingModal
+            isOpen={showBlessingOptions}
+            onClose={() => setShowBlessingOptions(false)}
+            onBless={handleBless}
+            grace={grace}
+            blessingUsed={blessingUsed}
+          />
+        </Suspense>
       )}
     </div>
   );

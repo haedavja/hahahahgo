@@ -70,8 +70,8 @@ export function syncAllCards(forceReload = false): Record<string, GameCard> {
   const cards: Record<string, GameCard> = {};
 
   // battleData.ts의 CARDS 배열 변환
-  for (const card of BATTLE_CARDS as unknown[]) {
-    const c = card as Record<string, unknown>;
+  for (const card of BATTLE_CARDS) {
+    const c = card as unknown as Record<string, unknown>;
     const gameCard: GameCard = {
       id: c.id as string,
       name: c.name as string,
@@ -116,8 +116,8 @@ export function syncAllCards(forceReload = false): Record<string, GameCard> {
   }
 
   // battleData.ts의 ENEMY_CARDS 배열 변환
-  for (const card of ENEMY_CARDS as unknown[]) {
-    const c = card as Record<string, unknown>;
+  for (const card of ENEMY_CARDS) {
+    const c = card as unknown as Record<string, unknown>;
     const cardId = c.id as string;
     if (!cards[cardId]) {
       cards[cardId] = {
