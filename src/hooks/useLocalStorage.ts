@@ -61,8 +61,8 @@ export function useLocalStorage<T>(
       if (e.key === key && e.newValue !== null) {
         try {
           setStoredValue(JSON.parse(e.newValue));
-        } catch {
-          // 무시
+        } catch (parseError) {
+          console.warn('[useLocalStorage] Invalid JSON from storage event:', parseError);
         }
       }
     };

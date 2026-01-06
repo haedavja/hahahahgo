@@ -366,6 +366,12 @@ export interface EtherTransferProcessResult {
   nextPlayerPts: number;
   nextEnemyPts: number;
   movedPts: number;
+  /** 적이 획득한 은총 (신규 시스템) */
+  enemyGraceGain?: number;
+  /** 업데이트된 은총 상태 */
+  updatedGraceState?: import('../data/monsterEther').MonsterGraceState;
+  /** 보호막이 흡수한 영혼 피해 */
+  shieldBlocked?: number;
 }
 
 /** 에테르 전송 액션 */

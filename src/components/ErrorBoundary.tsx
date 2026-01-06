@@ -39,8 +39,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // 게임 상태 초기화
     try {
       localStorage.removeItem('hahahahgo_game_state');
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[ErrorBoundary] Failed to clear game state:', e);
     }
     window.location.reload();
   };

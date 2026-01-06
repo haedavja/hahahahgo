@@ -40,8 +40,11 @@ function saveToStorage(entries: ErrorLogEntry[]): void {
   try {
     const trimmed = entries.slice(-config.maxEntries);
     localStorage.setItem(config.storageKey, JSON.stringify(trimmed));
-  } catch {
-    // 스토리지 용량 초과 시 무시
+  } catch (e) {
+    // 스토리지 용량 초과 시 경고만 출력
+    if (config.enableConsole) {
+      console.warn('[ErrorLogger] Storage full, unable to save logs:', e);
+    }
   }
 }
 
@@ -63,8 +66,11 @@ export function getErrorLog(): ErrorLogEntry[] {
 export function clearErrorLog(): void {
   try {
     localStorage.removeItem(config.storageKey);
-  } catch {
-    // 무시
+  } catch (e) {
+    // 로컬스토리지 제거 실패 시 경고 출력
+    if (config.enableConsole) {
+      console.warn('[ErrorLogger] Failed to clear error log:', e);
+    }
   }
 }
 

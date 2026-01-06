@@ -60,11 +60,14 @@ export function processEtherTransfer({
     graceState
   );
 
-  const { nextPlayerPts, nextEnemyPts, movedPts } = result;
-  // 은총 획득량 (새 시스템)
-  const enemyGraceGain = (result as { enemyGraceGain?: number }).enemyGraceGain || 0;
-  const updatedGraceState = (result as { updatedGraceState?: MonsterGraceState }).updatedGraceState;
-  const shieldBlocked = (result as { shieldBlocked?: number }).shieldBlocked || 0;
+  const {
+    nextPlayerPts,
+    nextEnemyPts,
+    movedPts,
+    enemyGraceGain = 0,
+    updatedGraceState,
+    shieldBlocked = 0
+  } = result;
 
   // 보호막이 영혼 피해를 막은 경우
   if (shieldBlocked > 0) {
