@@ -110,6 +110,7 @@ type SubTab = 'overview' | 'enemies' | 'cards' | 'synergy';
 export const StatsTab = memo(function StatsTab() {
   const [subTab, setSubTab] = useState<SubTab>('overview');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // 통계 데이터 가져오기
   const simpleStats = getCurrentStats();
@@ -129,12 +130,19 @@ export const StatsTab = memo(function StatsTab() {
     setRefreshKey(k => k + 1);
   }, []);
 
-  const handleReset = useCallback(() => {
-    if (confirm('정말 모든 통계를 초기화하시겠습니까?')) {
-      resetStatsCollector();
-      invalidateStatsCache();
-      setRefreshKey(k => k + 1);
-    }
+  const handleResetClick = useCallback(() => {
+    setShowResetConfirm(true);
+  }, []);
+
+  const handleResetConfirm = useCallback(() => {
+    resetStatsCollector();
+    invalidateStatsCache();
+    setRefreshKey(k => k + 1);
+    setShowResetConfirm(false);
+  }, []);
+
+  const handleResetCancel = useCallback(() => {
+    setShowResetConfirm(false);
   }, []);
 
   const getWinRateColor = (rate: number): string => {
@@ -191,13 +199,42 @@ export const StatsTab = memo(function StatsTab() {
         <button onClick={handleRefresh} style={STYLES.button}>
           🔄 새로고침
         </button>
-        <button onClick={handleReset} style={STYLES.dangerButton}>
+        <button onClick={handleResetClick} style={STYLES.dangerButton}>
           🗑️ 초기화
         </button>
         <span style={{ marginLeft: '12px', color: '#64748b', fontSize: '0.75rem' }}>
           5초마다 자동 새로고침
         </span>
       </div>
+
+      {/* 초기화 확인 대화상자 */}
+      {showResetConfirm && (
+        <div style={{
+          padding: '16px',
+          marginBottom: '16px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid #ef4444',
+          borderRadius: '8px',
+        }}>
+          <p style={{ margin: '0 0 12px', color: '#fca5a5' }}>
+            정말 모든 통계를 초기화하시겠습니까?
+          </p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleResetConfirm}
+              style={{ ...STYLES.dangerButton, padding: '6px 16px' }}
+            >
+              확인
+            </button>
+            <button
+              onClick={handleResetCancel}
+              style={{ ...STYLES.button, padding: '6px 16px' }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 서브탭 네비게이션 */}
       <div style={STYLES.tabNav}>

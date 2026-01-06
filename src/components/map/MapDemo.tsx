@@ -664,7 +664,7 @@ function MapDemoComponent() {
               setShowAllCards(value);
               try {
                 localStorage.setItem('showAllCards', value.toString());
-              } catch {}
+              } catch { /* ignore localStorage write failure */ }
             }}
           />
         </Suspense>

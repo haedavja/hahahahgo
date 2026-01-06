@@ -3,7 +3,7 @@
  * 카드 관리 탭
  */
 
-import { useState, useCallback, useMemo, memo, ChangeEvent, lazy, Suspense } from 'react';
+import { useState, useCallback, useMemo, memo, ChangeEvent, lazy, Suspense, useEffect, useRef } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
 import type { CardGrowthState } from '../../../state/slices/types';
@@ -55,6 +55,22 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   // 직접 특성 부여
   const [traitTargetCardId, setTraitTargetCardId] = useState<string>((CARDS as Card[])[0]?.id || '');
   const [selectedTraitId, setSelectedTraitId] = useState<string>(ALL_TRAITS[0]?.id || '');
+
+  // 알림 시스템 (alert 대체)
+  const [notification, setNotification] = useState<{ message: string; type: 'info' | 'warning' } | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    };
+  }, []);
+
+  const showNotification = useCallback((message: string, type: 'info' | 'warning' = 'info') => {
+    setNotification({ message, type });
+    if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    notificationTimerRef.current = setTimeout(() => setNotification(null), 2500);
+  }, []);
 
   const mainSpecials = useMemo(() => characterBuild?.mainSpecials || [], [characterBuild?.mainSpecials]);
   const subSpecials = useMemo(() => characterBuild?.subSpecials || [], [characterBuild?.subSpecials]);
@@ -134,21 +150,21 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
     // 기존 특성에 새 특성 추가
     let currentTraits = cardGrowth[traitTargetCardId]?.traits || [];
     if (currentTraits.includes(selectedTraitId)) {
-      alert(`이미 '${TRAITS[selectedTraitId as keyof typeof TRAITS]?.name}' 특성이 있습니다.`);
+      showNotification(`이미 '${TRAITS[selectedTraitId as keyof typeof TRAITS]?.name}' 특성이 있습니다.`, 'warning');
       return;
     }
 
     // 여유/무리 상극 처리: 둘 중 하나만 가질 수 있음
     if (selectedTraitId === 'leisure' && currentTraits.includes('strain')) {
       currentTraits = currentTraits.filter(t => t !== 'strain');
-      alert("'무리' 특성이 제거되었습니다. (여유/무리는 상극)");
+      showNotification("'무리' 특성이 제거되었습니다. (여유/무리는 상극)", 'info');
     } else if (selectedTraitId === 'strain' && currentTraits.includes('leisure')) {
       currentTraits = currentTraits.filter(t => t !== 'leisure');
-      alert("'여유' 특성이 제거되었습니다. (여유/무리는 상극)");
+      showNotification("'여유' 특성이 제거되었습니다. (여유/무리는 상극)", 'info');
     }
 
     specializeCard(traitTargetCardId, [...currentTraits, selectedTraitId]);
-  }, [traitTargetCardId, selectedTraitId, cardGrowth, specializeCard]);
+  }, [traitTargetCardId, selectedTraitId, cardGrowth, specializeCard, showNotification]);
 
   // 특성 제거 핸들러
   const handleRemoveTrait = useCallback((cardId: string, traitId: string) => {
@@ -165,6 +181,21 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   return (
     <div>
       <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>카드 관리</h3>
+
+      {/* 알림 표시 */}
+      {notification && (
+        <div style={{
+          padding: '8px 12px',
+          marginBottom: '12px',
+          borderRadius: '6px',
+          fontSize: '0.8rem',
+          background: notification.type === 'warning' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+          border: `1px solid ${notification.type === 'warning' ? '#fbbf24' : '#22c55e'}`,
+          color: notification.type === 'warning' ? '#fcd34d' : '#86efac',
+        }}>
+          {notification.message}
+        </div>
+      )}
 
       {/* 현재 보유 카드 */}
       <div style={{
