@@ -53,7 +53,21 @@ export const CARD_ETHER_BY_RARITY: Record<string, number> = {
 
 /**
  * 고비용 카드 보너스 계산
- * 2코스트: +0.5x, 3코스트: +1x, N코스트: +(N-1)*0.5x (N>=2)
+ *
+ * 2코스트 이상의 카드에 추가 에테르 배율을 부여합니다.
+ * 고비용 카드 사용을 보상하여 전략적 선택을 유도합니다.
+ *
+ * @param cards - 에테르 계산 대상 카드 배열
+ * @returns 총 액션코스트 보너스 배율
+ *
+ * @example
+ * // 2코스트 카드 1장: +0.5x
+ * calculateActionCostBonus([{ actionCost: 2 }]) // 0.5
+ *
+ * // 3코스트 카드 1장: +1.0x
+ * calculateActionCostBonus([{ actionCost: 3 }]) // 1.0
+ *
+ * @formula N코스트 = +(N-1)*0.5x (N>=2)
  */
 export function calculateActionCostBonus(cards: (EtherCard | EtherCardEntry)[]): number {
   if (!cards || cards.length === 0) return 0;
@@ -72,8 +86,26 @@ export function calculateActionCostBonus(cards: (EtherCard | EtherCardEntry)[]):
 }
 
 /**
- * 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
- * 1번: 100%, 2번: 80%, 3번: 64%, ... (20% 감소)
+ * 에테르 디플레이션 적용
+ *
+ * 같은 포커 조합을 반복 사용할수록 에테르 획득량이 감소합니다.
+ * 다양한 조합 사용을 유도하여 전략적 깊이를 더합니다.
+ *
+ * @param baseGain - 기본 에테르 획득량
+ * @param comboName - 포커 조합 이름 (예: '페어', '플러쉬')
+ * @param comboUsageCount - 조합별 사용 횟수 기록
+ * @param deflationMultiplier - 감소 배율 (기본값: 0.8 = 20% 감소)
+ * @returns 디플레이션 적용 결과 { gain, multiplier, usageCount }
+ *
+ * @example
+ * // 첫 번째 페어: 100% 획득
+ * applyEtherDeflation(100, '페어', {}) // { gain: 100, multiplier: 1, usageCount: 0 }
+ *
+ * // 두 번째 페어: 80% 획득
+ * applyEtherDeflation(100, '페어', { '페어': 1 }) // { gain: 80, multiplier: 0.8, usageCount: 1 }
+ *
+ * // 세 번째 페어: 64% 획득
+ * applyEtherDeflation(100, '페어', { '페어': 2 }) // { gain: 64, multiplier: 0.64, usageCount: 2 }
  */
 export function applyEtherDeflation(
   baseGain: number,

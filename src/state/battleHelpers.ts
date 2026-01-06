@@ -99,8 +99,21 @@ export const resolveEnemyDeck = (kind: string): string[] =>
   (ENEMY_DECKS as Record<string, string[]>)[kind] ?? ENEMY_DECKS.default ?? [];
 
 /**
- * 적 데이터를 전투용 형식으로 변환 (속성 누락 방지용 헬퍼)
- * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있음
+ * 적 데이터를 전투용 형식으로 변환
+ *
+ * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있습니다.
+ * 누락된 필수 필드는 기본값으로 대체됩니다.
+ *
+ * @param enemy - 적 정의 객체 (부분적 또는 완전한)
+ * @returns 전투에 필요한 모든 필드가 채워진 EnemyInfo 객체
+ *
+ * @example
+ * // 기본 적 생성
+ * createBattleEnemyData({ id: 'goblin', name: '고블린', hp: 30 })
+ *
+ * // 결과: { id: 'goblin', name: '고블린', hp: 30, maxHp: 30, ... }
+ *
+ * @throws 개발 모드에서 필수 필드 누락 시 콘솔 경고
  */
 export const createBattleEnemyData = (enemy: Partial<EnemyDefinition> | null | undefined): EnemyInfo => {
   // 개발 모드에서 누락된 필수 필드 경고
@@ -137,14 +150,34 @@ export const createBattleEnemyData = (enemy: Partial<EnemyDefinition> | null | u
 };
 
 /**
- * 리듀서용 적 상태 초기화 (BattleApp에서 사용)
- * 단일/다수 적 모두 동일한 units 배열 구조로 생성
+ * 리듀서용 적 상태 타입
+ *
+ * BattleApp의 useReducer에서 사용하는 적 상태 형식입니다.
+ * 단일/다중 적 모두 동일한 units 배열 구조를 가집니다.
  */
 export type ReducerEnemyInit = EnemyBattleState & {
   units: EnemyUnitState[];
   [key: string]: unknown;
 };
 
+/**
+ * 리듀서용 적 상태 초기화
+ *
+ * BattleApp의 useReducer에서 사용할 적 상태를 생성합니다.
+ * 단일 적과 다중 적 모두 동일한 units 배열 구조로 통일합니다.
+ *
+ * @param enemyData - 적 정의 및 전투 상태 데이터
+ * @param _options - 옵션 (현재 미사용, 향후 확장용)
+ * @returns 리듀서에서 사용할 완전한 적 상태 객체
+ *
+ * @example
+ * // 단일 적 생성
+ * createReducerEnemyState({ id: 'goblin', name: '고블린', hp: 30 })
+ * // 결과: { hp: 30, maxHp: 30, units: [{ unitId: 0, ... }], ... }
+ *
+ * // 다중 적 생성 (units 배열 전달)
+ * createReducerEnemyState({ name: '들쥐 무리', units: [{ unitId: 0 }, { unitId: 1 }] })
+ */
 export const createReducerEnemyState = (
   enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[]; [key: string]: unknown },
   _options?: { fromEnemiesArray?: boolean }
