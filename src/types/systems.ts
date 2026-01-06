@@ -151,23 +151,69 @@ export interface InitializeDeckResult {
 // ==================== 적 AI 시스템 ====================
 
 /**
- * AI용 카드 - Card와 호환
- * Card의 서브셋이며, 모든 Card는 AICard로 사용 가능
+ * AI용 카드 - Card의 느슨한 서브셋
+ *
+ * ## 용도
+ * - 적 AI가 생성하는 카드
+ * - Card 타입과 상호 호환 (Card → AICard 변환 가능)
+ *
+ * ## 필드 분류
+ *
+ * ### 핵심 필드 (AI 실행에 중요)
+ * - id: 카드 식별자 (실행 시 필요)
+ * - name: 표시 이름 (로깅에 필요)
+ * - damage, block, hits: 전투 수치
+ * - speedCost, actionCost: 비용
+ *
+ * ### 메타 필드
+ * - type, iconKey: 타입 및 표시
+ * - isGhost: 투명 카드 여부
+ *
+ * ### 추적 필드
+ * - createdBy: 생성 주체
+ * - __sourceUnitId: 멀티 유닛 전투에서 소스 유닛
+ * - __uid: 내부 고유 ID
+ *
+ * @note 모든 필드가 선택적이므로 타입 안전성이 낮음
+ * @see Card - 전체 카드 인터페이스
  */
 export interface AICard {
+  /** 카드 식별자 (권장: 실행 시 필요) */
   id?: string;
+  /** 표시 이름 (권장: 로깅에 필요) */
   name?: string;
+
+  // 전투 수치
+  /** 공격력 */
   damage?: number;
+  /** 방어막 */
   block?: number;
+  /** 타격 횟수 */
   hits?: number;
+
+  // 비용
+  /** 속도 비용 */
   speedCost?: number;
+  /** 행동력 비용 */
   actionCost?: number;
+
+  // 메타
+  /** 카드 타입 */
   type?: string;
+  /** 아이콘 키 */
   iconKey?: string;
+  /** 고스트 카드 여부 */
   isGhost?: boolean;
+
+  // 추적
+  /** 카드 생성 주체 */
   createdBy?: string;
+  /** 소스 유닛 ID (멀티 유닛 전투) */
   __sourceUnitId?: number;
+  /** 내부 고유 ID */
   __uid?: string;
+
+  /** 확장 속성 */
   [key: string]: unknown;
 }
 
