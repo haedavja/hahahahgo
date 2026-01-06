@@ -111,6 +111,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
 
   // 휴식 노드 고정 층 (슬레이 더 스파이어 스타일)
   const REST_LAYERS = [5, 9]; // 중반, 보스 직전
+  // 정예 노드 고정 층 (슬레이 더 스파이어 스타일)
+  const ELITE_LAYERS = [3, 7]; // 초중반, 후반
 
   // 휴식 층의 노드들에 휴식 노드 배치 (각 층에서 1개씩)
   REST_LAYERS.forEach(restLayer => {
@@ -121,8 +123,17 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
     }
   });
 
+  // 정예 층의 노드들에 정예 노드 배치 (각 층에서 1개씩)
+  ELITE_LAYERS.forEach(eliteLayer => {
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === eliteLayer && n.type !== "rest");
+    if (layerNodes.length > 0) {
+      const eliteNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+      eliteNode.type = "elite";
+    }
+  });
+
   const candidates = nodes.filter((n: MapNodeGenerated) =>
-    n !== startNode && n !== bossNode && n.type !== "rest"
+    n !== startNode && n !== bossNode && n.type !== "rest" && n.type !== "elite"
   );
   const shuffled = shuffle(candidates);
   const eventTarget = Math.max(1, Math.round(shuffled.length * 0.5));
@@ -131,13 +142,24 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
-  // 비고정 휴식도 낮은 확률로 등장 (고정 층 제외)
+  // 비고정 휴식/정예도 낮은 확률로 등장 (고정 층 제외)
   remaining.forEach((node: MapNodeGenerated) => {
-    // 고정 휴식 층이 아닌 곳에서만 비고정 휴식 가능
+    // 고정 층이 아닌 곳에서만 비고정 휴식/정예 가능
     const isRestLayer = REST_LAYERS.includes(node.layer);
-    const pool = isRestLayer
-      ? ["battle", "battle", "battle", "shop", "elite", "dungeon"]
-      : ["battle", "battle", "battle", "rest", "shop", "elite", "dungeon"];
+    const isEliteLayer = ELITE_LAYERS.includes(node.layer);
+
+    // 기본 pool: 전투, 상점, 던전
+    const pool: string[] = ["battle", "battle", "battle", "shop", "dungeon"];
+
+    // 고정 휴식 층이 아니면 비고정 휴식 추가
+    if (!isRestLayer) {
+      pool.push("rest");
+    }
+    // 고정 정예 층이 아니면 비고정 정예 추가
+    if (!isEliteLayer) {
+      pool.push("elite");
+    }
+
     node.type = pool[Math.floor(Math.random() * pool.length)];
   });
 
