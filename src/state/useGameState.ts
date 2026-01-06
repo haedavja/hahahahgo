@@ -109,7 +109,21 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   }
   if (bossNode) bossNode.type = "boss";
 
-  const candidates = nodes.filter((n: MapNodeGenerated) => n !== startNode && n !== bossNode);
+  // 휴식 노드 고정 층 (슬레이 더 스파이어 스타일)
+  const REST_LAYERS = [5, 9]; // 중반, 보스 직전
+
+  // 휴식 층의 노드들에 휴식 노드 배치 (각 층에서 1개씩)
+  REST_LAYERS.forEach(restLayer => {
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === restLayer);
+    if (layerNodes.length > 0) {
+      const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+      restNode.type = "rest";
+    }
+  });
+
+  const candidates = nodes.filter((n: MapNodeGenerated) =>
+    n !== startNode && n !== bossNode && n.type !== "rest"
+  );
   const shuffled = shuffle(candidates);
   const eventTarget = Math.max(1, Math.round(shuffled.length * 0.5));
   shuffled.slice(0, eventTarget).forEach((node: MapNodeGenerated) => {
@@ -117,7 +131,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
-  const pool = ["battle", "battle", "battle", "rest", "shop", "elite", "dungeon"];
+  // pool에서 rest 제거 (휴식은 고정 층에서만)
+  const pool = ["battle", "battle", "battle", "shop", "elite", "dungeon"];
   remaining.forEach((node: MapNodeGenerated) => {
     node.type = pool[Math.floor(Math.random() * pool.length)];
   });
