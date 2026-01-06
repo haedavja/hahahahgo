@@ -65,7 +65,7 @@ interface CriticalFinesseParams {
   playerState: TokenEntity;
   playerAnomalyState?: AnomalyPlayerState;
   addLog: (msg: string) => void;
-  addToken: (entity: TokenEntity, tokenId: string, stacks: number) => { tokens: Record<string, unknown> };
+  addToken: (entity: TokenEntity, tokenId: string, stacks: number) => { tokens: TokenState };
 }
 
 interface CriticalFinesseResult {
@@ -91,7 +91,7 @@ export function processCriticalFinesseGain(params: CriticalFinesseParams): Criti
 
     if (adjustedFinesse > 0) {
       const finesseResult = addToken(P as TokenEntity, 'finesse', adjustedFinesse);
-      P.tokens = finesseResult.tokens as unknown as TokenState;
+      P.tokens = finesseResult.tokens;
       finesseGained = adjustedFinesse;
       addLog(`✨ 치명타! 기교 +${adjustedFinesse} 획득`);
     } else {

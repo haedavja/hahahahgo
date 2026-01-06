@@ -342,7 +342,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
         actor: 'player',
         type: 'special',
         msg
-      } as unknown as BattleEvent);
+      });
     }
 
     processPlayerEtherAccumulation({

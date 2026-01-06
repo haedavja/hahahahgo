@@ -28,7 +28,6 @@ import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
 import { RELICS } from '../../../data/relics';
 import type {
-  UIRelicsMap,
   CombatBattleContext,
   Card,
   ParryReadyState,
@@ -199,7 +198,7 @@ export function useResolveExecution({
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics: relicIds,
-      RELICS: RELICS as unknown as UIRelicsMap,
+      RELICS,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,

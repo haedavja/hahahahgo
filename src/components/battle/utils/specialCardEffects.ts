@@ -127,7 +127,7 @@ export function processExecutionSquadEffect({
 
 interface ProcessCreatedCardsParams {
   actionResult: {
-    createdCards?: Array<{ flecheChainCount?: number }>;
+    createdCards?: Card[];
   };
   action: HandAction;
   addLog: (msg: string) => void;
@@ -154,15 +154,15 @@ export function processCreatedCardsEffect({
   const isLastChain = chainCount >= 2;
   addLog(`✨ "${sourceName}" 발동!${isLastChain ? ' (마지막 연쇄)' : ''} 카드를 선택하세요.`);
 
-  const breachState = {
+  const breachState: BreachSelection = {
     cards: actionResult.createdCards,
     breachSp: action.sp,
     breachCard: { ...action.card, breachSpOffset: 1 },
     sourceCardName: sourceName,
     isLastChain,
   };
-  breachSelectionRef.current = breachState as unknown as BreachSelection;
-  setBreachSelection(breachState as unknown as BreachSelection);
+  breachSelectionRef.current = breachState;
+  setBreachSelection(breachState);
 
   return { shouldReturn: true };
 }
