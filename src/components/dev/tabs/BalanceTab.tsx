@@ -208,6 +208,7 @@ export const BalanceTab = memo(function BalanceTab() {
           name: (enemyData as { name?: string }).name || enemyId,
           hp: (enemyData as { hp?: number; maxHp?: number }).hp || (enemyData as { maxHp?: number }).maxHp || 50,
           maxHp: (enemyData as { maxHp?: number }).maxHp || 50,
+          maxSpeed: (enemyData as { maxSpeed?: number }).maxSpeed || 30,
           block: 0,
           tokens: {},
           deck: (enemyData as { deck?: string[] }).deck || [],
@@ -228,7 +229,7 @@ export const BalanceTab = memo(function BalanceTab() {
           const battleResult = engine.runBattle(
             deck,
             [],
-            { ...enemy, hp: enemy.maxHp, block: 0, tokens: {} } as unknown as Parameters<typeof engine.runBattle>[2],
+            { ...enemy, hp: enemy.maxHp, block: 0, tokens: {} },
             anomalyConfig
           );
 
