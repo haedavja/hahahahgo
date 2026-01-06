@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useMemo, memo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
@@ -20,7 +20,11 @@ import {
   getServicePrice,
   type MerchantTypeKey,
 } from '../../data/shop';
-import { BuyTab, SellTab, ServiceTab, CardRemovalModal, CardUpgradeModal, type ShopService } from './ShopTabs';
+import { BuyTab, SellTab, ServiceTab, type ShopService } from './ShopTabs';
+
+// Lazy loaded modals
+const CardRemovalModal = lazy(() => import('./ShopTabs').then(m => ({ default: m.CardRemovalModal })));
+const CardUpgradeModal = lazy(() => import('./ShopTabs').then(m => ({ default: m.CardUpgradeModal })));
 import type { BattleCard, GameItem } from '../../state/slices/types';
 import {
   recordShopPurchase,
@@ -523,24 +527,28 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
         </div>
       </div>
 
-      {/* 카드 제거 모달 */}
+      {/* 카드 제거 모달 (lazy loaded) */}
       {showCardRemovalModal && (
-        <CardRemovalModal
-          allPlayerCards={allPlayerCards}
-          cardRemovalPrice={cardRemovalPrice}
-          onRemoveCard={handleRemoveCard}
-          onClose={() => setShowCardRemovalModal(false)}
-        />
+        <Suspense fallback={null}>
+          <CardRemovalModal
+            allPlayerCards={allPlayerCards}
+            cardRemovalPrice={cardRemovalPrice}
+            onRemoveCard={handleRemoveCard}
+            onClose={() => setShowCardRemovalModal(false)}
+          />
+        </Suspense>
       )}
 
-      {/* 카드 업그레이드 모달 */}
+      {/* 카드 업그레이드 모달 (lazy loaded) */}
       {showCardUpgradeModal && (
-        <CardUpgradeModal
-          allPlayerCards={allPlayerCards}
-          cardUpgradePrice={cardUpgradePrice}
-          onUpgradeCard={handleUpgradeCard}
-          onClose={() => setShowCardUpgradeModal(false)}
-        />
+        <Suspense fallback={null}>
+          <CardUpgradeModal
+            allPlayerCards={allPlayerCards}
+            cardUpgradePrice={cardUpgradePrice}
+            onUpgradeCard={handleUpgradeCard}
+            onClose={() => setShowCardUpgradeModal(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

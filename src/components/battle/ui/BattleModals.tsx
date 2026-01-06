@@ -21,8 +21,7 @@ const CardRewardModal = lazy(() => import('./CardRewardModal').then(m => ({ defa
 const RecallSelectionModal = lazy(() => import('./RecallSelectionModal').then(m => ({ default: m.RecallSelectionModal })));
 const TraitRewardModal = lazy(() => import('./TraitRewardModal').then(m => ({ default: m.TraitRewardModal })));
 const RunSummaryOverlay = lazy(() => import('./RunSummaryOverlay').then(m => ({ default: m.RunSummaryOverlay })));
-
-import { DefeatOverlay } from './DefeatOverlay';
+const DefeatOverlay = lazy(() => import('./DefeatOverlay').then(m => ({ default: m.DefeatOverlay })));
 
 /** 특성 보상 데이터 */
 interface TraitRewardData {
@@ -154,10 +153,12 @@ export const BattleModals: FC<BattleModalsProps> = memo(function BattleModals({
 
       {/* 패배 오버레이 */}
       {isDefeated && (
-        <DefeatOverlay
-          player={playerState}
-          onConfirm={onDefeatConfirm}
-        />
+        <Suspense fallback={null}>
+          <DefeatOverlay
+            player={playerState}
+            onConfirm={onDefeatConfirm}
+          />
+        </Suspense>
       )}
     </>
   );
