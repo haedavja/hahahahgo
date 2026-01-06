@@ -21,9 +21,9 @@ interface UseBattleRefsParams {
 }
 
 export interface BattleRefs {
-  // 탈주 카드 추적
-  escapeBanRef: React.MutableRefObject<Set<unknown>>;
-  escapeUsedThisTurnRef: React.MutableRefObject<Set<unknown>>;
+  // 탈주 카드 추적 (카드 ID 문자열)
+  escapeBanRef: React.MutableRefObject<Set<string>>;
+  escapeUsedThisTurnRef: React.MutableRefObject<Set<string>>;
 
   // 유물 트리거 추적
   devilDiceTriggeredRef: React.MutableRefObject<boolean>;
