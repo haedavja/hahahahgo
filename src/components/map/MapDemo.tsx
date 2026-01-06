@@ -7,8 +7,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { RelicsBar, PathosBar, EventModal } from "./ui";
-import { StatsWidget } from "./ui/StatsWidget";
+import { EventModal } from "./ui";
 
 // Lazy loading for heavy components
 const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
@@ -17,6 +16,9 @@ const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ de
 const ShopModal = lazy(() => import("../shop/ShopModal").then(m => ({ default: m.ShopModal })));
 const RestModal = lazy(() => import("./ui/RestModal").then(m => ({ default: m.RestModal })));
 const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
+const StatsWidget = lazy(() => import("./ui/StatsWidget").then(m => ({ default: m.StatsWidget })));
+const RelicsBar = lazy(() => import("./ui/RelicsBar").then(m => ({ default: m.RelicsBar })));
+const PathosBar = lazy(() => import("./ui/PathosBar").then(m => ({ default: m.PathosBar })));
 import {
   NODE_WIDTH,
   NODE_HEIGHT,
@@ -422,7 +424,9 @@ function MapDemoComponent() {
   return (
     <div className="app-shell">
       {/* 우측 상단 통계 위젯 */}
-      <StatsWidget />
+      <Suspense fallback={null}>
+        <StatsWidget />
+      </Suspense>
 
       {/* 좌측 상단 임시 버프 표시 */}
       {tempBuffs.length > 0 && (
@@ -444,19 +448,23 @@ function MapDemoComponent() {
       </header>
 
       {/* 상징 표시 */}
-      <RelicsBar
-        orderedRelics={orderedRelics}
-        hoveredRelic={hoveredRelic}
-        relicActivated={relicActivated}
-        actions={{
-          setHoveredRelic: actions.setHoveredRelic,
-          setRelicActivated: actions.setRelicActivated,
-          setOrderedRelics: actions.setOrderedRelics,
-        }}
-      />
+      <Suspense fallback={null}>
+        <RelicsBar
+          orderedRelics={orderedRelics}
+          hoveredRelic={hoveredRelic}
+          relicActivated={relicActivated}
+          actions={{
+            setHoveredRelic: actions.setHoveredRelic,
+            setRelicActivated: actions.setRelicActivated,
+            setOrderedRelics: actions.setOrderedRelics,
+          }}
+        />
+      </Suspense>
 
       {/* 장착 파토스 표시 */}
-      <PathosBar />
+      <Suspense fallback={null}>
+        <PathosBar />
+      </Suspense>
 
       <div className="legend">
         {LEGEND.map((item: { icon: string; label: string }) => (
