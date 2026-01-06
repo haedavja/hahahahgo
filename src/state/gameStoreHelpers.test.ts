@@ -33,6 +33,8 @@ vi.mock('../data/newEvents', () => ({
     event_003: { id: 'event_003', name: '테스트 이벤트 3' },
   },
   EVENT_KEYS: ['event_001', 'event_002', 'event_003'],
+  STAT_REQUIRING_EVENTS: [],  // 테스트에서는 스탯 요구 이벤트 없음
+  STAT_EVENT_MIN_LAYER: 5,
 }));
 
 // Mock metaProgress

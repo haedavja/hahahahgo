@@ -1186,6 +1186,33 @@ export const EVENT_KEYS = Object.keys(NEW_EVENT_LIBRARY).filter(
   key => NEW_EVENT_LIBRARY[key].isInitial !== false
 );
 
+/**
+ * 이벤트가 스탯 요구 선택지를 가지고 있는지 확인
+ * (후반 노드에서만 등장해야 하는 이벤트)
+ */
+export function hasStatRequirement(eventKey: string): boolean {
+  const event = NEW_EVENT_LIBRARY[eventKey];
+  if (!event) return false;
+
+  // 최상위 choices 확인
+  if (event.choices?.some(c => c.statRequirement)) return true;
+
+  // stages 내 choices 확인
+  if (event.stages) {
+    for (const stage of Object.values(event.stages)) {
+      if (stage.choices?.some(c => c.statRequirement)) return true;
+    }
+  }
+
+  return false;
+}
+
+// 스탯 요구 이벤트 최소 레이어 (후반부)
+export const STAT_EVENT_MIN_LAYER = 5;
+
+// 스탯 요구 이벤트 키 목록 (캐시)
+export const STAT_REQUIRING_EVENTS = EVENT_KEYS.filter(hasStatRequirement);
+
 // 특수 상징 정보
 export const SPECIAL_RELICS = {
   "alparius-emblem": {

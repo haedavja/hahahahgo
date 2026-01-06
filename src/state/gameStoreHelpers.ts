@@ -8,7 +8,7 @@
  * - 보상 적용
  */
 
-import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
+import { NEW_EVENT_LIBRARY, EVENT_KEYS, STAT_REQUIRING_EVENTS, STAT_EVENT_MIN_LAYER } from "../data/newEvents";
 import { calculatePassiveEffects } from "../lib/relicEffects";
 import { getRunBonuses, updateStats } from "./metaProgress";
 import type { MapNode, Resources, ActiveEvent, NewEventDefinition, ResourceValue, ResourceDelta, EventRewards } from "../types";
@@ -106,21 +106,38 @@ interface EventNode extends MapNode {
 export const computeFriendlyChance = (mapRisk: number): number => Math.max(0.2, Math.min(0.85, 1 - mapRisk / 120));
 
 // pendingNextEvent가 있으면 랜덤 풀에 추가
+// 스탯 요구 이벤트는 후반 층(STAT_EVENT_MIN_LAYER 이상)에서만 등장
 // 반환값: pendingNextEvent가 선택됐으면 true
 export const ensureEventKey = (node: EventNode, completedEvents: string[] = [], pendingNextEvent: string | null = null): boolean => {
   if (node.eventKey || !EVENT_KEYS.length) return false;
 
+  const nodeLayer = node.layer ?? 0;
+  const isLateGame = nodeLayer >= STAT_EVENT_MIN_LAYER;
+
+  // 완료되지 않은 이벤트 필터링
   let availableEvents = EVENT_KEYS.filter((key: string) => !completedEvents.includes(key));
 
+  // 초반 노드에서는 스탯 요구 이벤트 제외
+  if (!isLateGame) {
+    availableEvents = availableEvents.filter(key => !STAT_REQUIRING_EVENTS.includes(key));
+  }
+
   if (pendingNextEvent && NEW_EVENT_LIBRARY[pendingNextEvent] && !completedEvents.includes(pendingNextEvent)) {
-    if (!availableEvents.includes(pendingNextEvent)) {
+    // pendingNextEvent가 스탯 요구 이벤트이고 초반이면 추가하지 않음
+    const canAddPending = isLateGame || !STAT_REQUIRING_EVENTS.includes(pendingNextEvent);
+    if (canAddPending && !availableEvents.includes(pendingNextEvent)) {
       availableEvents = [...availableEvents, pendingNextEvent];
     }
   }
 
   if (!availableEvents.length) {
-    const index = Math.floor(Math.random() * EVENT_KEYS.length);
-    node.eventKey = EVENT_KEYS[index];
+    // 이벤트가 없으면 전체 목록에서 선택 (폴백)
+    const fallbackEvents = isLateGame
+      ? EVENT_KEYS
+      : EVENT_KEYS.filter(key => !STAT_REQUIRING_EVENTS.includes(key));
+    const fallback = fallbackEvents.length ? fallbackEvents : EVENT_KEYS;
+    const index = Math.floor(Math.random() * fallback.length);
+    node.eventKey = fallback[index];
     return false;
   }
 
