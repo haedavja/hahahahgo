@@ -62,6 +62,7 @@ interface RestModalProps {
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
   spendGold: (amount: number) => void;
   spendGrace: (amount: number) => void;
+  gainMemory: (amount: number) => void;
   applyTempBuff: (buff: TempBuff) => void;
 }
 
@@ -84,6 +85,7 @@ export const RestModal = memo(function RestModal({
   specializeCard,
   spendGold,
   spendGrace,
+  gainMemory,
   applyTempBuff,
 }: RestModalProps) {
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
@@ -92,6 +94,7 @@ export const RestModal = memo(function RestModal({
   const [showAwakenOptions, setShowAwakenOptions] = useState(false);
   const [showBlessingOptions, setShowBlessingOptions] = useState(false);
   const [blessingUsed, setBlessingUsed] = useState(false);
+  const [meditationUsed, setMeditationUsed] = useState(false);
 
   // 핸들러 메모이제이션
   const handleStopPropagation = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
@@ -140,6 +143,14 @@ export const RestModal = memo(function RestModal({
     setShowBlessingOptions(false);
   }, [grace, blessingUsed, spendGrace, applyTempBuff]);
 
+  // 명상 핸들러 (체력 회복 대신 기억 +50)
+  const handleMeditate = useCallback(() => {
+    if (meditationUsed) return;
+    gainMemory(50);
+    setMeditationUsed(true);
+    closeRest();
+  }, [meditationUsed, gainMemory, closeRest]);
+
   // 스타일 메모이제이션
   const cardGrowthBtnStyle = useMemo(() => ({
     background: cardGrowthUsed
@@ -181,6 +192,31 @@ export const RestModal = memo(function RestModal({
             <div style={{ marginTop: "8px" }}>
               <button className="btn" onClick={handleHeal} data-testid="rest-btn-heal">
                 체력 회복 (+30% 최대체력)
+              </button>
+            </div>
+          </div>
+          <div className="choice-card" data-testid="rest-choice-meditate">
+            <strong>명상</strong>
+            <div style={{ marginTop: "8px" }}>
+              <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
+                현재 기억: {memoryValue}/100
+              </p>
+              <button
+                className="btn"
+                onClick={handleMeditate}
+                disabled={meditationUsed}
+                style={{
+                  background: meditationUsed
+                    ? 'rgba(71, 85, 105, 0.3)'
+                    : 'linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(96, 165, 250, 0.2))',
+                  border: meditationUsed
+                    ? '1px solid rgba(71, 85, 105, 0.3)'
+                    : '1px solid rgba(167, 139, 250, 0.4)',
+                  opacity: meditationUsed ? 0.5 : 1,
+                }}
+                data-testid="rest-btn-meditate"
+              >
+                {meditationUsed ? '✓ 명상 완료' : '🧘 기억 +50'}
               </button>
             </div>
           </div>

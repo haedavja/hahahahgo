@@ -52,6 +52,7 @@ export interface BattleRewards {
   intel?: number;
   material?: number;
   card?: number;
+  memory?: number | { min: number; max: number };
 }
 
 /** 전투 상태 스냅샷 */

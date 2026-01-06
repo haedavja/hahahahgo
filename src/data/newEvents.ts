@@ -291,7 +291,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "request": {
         description: "\"날 안식에 들게 해주면 금을 주겠다…..\"",
         choices: [
-          { id: "pray", label: "기도해준다", cost: { grace: 1 }, nextStage: "peace" },
+          { id: "pray", label: "기도해준다", cost: { grace: 1 }, nextStage: "peace", rewards: { memory: 80 } },
           { id: "loot", label: "유품만 챙긴다", resultDescription: "시체 곁에 있던 금화를 슬쩍 챙깁니다. 시체는 한숨을 쉽니다.", rewards: { gold: 40 } },
           { id: "destroy", label: "시체를 박살낸다", resultDescription: "우드득! 시체를 부수자 금화가 쏟아집니다. 하지만 저주받은 기운이 스며듭니다.", rewards: { gold: 80 }, penalties: { card: "curse" } }
         ]
@@ -534,7 +534,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "reflection": {
         description: "수면에 자신의 모습이 비칩니다. 무언가 다른 자신이 보입니다.",
         choices: [
-          { id: "dive", label: "뛰어든다", resultDescription: "철벅! 물속으로 뛰어듭니다. 다른 자신과 하나가 됩니다. 새로운 개성이 깨어납니다.", rewards: { trait: "random" } },
+          { id: "dive", label: "뛰어든다", resultDescription: "철벅! 물속으로 뛰어듭니다. 다른 자신과 하나가 됩니다. 새로운 개성이 깨어나며 잊힌 기억이 떠오릅니다.", rewards: { trait: "random", memory: 100 } },
           { id: "leave", label: "물러난다", resultDescription: "아직 준비가 되지 않았습니다. 조용히 물러납니다." }
         ]
       }
@@ -617,7 +617,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
         description: "영혼이 당신을 바라봅니다. 무언가를 원하는 것 같습니다.",
         choices: [
           { id: "absorb", label: "영혼을 흡수한다", resultDescription: "영혼을 향해 손을 뻗습니다...", probability: 0.5, successRewards: { grace: 2 }, failurePenalties: { card: "curse" } },
-          { id: "comfort", label: "영혼을 위로한다", resultDescription: "\"편히 가세요.\" 영혼이 미소 짓더니 감사의 빛을 남기고 사라집니다.", rewards: { insight: 1, grace: 1 } },
+          { id: "comfort", label: "영혼을 위로한다", resultDescription: "\"편히 가세요.\" 영혼이 미소 짓더니 감사의 빛과 함께 기억의 조각을 남기고 사라집니다.", rewards: { insight: 1, grace: 1, memory: 90 } },
           { id: "leave", label: "그냥 둔다", resultDescription: "영혼의 승화를 묵묵히 지켜봅니다. 영혼이 하늘로 올라갑니다." }
         ]
       }
@@ -913,7 +913,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "demand": {
         description: "제물이 될 것을 요구합니다. 거절하면 전투가 벌어질 것 같습니다.",
         choices: [
-          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통스럽지만 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
+          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통과 함께 깊은 기억이 각성되며 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare", memory: 220 } },
           { id: "fight", label: "거절하고 전투", resultDescription: "\"불경한 자!\" 광신도들이 달려듭니다!", combatTrigger: true, combatRewards: { relic: "1" } },
           { id: "flee", label: "도망친다", resultDescription: "서둘러 도망칩니다! 하지만 추격당할 위험이 높아졌습니다.", penalties: { mapRisk: 10 } }
         ]
@@ -934,7 +934,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "close": {
         description: "조각상의 눈물이 은총화처럼 빛납니다.",
         choices: [
-          { id: "pray", label: "닦아주고 기도한다", resultDescription: "눈물을 닦아주자 조각상에서 따뜻한 빛이 뿜어져 나옵니다. 은총을 받았습니다.", rewards: { grace: 2 } },
+          { id: "pray", label: "닦아주고 기도한다", resultDescription: "눈물을 닦아주자 조각상에서 따뜻한 빛이 뿜어져 나옵니다. 은총과 함께 슬픈 기억이 전해집니다.", rewards: { grace: 2, memory: 75 } },
           { id: "take", label: "가져간다", resultDescription: "조각상을 뜯어냅니다. 갑자기 주변이 차가워집니다...", rewards: { loot: 1 }, penalties: { insight: 1 } }
         ]
       }

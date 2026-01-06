@@ -235,6 +235,12 @@ function MapDemoComponent() {
     }
   }, [resources.grace, setResources]);
 
+  // 기억 획득 헬퍼 (명상용)
+  const gainMemory = useCallback((amount: number) => {
+    const currentMemory = resources.memory ?? 0;
+    setResources({ memory: currentMemory + amount });
+  }, [resources.memory, setResources]);
+
   // 아이템 버프를 포함한 유효 스탯 계산
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
   const effectiveAgility = playerAgility + (itemBuffs.agility || 0);
@@ -553,6 +559,7 @@ function MapDemoComponent() {
             specializeCard={specializeCard}
             spendGold={spendGold}
             spendGrace={spendGrace}
+            gainMemory={gainMemory}
             applyTempBuff={applyTempBuff}
           />
         </Suspense>
