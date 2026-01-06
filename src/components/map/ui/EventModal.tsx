@@ -55,26 +55,18 @@ export const EventModal = memo(function EventModal({
   closeEvent,
   startBattle,
 }: EventModalProps) {
-  if (!activeEvent) return null;
-
-  // 현재 스테이지에 맞는 description과 choices 가져오기
-  const currentStage = activeEvent.currentStage;
-  const stageData = (currentStage && activeEvent.definition?.stages) ? activeEvent.definition.stages[currentStage] : undefined;
-  const currentDescription = stageData?.description ?? activeEvent.definition?.description ?? "설명 없음";
-  const currentChoices = stageData?.choices ?? activeEvent.definition?.choices ?? [];
-
-  // 표시할 텍스트: resolved면 resultDescription, 아니면 currentDescription
-  const outcome = activeEvent.outcome as EventOutcome | undefined;
-  const displayText = activeEvent.resolved && outcome?.resultDescription
-    ? outcome.resultDescription
-    : currentDescription;
-
+  // React hooks 규칙: 모든 훅은 early return 전에 호출되어야 함
   const handleChooseEvent = useCallback((choiceId: string) => {
     chooseEvent(choiceId);
   }, [chooseEvent]);
 
   // 전투 트리거 시 전투 시작 후 이벤트 닫기
   const handleClose = useCallback(() => {
+    if (!activeEvent) {
+      closeEvent();
+      return;
+    }
+    const outcome = activeEvent.outcome as EventOutcome | undefined;
     if (outcome?.combatTrigger && startBattle) {
       const battleConfig: BattleConfig = {
         nodeId: `event-combat-${activeEvent.definition?.id || 'unknown'}`,
@@ -90,7 +82,22 @@ export const EventModal = memo(function EventModal({
       startBattle(battleConfig);
     }
     closeEvent();
-  }, [outcome, startBattle, closeEvent, activeEvent.definition?.id]);
+  }, [activeEvent, startBattle, closeEvent]);
+
+  // Early return은 모든 훅 호출 후에 수행
+  if (!activeEvent) return null;
+
+  // 현재 스테이지에 맞는 description과 choices 가져오기
+  const currentStage = activeEvent.currentStage;
+  const stageData = (currentStage && activeEvent.definition?.stages) ? activeEvent.definition.stages[currentStage] : undefined;
+  const currentDescription = stageData?.description ?? activeEvent.definition?.description ?? "설명 없음";
+  const currentChoices = stageData?.choices ?? activeEvent.definition?.choices ?? [];
+
+  // 표시할 텍스트: resolved면 resultDescription, 아니면 currentDescription
+  const outcome = activeEvent.outcome as EventOutcome | undefined;
+  const displayText = activeEvent.resolved && outcome?.resultDescription
+    ? outcome.resultDescription
+    : currentDescription;
 
   return (
     <div className="event-modal-overlay" data-testid="event-modal-overlay">
