@@ -196,7 +196,7 @@ function MapDemoComponent() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources
+    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources, applyTempBuff
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -215,6 +215,7 @@ function MapDemoComponent() {
       specializeCard: state.specializeCard,
       useItem: state.useItem,
       setResources: state.setResources,
+      applyTempBuff: state.applyTempBuff,
     }))
   );
 
@@ -225,6 +226,14 @@ function MapDemoComponent() {
       setResources({ gold: currentGold - amount });
     }
   }, [resources.gold, setResources]);
+
+  // 은총화 소비 헬퍼
+  const spendGrace = useCallback((amount: number) => {
+    const currentGrace = resources.grace ?? 0;
+    if (currentGrace >= amount) {
+      setResources({ grace: currentGrace - amount });
+    }
+  }, [resources.grace, setResources]);
 
   // 아이템 버프를 포함한 유효 스탯 계산
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
@@ -534,6 +543,7 @@ function MapDemoComponent() {
             cardUpgrades={cardUpgrades}
             cardGrowth={cardGrowth}
             gold={resources.gold ?? 0}
+            grace={resources.grace ?? 0}
             ownedCards={ownedCards}
             closeRest={closeRest}
             awakenAtRest={awakenAtRest}
@@ -542,6 +552,8 @@ function MapDemoComponent() {
             enhanceCard={enhanceCard}
             specializeCard={specializeCard}
             spendGold={spendGold}
+            spendGrace={spendGrace}
+            applyTempBuff={applyTempBuff}
           />
         </Suspense>
       )}

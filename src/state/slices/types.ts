@@ -158,6 +158,13 @@ export interface LastBattleResult {
 
 // ==================== 슬라이스 상태 타입 ====================
 
+/** 임시 버프 (노드 기반) */
+export interface TempBuff {
+  stat: 'strength' | 'agility' | 'insight';
+  value: number;
+  remainingNodes: number;
+}
+
 /** 플레이어 슬라이스 상태 */
 export interface PlayerSliceState {
   playerHp: number;
@@ -172,6 +179,7 @@ export interface PlayerSliceState {
   extraSubSpecialSlots: number;
   resources: Resources;
   itemBuffs: Record<string, number>;
+  tempBuffs: TempBuff[];
   metaBonuses?: { hp: number; gold: number };
 }
 
@@ -185,6 +193,8 @@ export interface PlayerSliceActions {
   applyDamage: (damage: number) => void;
   setPlayerHp: (hp: number) => void;
   clearItemBuffs: () => void;
+  applyTempBuff: (buff: TempBuff) => void;
+  tickTempBuffs: () => void;
 }
 
 /** 맵 슬라이스 상태 */

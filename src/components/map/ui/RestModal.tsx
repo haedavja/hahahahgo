@@ -36,6 +36,13 @@ import {
 import { GrowthStatsPanel } from './rest/GrowthStatsPanel';
 import { EnhancePreviewPanel, StatBadge } from './rest/EnhancePreviewPanel';
 
+/** 임시 버프 타입 */
+interface TempBuff {
+  stat: 'strength' | 'agility' | 'insight';
+  value: number;
+  remainingNodes: number;
+}
+
 interface RestModalProps {
   memoryValue: number;
   playerHp: number;
@@ -46,6 +53,7 @@ interface RestModalProps {
   cardUpgrades: Record<string, string>;
   cardGrowth: Record<string, CardGrowthState>;
   gold: number;
+  grace: number;
   closeRest: () => void;
   awakenAtRest: (type: string) => void;
   healAtRest: (amount: number) => void;
@@ -53,6 +61,8 @@ interface RestModalProps {
   enhanceCard: (cardId: string) => void;
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
   spendGold: (amount: number) => void;
+  spendGrace: (amount: number) => void;
+  applyTempBuff: (buff: TempBuff) => void;
 }
 
 export const RestModal = memo(function RestModal({
@@ -64,6 +74,7 @@ export const RestModal = memo(function RestModal({
   cardUpgrades,
   cardGrowth,
   gold,
+  grace,
   ownedCards,
   closeRest,
   awakenAtRest,
@@ -72,11 +83,15 @@ export const RestModal = memo(function RestModal({
   enhanceCard,
   specializeCard,
   spendGold,
+  spendGrace,
+  applyTempBuff,
 }: RestModalProps) {
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
   const [showPyramidModal, setShowPyramidModal] = useState(false);
   const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
   const [showAwakenOptions, setShowAwakenOptions] = useState(false);
+  const [showBlessingOptions, setShowBlessingOptions] = useState(false);
+  const [blessingUsed, setBlessingUsed] = useState(false);
 
   // 핸들러 메모이제이션
   const handleStopPropagation = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
@@ -107,6 +122,23 @@ export const RestModal = memo(function RestModal({
     specializeCard(cardId, traits);
     setCardGrowthUsed(true);
   }, [specializeCard]);
+
+  // 축복 핸들러 (은총화 1개 소모, 5노드 동안 스탯 버프)
+  const handleBlessStrength = useCallback(() => {
+    if (grace < 1 || blessingUsed) return;
+    spendGrace(1);
+    applyTempBuff({ stat: 'strength', value: 2, remainingNodes: 5 });
+    setBlessingUsed(true);
+    setShowBlessingOptions(false);
+  }, [grace, blessingUsed, spendGrace, applyTempBuff]);
+
+  const handleBlessAgility = useCallback(() => {
+    if (grace < 1 || blessingUsed) return;
+    spendGrace(1);
+    applyTempBuff({ stat: 'agility', value: 1, remainingNodes: 5 });
+    setBlessingUsed(true);
+    setShowBlessingOptions(false);
+  }, [grace, blessingUsed, spendGrace, applyTempBuff]);
 
   // 스타일 메모이제이션
   const cardGrowthBtnStyle = useMemo(() => ({
@@ -182,6 +214,31 @@ export const RestModal = memo(function RestModal({
                 data-testid="rest-btn-pyramid"
               >
                 성장
+              </button>
+            </div>
+          </div>
+          <div className="choice-card" data-testid="rest-choice-blessing">
+            <strong>축복</strong>
+            <div style={{ marginTop: "8px" }}>
+              <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
+                은총화: {grace}개
+              </p>
+              <button
+                className="btn"
+                onClick={() => setShowBlessingOptions(true)}
+                disabled={grace < 1 || blessingUsed}
+                style={{
+                  background: grace >= 1 && !blessingUsed
+                    ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(251, 191, 36, 0.2))'
+                    : 'rgba(71, 85, 105, 0.3)',
+                  border: grace >= 1 && !blessingUsed
+                    ? '1px solid rgba(167, 139, 250, 0.4)'
+                    : '1px solid rgba(71, 85, 105, 0.3)',
+                  opacity: grace < 1 || blessingUsed ? 0.5 : 1,
+                }}
+                data-testid="rest-btn-blessing"
+              >
+                {blessingUsed ? '✓ 축복 완료' : grace < 1 ? '🔒 은총화 부족' : '🙏 축복 받기'}
               </button>
             </div>
           </div>
@@ -307,6 +364,80 @@ export const RestModal = memo(function RestModal({
 
             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
               <button className="btn" onClick={() => setShowAwakenOptions(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 축복 선택 모달 */}
+      {showBlessingOptions && (
+        <div
+          className="event-modal-overlay"
+          onClick={() => setShowBlessingOptions(false)}
+          style={{ zIndex: 1001 }}
+        >
+          <div
+            className="event-modal"
+            onClick={handleStopPropagation}
+            style={{ maxWidth: '400px' }}
+          >
+            <header>
+              <h3>🙏 축복 선택</h3>
+              <small>은총화 1개를 소모하여 5노드 동안 스탯 버프를 받습니다</small>
+            </header>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+              {/* 힘 축복 */}
+              <button
+                className="btn"
+                onClick={handleBlessStrength}
+                style={{
+                  padding: '16px',
+                  background: 'rgba(248, 113, 113, 0.15)',
+                  border: '1px solid rgba(248, 113, 113, 0.4)',
+                  borderRadius: '8px',
+                  textAlign: 'left',
+                }}
+                data-testid="rest-btn-bless-strength"
+              >
+                <div style={{ fontWeight: 'bold', color: '#f87171', fontSize: '15px' }}>
+                  ⚔️ 전투의 축복
+                </div>
+                <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
+                  5노드 동안 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>힘 +2</span>
+                </div>
+              </button>
+
+              {/* 민첩 축복 */}
+              <button
+                className="btn"
+                onClick={handleBlessAgility}
+                style={{
+                  padding: '16px',
+                  background: 'rgba(96, 165, 250, 0.15)',
+                  border: '1px solid rgba(96, 165, 250, 0.4)',
+                  borderRadius: '8px',
+                  textAlign: 'left',
+                }}
+                data-testid="rest-btn-bless-agility"
+              >
+                <div style={{ fontWeight: 'bold', color: '#60a5fa', fontSize: '15px' }}>
+                  💨 신속의 축복
+                </div>
+                <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
+                  5노드 동안 <span style={{ color: '#22c55e', fontWeight: 'bold' }}>민첩 +1</span>
+                </div>
+              </button>
+            </div>
+
+            <div style={{ marginTop: '16px', padding: '8px', background: 'rgba(167, 139, 250, 0.1)', borderRadius: '6px', textAlign: 'center' }}>
+              <span style={{ fontSize: '13px', color: '#a78bfa' }}>
+                비용: 은총화 1개 (보유: {grace}개)
+              </span>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+              <button className="btn" onClick={() => setShowBlessingOptions(false)}>닫기</button>
             </div>
           </div>
         </div>

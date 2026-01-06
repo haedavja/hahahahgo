@@ -7,7 +7,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, PlayerSliceActions } from './types';
+import type { GameStore, PlayerSliceActions, TempBuff } from './types';
 
 export type PlayerActionsSlice = PlayerSliceActions;
 
@@ -83,6 +83,46 @@ export const createPlayerActions: SliceCreator = (set) => ({
       ...state,
       itemBuffs: {},
     })),
+
+  applyTempBuff: (buff: TempBuff) =>
+    set((state) => {
+      // 같은 종류의 버프가 있으면 갱신, 없으면 추가
+      const existingIndex = state.tempBuffs.findIndex(b => b.stat === buff.stat);
+      let newBuffs: TempBuff[];
+
+      if (existingIndex >= 0) {
+        // 기존 버프가 있으면 더 강한 효과로 갱신
+        newBuffs = [...state.tempBuffs];
+        const existing = newBuffs[existingIndex];
+        newBuffs[existingIndex] = {
+          ...buff,
+          value: Math.max(existing.value, buff.value),
+          remainingNodes: Math.max(existing.remainingNodes, buff.remainingNodes),
+        };
+      } else {
+        newBuffs = [...state.tempBuffs, buff];
+      }
+
+      return {
+        ...state,
+        tempBuffs: newBuffs,
+      };
+    }),
+
+  tickTempBuffs: () =>
+    set((state) => {
+      if (!state.tempBuffs.length) return state;
+
+      // 남은 노드 수 감소, 0이면 제거
+      const newBuffs = state.tempBuffs
+        .map(buff => ({ ...buff, remainingNodes: buff.remainingNodes - 1 }))
+        .filter(buff => buff.remainingNodes > 0);
+
+      return {
+        ...state,
+        tempBuffs: newBuffs,
+      };
+    }),
 });
 
 // 하위 호환성을 위한 별칭
