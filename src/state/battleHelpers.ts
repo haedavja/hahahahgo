@@ -416,6 +416,23 @@ export const travelToNode = (state: PartialGameState, nodeId: string): TravelRes
     if (nextNode && !nextNode.cleared) nextNode.selectable = true;
   });
 
+  // "?" 노드(event)에서 랜덤하게 다른 타입으로 변환 (슬레이 더 스파이어 스타일)
+  // 시작 노드는 항상 이벤트 유지
+  if (target.type === 'event' && !target.isStart) {
+    const roll = Math.random();
+    if (roll < 0.10) {
+      // 10%: 전투
+      target.type = 'battle';
+    } else if (roll < 0.20) {
+      // 10%: 상점
+      target.type = 'shop';
+    } else if (roll < 0.25) {
+      // 5%: 정예 전투
+      target.type = 'elite';
+    }
+    // 나머지 75%: 이벤트 유지
+  }
+
   // target을 EventNode로 타입 단언 (BattleNode는 MapNode를 확장하므로 호환됨)
   const { payload: event, usedPendingEvent } = createEventPayload(
     target as MapNode,
