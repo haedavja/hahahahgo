@@ -131,9 +131,13 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
-  // pool에서 rest 제거 (휴식은 고정 층에서만)
-  const pool = ["battle", "battle", "battle", "shop", "elite", "dungeon"];
+  // 비고정 휴식도 낮은 확률로 등장 (고정 층 제외)
   remaining.forEach((node: MapNodeGenerated) => {
+    // 고정 휴식 층이 아닌 곳에서만 비고정 휴식 가능
+    const isRestLayer = REST_LAYERS.includes(node.layer);
+    const pool = isRestLayer
+      ? ["battle", "battle", "battle", "shop", "elite", "dungeon"]
+      : ["battle", "battle", "battle", "rest", "shop", "elite", "dungeon"];
     node.type = pool[Math.floor(Math.random() * pool.length)];
   });
 
