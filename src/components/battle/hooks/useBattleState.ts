@@ -239,46 +239,41 @@ export interface BattleActions {
 export function useBattleState(initialStateOverrides: InitialStateOverrides = {}): UseBattleStateResult {
   // Lazy initializer function for useReducer
   const initializeBattleState = useCallback(() => {
-    // Default player and enemy states
-    const defaultPlayer = {
-      name: 'Player',
+    // Default player and enemy states with explicit types
+    const defaultPlayer: PlayerState = {
       hp: 100,
       maxHp: 100,
       energy: 6,
       maxEnergy: 6,
       block: 0,
-      ether: 0,
       maxSpeed: 30,
-      tokens: {},
-      deck: []
+      tokens: { usage: [], turn: [], permanent: [] },
     };
 
-    const defaultEnemy = {
-      name: 'Enemy',
+    const defaultEnemy: EnemyState = {
       hp: 100,
       maxHp: 100,
       block: 0,
-      ether: 0,
       maxSpeed: 30,
-      tokens: {},
-      units: []
+      tokens: { usage: [], turn: [], permanent: [] },
+      units: [],
     };
 
     // Merge overrides with defaults
-    const playerState = {
+    const playerState: PlayerState = {
       ...defaultPlayer,
       ...initialStateOverrides.player
     };
 
-    const enemyState = {
+    const enemyState: EnemyState = {
       ...defaultEnemy,
       ...initialStateOverrides.enemy
     };
 
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
-      initialPlayerState: playerState as unknown as PlayerState,
-      initialEnemyState: enemyState as unknown as EnemyState,
+      initialPlayerState: playerState,
+      initialEnemyState: enemyState,
       initialPlayerRelics: initialStateOverrides.orderedRelics || [],
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'
