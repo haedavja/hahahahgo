@@ -7,9 +7,9 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { EventModal } from "./ui";
 
 // Lazy loading for heavy components
+const EventModal = lazy(() => import("./ui/EventModal").then(m => ({ default: m.EventModal })));
 const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
 const DungeonExploration = lazy(() => import("../dungeon/DungeonExploration").then(m => ({ default: m.DungeonExploration })));
 const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
@@ -597,14 +597,18 @@ function MapDemoComponent() {
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
-      <EventModal
-        activeEvent={activeEvent}
-        resources={resources}
-        meetsStatRequirement={meetsStatRequirement}
-        chooseEvent={chooseEvent}
-        closeEvent={closeEvent}
-        startBattle={startBattle}
-      />
+      {activeEvent && (
+        <Suspense fallback={null}>
+          <EventModal
+            activeEvent={activeEvent}
+            resources={resources}
+            meetsStatRequirement={meetsStatRequirement}
+            chooseEvent={chooseEvent}
+            closeEvent={closeEvent}
+            startBattle={startBattle}
+          />
+        </Suspense>
+      )}
 
       {activeRest && (
         <Suspense fallback={null}>

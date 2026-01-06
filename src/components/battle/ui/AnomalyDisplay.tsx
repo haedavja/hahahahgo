@@ -59,6 +59,16 @@ const LEVEL_INDICATOR_STYLE: CSSProperties = {
   gap: '2px'
 };
 
+const FLEX_1_STYLE: CSSProperties = { flex: 1 };
+
+const EXPANDED_MARGIN_STYLE: CSSProperties = { marginBottom: '4px' };
+
+const ANOMALY_SUB_DESC_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#94a3b8',
+  marginTop: '6px'
+};
+
 // 알림 스타일
 const NOTIFICATION_OVERLAY_STYLE: CSSProperties = {
   position: 'fixed',
@@ -305,7 +315,7 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = memo(({ anomalies }) => {
             {/* 제목 */}
             <div style={headerStyle}>
               <span style={ANOMALY_EMOJI_STYLE}>{anomaly.emoji}</span>
-              <div style={{ flex: 1 }}>
+              <div style={FLEX_1_STYLE}>
                 <div style={nameStyle}>
                   {anomaly.name}
                 </div>
@@ -318,14 +328,10 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = memo(({ anomalies }) => {
             {/* 확장된 설명 */}
             {isExpanded && (
               <div style={expandedDescStyle}>
-                <div style={{ marginBottom: '4px' }}>
+                <div style={EXPANDED_MARGIN_STYLE}>
                   {effect.description}
                 </div>
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: '#94a3b8',
-                  marginTop: '6px'
-                }}>
+                <div style={ANOMALY_SUB_DESC_STYLE}>
                   {anomaly.description}
                 </div>
               </div>
@@ -451,7 +457,7 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomali
               <div key={`${anomaly.id}-${index}`} style={cardStyle}>
                 <div style={CARD_HEADER_STYLE}>
                   <span style={CARD_EMOJI_STYLE}>{anomaly.emoji}</span>
-                  <div style={{ flex: 1 }}>
+                  <div style={FLEX_1_STYLE}>
                     <div style={nameStyle}>
                       {anomaly.name} (Lv.{level})
                     </div>
