@@ -96,6 +96,39 @@ const USAGE_SUCCESS_STYLE: CSSProperties = {
   color: '#86efac'
 };
 
+const TEMP_BUFF_CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '10px',
+  left: '10px',
+  zIndex: 100,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  padding: '8px 12px',
+  background: 'rgba(0, 0, 0, 0.75)',
+  borderRadius: '8px',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  fontSize: '13px',
+  fontWeight: 600,
+};
+
+const TEMP_BUFF_ITEM_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+};
+
+const TEMP_BUFF_VALUE_STYLE: CSSProperties = {
+  color: '#86efac',
+  fontWeight: 700,
+};
+
+const TEMP_BUFF_REMAINING_STYLE: CSSProperties = {
+  color: '#94a3b8',
+  fontSize: '11px',
+  marginLeft: '4px',
+};
+
 function MapDemoComponent() {
   // 맵 상태 셀렉터 (그룹화)
   const { map, mapRisk, resources } = useGameStore(
@@ -175,7 +208,7 @@ function MapDemoComponent() {
   }, [orderedRelics]);
 
   // 플레이어 스탯 셀렉터 (그룹화)
-  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs, characterBuild } = useGameStore(
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs, tempBuffs, characterBuild } = useGameStore(
     useShallow((state) => ({
       playerHp: state.playerHp,
       maxHp: state.maxHp,
@@ -186,6 +219,7 @@ function MapDemoComponent() {
       cardUpgrades: state.cardUpgrades || {},
       cardGrowth: state.cardGrowth || {},
       itemBuffs: state.itemBuffs || {},
+      tempBuffs: state.tempBuffs || [],
       characterBuild: state.characterBuild,
     }))
   );
@@ -243,10 +277,19 @@ function MapDemoComponent() {
     setResources({ memory: currentMemory + amount });
   }, [resources.memory, setResources]);
 
-  // 아이템 버프를 포함한 유효 스탯 계산
-  const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
-  const effectiveAgility = playerAgility + (itemBuffs.agility || 0);
-  const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
+  // tempBuffs를 스탯별로 합산
+  const tempBuffTotals = useMemo(() => {
+    const totals: Record<string, number> = { strength: 0, agility: 0, insight: 0 };
+    for (const buff of tempBuffs) {
+      totals[buff.stat] = (totals[buff.stat] || 0) + buff.value;
+    }
+    return totals;
+  }, [tempBuffs]);
+
+  // 아이템 버프 + 임시 버프를 포함한 유효 스탯 계산
+  const effectiveStrength = playerStrength + (itemBuffs.strength || 0) + (tempBuffTotals.strength || 0);
+  const effectiveAgility = playerAgility + (itemBuffs.agility || 0) + (tempBuffTotals.agility || 0);
+  const effectiveInsight = playerInsight + (itemBuffs.insight || 0) + (tempBuffTotals.insight || 0);
 
   // 스탯 요구사항 충족 여부 체크 (아이템 버프 포함)
   const meetsStatRequirement = useCallback((statRequirement: Record<string, number> | undefined) => {
@@ -380,6 +423,20 @@ function MapDemoComponent() {
     <div className="app-shell">
       {/* 우측 상단 통계 위젯 */}
       <StatsWidget />
+
+      {/* 좌측 상단 임시 버프 표시 */}
+      {tempBuffs.length > 0 && (
+        <div style={TEMP_BUFF_CONTAINER_STYLE} data-testid="temp-buffs-display">
+          <div style={{ color: '#fbbf24', marginBottom: '4px', fontSize: '11px' }}>⏳ 임시 버프</div>
+          {tempBuffs.map((buff, idx) => (
+            <div key={`${buff.stat}-${idx}`} style={TEMP_BUFF_ITEM_STYLE}>
+              <span>{(STAT_LABELS as Record<string, string>)[buff.stat] || buff.stat}</span>
+              <span style={TEMP_BUFF_VALUE_STYLE}>+{buff.value}</span>
+              <span style={TEMP_BUFF_REMAINING_STYLE}>({buff.remainingNodes}칸)</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <header>
         <h1>로그라이크 경로 지도</h1>
