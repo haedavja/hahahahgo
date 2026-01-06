@@ -196,7 +196,8 @@ function MapDemoComponent() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources, applyTempBuff
+    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources, applyTempBuff,
+    startBattle
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -216,6 +217,7 @@ function MapDemoComponent() {
       useItem: state.useItem,
       setResources: state.setResources,
       applyTempBuff: state.applyTempBuff,
+      startBattle: state.startBattle,
     }))
   );
 
@@ -536,6 +538,7 @@ function MapDemoComponent() {
         meetsStatRequirement={meetsStatRequirement}
         chooseEvent={chooseEvent}
         closeEvent={closeEvent}
+        startBattle={startBattle}
       />
 
       {activeRest && (

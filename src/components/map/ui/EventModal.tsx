@@ -22,6 +22,20 @@ interface EventOutcome {
   cost?: Record<string, number>;
   rewards?: EventRewards;
   text?: string;
+  // 전투 트리거 정보
+  combatTrigger?: boolean;
+  combatRewards?: Record<string, unknown>;
+  combatModifier?: { enemyHp?: number };
+  combatId?: string;
+}
+
+interface BattleConfig {
+  nodeId?: string;
+  kind?: string;
+  label?: string;
+  rewards?: Record<string, unknown>;
+  enemyId?: string;
+  enemyHp?: number;
 }
 
 interface EventModalProps {
@@ -30,6 +44,7 @@ interface EventModalProps {
   meetsStatRequirement: (req: Record<string, number> | undefined) => boolean;
   chooseEvent: (choiceId: string) => void;
   closeEvent: () => void;
+  startBattle?: (config: BattleConfig) => void;
 }
 
 export const EventModal = memo(function EventModal({
@@ -38,6 +53,7 @@ export const EventModal = memo(function EventModal({
   meetsStatRequirement,
   chooseEvent,
   closeEvent,
+  startBattle,
 }: EventModalProps) {
   if (!activeEvent) return null;
 
@@ -56,6 +72,25 @@ export const EventModal = memo(function EventModal({
   const handleChooseEvent = useCallback((choiceId: string) => {
     chooseEvent(choiceId);
   }, [chooseEvent]);
+
+  // 전투 트리거 시 전투 시작 후 이벤트 닫기
+  const handleClose = useCallback(() => {
+    if (outcome?.combatTrigger && startBattle) {
+      const battleConfig: BattleConfig = {
+        nodeId: `event-combat-${activeEvent.definition?.id || 'unknown'}`,
+        kind: 'combat',
+        label: outcome.choice || '이벤트 전투',
+        rewards: outcome.combatRewards || {},
+        enemyId: outcome.combatId,
+      };
+      // enemyHp 수정자가 있으면 적용 (예: 적 HP 50% 감소)
+      if (outcome.combatModifier?.enemyHp) {
+        battleConfig.enemyHp = Math.floor(30 * outcome.combatModifier.enemyHp);
+      }
+      startBattle(battleConfig);
+    }
+    closeEvent();
+  }, [outcome, startBattle, closeEvent, activeEvent.definition?.id]);
 
   return (
     <div className="event-modal-overlay" data-testid="event-modal-overlay">
@@ -107,8 +142,8 @@ export const EventModal = memo(function EventModal({
             {outcome.rewards && Object.keys(outcome.rewards).length > 0 && (
               <p>획득: {formatApplied(outcome.rewards as Record<string, unknown>)}</p>
             )}
-            <button type="button" className="close-btn" onClick={closeEvent} data-testid="event-close-btn">
-              확인
+            <button type="button" className="close-btn" onClick={handleClose} data-testid="event-close-btn">
+              {outcome.combatTrigger ? '전투 시작!' : '확인'}
             </button>
           </div>
         )}

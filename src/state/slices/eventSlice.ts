@@ -140,6 +140,11 @@ export const createEventActions: SliceCreator = (set) => ({
             cost: choice.cost || {},
             rewards,
             resultDescription: choice.resultDescription || null,
+            // 전투 트리거 정보 추가
+            combatTrigger: choice.combatTrigger || false,
+            combatRewards: choice.combatRewards,
+            combatModifier: choice.combatModifier,
+            combatId: choice.combatId,
           },
         },
       } as Partial<GameStore>;
