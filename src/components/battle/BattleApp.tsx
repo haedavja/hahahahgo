@@ -157,7 +157,8 @@ import { RelicDisplay } from "./ui/RelicDisplay";
 import { TimelineDisplay } from "./ui/TimelineDisplay";
 import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
-import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
+// Lazy loaded for code splitting - conditionally used components
+const ExpectedDamagePreview = lazy(() => import("./ui/ExpectedDamagePreview").then(m => ({ default: m.ExpectedDamagePreview })));
 // Lazy loaded modals for better code splitting
 const BreachSelectionModal = lazy(() => import("./ui/BreachSelectionModal").then(m => ({ default: m.BreachSelectionModal })));
 const CardRewardModal = lazy(() => import("./ui/CardRewardModal").then(m => ({ default: m.CardRewardModal })));
@@ -170,8 +171,9 @@ import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUtils";
 import { createReducerEnemyState } from "../../state/battleHelpers";
-import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
-import { DefeatOverlay } from "./ui/DefeatOverlay";
+// Lazy loaded - conditionally shown based on anomaly state
+const AnomalyDisplay = lazy(() => import("./ui/AnomalyDisplay").then(m => ({ default: m.AnomalyDisplay })));
+const AnomalyNotification = lazy(() => import("./ui/AnomalyDisplay").then(m => ({ default: m.AnomalyNotification })));
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 import { distributeUnitDamage, type EnemyUnit } from "./utils/unitDamageDistribution";
@@ -2106,16 +2108,18 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
-      {/* 이변 표시 */}
-      <AnomalyDisplay anomalies={activeAnomalies} />
+      {/* 이변 표시 (lazy loaded) */}
+      <Suspense fallback={null}>
+        <AnomalyDisplay anomalies={activeAnomalies} />
 
-      {/* 이변 알림 */}
-      {showAnomalyNotification && (
-        <AnomalyNotification
-          anomalies={activeAnomalies}
-          onDismiss={handleDismissAnomalyNotification}
-        />
-      )}
+        {/* 이변 알림 */}
+        {showAnomalyNotification && (
+          <AnomalyNotification
+            anomalies={activeAnomalies}
+            onDismiss={handleDismissAnomalyNotification}
+          />
+        )}
+      </Suspense>
 
       {/* Lazy loaded modals */}
       <Suspense fallback={null}>
@@ -2194,31 +2198,33 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         battleRef={battleRef}
       />
 
-      {/* 예상 피해량 - 오른쪽 고정 패널 */}
+      {/* 예상 피해량 - 오른쪽 고정 패널 (lazy loaded) */}
       <div className="expect-sidebar-fixed">
-        <ExpectedDamagePreview
-          player={player}
-          enemy={enemy}
-          fixedOrder={fixedOrder || playerTimeline}
-          willOverdrive={willOverdrive}
-          enemyMode={(enemyPlan.mode ?? null) as string}
-          enemyActions={enemyPlan.actions ?? []}
-          phase={battle.phase}
-          log={log}
-          qIndex={battle.qIndex}
-          queue={battle.queue}
-          stepOnce={stepOnce}
-          runAll={runAll}
-          finishTurn={finishTurn}
-          postCombatOptions={postCombatOptions}
-          handleExitToMap={handleExitToMap}
-          autoProgress={autoProgress}
-          setAutoProgress={actions.setAutoProgress}
-          resolveStartPlayer={resolveStartPlayer}
-          resolveStartEnemy={resolveStartEnemy}
-          turnNumber={turnNumber}
-          simulatePreview={simulatePreview}
-        />
+        <Suspense fallback={<div style={{ padding: '16px', color: '#94a3b8' }}>로딩 중...</div>}>
+          <ExpectedDamagePreview
+            player={player}
+            enemy={enemy}
+            fixedOrder={fixedOrder || playerTimeline}
+            willOverdrive={willOverdrive}
+            enemyMode={(enemyPlan.mode ?? null) as string}
+            enemyActions={enemyPlan.actions ?? []}
+            phase={battle.phase}
+            log={log}
+            qIndex={battle.qIndex}
+            queue={battle.queue}
+            stepOnce={stepOnce}
+            runAll={runAll}
+            finishTurn={finishTurn}
+            postCombatOptions={postCombatOptions}
+            handleExitToMap={handleExitToMap}
+            autoProgress={autoProgress}
+            setAutoProgress={actions.setAutoProgress}
+            resolveStartPlayer={resolveStartPlayer}
+            resolveStartEnemy={resolveStartEnemy}
+            turnNumber={turnNumber}
+            simulatePreview={simulatePreview}
+          />
+        </Suspense>
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
           <div style={{ marginTop: '16px', padding: '12px', borderTop: '1px solid rgba(148, 163, 184, 0.2)', color: '#e2e8f0', fontSize: '13px', lineHeight: 1.6 }}>

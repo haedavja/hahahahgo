@@ -110,7 +110,7 @@ export const EventModal = memo(function EventModal({
         {!activeEvent.resolved && (
           <div className="event-choices" data-testid="event-choices">
             {currentChoices.map((choice) => {
-              const affordable = canAfford(resources as unknown as Record<string, number>, choice.cost as Record<string, number> || {});
+              const affordable = canAfford(resources as Record<string, number>, choice.cost as Record<string, number> || {});
               const hasRequiredStats = meetsStatRequirement(choice.statRequirement);
               const canSelect = affordable && hasRequiredStats;
 

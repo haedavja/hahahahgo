@@ -932,9 +932,18 @@ export class MultiEnemyBattleEngine {
         : 1,
     };
 
+    // 특성 시너지 계산용 최소 상태 객체
+    const traitBattleState: GameBattleState = {
+      player: state.player,
+      enemy: state.enemies[targets[0]],
+      turn: state.turn,
+      phase: state.phase,
+      timeline: [],
+      battleLog: state.battleLog,
+    };
     const synergyResult = this.traitProcessor.processTraitSynergies(
       card,
-      { player: state.player, enemy: state.enemies[targets[0]] } as any,
+      traitBattleState,
       'player',
       traitContext
     );
