@@ -233,24 +233,15 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   onCancelDistribution,
   enemy,
 }) => {
-  if (!units || units.length === 0) return null;
-
   // 살아있는 유닛만 표시 (useMemo로 불필요한 재계산 방지)
-  const aliveUnits = useMemo(() => units.filter(u => u.hp > 0), [units]);
-
-  if (aliveUnits.length === 0) return null;
-
-  // 유닛이 1개면 기존 방식 유지 (선택 불필요)
-  const showTargeting = aliveUnits.length > 1;
+  // 주의: React hooks 규칙 - 모든 훅은 early return 전에 호출되어야 함
+  const aliveUnits = useMemo(() => (units || []).filter(u => u.hp > 0), [units]);
 
   // 선택된 타겟 수 (useMemo로 Object.values + filter 재계산 방지)
   const selectedTargetCount = useMemo(
     () => Object.values(damageDistribution).filter(v => v > 0).length,
     [damageDistribution]
   );
-
-  // 에테르 스케일 계산
-  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
 
   // 유닛 스타일 생성 함수 메모이제이션
   const getUnitStyle = useCallback((isSelected: boolean, showTargeting: boolean, isTargetable: boolean, soulShatter: boolean): CSSProperties => ({
@@ -267,6 +258,15 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
     transform: soulShatter && isSelected ? 'scale(0.95)' : 'scale(1)',
     opacity: soulShatter && isSelected ? 0.7 : 1
   }), []);
+
+  // Early return은 모든 훅 호출 후에 수행
+  if (!units || units.length === 0 || aliveUnits.length === 0) return null;
+
+  // 유닛이 1개면 기존 방식 유지 (선택 불필요)
+  const showTargeting = aliveUnits.length > 1;
+
+  // 에테르 스케일 계산
+  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
 
   return (
     <>
