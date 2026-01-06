@@ -649,25 +649,7 @@ export class TimelineBattleEngine {
             this.applyRelicEffects(state, comboEffects);
           }
 
-          // 버스트 시스템: 에테르가 100 이상이 되면 발동
-          const previousEther = state.player.ether - playerEtherGain;
-          const burstResult = checkEtherBurst(previousEther, playerEtherGain);
-
-          if (burstResult.triggered) {
-            state.battleLog.push(`  ${burstResult.message}`);
-
-            // 버스트 보너스 피해를 적에게 적용
-            if (burstResult.bonusDamage > 0) {
-              const actualDamage = Math.min(burstResult.bonusDamage, state.enemy.hp);
-              state.enemy.hp -= actualDamage;
-              state.battleLog.push(`  💥 버스트 피해: 적 HP -${actualDamage}`);
-            }
-
-            // 에테르 리셋 (초과분만 남김)
-            state.player.ether = burstResult.overflowEther;
-            state.player.etherOverdriveActive = true;
-            state.battleLog.push(`  🔄 에테르 리셋: ${burstResult.overflowEther} 잔여`);
-          }
+          // 버스트 시스템 임시 비활성화 (TODO: 나중에 다시 활성화)
         }
 
         // 콤보 사용 횟수 업데이트 (디플레이션용)
