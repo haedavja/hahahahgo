@@ -158,14 +158,10 @@ import { RelicDisplay } from "./ui/RelicDisplay";
 import { TimelineDisplay } from "./ui/TimelineDisplay";
 import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
+import { BattleModals, BattleSidebars, BattleCombatArea } from "./ui/layout";
 // Lazy loaded for code splitting - conditionally used components
 const ExpectedDamagePreview = lazy(() => import("./ui/ExpectedDamagePreview").then(m => ({ default: m.ExpectedDamagePreview })));
-// Lazy loaded modals for better code splitting
-const BreachSelectionModal = lazy(() => import("./ui/BreachSelectionModal").then(m => ({ default: m.BreachSelectionModal })));
-const CardRewardModal = lazy(() => import("./ui/CardRewardModal").then(m => ({ default: m.CardRewardModal })));
-const RecallSelectionModal = lazy(() => import("./ui/RecallSelectionModal").then(m => ({ default: m.RecallSelectionModal })));
-const TraitRewardModal = lazy(() => import("./ui/TraitRewardModal").then(m => ({ default: m.TraitRewardModal })));
-const RunSummaryOverlay = lazy(() => import("./ui/RunSummaryOverlay").then(m => ({ default: m.RunSummaryOverlay })));
+// 모달 lazy loading은 BattleModals 컴포넌트로 이동됨
 import { BattleControlButtons } from "./ui/BattleControlButtons";
 import { EnergyDisplayFixed } from "./ui/EnergyDisplayFixed";
 import { EtherBar } from "./ui/EtherBar";
@@ -2026,42 +2022,24 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         )}
       </Suspense>
 
-      {/* Lazy loaded modals */}
-      <Suspense fallback={null}>
-        {/* 브리치 카드 선택 모달 */}
-        {breachSelection && (
-          <BreachSelectionModal
-            breachSelection={breachSelection}
-            onSelect={handleBreachSelect}
-            strengthBonus={player.strength || 0}
-          />
-        )}
-
-        {/* 특성 보상 선택 모달 (30% 확률) */}
-        {traitReward && (
-          <TraitRewardModal
-            traits={traitReward.traits}
-            onSelect={handleTraitSelect}
-            onSkip={handleTraitSkip}
-          />
-        )}
-
-        {/* 카드 보상 선택 모달 (승리 후) */}
-        {cardReward && (
-          <CardRewardModal
-            rewardCards={cardReward.cards}
-            onSelect={handleRewardSelect}
-            onSkip={handleRewardSkip}
-          />
-        )}
-
-        {/* 함성 (recallCard) 카드 선택 모달 */}
-        <RecallSelectionModal
-          recallSelection={recallSelection}
-          onSelect={handleRecallSelect}
-          onSkip={handleRecallSkip}
-        />
-      </Suspense>
+      {/* 전투 모달 통합 컴포넌트 */}
+      <BattleModals
+        breachSelection={breachSelection}
+        onBreachSelect={handleBreachSelect}
+        playerStrength={player.strength || 0}
+        traitReward={traitReward}
+        onTraitSelect={handleTraitSelect}
+        onTraitSkip={handleTraitSkip}
+        cardReward={cardReward}
+        onRewardSelect={handleRewardSelect}
+        onRewardSkip={handleRewardSkip}
+        recallSelection={recallSelection}
+        onRecallSelect={handleRecallSelect}
+        onRecallSkip={handleRecallSkip}
+        postCombatOptions={postCombatOptions}
+        isBoss={isBoss}
+        onExitToMap={handleExitToMap}
+      />
 
       {/* 에테르 게이지 - 왼쪽 고정 */}
       <div style={{
@@ -2343,16 +2321,6 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           setDevForceAllCards={setDevForceAllCards}
         />
       )}
-      {/* 패배/승리 시 런 요약 오버레이 (lazy loaded) */}
-      <Suspense fallback={null}>
-        {postCombatOptions?.type === 'defeat' && (
-          <RunSummaryOverlay result="defeat" onExit={handleExitToMap} />
-        )}
-        {postCombatOptions?.type === 'victory' && isBoss && (
-          <RunSummaryOverlay result="victory" onExit={handleExitToMap} />
-        )}
-      </Suspense>
-
       {/* 하단 고정 손패 영역 */}
       <HandArea
         battle={battle}
