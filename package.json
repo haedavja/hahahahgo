@@ -24,7 +24,11 @@
     "build-storybook": "storybook build",
     "deploy-storybook": "storybook build -o storybook-static",
     "perf:benchmark": "npx tsx scripts/perf-benchmark.ts",
-    "perf:bundle": "vite build && node scripts/bundle-analysis.js"
+    "perf:bundle": "vite build && node scripts/bundle-analysis.js",
+    "check:bundle": "node scripts/check-bundle-size.js",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -63,6 +67,7 @@
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.2",
+    "vitepress": "^1.6.4",
     "vitest": "^4.0.15"
   }
 }
