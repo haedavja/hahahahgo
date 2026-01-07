@@ -86,7 +86,7 @@ function createMockState(growthOverrides: Partial<GrowthState> = {}): GameStore 
       ...growthOverrides,
     },
     playerTraits: [],
-  } as unknown as GameStore;
+  } as GameStore;
 }
 
 // 액션 테스트용 래퍼

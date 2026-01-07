@@ -90,7 +90,7 @@ describe('card-creation', () => {
       actionCost: 2,
       speedCost: 0,
     },
-  } as unknown as Record<string, GameCard>;
+  } as Record<string, GameCard>;
 
   // 기본 플레이어 상태
   const createPlayer = (): PlayerState => ({

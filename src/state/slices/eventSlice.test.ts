@@ -15,13 +15,17 @@ vi.mock('../../data/newEvents', () => ({
   },
 }));
 
-vi.mock('../../components/battle/battleData', () => ({
-  CARDS: [
-    { id: 'card1', name: 'Card 1' },
-    { id: 'card2', name: 'Card 2' },
-    { id: 'card3', name: 'Card 3' },
-  ],
-}));
+vi.mock('../../components/battle/battleData', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../components/battle/battleData')>();
+  return {
+    ...actual,
+    CARDS: [
+      { id: 'card1', name: 'Card 1' },
+      { id: 'card2', name: 'Card 2' },
+      { id: 'card3', name: 'Card 3' },
+    ],
+  };
+});
 
 vi.mock('../gameStoreHelpers', () => ({
   canAfford: vi.fn((resources, cost) => {
@@ -118,7 +122,7 @@ describe('eventSlice', () => {
 
   describe('setActiveEvent', () => {
     it('이벤트를 설정한다', () => {
-      const event = { id: 'test', definition: { id: 'test', choices: [] as { id: string; label: string }[] }, currentStage: null as string | null, resolved: false, outcome: null as unknown };
+      const event = { id: 'test', definition: { id: 'test', choices: [] as { id: string; label: string }[] }, currentStage: null as string | null, resolved: false, outcome: null };
       store.getState().setActiveEvent(event as never);
       expect(store.getState().activeEvent).toEqual(event);
     });

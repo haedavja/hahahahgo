@@ -80,7 +80,7 @@ describe('gameStoreHelpers', () => {
       const rewards = {
         gold: 100,
         someOtherKey: 'value',
-      } as unknown as EventRewards;
+      } as EventRewards;
 
       const delta = extractResourceDelta(rewards);
       expect(delta.gold).toBe(100);
@@ -133,8 +133,8 @@ describe('gameStoreHelpers', () => {
     });
 
     it('null/undefined는 0을 반환한다', () => {
-      expect(resolveAmount(null as unknown as number)).toBe(0);
-      expect(resolveAmount(undefined as unknown as number)).toBe(0);
+      expect(resolveAmount(null as number)).toBe(0);
+      expect(resolveAmount(undefined as number)).toBe(0);
     });
   });
 

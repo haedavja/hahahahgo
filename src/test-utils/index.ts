@@ -4,3 +4,6 @@
  */
 
 export * from './mock-factories';
+
+// src/test/factories.ts도 re-export
+export * from '../test/factories';

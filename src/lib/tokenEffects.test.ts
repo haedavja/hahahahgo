@@ -73,7 +73,7 @@ describe('tokenEffects', () => {
       const card = createAttackCard({ damage: 10 });
       const attackBoost = createAttackBoostToken(1, 0.5);
       const entity = createEntityWithTokens({
-        turn: [attackBoost as unknown as TokenInstance],
+        turn: [attackBoost],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'attack');
@@ -86,7 +86,7 @@ describe('tokenEffects', () => {
       const card = createAttackCard({ damage: 10 });
       const attackPenalty = createAttackPenaltyToken(1, 0.5);
       const entity = createEntityWithTokens({
-        turn: [attackPenalty as unknown as TokenInstance],
+        turn: [attackPenalty],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'attack');
@@ -100,7 +100,7 @@ describe('tokenEffects', () => {
       const card = createDefenseCard({ block: 10 });
       const defenseBoost = createDefenseBoostToken(1, 0.5);
       const entity = createEntityWithTokens({
-        turn: [defenseBoost as unknown as TokenInstance],
+        turn: [defenseBoost],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'defense');
@@ -113,7 +113,7 @@ describe('tokenEffects', () => {
       const card = createDefenseCard({ block: 10 });
       const defensePenalty = createDefensePenaltyToken(1, 0.5);
       const entity = createEntityWithTokens({
-        turn: [defensePenalty as unknown as TokenInstance],
+        turn: [defensePenalty],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'defense');
@@ -132,7 +132,7 @@ describe('tokenEffects', () => {
         effect: { type: 'ATTACK_BOOST', value: 0.3 },
       };
       const entity = createEntityWithTokens({
-        usage: [offenseToken as unknown as TokenInstance],
+        usage: [offenseToken],
       });
 
       const result = applyTokenEffectsToCard(card, entity, 'attack');
@@ -155,7 +155,7 @@ describe('tokenEffects', () => {
 
       const dodgeToken = createDodgeToken(1, 0.5);
       const defender = createEntityWithTokens({
-        usage: [dodgeToken as unknown as TokenInstance],
+        usage: [dodgeToken],
       });
       const attacker = createEntity();
 
@@ -170,7 +170,7 @@ describe('tokenEffects', () => {
 
       const dodgeToken = createDodgeToken(1, 0.5);
       const defender = createEntityWithTokens({
-        usage: [dodgeToken as unknown as TokenInstance],
+        usage: [dodgeToken],
       });
       const attacker = createEntity();
 
@@ -192,7 +192,7 @@ describe('tokenEffects', () => {
     it('반격 토큰이 적용되어야 함', () => {
       const counterToken = createCounterToken(1, 5);
       const defender = createEntityWithTokens(
-        { usage: [counterToken as unknown as TokenInstance] },
+        { usage: [counterToken] },
         {},
         { strength: 2 }
       );
@@ -259,7 +259,7 @@ describe('tokenEffects', () => {
     it('힘 토큰이 적용되어야 함', () => {
       const strengthToken = createStrengthToken(2, 3);
       const entity = createEntityWithTokens(
-        { turn: [strengthToken as unknown as TokenInstance] },
+        { turn: [strengthToken] },
         {},
         { strength: 5 }
       );
@@ -282,7 +282,7 @@ describe('tokenEffects', () => {
     it('민첩 토큰이 적용되어야 함', () => {
       const agilityToken = createAgilityToken(2, 2);
       const entity = createEntityWithTokens(
-        { turn: [agilityToken as unknown as TokenInstance] },
+        { turn: [agilityToken] },
         {},
         { agility: 3 }
       );
@@ -310,7 +310,7 @@ describe('tokenEffects', () => {
     it('부활 토큰이 있으면 부활해야 함', () => {
       const reviveToken = createReviveToken(1, 0.5);
       const entity = createEntityWithTokens({
-        usage: [reviveToken as unknown as TokenInstance],
+        usage: [reviveToken],
       });
 
       const result = checkReviveToken(entity);
@@ -337,7 +337,7 @@ describe('tokenEffects', () => {
         name: '공세',
       };
       const entity = createEntityWithTokens({
-        usage: [offenseToken as unknown as TokenInstance],
+        usage: [offenseToken],
       });
 
       const result = consumeTokens(entity, [createConsumedToken('offense', 'usage')]);

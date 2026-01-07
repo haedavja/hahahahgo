@@ -171,16 +171,27 @@ export function createEnemyEntity(
   });
 }
 
-/** 토큰이 있는 엔티티 생성 */
+/** 토큰이 있는 엔티티 생성 (TestTokenPayload의 effect 속성도 보존) */
 export function createEntityWithTokens(
-  tokens: Partial<TokenState>,
+  tokens: Partial<{
+    usage: Array<TokenInstance | TestTokenPayload>;
+    turn: Array<TokenInstance | TestTokenPayload>;
+    permanent: Array<TokenInstance | TestTokenPayload>;
+  }>,
   entityOverrides: Partial<TokenEntity> = {},
   stats: { strength?: number; agility?: number; insight?: number } = {}
 ): TokenEntity {
+  // TestTokenPayload의 모든 속성을 보존하면서 TokenInstance로 캐스팅
+  const normalizedTokens: TokenState = {
+    usage: (tokens.usage || []) as TokenInstance[],
+    turn: (tokens.turn || []) as TokenInstance[],
+    permanent: (tokens.permanent || []) as TokenInstance[],
+  };
+
   return createEntity(
     {
       ...entityOverrides,
-      tokens: createTokenState(tokens),
+      tokens: normalizedTokens,
     },
     stats
   );

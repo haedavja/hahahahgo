@@ -137,6 +137,113 @@ export function buildTokens(tokens: Record<string, number>): TokenState {
   return tokens as TokenState;
 }
 
+// ==================== 추가 팩토리 함수 ====================
+
+/**
+ * 테스트용 GameState (전체 게임 상태) 생성
+ */
+export function createMockGameState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    resources: { gold: 100, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
+    playerHp: 100,
+    maxHp: 100,
+    characterBuild: { ownedCards: [] },
+    activeBattle: null,
+    activeEvent: null,
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 GrowthState 생성
+ */
+export function createMockGrowthState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    logos: { level: 0, exp: 0, unlockedPaths: [] },
+    ethos: { level: 0, exp: 0, unlockedPaths: [] },
+    pathos: { level: 0, exp: 0, unlockedPaths: [] },
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 EventRewards 생성
+ */
+export function createMockEventRewards(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    gold: 0,
+    intel: 0,
+    card: null,
+    relic: null,
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 EnemyUnit 배열 생성
+ */
+export function createMockEnemyUnits(
+  units: Array<{ id?: string; hp?: number; maxHp?: number; block?: number }> = []
+): Array<{ id: string; hp: number; maxHp: number; block: number }> {
+  return units.map((u, i) => ({
+    id: u.id ?? `enemy_${i}`,
+    hp: u.hp ?? 50,
+    maxHp: u.maxHp ?? 50,
+    block: u.block ?? 0,
+  }));
+}
+
+/**
+ * 테스트용 FinishTurnCoreParams 생성
+ */
+export function createMockFinishTurnParams(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    state: createMockBattleState(),
+    cardsToDiscard: [],
+    drawCount: 5,
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 ExecuteCardActionCoreParams 생성
+ */
+export function createMockExecuteCardParams(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    state: createMockBattleState(),
+    card: createMockCard(),
+    actor: 'player',
+    target: 'enemy',
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 BattleActions 생성
+ */
+export function createMockBattleActions(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    dealDamage: () => {},
+    applyBlock: () => {},
+    healEntity: () => {},
+    addToken: () => {},
+    removeToken: () => {},
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 FullBattleState 생성
+ */
+export function createMockFullBattleState(overrides: DeepPartial<GameBattleState> = {}): GameBattleState {
+  return createMockBattleState({
+    turn: 1,
+    phase: 'play',
+    timeline: [],
+    ...overrides,
+  });
+}
+
 // ==================== 유틸리티 함수 ====================
 
 /**

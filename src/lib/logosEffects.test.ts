@@ -153,7 +153,7 @@ describe('logosEffects', () => {
     });
 
     it('null growth 처리', () => {
-      const effects = calculateLogosEffects(null as unknown as GrowthState);
+      const effects = calculateLogosEffects(null as GrowthState);
       expect(effects.expandCrossRange).toBe(false);
     });
   });

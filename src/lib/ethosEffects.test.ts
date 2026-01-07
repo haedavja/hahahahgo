@@ -171,7 +171,7 @@ describe('ethosEffects', () => {
     });
 
     it('null growth 처리', () => {
-      const effects = getEthosEffectsForTrigger(null as unknown as GrowthState, 'gunCrit');
+      const effects = getEthosEffectsForTrigger(null as GrowthState, 'gunCrit');
       expect(effects.length).toBe(0);
     });
   });

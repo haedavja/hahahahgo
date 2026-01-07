@@ -48,7 +48,7 @@ function createMockGameState(): GameBattleState {
     },
     timeline: [],
     comboUsageCount: {},
-  } as unknown as GameBattleState;
+  } as GameBattleState;
 }
 
 // 테스트용 카드 생성
