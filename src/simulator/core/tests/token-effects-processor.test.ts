@@ -42,30 +42,57 @@ vi.mock('../token-system', () => ({
   }),
 }));
 
-// 테스트용 상태 생성
-function createMockState(overrides: Partial<GameBattleState> = {}): GameBattleState {
+// 테스트용 상태 타입 (deep partial 지원)
+interface MockStateOverrides {
+  turn?: number;
+  phase?: string;
+  timeline?: unknown[];
+  player?: {
+    hp?: number;
+    maxHp?: number;
+    block?: number;
+    tokens?: TokenState;
+    hand?: unknown[];
+    deck?: unknown[];
+    discard?: unknown[];
+  };
+  enemy?: {
+    hp?: number;
+    maxHp?: number;
+    block?: number;
+    tokens?: TokenState;
+    intent?: unknown;
+  };
+  log?: unknown[];
+}
+
+// 테스트용 상태 생성 (deep merge 지원)
+function createMockState(overrides: MockStateOverrides = {}): GameBattleState {
+  const defaultPlayer = {
+    hp: 80,
+    maxHp: 100,
+    block: 0,
+    tokens: {},
+    hand: [],
+    deck: [],
+    discard: [],
+  };
+
+  const defaultEnemy = {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    tokens: {},
+    intent: null,
+  };
+
   return {
-    turn: 1,
-    phase: 'play',
-    timeline: [],
-    player: {
-      hp: 80,
-      maxHp: 100,
-      block: 0,
-      tokens: {},
-      hand: [],
-      deck: [],
-      discard: [],
-    },
-    enemy: {
-      hp: 100,
-      maxHp: 100,
-      block: 0,
-      tokens: {},
-      intent: null,
-    },
-    log: [],
-    ...overrides,
+    turn: overrides.turn ?? 1,
+    phase: overrides.phase ?? 'play',
+    timeline: overrides.timeline ?? [],
+    player: { ...defaultPlayer, ...overrides.player },
+    enemy: { ...defaultEnemy, ...overrides.enemy },
+    log: overrides.log ?? [],
   } as GameBattleState;
 }
 
@@ -291,7 +318,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.burn.onTurnStart!(state, 'player');
 
@@ -310,7 +337,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.poison.onTurnEnd!(state, 'player');
 
@@ -329,7 +356,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.bleed.onAttack!(state, 'player', 10);
 
@@ -348,7 +375,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.regeneration.onTurnStart!(state, 'player');
 
@@ -392,7 +419,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.strength.onAttack!(state, 'player', 10);
 
@@ -410,7 +437,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = TOKEN_EFFECTS.thorns.onTakeDamage!(state, 'player', 10);
 
@@ -433,7 +460,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -452,7 +479,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -471,7 +498,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -489,7 +516,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -508,7 +535,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -527,7 +554,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
       const card = createMockCard({ cardCategory: 'fencing' });
 
       const result = processAttackTokenEffects(state, 'player', 10, card);
@@ -546,7 +573,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
       const card = createMockCard({ cardCategory: 'gun' });
 
       const result = processAttackTokenEffects(state, 'player', 10, card);
@@ -566,7 +593,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -584,7 +611,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'player', 10);
 
@@ -601,7 +628,7 @@ describe('token-effects-processor', () => {
           tokens: { strength: 2 },
           intent: null,
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processAttackTokenEffects(state, 'enemy', 10);
 
@@ -621,7 +648,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -640,7 +667,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -659,7 +686,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -677,7 +704,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -696,7 +723,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -715,7 +742,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -733,7 +760,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDefenseTokenEffects(state, 'player', 10);
 
@@ -753,7 +780,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -774,7 +801,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -795,7 +822,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -815,7 +842,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -834,7 +861,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -852,7 +879,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -871,7 +898,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -889,7 +916,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -912,7 +939,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -937,7 +964,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -958,7 +985,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processDamageTakenTokenEffects(state, 'player', 10);
 
@@ -982,7 +1009,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnStartTokenEffects(state, 'player');
 
@@ -1000,7 +1027,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnStartTokenEffects(state, 'player');
 
@@ -1018,7 +1045,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnStartTokenEffects(state, 'player');
 
@@ -1044,7 +1071,7 @@ describe('token-effects-processor', () => {
           tokens: { burn: 3 },
           intent: null,
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnStartTokenEffects(state, 'enemy');
 
@@ -1064,7 +1091,7 @@ describe('token-effects-processor', () => {
           deck: [],
           discard: [],
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnEndTokenEffects(state, 'player');
 
@@ -1089,7 +1116,7 @@ describe('token-effects-processor', () => {
           tokens: { poison: 5 },
           intent: null,
         },
-      } as unknown as Partial<GameBattleState>);
+      });
 
       const result = processTurnEndTokenEffects(state, 'enemy');
 

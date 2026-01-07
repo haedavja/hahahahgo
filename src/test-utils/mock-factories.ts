@@ -7,6 +7,103 @@
 
 import type { GameBattleState, GameCard, TokenState } from '../simulator/core/game-types';
 import type { BattleResult, BattleEvent } from '../simulator/core/game-types';
+import type { Resources } from '../types/core';
+
+// ==================== 테스트용 타입 정의 ====================
+
+/**
+ * 테스트용 GameState 타입
+ * 실제 GameState의 간소화 버전
+ */
+export interface MockGameState {
+  resources: Resources;
+  playerHp: number;
+  maxHp: number;
+  playerStrength?: number;
+  playerAgility?: number;
+  playerInsight?: number;
+  characterBuild?: { ownedCards: string[] };
+  activeBattle: GameBattleState | null;
+  activeEvent: MockActiveEvent | null;
+  relics?: unknown[];
+  map?: { nodes: unknown[]; currentNodeId: string };
+}
+
+/**
+ * 테스트용 ActiveEvent 타입
+ */
+export interface MockActiveEvent {
+  eventId: string;
+  phase?: string;
+  choices?: unknown[];
+  [key: string]: unknown;
+}
+
+/**
+ * 테스트용 GrowthState 타입
+ */
+export interface MockGrowthState {
+  pyramidLevel: number;
+  skillPoints: number;
+  traitCounts: Record<string, number>;
+  unlockedEthos: string[];
+  unlockedPathos: string[];
+  unlockedNodes: string[];
+}
+
+/**
+ * 테스트용 EventRewards 타입
+ */
+export interface MockEventRewards {
+  gold?: number;
+  intel?: number;
+  card?: string | null;
+  relic?: string | null;
+  hp?: number;
+  resources?: Partial<Resources>;
+}
+
+/**
+ * 테스트용 EnemyUnit 타입
+ */
+export interface MockEnemyUnit {
+  id: string;
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens?: TokenState;
+}
+
+/**
+ * 테스트용 FinishTurnParams 타입
+ */
+export interface MockFinishTurnParams {
+  state: GameBattleState;
+  cardsToDiscard: string[];
+  drawCount: number;
+}
+
+/**
+ * 테스트용 ExecuteCardParams 타입
+ */
+export interface MockExecuteCardParams {
+  state: GameBattleState;
+  card: GameCard;
+  actor: 'player' | 'enemy';
+  target: 'player' | 'enemy';
+}
+
+/**
+ * 테스트용 BattleActions 타입
+ */
+export interface MockBattleActions {
+  dealDamage: (target: 'player' | 'enemy', amount: number) => void;
+  applyBlock: (target: 'player' | 'enemy', amount: number) => void;
+  healEntity: (target: 'player' | 'enemy', amount: number) => void;
+  addToken: (target: 'player' | 'enemy', tokenId: string, stacks?: number) => void;
+  removeToken: (target: 'player' | 'enemy', tokenId: string, stacks?: number) => void;
+  [key: string]: unknown;
+}
 
 // ==================== 타입 유틸리티 ====================
 
@@ -139,12 +236,22 @@ export function buildTokens(tokens: Record<string, number>): TokenState {
 
 // ==================== 추가 팩토리 함수 ====================
 
+/** 기본 Resources */
+const DEFAULT_RESOURCES: Resources = {
+  gold: 100,
+  intel: 0,
+  loot: 0,
+  material: 0,
+  etherPts: 0,
+  memory: 0,
+};
+
 /**
  * 테스트용 GameState (전체 게임 상태) 생성
  */
-export function createMockGameState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockGameState(overrides: Partial<MockGameState> = {}): MockGameState {
   return {
-    resources: { gold: 100, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
+    resources: { ...DEFAULT_RESOURCES, ...overrides.resources },
     playerHp: 100,
     maxHp: 100,
     characterBuild: { ownedCards: [] },
@@ -157,11 +264,14 @@ export function createMockGameState(overrides: Record<string, unknown> = {}): Re
 /**
  * 테스트용 GrowthState 생성
  */
-export function createMockGrowthState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockGrowthState(overrides: Partial<MockGrowthState> = {}): MockGrowthState {
   return {
-    logos: { level: 0, exp: 0, unlockedPaths: [] },
-    ethos: { level: 0, exp: 0, unlockedPaths: [] },
-    pathos: { level: 0, exp: 0, unlockedPaths: [] },
+    pyramidLevel: 0,
+    skillPoints: 0,
+    traitCounts: {},
+    unlockedEthos: [],
+    unlockedPathos: [],
+    unlockedNodes: [],
     ...overrides,
   };
 }
@@ -169,7 +279,7 @@ export function createMockGrowthState(overrides: Record<string, unknown> = {}): 
 /**
  * 테스트용 EventRewards 생성
  */
-export function createMockEventRewards(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockEventRewards(overrides: Partial<MockEventRewards> = {}): MockEventRewards {
   return {
     gold: 0,
     intel: 0,
@@ -183,20 +293,21 @@ export function createMockEventRewards(overrides: Record<string, unknown> = {}):
  * 테스트용 EnemyUnit 배열 생성
  */
 export function createMockEnemyUnits(
-  units: Array<{ id?: string; hp?: number; maxHp?: number; block?: number }> = []
-): Array<{ id: string; hp: number; maxHp: number; block: number }> {
+  units: Array<Partial<MockEnemyUnit>> = []
+): MockEnemyUnit[] {
   return units.map((u, i) => ({
     id: u.id ?? `enemy_${i}`,
     hp: u.hp ?? 50,
     maxHp: u.maxHp ?? 50,
     block: u.block ?? 0,
+    tokens: u.tokens,
   }));
 }
 
 /**
- * 테스트용 FinishTurnCoreParams 생성
+ * 테스트용 FinishTurnParams 생성
  */
-export function createMockFinishTurnParams(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockFinishTurnParams(overrides: Partial<MockFinishTurnParams> = {}): MockFinishTurnParams {
   return {
     state: createMockBattleState(),
     cardsToDiscard: [],
@@ -206,9 +317,9 @@ export function createMockFinishTurnParams(overrides: Record<string, unknown> = 
 }
 
 /**
- * 테스트용 ExecuteCardActionCoreParams 생성
+ * 테스트용 ExecuteCardParams 생성
  */
-export function createMockExecuteCardParams(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockExecuteCardParams(overrides: Partial<MockExecuteCardParams> = {}): MockExecuteCardParams {
   return {
     state: createMockBattleState(),
     card: createMockCard(),
@@ -221,7 +332,7 @@ export function createMockExecuteCardParams(overrides: Record<string, unknown> =
 /**
  * 테스트용 BattleActions 생성
  */
-export function createMockBattleActions(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createMockBattleActions(overrides: Partial<MockBattleActions> = {}): MockBattleActions {
   return {
     dealDamage: () => {},
     applyBlock: () => {},
