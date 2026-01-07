@@ -8,7 +8,7 @@ import type { CSSProperties } from 'react';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 import type { SkillLevel } from '../../../simulator/core/battle-engine-types';
 import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
-import { BalanceInsightAnalyzer, type BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
+import type { BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
 import {
   STATS_COLORS,
   TABLE_STYLE,
@@ -85,6 +85,10 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 밸런스 인사이트 동적 로드 상태
+  const [insightReport, setInsightReport] = useState<BalanceInsightReport | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
   // 타이머 cleanup
   useEffect(() => {
     return () => {
@@ -93,6 +97,22 @@ const SimulatorTab = memo(function SimulatorTab() {
       }
     };
   }, []);
+
+  // 인사이트 탭 선택 시 balance-insights 모듈 동적 로드
+  useEffect(() => {
+    if (activeStatTab !== 'insights' || !stats) return;
+    let cancelled = false;
+    setInsightsLoading(true);
+
+    import('../../../simulator/analysis/balance-insights').then(({ BalanceInsightAnalyzer }) => {
+      if (cancelled) return;
+      const analyzer = new BalanceInsightAnalyzer(stats);
+      setInsightReport(analyzer.generateReport());
+      setInsightsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [activeStatTab, stats]);
 
   // 난이도 수정자 상태 (Hades Heat / StS Ascension 스타일)
   const [showAdvancedDifficulty, setShowAdvancedDifficulty] = useState(false);
@@ -1305,10 +1325,11 @@ const SimulatorTab = memo(function SimulatorTab() {
                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
                   액션 가능한 밸런스 권장사항, 병목 구간 분석, 필수픽 감지, 다양성 지표
                 </p>
-                {(() => {
-                  const analyzer = new BalanceInsightAnalyzer(stats);
-                  const report = analyzer.generateReport();
-                  return (
+                {insightsLoading || !insightReport ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
+                    인사이트 분석 중...
+                  </div>
+                ) : (
                     <>
                       {/* 요약 카드 */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
@@ -1317,39 +1338,39 @@ const SimulatorTab = memo(function SimulatorTab() {
                           <div style={{
                             fontSize: '1.5rem',
                             fontWeight: 'bold',
-                            color: report.summary.healthScore >= 70 ? '#22c55e' : report.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
+                            color: insightReport.summary.healthScore >= 70 ? '#22c55e' : insightReport.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
                           }}>
-                            {report.summary.healthScore}/100
+                            {insightReport.summary.healthScore}/100
                           </div>
                         </div>
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>긴급 이슈</div>
                           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>
-                            {report.summary.criticalIssues}개
+                            {insightReport.summary.criticalIssues}개
                           </div>
                         </div>
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>주의 이슈</div>
                           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
-                            {report.summary.warningIssues}개
+                            {insightReport.summary.warningIssues}개
                           </div>
                         </div>
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>난이도 평가</div>
                           <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#3b82f6' }}>
-                            {report.playerExperience.overallDifficulty === 'balanced' ? '균형' :
-                             report.playerExperience.overallDifficulty === 'too_easy' ? '너무 쉬움' :
-                             report.playerExperience.overallDifficulty === 'easy' ? '쉬움' :
-                             report.playerExperience.overallDifficulty === 'hard' ? '어려움' : '매우 어려움'}
+                            {insightReport.playerExperience.overallDifficulty === 'balanced' ? '균형' :
+                             insightReport.playerExperience.overallDifficulty === 'too_easy' ? '너무 쉬움' :
+                             insightReport.playerExperience.overallDifficulty === 'easy' ? '쉬움' :
+                             insightReport.playerExperience.overallDifficulty === 'hard' ? '어려움' : '매우 어려움'}
                           </div>
                         </div>
                       </div>
 
                       {/* 최우선 과제 */}
-                      {report.summary.topPriorities.length > 0 && (
+                      {insightReport.summary.topPriorities.length > 0 && (
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
                           <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>🎯 최우선 과제</h5>
-                          {report.summary.topPriorities.map((p, i) => (
+                          {insightReport.summary.topPriorities.map((p, i) => (
                             <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>
                               {i + 1}. {p}
                             </div>
@@ -1358,11 +1379,11 @@ const SimulatorTab = memo(function SimulatorTab() {
                       )}
 
                       {/* 긴급 조치 필요 (critical) */}
-                      {report.recommendations.filter(r => r.priority === 'critical').length > 0 && (
+                      {insightReport.recommendations.filter(r => r.priority === 'critical').length > 0 && (
                         <>
                           <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>🔴 긴급 조치 필요</h5>
                           <div style={STYLES.scrollBox}>
-                            {report.recommendations.filter(r => r.priority === 'critical').map((rec, i) => (
+                            {insightReport.recommendations.filter(r => r.priority === 'critical').map((rec, i) => (
                               <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: '4px solid #ef4444' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.targetName}</span>
@@ -1385,11 +1406,11 @@ const SimulatorTab = memo(function SimulatorTab() {
                       )}
 
                       {/* 주의 필요 (warning) */}
-                      {report.recommendations.filter(r => r.priority === 'warning').length > 0 && (
+                      {insightReport.recommendations.filter(r => r.priority === 'warning').length > 0 && (
                         <>
                           <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🟡 주의 필요</h5>
                           <div style={STYLES.scrollBox}>
-                            {report.recommendations.filter(r => r.priority === 'warning').slice(0, 8).map((rec, i) => (
+                            {insightReport.recommendations.filter(r => r.priority === 'warning').slice(0, 8).map((rec, i) => (
                               <div key={i} style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', marginBottom: '6px', borderLeft: '3px solid #f59e0b' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.targetName}</span>
@@ -1403,11 +1424,11 @@ const SimulatorTab = memo(function SimulatorTab() {
                       )}
 
                       {/* 필수픽 경고 */}
-                      {report.mustPicks.length > 0 && (
+                      {insightReport.mustPicks.length > 0 && (
                         <>
                           <h5 style={{ margin: '16px 0 8px 0', color: '#ec4899' }}>⚠️ 필수픽 감지</h5>
                           <div style={STYLES.scrollBox}>
-                            {report.mustPicks.map((mp, i) => (
+                            {insightReport.mustPicks.map((mp, i) => (
                               <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${mp.riskLevel === 'extreme' ? '#ef4444' : mp.riskLevel === 'high' ? '#f59e0b' : '#fbbf24'}` }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#f472b6' }}>{mp.targetName}</span>
@@ -1428,11 +1449,11 @@ const SimulatorTab = memo(function SimulatorTab() {
                       )}
 
                       {/* 병목 구간 */}
-                      {report.bottlenecks.length > 0 && (
+                      {insightReport.bottlenecks.length > 0 && (
                         <>
                           <h5 style={{ margin: '16px 0 8px 0', color: '#a855f7' }}>🚧 병목 구간</h5>
                           <div style={STYLES.scrollBox}>
-                            {report.bottlenecks.slice(0, 5).map((bn, i) => (
+                            {insightReport.bottlenecks.slice(0, 5).map((bn, i) => (
                               <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${bn.severity === 'critical' ? '#ef4444' : bn.severity === 'high' ? '#f59e0b' : '#8b5cf6'}` }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#c084fc' }}>{bn.floor}층</span>
@@ -1463,29 +1484,29 @@ const SimulatorTab = memo(function SimulatorTab() {
                             <span style={{
                               fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              color: report.diversity.card.giniCoefficient < 0.4 ? '#22c55e' : report.diversity.card.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
+                              color: insightReport.diversity.card.giniCoefficient < 0.4 ? '#22c55e' : insightReport.diversity.card.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
                             }}>
-                              {report.diversity.card.giniCoefficient.toFixed(3)}
+                              {insightReport.diversity.card.giniCoefficient.toFixed(3)}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>상위 10% 점유율</span>
-                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(report.diversity.card.top10PercentShare * 100).toFixed(1)}%</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(insightReport.diversity.card.top10PercentShare * 100).toFixed(1)}%</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>미사용 카드</span>
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{report.diversity.card.unusedCount}개</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{insightReport.diversity.card.unusedCount}개</span>
                           </div>
                           <div style={{
                             marginTop: '8px',
                             padding: '4px 8px',
-                            background: report.diversity.card.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : report.diversity.card.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            background: insightReport.diversity.card.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : insightReport.diversity.card.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                             borderRadius: '4px',
                             textAlign: 'center',
                             fontSize: '0.75rem',
-                            color: report.diversity.card.healthRating === 'healthy' ? '#22c55e' : report.diversity.card.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
+                            color: insightReport.diversity.card.healthRating === 'healthy' ? '#22c55e' : insightReport.diversity.card.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
                           }}>
-                            {report.diversity.card.healthRating === 'healthy' ? '✅ 건강' : report.diversity.card.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
+                            {insightReport.diversity.card.healthRating === 'healthy' ? '✅ 건강' : insightReport.diversity.card.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
                           </div>
                         </div>
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
@@ -1495,39 +1516,39 @@ const SimulatorTab = memo(function SimulatorTab() {
                             <span style={{
                               fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              color: report.diversity.relic.giniCoefficient < 0.4 ? '#22c55e' : report.diversity.relic.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
+                              color: insightReport.diversity.relic.giniCoefficient < 0.4 ? '#22c55e' : insightReport.diversity.relic.giniCoefficient < 0.6 ? '#f59e0b' : '#ef4444'
                             }}>
-                              {report.diversity.relic.giniCoefficient.toFixed(3)}
+                              {insightReport.diversity.relic.giniCoefficient.toFixed(3)}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>상위 10% 점유율</span>
-                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(report.diversity.relic.top10PercentShare * 100).toFixed(1)}%</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{(insightReport.diversity.relic.top10PercentShare * 100).toFixed(1)}%</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>미사용 상징</span>
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{report.diversity.relic.unusedCount}개</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{insightReport.diversity.relic.unusedCount}개</span>
                           </div>
                           <div style={{
                             marginTop: '8px',
                             padding: '4px 8px',
-                            background: report.diversity.relic.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : report.diversity.relic.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                            background: insightReport.diversity.relic.healthRating === 'healthy' ? 'rgba(34, 197, 94, 0.2)' : insightReport.diversity.relic.healthRating === 'imbalanced' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                             borderRadius: '4px',
                             textAlign: 'center',
                             fontSize: '0.75rem',
-                            color: report.diversity.relic.healthRating === 'healthy' ? '#22c55e' : report.diversity.relic.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
+                            color: insightReport.diversity.relic.healthRating === 'healthy' ? '#22c55e' : insightReport.diversity.relic.healthRating === 'imbalanced' ? '#f59e0b' : '#ef4444'
                           }}>
-                            {report.diversity.relic.healthRating === 'healthy' ? '✅ 건강' : report.diversity.relic.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
+                            {insightReport.diversity.relic.healthRating === 'healthy' ? '✅ 건강' : insightReport.diversity.relic.healthRating === 'imbalanced' ? '⚠️ 불균형' : '🔴 심각'}
                           </div>
                         </div>
                       </div>
 
                       {/* 메타 티어 */}
-                      {report.diversity.card.tierDistribution.filter(t => t.cards.length > 0).length > 0 && (
+                      {insightReport.diversity.card.tierDistribution.filter(t => t.cards.length > 0).length > 0 && (
                         <>
                           <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>🏆 메타 티어</h5>
                           <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
-                            {report.diversity.card.tierDistribution.filter(t => t.cards.length > 0).map((tier, i) => (
+                            {insightReport.diversity.card.tierDistribution.filter(t => t.cards.length > 0).map((tier, i) => (
                               <div key={i} style={{ marginBottom: '8px' }}>
                                 <span style={{
                                   display: 'inline-block',
@@ -1552,31 +1573,31 @@ const SimulatorTab = memo(function SimulatorTab() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>난이도 점수</div>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#8b5cf6' }}>{report.playerExperience.difficultyScore}/10</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#8b5cf6' }}>{insightReport.playerExperience.difficultyScore}/10</div>
                           </div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>신규 이탈률</div>
                             <div style={{
                               fontSize: '1.25rem',
                               fontWeight: 'bold',
-                              color: report.playerExperience.newPlayerDropoutRate > 0.5 ? '#ef4444' : '#22c55e'
+                              color: insightReport.playerExperience.newPlayerDropoutRate > 0.5 ? '#ef4444' : '#22c55e'
                             }}>
-                              {(report.playerExperience.newPlayerDropoutRate * 100).toFixed(0)}%
+                              {(insightReport.playerExperience.newPlayerDropoutRate * 100).toFixed(0)}%
                             </div>
                           </div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>숙련자 만족도</div>
                             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#22c55e' }}>
-                              {report.playerExperience.veteranSatisfactionScore}/10
+                              {insightReport.playerExperience.veteranSatisfactionScore}/10
                             </div>
                           </div>
                         </div>
                         <div style={{ fontSize: '0.875rem', color: '#e2e8f0', padding: '8px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '6px' }}>
-                          {report.playerExperience.overallAssessment}
+                          {insightReport.playerExperience.overallAssessment}
                         </div>
-                        {report.playerExperience.improvementPriorities.length > 0 && (
+                        {insightReport.playerExperience.improvementPriorities.length > 0 && (
                           <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#22c55e' }}>
-                            개선 우선순위: {report.playerExperience.improvementPriorities.join(' → ')}
+                            개선 우선순위: {insightReport.playerExperience.improvementPriorities.join(' → ')}
                           </div>
                         )}
                       </div>
@@ -1587,7 +1608,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                         {/* 특성별 통계 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>특성별 승률 기여도</div>
-                          {report.cardTraitAnalysis.traitStats.slice(0, 6).map((trait, i) => (
+                          {insightReport.cardTraitAnalysis.traitStats.slice(0, 6).map((trait, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                               <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{trait.traitName} ({trait.cardCount}장)</span>
                               <span style={{
@@ -1602,30 +1623,30 @@ const SimulatorTab = memo(function SimulatorTab() {
                             </div>
                           ))}
                           <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
-                            특성 다양성: {(report.cardTraitAnalysis.diversityScore * 100).toFixed(0)}%
+                            특성 다양성: {(insightReport.cardTraitAnalysis.diversityScore * 100).toFixed(0)}%
                           </div>
                         </div>
 
                         {/* 특성 밸런스 경고 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>특성 밸런스 이슈</div>
-                          {report.cardTraitAnalysis.overpoweredTraits.length > 0 && (
+                          {insightReport.cardTraitAnalysis.overpoweredTraits.length > 0 && (
                             <div style={{ marginBottom: '8px' }}>
                               <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 'bold' }}>🔴 과잉 강화</div>
-                              {report.cardTraitAnalysis.overpoweredTraits.slice(0, 3).map((t, i) => (
+                              {insightReport.cardTraitAnalysis.overpoweredTraits.slice(0, 3).map((t, i) => (
                                 <div key={i} style={{ fontSize: '0.75rem', color: '#f87171' }}>{t.traitName}: +{(t.avgContribution * 100).toFixed(0)}%</div>
                               ))}
                             </div>
                           )}
-                          {report.cardTraitAnalysis.underpoweredTraits.length > 0 && (
+                          {insightReport.cardTraitAnalysis.underpoweredTraits.length > 0 && (
                             <div>
                               <div style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 'bold' }}>🟡 약한 특성</div>
-                              {report.cardTraitAnalysis.underpoweredTraits.slice(0, 3).map((t, i) => (
+                              {insightReport.cardTraitAnalysis.underpoweredTraits.slice(0, 3).map((t, i) => (
                                 <div key={i} style={{ fontSize: '0.75rem', color: '#fbbf24' }}>{t.traitName}: {(t.avgContribution * 100).toFixed(0)}%</div>
                               ))}
                             </div>
                           )}
-                          {report.cardTraitAnalysis.overpoweredTraits.length === 0 && report.cardTraitAnalysis.underpoweredTraits.length === 0 && (
+                          {insightReport.cardTraitAnalysis.overpoweredTraits.length === 0 && insightReport.cardTraitAnalysis.underpoweredTraits.length === 0 && (
                             <div style={{ fontSize: '0.8rem', color: '#22c55e' }}>✓ 특성 밸런스 양호</div>
                           )}
                         </div>
@@ -1637,7 +1658,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                         {/* 스탯별 기여도 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>스탯별 승률 기여도</div>
-                          {report.growthStatAnalysis.statContributions.slice(0, 6).map((stat, i) => (
+                          {insightReport.growthStatAnalysis.statContributions.slice(0, 6).map((stat, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                               <span style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{stat.statName}</span>
                               <span style={{
@@ -1652,7 +1673,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                             </div>
                           ))}
                           <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
-                            다양성 점수: {(report.growthStatAnalysis.diversityScore * 100).toFixed(0)}%
+                            다양성 점수: {(insightReport.growthStatAnalysis.diversityScore * 100).toFixed(0)}%
                           </div>
                         </div>
 
@@ -1660,9 +1681,9 @@ const SimulatorTab = memo(function SimulatorTab() {
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>철학 분기 밸런스</div>
                           {[
-                            { name: '에토스', data: report.growthStatAnalysis.philosophyBalance.ethos, color: '#3b82f6' },
-                            { name: '파토스', data: report.growthStatAnalysis.philosophyBalance.pathos, color: '#ef4444' },
-                            { name: '로고스', data: report.growthStatAnalysis.philosophyBalance.logos, color: '#22c55e' },
+                            { name: '에토스', data: insightReport.growthStatAnalysis.philosophyBalance.ethos, color: '#3b82f6' },
+                            { name: '파토스', data: insightReport.growthStatAnalysis.philosophyBalance.pathos, color: '#ef4444' },
+                            { name: '로고스', data: insightReport.growthStatAnalysis.philosophyBalance.logos, color: '#22c55e' },
                           ].map((phil, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.8rem', color: phil.color, fontWeight: 'bold' }}>{phil.name}</span>
@@ -1678,10 +1699,10 @@ const SimulatorTab = memo(function SimulatorTab() {
                       </div>
 
                       {/* 필수 스탯 경고 */}
-                      {report.growthStatAnalysis.mustHaveStats.length > 0 && (
+                      {insightReport.growthStatAnalysis.mustHaveStats.length > 0 && (
                         <div style={{ padding: '10px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #ec4899' }}>
                           <div style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 'bold', marginBottom: '4px' }}>⚠️ 필수 스탯 감지</div>
-                          {report.growthStatAnalysis.mustHaveStats.map((stat, i) => (
+                          {insightReport.growthStatAnalysis.mustHaveStats.map((stat, i) => (
                             <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
                               {stat.statName}: 기여도 +{(stat.contributionGap * 100).toFixed(0)}% (보유 {(stat.winRateWith * 100).toFixed(0)}% vs 미보유 {(stat.winRateWithout * 100).toFixed(0)}%)
                             </div>
@@ -1695,8 +1716,8 @@ const SimulatorTab = memo(function SimulatorTab() {
                         {/* 최적 경로 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>최적 성장 경로 TOP 5</div>
-                          {report.growthPaths.optimalPaths.length > 0 ? (
-                            report.growthPaths.optimalPaths.map((path, i) => (
+                          {insightReport.growthPaths.optimalPaths.length > 0 ? (
+                            insightReport.growthPaths.optimalPaths.map((path, i) => (
                               <div key={i} style={{ marginBottom: '8px', padding: '6px', background: 'rgba(20, 184, 166, 0.1)', borderRadius: '4px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <span style={{ fontSize: '0.75rem', color: '#5eead4', fontWeight: 'bold' }}>{i + 1}. {path.path}</span>
@@ -1713,8 +1734,8 @@ const SimulatorTab = memo(function SimulatorTab() {
                         {/* 위험 경로 */}
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>위험 성장 경로</div>
-                          {report.growthPaths.riskyPaths.length > 0 ? (
-                            report.growthPaths.riskyPaths.map((path, i) => (
+                          {insightReport.growthPaths.riskyPaths.length > 0 ? (
+                            insightReport.growthPaths.riskyPaths.map((path, i) => (
                               <div key={i} style={{ marginBottom: '8px', padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <span style={{ fontSize: '0.75rem', color: '#f87171' }}>{path.path}</span>
@@ -1728,8 +1749,8 @@ const SimulatorTab = memo(function SimulatorTab() {
                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>위험 경로 없음</div>
                           )}
                           <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#64748b' }}>
-                            경로 다양성: {report.growthPaths.pathDiversity.uniquePaths}개 고유 경로,
-                            Gini: {report.growthPaths.pathDiversity.giniCoefficient.toFixed(3)}
+                            경로 다양성: {insightReport.growthPaths.pathDiversity.uniquePaths}개 고유 경로,
+                            Gini: {insightReport.growthPaths.pathDiversity.giniCoefficient.toFixed(3)}
                           </div>
                         </div>
                       </div>
@@ -1739,34 +1760,34 @@ const SimulatorTab = memo(function SimulatorTab() {
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
                         <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>총 승급</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#f59e0b' }}>{report.upgradeBalance.overall.totalUpgrades}</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#f59e0b' }}>{insightReport.upgradeBalance.overall.totalUpgrades}</div>
                         </div>
                         <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>런당 평균</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#e2e8f0' }}>{report.upgradeBalance.overall.avgUpgradesPerRun.toFixed(1)}</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#e2e8f0' }}>{insightReport.upgradeBalance.overall.avgUpgradesPerRun.toFixed(1)}</div>
                         </div>
                         <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>승률 상관</div>
                           <div style={{
                             fontSize: '1.25rem',
                             fontWeight: 'bold',
-                            color: report.upgradeBalance.overall.upgradeWinCorrelation > 0 ? '#22c55e' : '#ef4444'
+                            color: insightReport.upgradeBalance.overall.upgradeWinCorrelation > 0 ? '#22c55e' : '#ef4444'
                           }}>
-                            {report.upgradeBalance.overall.upgradeWinCorrelation >= 0 ? '+' : ''}
-                            {(report.upgradeBalance.overall.upgradeWinCorrelation * 100).toFixed(0)}%
+                            {insightReport.upgradeBalance.overall.upgradeWinCorrelation >= 0 ? '+' : ''}
+                            {(insightReport.upgradeBalance.overall.upgradeWinCorrelation * 100).toFixed(0)}%
                           </div>
                         </div>
                         <div style={{ padding: '10px', background: '#1e293b', borderRadius: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>최적 횟수</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#3b82f6' }}>{report.upgradeBalance.overall.optimalUpgradeCount}</div>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#3b82f6' }}>{insightReport.upgradeBalance.overall.optimalUpgradeCount}</div>
                         </div>
                       </div>
 
                       {/* 승급 우선순위 권장 */}
-                      {report.upgradeBalance.priorityRecommendations.length > 0 && (
+                      {insightReport.upgradeBalance.priorityRecommendations.length > 0 && (
                         <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '12px' }}>
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>🎯 승급 우선순위 권장</div>
-                          {report.upgradeBalance.priorityRecommendations.map((rec, i) => (
+                          {insightReport.upgradeBalance.priorityRecommendations.map((rec, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                               <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>
                                 {rec.rank}. {rec.cardName}
@@ -1778,22 +1799,22 @@ const SimulatorTab = memo(function SimulatorTab() {
                       )}
 
                       {/* 과다/과소 승급 경고 */}
-                      {(report.upgradeBalance.overUpgraded.length > 0 || report.upgradeBalance.underUpgraded.length > 0) && (
+                      {(insightReport.upgradeBalance.overUpgraded.length > 0 || insightReport.upgradeBalance.underUpgraded.length > 0) && (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          {report.upgradeBalance.overUpgraded.length > 0 && (
+                          {insightReport.upgradeBalance.overUpgraded.length > 0 && (
                             <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
                               <div style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 'bold', marginBottom: '4px' }}>⬇️ 과다 승급 (비효율)</div>
-                              {report.upgradeBalance.overUpgraded.slice(0, 3).map((card, i) => (
+                              {insightReport.upgradeBalance.overUpgraded.slice(0, 3).map((card, i) => (
                                 <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
                                   {card.cardName} ({card.upgradeCount}회) - {card.suggestion}
                                 </div>
                               ))}
                             </div>
                           )}
-                          {report.upgradeBalance.underUpgraded.length > 0 && (
+                          {insightReport.upgradeBalance.underUpgraded.length > 0 && (
                             <div style={{ padding: '10px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
                               <div style={{ fontSize: '0.75rem', color: '#4ade80', fontWeight: 'bold', marginBottom: '4px' }}>⬆️ 과소 승급 (기회손실)</div>
-                              {report.upgradeBalance.underUpgraded.slice(0, 3).map((card, i) => (
+                              {insightReport.upgradeBalance.underUpgraded.slice(0, 3).map((card, i) => (
                                 <div key={i} style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
                                   {card.cardName} ({card.upgradeCount}회) - {card.suggestion}
                                 </div>
@@ -1803,8 +1824,7 @@ const SimulatorTab = memo(function SimulatorTab() {
                         </div>
                       )}
                     </>
-                  );
-                })()}
+                )}
               </>
             )}
 

@@ -1,7 +1,8 @@
 import "./App.css";
-import { lazy, Suspense, FC } from "react";
+import { lazy, Suspense, FC, useEffect } from "react";
 import { useGameStore } from "./state/gameStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { initStatsBridge } from "./simulator/bridge/stats-bridge";
 
 // 동적 import로 코드 스플리팅
 const MapDemo = lazy(() => import("./components/map/MapDemo").then(m => ({ default: m.MapDemo })));
@@ -26,6 +27,11 @@ const LoadingFallback: FC = () => {
 
 const App: FC = () => {
   const activeBattle = useGameStore((state) => state.activeBattle);
+
+  // 통계 브릿지 모듈 미리 로드 (번들 최적화)
+  useEffect(() => {
+    initStatsBridge();
+  }, []);
 
   return (
     <ErrorBoundary>

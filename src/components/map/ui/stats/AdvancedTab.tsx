@@ -2,12 +2,14 @@
  * AdvancedTab.tsx
  * 고급 분석 탭 - 시너지, 기여도, AI분석, 인사이트
  * StatsWidget에서 분리됨
+ *
+ * 번들 최적화: balance-insights 모듈은 동적 import로 지연 로드됩니다.
  */
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import type { CSSProperties } from 'react';
 import { analyzeStats } from '../../../../simulator/analysis/stats-analysis-framework';
-import { BalanceInsightAnalyzer } from '../../../../simulator/analysis/balance-insights';
+import type { BalanceInsightReport } from '../../../../simulator/analysis/balance-insights';
 import type { DetailedStats } from '../../../../simulator/analysis/detailed-stats-types';
 import { StatRow, SECTION_TITLE_STYLE, STAT_ROW_STYLE } from '../../../stats';
 
@@ -29,9 +31,26 @@ const getSubTabStyle = (active: boolean): CSSProperties => ({
 
 export const AdvancedTab = memo(function AdvancedTab({ detailed }: AdvancedTabProps) {
   const [subTab, setSubTab] = useState<SubTabType>('synergy');
+  const [insightReport, setInsightReport] = useState<BalanceInsightReport | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const analysis = useMemo(() => analyzeStats(detailed), [detailed]);
-  const insightReport = useMemo(() => new BalanceInsightAnalyzer(detailed).generateReport(), [detailed]);
+
+  // 인사이트 탭 선택 시에만 balance-insights 모듈 로드
+  useEffect(() => {
+    if (subTab !== 'insights') return;
+    let cancelled = false;
+    setInsightsLoading(true);
+
+    import('../../../../simulator/analysis/balance-insights').then(({ BalanceInsightAnalyzer }) => {
+      if (cancelled) return;
+      const analyzer = new BalanceInsightAnalyzer(detailed);
+      setInsightReport(analyzer.generateReport());
+      setInsightsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [subTab, detailed]);
 
   return (
     <>
@@ -135,48 +154,56 @@ export const AdvancedTab = memo(function AdvancedTab({ detailed }: AdvancedTabPr
         <>
           <h3 style={{ ...SECTION_TITLE_STYLE, color: '#10b981' }}>⚖️ 밸런스 인사이트</h3>
 
-          {/* 요약 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>건강도</div>
-              <div style={{
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                color: insightReport.summary.healthScore >= 70 ? '#22c55e' : insightReport.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
-              }}>
-                {insightReport.summary.healthScore}/100
-              </div>
+          {insightsLoading || !insightReport ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
+              인사이트 분석 중...
             </div>
-            <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>이슈</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>
-                {insightReport.summary.criticalIssues + insightReport.summary.warningIssues}개
-              </div>
-            </div>
-          </div>
-
-          {/* 최우선 과제 */}
-          {insightReport.summary.topPriorities.length > 0 && (
+          ) : (
             <>
-              <h4 style={{ margin: '8px 0 4px', fontSize: '12px', color: '#fbbf24' }}>🎯 우선 과제</h4>
-              {insightReport.summary.topPriorities.slice(0, 3).map((p: string, i: number) => (
-                <p key={i} style={{ fontSize: '11px', color: '#e2e8f0', margin: '4px 0', paddingLeft: '8px' }}>
-                  {i + 1}. {p}
-                </p>
-              ))}
-            </>
-          )}
-
-          {/* 필수픽 경고 */}
-          {insightReport.mustPicks.length > 0 && (
-            <>
-              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ec4899' }}>⚠️ 필수픽</h4>
-              {insightReport.mustPicks.slice(0, 3).map((mp: { targetName: string; explanation: string }, i: number) => (
-                <div key={i} style={{ padding: '4px 6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#f472b6', fontWeight: 'bold' }}>{mp.targetName}</span>
-                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0' }}>{mp.explanation}</p>
+              {/* 요약 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>건강도</div>
+                  <div style={{
+                    fontSize: '1.2rem',
+                    fontWeight: 'bold',
+                    color: insightReport.summary.healthScore >= 70 ? '#22c55e' : insightReport.summary.healthScore >= 40 ? '#f59e0b' : '#ef4444'
+                  }}>
+                    {insightReport.summary.healthScore}/100
+                  </div>
                 </div>
-              ))}
+                <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>이슈</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>
+                    {insightReport.summary.criticalIssues + insightReport.summary.warningIssues}개
+                  </div>
+                </div>
+              </div>
+
+              {/* 최우선 과제 */}
+              {insightReport.summary.topPriorities.length > 0 && (
+                <>
+                  <h4 style={{ margin: '8px 0 4px', fontSize: '12px', color: '#fbbf24' }}>🎯 우선 과제</h4>
+                  {insightReport.summary.topPriorities.slice(0, 3).map((p: string, i: number) => (
+                    <p key={i} style={{ fontSize: '11px', color: '#e2e8f0', margin: '4px 0', paddingLeft: '8px' }}>
+                      {i + 1}. {p}
+                    </p>
+                  ))}
+                </>
+              )}
+
+              {/* 필수픽 경고 */}
+              {insightReport.mustPicks.length > 0 && (
+                <>
+                  <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ec4899' }}>⚠️ 필수픽</h4>
+                  {insightReport.mustPicks.slice(0, 3).map((mp: { targetName: string; explanation: string }, i: number) => (
+                    <div key={i} style={{ padding: '4px 6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#f472b6', fontWeight: 'bold' }}>{mp.targetName}</span>
+                      <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0' }}>{mp.explanation}</p>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
         </>

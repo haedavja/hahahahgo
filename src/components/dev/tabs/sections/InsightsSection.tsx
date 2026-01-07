@@ -1,10 +1,12 @@
 /**
  * InsightsSection.tsx
  * 밸런스 인사이트 섹션 - SimulatorTab에서 분리
+ *
+ * 번들 최적화: balance-insights 모듈은 동적 import로 지연 로드됩니다.
  */
 
-import { memo, useMemo, type CSSProperties } from 'react';
-import { BalanceInsightAnalyzer } from '../../../../simulator/analysis/balance-insights';
+import { memo, useState, useEffect, type CSSProperties } from 'react';
+import type { BalanceInsightReport } from '../../../../simulator/analysis/balance-insights';
 import type { DetailedStats } from '../../../../simulator/analysis/detailed-stats';
 
 interface InsightsSectionProps {
@@ -13,10 +15,31 @@ interface InsightsSectionProps {
 }
 
 export const InsightsSection = memo(function InsightsSection({ stats, scrollBoxStyle }: InsightsSectionProps) {
-  const report = useMemo(() => {
-    const analyzer = new BalanceInsightAnalyzer(stats);
-    return analyzer.generateReport();
+  const [report, setReport] = useState<BalanceInsightReport | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 동적 import로 balance-insights 모듈 로드
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    import('../../../../simulator/analysis/balance-insights').then(({ BalanceInsightAnalyzer }) => {
+      if (cancelled) return;
+      const analyzer = new BalanceInsightAnalyzer(stats);
+      setReport(analyzer.generateReport());
+      setIsLoading(false);
+    });
+
+    return () => { cancelled = true; };
   }, [stats]);
+
+  if (isLoading || !report) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
+        인사이트 분석 중...
+      </div>
+    );
+  }
 
   return (
     <>
