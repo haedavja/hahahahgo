@@ -3,12 +3,39 @@
  * @description 게임-시뮬레이터 통계 브릿지
  *
  * 실제 게임 전투 결과를 시뮬레이터 통계 시스템에 연결합니다.
+ *
+ * 번들 최적화: detailed-stats 모듈은 동적 import로 지연 로드됩니다.
+ * 앱 시작 시 initStatsBridge()를 호출하여 미리 로드할 수 있습니다.
  */
 
-import { StatsCollector, createStatsCollector } from '../analysis/detailed-stats';
+import type { StatsCollector } from '../analysis/detailed-stats';
 import type { BattleResult as SimulatorBattleResult, BattleEvent } from '../core/game-types';
 import type { BattleResult as GameBattleResult } from '../../types/battle';
 import type { DetailedStats } from '../analysis/detailed-stats-types';
+
+// 동적 import 캐시
+let statsModulePromise: Promise<typeof import('../analysis/detailed-stats')> | null = null;
+let statsModule: typeof import('../analysis/detailed-stats') | null = null;
+
+/**
+ * detailed-stats 모듈 동적 로드 (캐시됨)
+ */
+async function loadStatsModule(): Promise<typeof import('../analysis/detailed-stats')> {
+  if (statsModule) return statsModule;
+  if (!statsModulePromise) {
+    statsModulePromise = import('../analysis/detailed-stats');
+  }
+  statsModule = await statsModulePromise;
+  return statsModule;
+}
+
+/**
+ * 통계 브릿지 초기화 (앱 시작 시 호출 권장)
+ * 번들 최적화를 위해 detailed-stats 모듈을 미리 로드합니다.
+ */
+export async function initStatsBridge(): Promise<void> {
+  await loadStatsModule();
+}
 
 // ==================== 타입 정의 ====================
 
@@ -284,11 +311,39 @@ function saveStatsToStorage(): void {
 }
 
 /**
- * 전역 통계 수집기 가져오기 또는 생성
+ * 전역 통계 수집기 가져오기 또는 생성 (동기)
+ * 주의: 모듈이 아직 로드되지 않았으면 동기적으로 로드를 시도합니다.
  */
 export function getStatsCollector(): StatsCollector {
   if (!globalStatsCollector) {
-    globalStatsCollector = createStatsCollector();
+    // 모듈이 이미 로드된 경우 동기적으로 사용
+    if (statsModule) {
+      globalStatsCollector = statsModule.createStatsCollector();
+      isInitialized = true;
+    } else {
+      // 아직 로드되지 않은 경우 - 동적 로드 시작하고 임시 수집기 반환
+      // 이 경로는 initStatsBridge()가 호출되지 않은 경우에만 실행됨
+      loadStatsModule().then(mod => {
+        if (!globalStatsCollector) {
+          globalStatsCollector = mod.createStatsCollector();
+          isInitialized = true;
+        }
+      });
+      // 임시로 빈 수집기 반환 (noop) - 다음 호출에서 실제 수집기 사용
+      return createNoopCollector();
+    }
+  }
+  return globalStatsCollector;
+}
+
+/**
+ * 전역 통계 수집기 가져오기 (비동기)
+ * 모듈 로드를 기다린 후 수집기 반환
+ */
+export async function getStatsCollectorAsync(): Promise<StatsCollector> {
+  if (!globalStatsCollector) {
+    const mod = await loadStatsModule();
+    globalStatsCollector = mod.createStatsCollector();
     isInitialized = true;
   }
   return globalStatsCollector;
@@ -297,13 +352,143 @@ export function getStatsCollector(): StatsCollector {
 /**
  * 통계 수집기 초기화 (새 런 시작 시)
  */
-export function resetStatsCollector(): void {
-  globalStatsCollector = createStatsCollector();
+export async function resetStatsCollector(): Promise<void> {
+  const mod = await loadStatsModule();
+  globalStatsCollector = mod.createStatsCollector();
   isInitialized = true;
   // localStorage도 초기화
   if (typeof window !== 'undefined' && window.localStorage) {
     localStorage.removeItem(STATS_STORAGE_KEY);
   }
+}
+
+/**
+ * 통계 수집기 동기 초기화 (모듈이 이미 로드된 경우만)
+ */
+export function resetStatsCollectorSync(): void {
+  if (!statsModule) {
+    console.warn('[StatsBridge] Module not loaded. Call initStatsBridge() first.');
+    return;
+  }
+  globalStatsCollector = statsModule.createStatsCollector();
+  isInitialized = true;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.removeItem(STATS_STORAGE_KEY);
+  }
+}
+
+/**
+ * 빈 DetailedStats 객체 생성 (모듈 로드 전 사용)
+ */
+function createEmptyDetailedStats(): DetailedStats {
+  const now = new Date();
+  return {
+    startTime: now,
+    endTime: now,
+    cardStats: new Map(),
+    monsterStats: new Map(),
+    enemyGroupStats: new Map(),
+    eventStats: new Map(),
+    runStats: {
+      totalRuns: 0,
+      successfulRuns: 0,
+      failedRuns: 0,
+      averageFloor: 0,
+      averageScore: 0,
+      totalBattles: 0,
+      totalGoldEarned: 0,
+      totalDamageDealt: 0,
+      totalDamageTaken: 0,
+      averageDeckSize: 0,
+      averageRelicCount: 0,
+    },
+    battleRecords: [],
+    upgradeStats: {
+      totalUpgrades: 0,
+      upgradesByCard: new Map(),
+      averageUpgradesPerRun: 0,
+    },
+    growthStats: {
+      totalInvestments: 0,
+      investmentsByType: {},
+      investmentsByTrait: {},
+    },
+    shopStats: {
+      totalVisits: 0,
+      totalPurchases: 0,
+      totalSpent: 0,
+      purchasesByType: {},
+    },
+    dungeonStats: {
+      totalAttempts: 0,
+      successfulClears: 0,
+      dungeonDetails: new Map(),
+    },
+    shopServiceStats: {
+      totalServices: 0,
+      servicesByType: {},
+      totalSpent: 0,
+      averageSpendPerVisit: 0,
+    },
+    itemUsageStats: {
+      totalItemsAcquired: 0,
+      totalItemsUsed: 0,
+      itemDetails: new Map(),
+    },
+    eventChoiceStats: new Map(),
+    aiStrategyStats: {
+      decisionCounts: {},
+      averageDecisionTime: 0,
+    },
+    cardPickStats: {
+      totalOffers: 0,
+      totalPicks: 0,
+      pickRateByCard: new Map(),
+      skipRate: 0,
+    },
+    cardContributionStats: {
+      damageContribution: new Map(),
+      blockContribution: new Map(),
+      winContribution: new Map(),
+    },
+    cardDeepStats: new Map(),
+    relicStats: new Map(),
+    difficultyStats: new Map(),
+    tokenStats: new Map(),
+    nodeTypeValueComparison: new Map(),
+  };
+}
+
+/**
+ * 모듈 로드 전 임시로 사용할 no-op 수집기
+ */
+function createNoopCollector(): StatsCollector {
+  const noop = () => {};
+  const emptyStats = createEmptyDetailedStats();
+  return {
+    startNewRun: noop,
+    recordBattle: noop,
+    recordRun: noop,
+    recordRunComplete: noop,
+    recordCardOffered: noop,
+    recordCardPicked: noop,
+    recordCardChoice: noop,
+    recordRelicAcquired: noop,
+    recordShopVisit: noop,
+    recordShopService: noop,
+    recordEvent: noop,
+    recordEventChoice: noop,
+    recordDungeon: noop,
+    recordItemAcquired: noop,
+    recordItemUsed: noop,
+    recordGrowthInvestment: noop,
+    recordTurnDamage: noop,
+    recordFlawlessVictory: noop,
+    recordFloorSnapshot: noop,
+    recordDeath: noop,
+    finalizeRunCardStats: noop,
+    finalize: () => emptyStats,
+  } as StatsCollector;
 }
 
 /**
@@ -1212,8 +1397,11 @@ export function getEnemyStats(enemyId: string) {
 
 export const StatsBridge = {
   // 초기화
+  init: initStatsBridge,
   getCollector: getStatsCollector,
+  getCollectorAsync: getStatsCollectorAsync,
   reset: resetStatsCollector,
+  resetSync: resetStatsCollectorSync,
   isInitialized: isStatsInitialized,
 
   // 전투 기록

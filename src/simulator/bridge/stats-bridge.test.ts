@@ -20,6 +20,7 @@ import {
   invalidateStatsCache,
   getCardStats,
   getEnemyStats,
+  initStatsBridge,
   type GameBattleContext,
   type GameEnemyInfo,
   type GamePlayerInfo,
@@ -27,8 +28,10 @@ import {
 import type { BattleResult } from '../../types/battle';
 
 describe('stats-bridge', () => {
-  beforeEach(() => {
-    resetStatsCollector();
+  beforeEach(async () => {
+    // 동적 import 모듈 초기화 후 수집기 리셋
+    await initStatsBridge();
+    await resetStatsCollector();
     invalidateStatsCache();
   });
 
@@ -39,9 +42,9 @@ describe('stats-bridge', () => {
       expect(collector1).toBe(collector2);
     });
 
-    it('초기화 후 새 인스턴스를 반환한다', () => {
+    it('초기화 후 새 인스턴스를 반환한다', async () => {
       const collector1 = getStatsCollector();
-      resetStatsCollector();
+      await resetStatsCollector();
       const collector2 = getStatsCollector();
       expect(collector1).not.toBe(collector2);
     });
