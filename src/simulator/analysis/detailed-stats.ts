@@ -14,6 +14,7 @@
  */
 
 import type { BattleResult, BattleEvent } from '../core/game-types';
+import { getConfig } from '../core/config';
 
 // 타입 재내보내기 (하위 호환성 유지)
 export type {
@@ -1415,6 +1416,8 @@ export class StatsCollector {
 
     // 카드 쌍 통계 업데이트
     const uniqueCards = [...new Set(deck)];
+
+    // 2-카드 조합 (O(n²) - 유지)
     for (let i = 0; i < uniqueCards.length; i++) {
       for (let j = i + 1; j < uniqueCards.length; j++) {
         const pair = [uniqueCards[i], uniqueCards[j]].sort().join('+');
@@ -1422,11 +1425,23 @@ export class StatsCollector {
         if (success) {
           this.cardPairWins[pair] = (this.cardPairWins[pair] || 0) + 1;
         }
+      }
+    }
 
-        // 3-카드 조합 통계 업데이트 (성능을 위해 상위 N개 카드만)
-        if (uniqueCards.length <= 15) {
-          for (let k = j + 1; k < uniqueCards.length; k++) {
-            const triple = [uniqueCards[i], uniqueCards[j], uniqueCards[k]].sort().join('+');
+    // 3-카드 조합 최적화: 상위 N개 카드만 사용 (O(N³) 상수 시간)
+    const { maxTripleCards } = getConfig().analysis;
+    if (uniqueCards.length >= 3) {
+      // 카드 사용 빈도 기준 상위 N개 선택
+      const topCards = uniqueCards
+        .map(card => ({ card, count: this.cardPairCounts[card] || 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, maxTripleCards)
+        .map(c => c.card);
+
+      for (let i = 0; i < topCards.length; i++) {
+        for (let j = i + 1; j < topCards.length; j++) {
+          for (let k = j + 1; k < topCards.length; k++) {
+            const triple = [topCards[i], topCards[j], topCards[k]].sort().join('+');
             this.cardTripleCounts[triple] = (this.cardTripleCounts[triple] || 0) + 1;
             if (success) {
               this.cardTripleWins[triple] = (this.cardTripleWins[triple] || 0) + 1;

@@ -92,6 +92,16 @@ export interface AnalysisSettings {
   mctsExplorationConstant: number;
   /** 밸런스 분석 시뮬레이션 수 */
   balanceSimulations: number;
+  /** 3-카드 조합 분석 최대 카드 수 (O(n³) 최적화) */
+  maxTripleCards: number;
+  /** 리플레이 버퍼/공유 엔트리 최대 수 */
+  maxBufferEntries: number;
+  /** 통계 신뢰 수준 (Wilson Score) */
+  confidenceLevel: number;
+  /** 목표 승률 (밸런스 튜닝) */
+  targetWinRate: number;
+  /** 덱 분석 시뮬레이션 수 */
+  deckAnalysisSimulations: number;
 }
 
 export interface CISettings {
@@ -162,6 +172,11 @@ export const DEFAULT_CONFIG: SimulatorConfig = {
     mctsTimeLimit: 5000,
     mctsExplorationConstant: Math.sqrt(2),
     balanceSimulations: 500,
+    maxTripleCards: 10,          // 3-카드 조합 분석용
+    maxBufferEntries: 100,       // 리플레이/공유 버퍼
+    confidenceLevel: 0.95,       // 통계 신뢰 수준
+    targetWinRate: 0.5,          // 밸런스 목표 승률
+    deckAnalysisSimulations: 1000, // 덱 분석 시뮬레이션
   },
 
   ci: {

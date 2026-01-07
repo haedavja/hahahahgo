@@ -7,6 +7,7 @@ import type { SimulationConfig, SimulationResult, BattleResult } from '../core/t
 import { loadCards, loadEnemies, type CardData, type EnemyData } from '../data/loader';
 import type { SimulatorInterface } from './balance';
 import { SynergyAnalyzer, type SynergyPair, type DeckSynergy } from './synergy';
+import { getConfig } from '../core/config';
 
 // ==================== 덱 분석 타입 ====================
 
@@ -492,7 +493,7 @@ export class DeckAnalyzer {
 
   private simulateHandProbabilities(deck: string[], turns: number): HandProbability[] {
     const results: HandProbability[] = [];
-    const simulations = 1000;
+    const simulations = getConfig().analysis.deckAnalysisSimulations;
 
     for (let turn = 1; turn <= turns; turn++) {
       const handSize = this.options.handSize;
@@ -637,7 +638,7 @@ export class DeckAnalyzer {
 
   private calculateBrickChance(deck: string[]): number {
     // 브릭 = 첫 손패로 아무것도 할 수 없는 경우
-    const simulations = 1000;
+    const simulations = getConfig().analysis.deckAnalysisSimulations;
     let brickCount = 0;
 
     for (let sim = 0; sim < simulations; sim++) {

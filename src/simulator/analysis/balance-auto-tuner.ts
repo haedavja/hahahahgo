@@ -10,6 +10,7 @@
 import type { DetailedStats, CardDeepStats } from './detailed-stats-types';
 import { CARDS, type GameCard } from '../../components/battle/battleData';
 import { RELICS } from '../../data/relics';
+import { getConfig } from '../core/config';
 
 // ==================== 타입 정의 ====================
 
@@ -57,8 +58,8 @@ export interface AutoTuneResult {
 
 // ==================== 상수 정의 ====================
 
-/** 목표 승률 (50% 균형) */
-const TARGET_WIN_RATE = 0.5;
+/** 목표 승률 (config에서 가져옴) */
+const TARGET_WIN_RATE = getConfig().analysis.targetWinRate;
 const WIN_RATE_TOLERANCE = 0.05; // ±5%
 
 /** 조정 비율 상수 */

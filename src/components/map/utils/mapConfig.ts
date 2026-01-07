@@ -61,7 +61,7 @@ export const STAT_LABELS = {
 };
 
 // 패치 버전 태그
-export const PATCH_VERSION_TAG = "01-07 01:26";
+export const PATCH_VERSION_TAG = "01-07 09:31";
 
 // 유틸리티 함수들
 export const describeAmount = (value: number | { min: number; max: number } | null | undefined) => {
