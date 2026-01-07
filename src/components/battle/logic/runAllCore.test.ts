@@ -18,6 +18,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runAllCore } from './runAllCore';
+import {
+  createRunAllPlayer,
+  createRunAllEnemy,
+  createRunAllCard,
+  createRunAllBattle,
+  type TestRunAllActions,
+} from '../../../test/factories';
 
 // Mock dependencies
 vi.mock('./combatActions', () => ({
@@ -52,46 +59,8 @@ vi.mock('../battleData', () => ({
 import { applyAction } from './combatActions';
 
 describe('runAllCore', () => {
-  const createPlayer = (overrides = {}) => ({
-    hp: 100,
-    maxHp: 100,
-    block: 0,
-    def: false,
-    counter: 0,
-    vulnMult: 1,
-    strength: 0,
-    energy: 3,
-    maxEnergy: 3,
-    tokens: { usage: [], turn: [], permanent: [] },
-    etherPts: 0,
-    ...overrides
-  });
-
-  const createEnemy = (overrides = {}) => ({
-    hp: 50,
-    maxHp: 50,
-    block: 0,
-    def: false,
-    counter: 0,
-    vulnMult: 1,
-    energy: 3,
-    maxEnergy: 3,
-    tokens: { usage: [], turn: [], permanent: [] },
-    etherPts: 0,
-    ...overrides
-  });
-
-  const createCard = (overrides = {}) => ({
-    id: 'test_card',
-    name: '테스트 카드',
-    type: 'attack',
-    damage: 10,
-    speedCost: 5,
-    actionCost: 1,
-    ...overrides
-  });
-
-  const createActions = () => ({
+  // 로컬 헬퍼 - vi.fn() 사용으로 팩토리 분리 불가
+  const createActions = (): TestRunAllActions => ({
     setTurnEtherAccumulated: vi.fn(),
     setEnemyTurnEtherAccumulated: vi.fn(),
     setPlayer: vi.fn(),
@@ -101,13 +70,6 @@ describe('runAllCore', () => {
     setPostCombatOptions: vi.fn(),
     setPhase: vi.fn(),
     setEnemyHit: vi.fn()
-  });
-
-  const createBattle = (queue: any[] = [], overrides = {}) => ({
-    queue,
-    qIndex: 0,
-    actionEvents: {},
-    ...overrides
   });
 
   beforeEach(() => {
@@ -129,9 +91,9 @@ describe('runAllCore', () => {
   describe('빈 큐 처리', () => {
     it('큐가 없으면 completed=false 반환', () => {
       const params = {
-        battle: { queue: undefined, qIndex: 0 } as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: { queue: undefined, qIndex: 0 },
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -148,10 +110,11 @@ describe('runAllCore', () => {
     });
 
     it('qIndex가 큐 길이보다 크면 completed=false 반환', () => {
+      const card = createRunAllCard();
       const params = {
-        battle: createBattle([{ actor: 'player', card: createCard() }], { qIndex: 5 }) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle([{ actor: 'player', card, sp: 5 }], { qIndex: 5 }),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 5,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -170,14 +133,14 @@ describe('runAllCore', () => {
 
   describe('단일 액션 실행', () => {
     it('플레이어 공격 액션이 실행되어야 함', () => {
-      const card = createCard({ damage: 10 });
+      const card = createRunAllCard({ damage: 10 });
       const queue = [{ actor: 'player', card, sp: 5 }];
       const actions = createActions();
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy({ hp: 50 }) as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy({ hp: 50 }),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -197,7 +160,7 @@ describe('runAllCore', () => {
     });
 
     it('적 공격 액션이 실행되어야 함', () => {
-      const card = createCard({ damage: 5 });
+      const card = createRunAllCard({ damage: 5 });
       const queue = [{ actor: 'enemy', card, sp: 3 }];
 
       (applyAction as ReturnType<typeof vi.fn>).mockImplementation((state, actor, card) => ({
@@ -209,9 +172,9 @@ describe('runAllCore', () => {
       }));
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer({ hp: 100 }) as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer({ hp: 100 }),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -230,7 +193,7 @@ describe('runAllCore', () => {
 
   describe('적 처치 감지', () => {
     it('적 HP가 0이 되면 enemyDefeated 결과 반환', () => {
-      const card = createCard({ damage: 100 });
+      const card = createRunAllCard({ damage: 100 });
       const queue = [{ actor: 'player', card, sp: 5 }];
 
       (applyAction as ReturnType<typeof vi.fn>).mockImplementation((state) => ({
@@ -242,9 +205,9 @@ describe('runAllCore', () => {
       }));
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy({ hp: 50 }) as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy({ hp: 50 }),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -262,8 +225,8 @@ describe('runAllCore', () => {
     });
 
     it('적 처치 후 남은 적 행동은 건너뛰어야 함', () => {
-      const playerCard = createCard({ id: 'player_atk', damage: 100 });
-      const enemyCard = createCard({ id: 'enemy_atk', damage: 20 });
+      const playerCard = createRunAllCard({ id: 'player_atk', damage: 100 });
+      const enemyCard = createRunAllCard({ id: 'enemy_atk', damage: 20 });
       const queue = [
         { actor: 'player', card: playerCard, sp: 5 },
         { actor: 'enemy', card: enemyCard, sp: 7 }
@@ -288,9 +251,9 @@ describe('runAllCore', () => {
       });
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy({ hp: 50 }) as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy({ hp: 50 }),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -310,7 +273,7 @@ describe('runAllCore', () => {
 
   describe('플레이어 패배 감지', () => {
     it('플레이어 HP가 0이 되면 defeat 결과 반환', () => {
-      const enemyCard = createCard({ damage: 200 });
+      const enemyCard = createRunAllCard({ damage: 200 });
       const queue = [{ actor: 'enemy', card: enemyCard, sp: 3 }];
 
       (applyAction as ReturnType<typeof vi.fn>).mockImplementation((state) => ({
@@ -323,9 +286,9 @@ describe('runAllCore', () => {
 
       const actions = createActions();
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer({ hp: 100 }) as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer({ hp: 100 }),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -347,14 +310,14 @@ describe('runAllCore', () => {
 
   describe('상태 업데이트', () => {
     it('실행 후 setPlayer가 호출되어야 함', () => {
-      const card = createCard();
+      const card = createRunAllCard();
       const queue = [{ actor: 'player', card, sp: 5 }];
       const actions = createActions();
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -373,14 +336,14 @@ describe('runAllCore', () => {
     });
 
     it('실행 후 setEnemy가 호출되어야 함', () => {
-      const card = createCard();
+      const card = createRunAllCard();
       const queue = [{ actor: 'player', card, sp: 5 }];
       const actions = createActions();
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -399,7 +362,7 @@ describe('runAllCore', () => {
     });
 
     it('실행 후 setQIndex가 큐 길이로 설정되어야 함', () => {
-      const card = createCard();
+      const card = createRunAllCard();
       const queue = [
         { actor: 'player', card, sp: 5 },
         { actor: 'enemy', card, sp: 7 }
@@ -407,9 +370,9 @@ describe('runAllCore', () => {
       const actions = createActions();
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,
@@ -428,14 +391,14 @@ describe('runAllCore', () => {
 
   describe('로그 기록', () => {
     it('각 액션의 이벤트가 addLog로 기록되어야 함', () => {
-      const card = createCard();
+      const card = createRunAllCard();
       const queue = [{ actor: 'player', card, sp: 5 }];
       const addLog = vi.fn();
 
       const params = {
-        battle: createBattle(queue) as any,
-        player: createPlayer() as any,
-        enemy: createEnemy() as any,
+        battle: createRunAllBattle(queue),
+        player: createRunAllPlayer(),
+        enemy: createRunAllEnemy(),
         qIndex: 0,
         turnEtherAccumulated: 0,
         enemyTurnEtherAccumulated: 0,

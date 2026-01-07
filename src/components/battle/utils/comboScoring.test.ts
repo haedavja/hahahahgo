@@ -27,20 +27,12 @@ import {
   decideComboStrategy,
   scoreWithCombo
 } from './comboScoring';
-
-// 테스트용 카드 생성 헬퍼
-function createCard(actionCost: number, type = 'attack', opts = {} as { damage?: number, block?: number, speedCost?: number, name?: string, hits?: number }) {
-  return {
-    id: `test_${actionCost}_${type}`,
-    actionCost,
-    type,
-    damage: opts.damage || (type === 'attack' ? 10 : 0),
-    block: opts.block || (type !== 'attack' ? 5 : 0),
-    speedCost: opts.speedCost || 3,
-    hits: opts.hits || 1,
-    ...opts
-  };
-}
+import {
+  createComboCard,
+  createComboStrategy,
+  createComboStrategyOptions,
+  type TestComboCard,
+} from '../../../test/factories';
 
 describe('COMBO_SCORE_WEIGHTS', () => {
   it('모든 콤보에 점수가 정의됨', () => {
@@ -89,11 +81,11 @@ describe('ENEMY_COMBO_TENDENCIES', () => {
 describe('calculateComboScore', () => {
   it('빈 배열은 점수 0', () => {
     expect(calculateComboScore([]).score).toBe(0);
-    expect(calculateComboScore(null as any).score).toBe(0);
+    expect(calculateComboScore(null as unknown as TestComboCard[]).score).toBe(0);
   });
 
   it('하이카드 점수 0', () => {
-    const cards = [createCard(1), createCard(2), createCard(3)] as any;
+    const cards = [createComboCard(1), createComboCard(2), createComboCard(3)];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('하이카드');
     expect(result.score).toBe(0);
@@ -101,7 +93,7 @@ describe('calculateComboScore', () => {
   });
 
   it('페어 점수 100', () => {
-    const cards = [createCard(1), createCard(1)] as any;
+    const cards = [createComboCard(1), createComboCard(1)];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('페어');
     expect(result.score).toBe(100);
@@ -109,7 +101,7 @@ describe('calculateComboScore', () => {
   });
 
   it('트리플 점수 200', () => {
-    const cards = [createCard(2), createCard(2), createCard(2)] as any;
+    const cards = [createComboCard(2), createComboCard(2), createComboCard(2)];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('트리플');
     expect(result.score).toBe(200);
@@ -118,11 +110,11 @@ describe('calculateComboScore', () => {
 
   it('플러쉬 점수 225 (공격 4장)', () => {
     const cards = [
-      createCard(1, 'attack'),
-      createCard(2, 'attack'),
-      createCard(3, 'attack'),
-      createCard(4, 'attack')
-    ] as any;
+      createComboCard(1, 'attack'),
+      createComboCard(2, 'attack'),
+      createComboCard(3, 'attack'),
+      createComboCard(4, 'attack')
+    ];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('플러쉬');
     expect(result.score).toBe(225);
@@ -130,11 +122,11 @@ describe('calculateComboScore', () => {
 
   it('플러쉬 점수 225 (방어 4장)', () => {
     const cards = [
-      createCard(1, 'general'),
-      createCard(2, 'general'),
-      createCard(3, 'defense'),
-      createCard(4, 'general')
-    ] as any;
+      createComboCard(1, 'general'),
+      createComboCard(2, 'general'),
+      createComboCard(3, 'defense'),
+      createComboCard(4, 'general')
+    ];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('플러쉬');
     expect(result.score).toBe(225);
@@ -142,11 +134,11 @@ describe('calculateComboScore', () => {
 
   it('포카드 점수 400', () => {
     const cards = [
-      createCard(3, 'attack'),
-      createCard(3, 'defense'),
-      createCard(3, 'attack'),
-      createCard(3, 'general')
-    ] as any;
+      createComboCard(3, 'attack'),
+      createComboCard(3, 'defense'),
+      createComboCard(3, 'attack'),
+      createComboCard(3, 'general')
+    ];
     const result = calculateComboScore(cards);
     expect(result.comboName).toBe('포카드');
     expect(result.score).toBe(400);
@@ -162,9 +154,9 @@ describe('analyzePotentialCombos', () => {
 
   it('동일 코스트 카드 수 계산', () => {
     const deck = [
-      createCard(1), createCard(1), createCard(1),
-      createCard(2), createCard(2)
-    ] as any;
+      createComboCard(1), createComboCard(1), createComboCard(1),
+      createComboCard(2), createComboCard(2)
+    ];
     const result = analyzePotentialCombos(deck);
     expect(result.maxSameCost).toBe(3);
     expect(result.pairCosts).toContain(1);
@@ -173,64 +165,64 @@ describe('analyzePotentialCombos', () => {
 
   it('플러쉬 가능 여부 판단', () => {
     const attackDeck = [
-      createCard(1, 'attack'),
-      createCard(2, 'attack'),
-      createCard(3, 'attack'),
-      createCard(4, 'attack')
+      createComboCard(1, 'attack'),
+      createComboCard(2, 'attack'),
+      createComboCard(3, 'attack'),
+      createComboCard(4, 'attack')
     ];
-    expect(analyzePotentialCombos(attackDeck as any).canFlush).toBe(true);
-    expect(analyzePotentialCombos(attackDeck as any).flushType).toBe('attack');
+    expect(analyzePotentialCombos(attackDeck).canFlush).toBe(true);
+    expect(analyzePotentialCombos(attackDeck).flushType).toBe('attack');
 
     const mixedDeck = [
-      createCard(1, 'attack'),
-      createCard(2, 'defense'),
-      createCard(3, 'attack')
+      createComboCard(1, 'attack'),
+      createComboCard(2, 'defense'),
+      createComboCard(3, 'attack')
     ];
-    expect(analyzePotentialCombos(mixedDeck as any).canFlush).toBe(false);
+    expect(analyzePotentialCombos(mixedDeck).canFlush).toBe(false);
   });
 
   it('최고 잠재 콤보 판단', () => {
     const tripleReady = [
-      createCard(1), createCard(1), createCard(1)
+      createComboCard(1), createComboCard(1), createComboCard(1)
     ];
-    expect(analyzePotentialCombos(tripleReady as any).bestPotentialCombo).toBe('트리플');
+    expect(analyzePotentialCombos(tripleReady).bestPotentialCombo).toBe('트리플');
 
     const fullHouseReady = [
-      createCard(1), createCard(1), createCard(1),
-      createCard(2), createCard(2)
+      createComboCard(1), createComboCard(1), createComboCard(1),
+      createComboCard(2), createComboCard(2)
     ];
-    expect(analyzePotentialCombos(fullHouseReady as any).bestPotentialCombo).toBe('풀하우스');
+    expect(analyzePotentialCombos(fullHouseReady).bestPotentialCombo).toBe('풀하우스');
   });
 });
 
 describe('filterCardsForCombo', () => {
   it('플러쉬 필터: 동일 타입 카드만', () => {
     const deck = [
-      createCard(1, 'attack'),
-      createCard(2, 'attack'),
-      createCard(3, 'defense'),
-      createCard(4, 'attack'),
-      createCard(5, 'attack')
-    ] as any;
+      createComboCard(1, 'attack'),
+      createComboCard(2, 'attack'),
+      createComboCard(3, 'defense'),
+      createComboCard(4, 'attack'),
+      createComboCard(5, 'attack')
+    ];
     const filtered = filterCardsForCombo(deck, '플러쉬');
     expect(filtered.every(c => c.type === 'attack')).toBe(true);
   });
 
   it('트리플 필터: 가장 많은 코스트 카드', () => {
     const deck = [
-      createCard(1), createCard(1), createCard(1),
-      createCard(2), createCard(2)
-    ] as any;
+      createComboCard(1), createComboCard(1), createComboCard(1),
+      createComboCard(2), createComboCard(2)
+    ];
     const filtered = filterCardsForCombo(deck, '트리플');
     expect(filtered.every(c => c.actionCost === 1)).toBe(true);
   });
 
   it('투페어 필터: 페어 가능 코스트', () => {
     const deck = [
-      createCard(1), createCard(1),
-      createCard(2), createCard(2),
-      createCard(3)
-    ] as any;
+      createComboCard(1), createComboCard(1),
+      createComboCard(2), createComboCard(2),
+      createComboCard(3)
+    ];
     const filtered = filterCardsForCombo(deck, '투페어');
     expect(filtered.every(c => c.actionCost === 1 || c.actionCost === 2)).toBe(true);
     expect(filtered.some(c => c.actionCost === 3)).toBe(false);
@@ -260,64 +252,64 @@ describe('decideComboStrategy', () => {
 
 describe('scoreWithCombo', () => {
   it('카드 없으면 점수 0', () => {
-    expect(scoreWithCombo({ key: 'aggro' } as any, [])).toBe(0);
-    expect(scoreWithCombo({ key: 'aggro' } as any, null as any)).toBe(0);
+    expect(scoreWithCombo(createComboStrategy('aggro'), [])).toBe(0);
+    expect(scoreWithCombo(createComboStrategy('aggro'), null as unknown as TestComboCard[])).toBe(0);
   });
 
   it('공격 모드: 공격 카드 우대', () => {
     const attackCards = [
-      createCard(1, 'attack', { damage: 20 }),
-      createCard(1, 'attack', { damage: 20 })
-    ] as any;
+      createComboCard(1, 'attack', { damage: 20 }),
+      createComboCard(1, 'attack', { damage: 20 })
+    ];
     const defenseCards = [
-      createCard(1, 'general', { block: 10 }),
-      createCard(1, 'general', { block: 10 })
-    ] as any;
+      createComboCard(1, 'general', { block: 10 }),
+      createComboCard(1, 'general', { block: 10 })
+    ];
 
-    const attackScore = scoreWithCombo({ key: 'aggro' } as any, attackCards);
-    const defenseScore = scoreWithCombo({ key: 'aggro' } as any, defenseCards);
+    const attackScore = scoreWithCombo(createComboStrategy('aggro'), attackCards);
+    const defenseScore = scoreWithCombo(createComboStrategy('aggro'), defenseCards);
     expect(attackScore).toBeGreaterThan(defenseScore);
   });
 
   it('방어 모드: 방어 카드 우대', () => {
     const attackCards = [
-      createCard(1, 'attack', { damage: 20 }),
-      createCard(1, 'attack', { damage: 20 })
-    ] as any;
+      createComboCard(1, 'attack', { damage: 20 }),
+      createComboCard(1, 'attack', { damage: 20 })
+    ];
     const defenseCards = [
-      createCard(1, 'general', { block: 10 }),
-      createCard(1, 'general', { block: 10 })
-    ] as any;
+      createComboCard(1, 'general', { block: 10 }),
+      createComboCard(1, 'general', { block: 10 })
+    ];
 
-    const attackScore = scoreWithCombo({ key: 'turtle' } as any, attackCards);
-    const defenseScore = scoreWithCombo({ key: 'turtle' } as any, defenseCards);
+    const attackScore = scoreWithCombo(createComboStrategy('turtle'), attackCards);
+    const defenseScore = scoreWithCombo(createComboStrategy('turtle'), defenseCards);
     expect(defenseScore).toBeGreaterThan(attackScore);
   });
 
   it('콤보 가중치 반영', () => {
-    const pairCards = [createCard(1), createCard(1)] as any;
+    const pairCards = [createComboCard(1), createComboCard(1)];
 
-    const noCombo = scoreWithCombo({ key: 'balanced' } as any, pairCards, { comboWeight: 0 });
-    const withCombo = scoreWithCombo({ key: 'balanced' } as any, pairCards, { comboWeight: 1 });
+    const noCombo = scoreWithCombo(createComboStrategy('balanced'), pairCards, createComboStrategyOptions({ comboWeight: 0 }));
+    const withCombo = scoreWithCombo(createComboStrategy('balanced'), pairCards, createComboStrategyOptions({ comboWeight: 1 }));
 
     expect(withCombo).toBeGreaterThan(noCombo);
   });
 
   it('에테르 우선 모드: 높은 배율 콤보 우대', () => {
     // 페어 (2배)
-    const pairCards = [createCard(1), createCard(1)] as any;
+    const pairCards = [createComboCard(1), createComboCard(1)];
     // 트리플 (3배)
-    const tripleCards = [createCard(2), createCard(2), createCard(2)] as any;
+    const tripleCards = [createComboCard(2), createComboCard(2), createComboCard(2)];
 
     const pairScore = scoreWithCombo(
-      { key: 'balanced' } as any,
+      createComboStrategy('balanced'),
       pairCards,
-      { etherPriority: true, comboWeight: 1 } as any
+      createComboStrategyOptions({ etherPriority: true, comboWeight: 1 })
     );
     const tripleScore = scoreWithCombo(
-      { key: 'balanced' } as any,
+      createComboStrategy('balanced'),
       tripleCards,
-      { etherPriority: true, comboWeight: 1 } as any
+      createComboStrategyOptions({ etherPriority: true, comboWeight: 1 })
     );
 
     // 트리플이 카드 수도 많고 배율도 높음

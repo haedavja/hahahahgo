@@ -2135,3 +2135,472 @@ export function createGameStateForTravel(overrides: Partial<TestGameState> = {})
     ...overrides,
   };
 }
+
+// ==================== 콤보 스코어링 팩토리 ====================
+
+/**
+ * 콤보 계산용 카드 타입
+ */
+export interface TestComboCard {
+  id: string;
+  actionCost: number;
+  type: string;
+  damage?: number;
+  block?: number;
+  speedCost?: number;
+  name?: string;
+  hits?: number;
+}
+
+/**
+ * 콤보 전략 타입
+ */
+export interface TestComboStrategy {
+  key: string;
+  [key: string]: unknown;
+}
+
+/**
+ * 콤보 전략 옵션 타입
+ */
+export interface TestComboStrategyOptions {
+  comboWeight?: number;
+  etherPriority?: boolean;
+  [key: string]: unknown;
+}
+
+/** 콤보 계산용 카드 생성 */
+export function createComboCard(
+  actionCost: number,
+  type: string = 'attack',
+  opts: { damage?: number; block?: number; speedCost?: number; name?: string; hits?: number } = {}
+): TestComboCard {
+  return {
+    id: `test_${actionCost}_${type}`,
+    actionCost,
+    type,
+    damage: opts.damage || (type === 'attack' ? 10 : 0),
+    block: opts.block || (type !== 'attack' ? 5 : 0),
+    speedCost: opts.speedCost || 3,
+    hits: opts.hits || 1,
+    ...opts,
+  };
+}
+
+/** 콤보 전략 생성 */
+export function createComboStrategy(key: string, overrides: Partial<TestComboStrategy> = {}): TestComboStrategy {
+  return {
+    key,
+    ...overrides,
+  };
+}
+
+/** 콤보 전략 옵션 생성 */
+export function createComboStrategyOptions(overrides: Partial<TestComboStrategyOptions> = {}): TestComboStrategyOptions {
+  return {
+    comboWeight: 1,
+    ...overrides,
+  };
+}
+
+// ==================== 카드 사용 특수 효과 팩토리 ====================
+
+/**
+ * 카드 사용 특수 효과용 엔티티 타입
+ */
+export interface TestCardPlayEntity {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: {
+    usage: Array<{ id: string; stacks?: number }>;
+    turn: Array<{ id: string; stacks?: number }>;
+    permanent: Array<{ id: string; stacks?: number }>;
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * 카드 사용 특수 효과용 카드 타입
+ */
+export interface TestCardPlayCard {
+  id?: string;
+  name: string;
+  damage?: number;
+  type?: string;
+  special?: string;
+  traits?: string[];
+  crossBonus?: { type: string; count: number };
+  appliedTokens?: Array<{ id: string; stacks: number; target: string }>;
+  [key: string]: unknown;
+}
+
+/**
+ * 카드 사용 특수 효과용 배틀 컨텍스트 타입
+ */
+export interface TestCardPlayBattleContext {
+  hand?: Array<{ id: string; [key: string]: unknown }>;
+  handSize?: number;
+  allCards?: Array<{ id: string; damage?: number; name: string; [key: string]: unknown }>;
+  queue?: Array<{ actor: string; sp: number; [key: string]: unknown }>;
+  currentSp?: number;
+  currentQIndex?: number;
+  enemyUnits?: Array<{ hp: number; unitId: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+/** 카드 사용 특수 효과용 엔티티 생성 */
+export function createCardPlayEntity(overrides: Partial<TestCardPlayEntity> = {}): TestCardPlayEntity {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/** 카드 사용 특수 효과용 카드 생성 */
+export function createCardPlayCard(overrides: Partial<TestCardPlayCard> = {}): TestCardPlayCard {
+  return {
+    name: 'Test Card',
+    damage: 10,
+    ...overrides,
+  };
+}
+
+/** 카드 사용 특수 효과용 배틀 컨텍스트 생성 */
+export function createCardPlayBattleContext(overrides: Partial<TestCardPlayBattleContext> = {}): TestCardPlayBattleContext {
+  return {
+    hand: [],
+    allCards: [],
+    ...overrides,
+  };
+}
+
+// ==================== runAllCore 팩토리 ====================
+
+/**
+ * runAllCore 플레이어 타입
+ */
+export interface TestRunAllPlayer {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def: boolean;
+  counter: number;
+  vulnMult: number;
+  strength: number;
+  energy: number;
+  maxEnergy: number;
+  tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+  etherPts: number;
+  [key: string]: unknown;
+}
+
+/**
+ * runAllCore 적 타입
+ */
+export interface TestRunAllEnemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def: boolean;
+  counter: number;
+  vulnMult: number;
+  energy: number;
+  maxEnergy: number;
+  tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+  etherPts: number;
+  [key: string]: unknown;
+}
+
+/**
+ * runAllCore 카드 타입
+ */
+export interface TestRunAllCard {
+  id: string;
+  name: string;
+  type: string;
+  damage?: number;
+  speedCost: number;
+  actionCost: number;
+  [key: string]: unknown;
+}
+
+/**
+ * runAllCore 액션 타입
+ */
+export interface TestRunAllActions {
+  setTurnEtherAccumulated: ReturnType<typeof import('vitest').vi.fn>;
+  setEnemyTurnEtherAccumulated: ReturnType<typeof import('vitest').vi.fn>;
+  setPlayer: ReturnType<typeof import('vitest').vi.fn>;
+  setEnemy: ReturnType<typeof import('vitest').vi.fn>;
+  setActionEvents: ReturnType<typeof import('vitest').vi.fn>;
+  setQIndex: ReturnType<typeof import('vitest').vi.fn>;
+  setPostCombatOptions: ReturnType<typeof import('vitest').vi.fn>;
+  setPhase: ReturnType<typeof import('vitest').vi.fn>;
+  setEnemyHit: ReturnType<typeof import('vitest').vi.fn>;
+  [key: string]: unknown;
+}
+
+/**
+ * runAllCore 배틀 타입
+ */
+export interface TestRunAllBattle {
+  queue: Array<{ actor: string; card: TestRunAllCard; sp: number }>;
+  qIndex: number;
+  actionEvents: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * runAllCore 파라미터 타입
+ */
+export interface TestRunAllParams {
+  battle: TestRunAllBattle;
+  player: TestRunAllPlayer;
+  enemy: TestRunAllEnemy;
+  qIndex: number;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  orderedRelicList: unknown[];
+  selected: TestRunAllCard[];
+  addLog: ReturnType<typeof import('vitest').vi.fn>;
+  playSound: ReturnType<typeof import('vitest').vi.fn>;
+  actions: TestRunAllActions;
+}
+
+/** runAllCore 플레이어 생성 */
+export function createRunAllPlayer(overrides: Partial<TestRunAllPlayer> = {}): TestRunAllPlayer {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    strength: 0,
+    energy: 3,
+    maxEnergy: 3,
+    tokens: { usage: [], turn: [], permanent: [] },
+    etherPts: 0,
+    ...overrides,
+  };
+}
+
+/** runAllCore 적 생성 */
+export function createRunAllEnemy(overrides: Partial<TestRunAllEnemy> = {}): TestRunAllEnemy {
+  return {
+    hp: 50,
+    maxHp: 50,
+    block: 0,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    energy: 3,
+    maxEnergy: 3,
+    tokens: { usage: [], turn: [], permanent: [] },
+    etherPts: 0,
+    ...overrides,
+  };
+}
+
+/** runAllCore 카드 생성 */
+export function createRunAllCard(overrides: Partial<TestRunAllCard> = {}): TestRunAllCard {
+  return {
+    id: 'test_card',
+    name: '테스트 카드',
+    type: 'attack',
+    damage: 10,
+    speedCost: 5,
+    actionCost: 1,
+    ...overrides,
+  };
+}
+
+/** runAllCore 배틀 생성 */
+export function createRunAllBattle(
+  queue: Array<{ actor: string; card: TestRunAllCard; sp: number }> = [],
+  overrides: Partial<TestRunAllBattle> = {}
+): TestRunAllBattle {
+  return {
+    queue,
+    qIndex: 0,
+    actionEvents: {},
+    ...overrides,
+  };
+}
+
+// ==================== 애니메이션 이벤트 팩토리 ====================
+
+/**
+ * 액션 이벤트 타입
+ */
+export interface TestActionEvent {
+  type?: string;
+  actor?: string;
+  dmg?: number;
+  block?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * 애니메이션 액션 타입
+ */
+export interface TestAnimationAction {
+  actor: string;
+  card: { [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+/**
+ * 애니메이션 액션들 타입
+ */
+export interface TestAnimationActions {
+  setEnemyHit: ReturnType<typeof import('vitest').vi.fn>;
+  setPlayerHit: ReturnType<typeof import('vitest').vi.fn>;
+  setPlayerBlockAnim: ReturnType<typeof import('vitest').vi.fn>;
+  setEnemyBlockAnim: ReturnType<typeof import('vitest').vi.fn>;
+  [key: string]: unknown;
+}
+
+/** 액션 이벤트 생성 */
+export function createActionEvent(overrides: Partial<TestActionEvent> = {}): TestActionEvent {
+  return {
+    type: 'hit',
+    actor: 'player',
+    dmg: 10,
+    ...overrides,
+  };
+}
+
+/** 애니메이션 액션 생성 */
+export function createAnimationAction(overrides: Partial<TestAnimationAction> = {}): TestAnimationAction {
+  return {
+    actor: 'player',
+    card: {},
+    ...overrides,
+  };
+}
+
+// ==================== useBattleState 팩토리 ====================
+
+/**
+ * useBattleState 초기 상태용 플레이어 타입
+ */
+export interface TestBattleStatePlayer {
+  hp?: number;
+  maxHp?: number;
+  block?: number;
+  tokens?: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+  [key: string]: unknown;
+}
+
+/**
+ * useBattleState 초기 상태용 적 타입
+ */
+export interface TestBattleStateEnemy {
+  hp?: number;
+  maxHp?: number;
+  block?: number;
+  tokens?: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+  units?: Array<{ unitId: number; hp: number; maxHp: number; block: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+/**
+ * useBattleState 카드 타입
+ */
+export interface TestBattleStateCard {
+  id: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * useBattleState 큐 엔트리 타입
+ */
+export interface TestBattleStateQueueEntry {
+  type: string;
+  card: { id: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+/**
+ * useBattleState 전투 후 옵션 타입
+ */
+export interface TestPostCombatOptions {
+  rewards?: unknown[];
+  canRest?: boolean;
+  type?: string;
+  [key: string]: unknown;
+}
+
+/** useBattleState용 플레이어 생성 */
+export function createBattleStatePlayer(overrides: Partial<TestBattleStatePlayer> = {}): TestBattleStatePlayer {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/** useBattleState용 적 생성 */
+export function createBattleStateEnemy(overrides: Partial<TestBattleStateEnemy> = {}): TestBattleStateEnemy {
+  return {
+    hp: 50,
+    maxHp: 50,
+    block: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/** useBattleState용 카드 생성 */
+export function createBattleStateCard(overrides: Partial<TestBattleStateCard> = {}): TestBattleStateCard {
+  return {
+    id: 'test-card',
+    name: '테스트 카드',
+    ...overrides,
+  };
+}
+
+/** useBattleState용 카드 배열 생성 */
+export function createBattleStateCards(
+  cards: Array<Partial<TestBattleStateCard>>
+): TestBattleStateCard[] {
+  return cards.map((c, i) => createBattleStateCard({ id: `card-${i}`, ...c }));
+}
+
+/** useBattleState용 큐 엔트리 생성 */
+export function createBattleStateQueueEntry(overrides: Partial<TestBattleStateQueueEntry> = {}): TestBattleStateQueueEntry {
+  return {
+    type: 'player',
+    card: { id: 'strike' },
+    ...overrides,
+  };
+}
+
+/** useBattleState용 전투 후 옵션 생성 */
+export function createPostCombatOptions(overrides: Partial<TestPostCombatOptions> = {}): TestPostCombatOptions {
+  return {
+    rewards: [],
+    canRest: true,
+    ...overrides,
+  };
+}
+
+/** useBattleState용 적 유닛 배열 생성 */
+export function createBattleStateEnemyUnits(
+  units: Array<{ unitId: number; hp: number; maxHp: number; block?: number }>
+): Array<{ unitId: number; hp: number; maxHp: number; block: number }> {
+  return units.map(u => ({
+    block: 0,
+    ...u,
+  }));
+}

@@ -5,27 +5,27 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processActionEventAnimations } from './eventAnimationProcessing';
+import {
+  createActionEvent,
+  createAnimationAction,
+  type TestAnimationActions,
+} from '../../../test/factories';
 
 describe('eventAnimationProcessing', () => {
-  let actions: {
-    setEnemyHit: () => void,
-    setPlayerHit: () => void,
-    setPlayerBlockAnim: () => void,
-    setEnemyBlockAnim: () => void
-  };
-  let playHitSound: () => void;
-  let playBlockSound: () => void;
+  let actions: TestAnimationActions;
+  let playHitSound: ReturnType<typeof vi.fn>;
+  let playBlockSound: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
     actions = {
-      setEnemyHit: vi.fn() as any,
-      setPlayerHit: vi.fn() as any,
-      setPlayerBlockAnim: vi.fn() as any,
-      setEnemyBlockAnim: vi.fn() as any
+      setEnemyHit: vi.fn(),
+      setPlayerHit: vi.fn(),
+      setPlayerBlockAnim: vi.fn(),
+      setEnemyBlockAnim: vi.fn()
     };
-    playHitSound = vi.fn() as any;
-    playBlockSound = vi.fn() as any;
+    playHitSound = vi.fn();
+    playBlockSound = vi.fn();
 
     // DOM 모킹
     const mockRoot = {
@@ -34,14 +34,14 @@ describe('eventAnimationProcessing', () => {
         remove: vi.fn()
       }
     };
-    vi.spyOn(document, 'getElementById').mockReturnValue(mockRoot as any);
+    vi.spyOn(document, 'getElementById').mockReturnValue(mockRoot as unknown as HTMLElement);
     vi.spyOn(document, 'createElement').mockReturnValue({
       className: '',
       textContent: '',
-      style: {} as any,
+      style: {} as CSSStyleDeclaration,
       remove: vi.fn()
-    } as any);
-    vi.spyOn(document.body, 'appendChild').mockImplementation((() => {}) as any);
+    } as unknown as HTMLElement);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((() => {}) as unknown as typeof document.body.appendChild);
   });
 
   afterEach(() => {
@@ -53,12 +53,12 @@ describe('eventAnimationProcessing', () => {
     describe('피격 효과 (hit)', () => {
       it('플레이어 공격 시 적 피격 애니메이션', () => {
         const actionEvents = [
-          { type: 'hit', actor: 'player', dmg: 10 }
+          createActionEvent({ type: 'hit', actor: 'player', dmg: 10 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
@@ -73,12 +73,12 @@ describe('eventAnimationProcessing', () => {
 
       it('적 공격 시 플레이어 피격 애니메이션', () => {
         const actionEvents = [
-          { type: 'hit', actor: 'enemy', dmg: 15 }
+          createActionEvent({ type: 'hit', actor: 'enemy', dmg: 15 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'enemy', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'enemy' }),
           playHitSound,
           playBlockSound,
           actions
@@ -93,12 +93,12 @@ describe('eventAnimationProcessing', () => {
 
       it('피해가 0이면 효과 없음', () => {
         const actionEvents = [
-          { type: 'hit', actor: 'player', dmg: 0 }
+          createActionEvent({ type: 'hit', actor: 'player', dmg: 0 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
@@ -110,12 +110,12 @@ describe('eventAnimationProcessing', () => {
 
       it('pierce 타입도 피격 효과 처리', () => {
         const actionEvents = [
-          { type: 'pierce', actor: 'player', dmg: 20 }
+          createActionEvent({ type: 'pierce', actor: 'player', dmg: 20 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
@@ -129,12 +129,12 @@ describe('eventAnimationProcessing', () => {
     describe('방어 효과 (defense)', () => {
       it('플레이어 방어 시 방어 애니메이션', () => {
         const actionEvents = [
-          { type: 'defense', actor: 'player', block: 5 }
+          createActionEvent({ type: 'defense', actor: 'player', block: 5 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
@@ -149,12 +149,12 @@ describe('eventAnimationProcessing', () => {
 
       it('적 방어 시 적 방어 애니메이션', () => {
         const actionEvents = [
-          { type: 'defense', actor: 'enemy', block: 8 }
+          createActionEvent({ type: 'defense', actor: 'enemy', block: 8 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'enemy', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'enemy' }),
           playHitSound,
           playBlockSound,
           actions
@@ -171,12 +171,12 @@ describe('eventAnimationProcessing', () => {
     describe('반격 효과 (counter)', () => {
       it('플레이어가 공격 중 반격당함', () => {
         const actionEvents = [
-          { actor: 'counter', dmg: 5 }
+          createActionEvent({ actor: 'counter', dmg: 5 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
@@ -188,12 +188,12 @@ describe('eventAnimationProcessing', () => {
 
       it('적이 공격 중 반격당함', () => {
         const actionEvents = [
-          { actor: 'counter', dmg: 5 }
+          createActionEvent({ actor: 'counter', dmg: 5 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'enemy', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'enemy' }),
           playHitSound,
           playBlockSound,
           actions
@@ -207,13 +207,13 @@ describe('eventAnimationProcessing', () => {
     describe('복합 이벤트', () => {
       it('여러 이벤트를 순차 처리', () => {
         const actionEvents = [
-          { type: 'hit', actor: 'player', dmg: 10 },
-          { type: 'defense', actor: 'player', block: 3 }
+          createActionEvent({ type: 'hit', actor: 'player', dmg: 10 }),
+          createActionEvent({ type: 'defense', actor: 'player', block: 3 })
         ];
 
         processActionEventAnimations({
-          actionEvents: actionEvents as any,
-          action: { actor: 'player', card: {} as any },
+          actionEvents,
+          action: createAnimationAction({ actor: 'player' }),
           playHitSound,
           playBlockSound,
           actions
