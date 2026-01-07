@@ -6,9 +6,9 @@
  * 번들 최적화: balance-insights 모듈은 동적 import로 지연 로드됩니다.
  */
 
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { CSSProperties } from 'react';
-import { analyzeStats } from '../../../../simulator/analysis/stats-analysis-framework';
+import type { StatsAnalysisResult } from '../../../../simulator/analysis/stats-analysis-framework';
 import type { BalanceInsightReport } from '../../../../simulator/analysis/balance-insights';
 import type { DetailedStats } from '../../../../simulator/analysis/detailed-stats-types';
 import { StatRow, SECTION_TITLE_STYLE, STAT_ROW_STYLE } from '../../../stats';
@@ -33,8 +33,23 @@ export const AdvancedTab = memo(function AdvancedTab({ detailed }: AdvancedTabPr
   const [subTab, setSubTab] = useState<SubTabType>('synergy');
   const [insightReport, setInsightReport] = useState<BalanceInsightReport | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<StatsAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
-  const analysis = useMemo(() => analyzeStats(detailed), [detailed]);
+  // AI분석 탭 선택 시에만 stats-analysis-framework 모듈 로드
+  useEffect(() => {
+    if (subTab !== 'analysis') return;
+    let cancelled = false;
+    setAnalysisLoading(true);
+
+    import('../../../../simulator/analysis/stats-analysis-framework').then(({ analyzeStats }) => {
+      if (cancelled) return;
+      setAnalysis(analyzeStats(detailed));
+      setAnalysisLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [subTab, detailed]);
 
   // 인사이트 탭 선택 시에만 balance-insights 모듈 로드
   useEffect(() => {
@@ -119,31 +134,39 @@ export const AdvancedTab = memo(function AdvancedTab({ detailed }: AdvancedTabPr
       {subTab === 'analysis' && (
         <>
           <h3 style={{ ...SECTION_TITLE_STYLE, color: '#f97316' }}>🔍 AI 분석</h3>
-          <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
-            <p style={{ fontSize: '12px', color: '#e2e8f0', margin: 0 }}>{analysis.summary}</p>
-          </div>
-
-          {analysis.problems.length > 0 && (
+          {analysisLoading || !analysis ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
+              AI 분석 중...
+            </div>
+          ) : (
             <>
-              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ef4444' }}>⚠️ 문제점</h4>
-              {analysis.problems.slice(0, 5).map((problem: { description: string; category: string; severity: number }, i: number) => (
-                <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px', borderLeft: `3px solid ${problem.severity >= 4 ? '#ef4444' : '#f59e0b'}` }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>[{problem.category}]</span>
-                  <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{problem.description}</p>
-                </div>
-              ))}
-            </>
-          )}
+              <div style={{ padding: '8px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#e2e8f0', margin: 0 }}>{analysis.summary}</p>
+              </div>
 
-          {analysis.recommendations.length > 0 && (
-            <>
-              <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#22c55e' }}>💡 개선 권장</h4>
-              {analysis.recommendations.slice(0, 5).map((rec: { target: string; suggestion: string }, i: number) => (
-                <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#fbbf24' }}>{rec.target}</span>
-                  <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{rec.suggestion}</p>
-                </div>
-              ))}
+              {analysis.problems.length > 0 && (
+                <>
+                  <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#ef4444' }}>⚠️ 문제점</h4>
+                  {analysis.problems.slice(0, 5).map((problem: { description: string; category: string; severity: number }, i: number) => (
+                    <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px', borderLeft: `3px solid ${problem.severity >= 4 ? '#ef4444' : '#f59e0b'}` }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>[{problem.category}]</span>
+                      <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{problem.description}</p>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {analysis.recommendations.length > 0 && (
+                <>
+                  <h4 style={{ margin: '12px 0 4px', fontSize: '12px', color: '#22c55e' }}>💡 개선 권장</h4>
+                  {analysis.recommendations.slice(0, 5).map((rec: { target: string; suggestion: string }, i: number) => (
+                    <div key={i} style={{ padding: '6px', background: '#1e293b', borderRadius: '4px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#fbbf24' }}>{rec.target}</span>
+                      <p style={{ fontSize: '12px', color: '#e2e8f0', margin: '4px 0 0' }}>{rec.suggestion}</p>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
         </>

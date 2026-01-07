@@ -10,7 +10,6 @@ import { ITEMS } from '../../../../data/items';
 import { CARDS, ENEMIES } from '../../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../../data/newEvents';
 import type { DetailedStats } from '../../../../simulator/analysis/detailed-stats';
-import { generateAnalysisGuidelines } from '../../../../simulator/analysis/stats-analysis-framework';
 
 // ==================== 타입 정의 ====================
 
@@ -637,10 +636,10 @@ export function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: s
  * @param config 설정 (런 수, 난이도)
  * @returns 마크다운 형식의 문자열
  */
-export function formatStatsForAI(
+export async function formatStatsForAI(
   statsByStrategy: StatsByStrategy,
   config: { runCount: number; difficulty: number }
-): string {
+): Promise<string> {
   const lines: string[] = [];
 
   lines.push('# 시뮬레이션 결과 (3가지 전략 비교)');
@@ -673,6 +672,8 @@ export function formatStatsForAI(
   // 균형 전략 기준으로 분석 (가장 기본적인 전략)
   const analysisStats = statsByStrategy.balanced || statsByStrategy.aggressive || statsByStrategy.defensive;
   if (analysisStats) {
+    // 동적 import로 stats-analysis-framework 로드
+    const { generateAnalysisGuidelines } = await import('../../../../simulator/analysis/stats-analysis-framework');
     lines.push('---');
     lines.push('## 18. AI 분석 리포트');
     lines.push('');

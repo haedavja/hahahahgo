@@ -7,7 +7,7 @@ import { useState, useCallback, memo, useRef, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 import type { SkillLevel } from '../../../simulator/core/battle-engine-types';
-import { analyzeStats } from '../../../simulator/analysis/stats-analysis-framework';
+import type { StatsAnalysisResult } from '../../../simulator/analysis/stats-analysis-framework';
 import type { BalanceInsightReport } from '../../../simulator/analysis/balance-insights';
 import {
   STATS_COLORS,
@@ -89,6 +89,10 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [insightReport, setInsightReport] = useState<BalanceInsightReport | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
+  // AI 분석 동적 로드 상태
+  const [analysisResult, setAnalysisResult] = useState<StatsAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
   // 타이머 cleanup
   useEffect(() => {
     return () => {
@@ -109,6 +113,21 @@ const SimulatorTab = memo(function SimulatorTab() {
       const analyzer = new BalanceInsightAnalyzer(stats);
       setInsightReport(analyzer.generateReport());
       setInsightsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [activeStatTab, stats]);
+
+  // 분석 탭 선택 시 stats-analysis-framework 모듈 동적 로드
+  useEffect(() => {
+    if (activeStatTab !== 'analysis' || !stats) return;
+    let cancelled = false;
+    setAnalysisLoading(true);
+
+    import('../../../simulator/analysis/stats-analysis-framework').then(({ analyzeStats }) => {
+      if (cancelled) return;
+      setAnalysisResult(analyzeStats(stats));
+      setAnalysisLoading(false);
     });
 
     return () => { cancelled = true; };
@@ -138,7 +157,7 @@ const SimulatorTab = memo(function SimulatorTab() {
     }
 
     try {
-      const text = formatStatsForAI(statsByStrategy, { runCount, difficulty });
+      const text = await formatStatsForAI(statsByStrategy, { runCount, difficulty });
       await navigator.clipboard.writeText(text);
       setCopyStatus('copied');
       copyTimerRef.current = setTimeout(() => setCopyStatus('idle'), 2000);
@@ -1238,83 +1257,84 @@ const SimulatorTab = memo(function SimulatorTab() {
                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
                   통계 기반 자동 분석 - 문제점, 원인, 개선 방향 제시
                 </p>
-                {(() => {
-                  const analysis = analyzeStats(stats);
-                  return (
-                    <>
-                      {/* 요약 */}
-                      <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
-                        <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>📊 요약</h5>
-                        <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{analysis.summary}</div>
-                      </div>
+                {analysisLoading || !analysisResult ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
+                    AI 분석 중...
+                  </div>
+                ) : (
+                  <>
+                    {/* 요약 */}
+                    <div style={{ padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '16px' }}>
+                      <h5 style={{ margin: '0 0 8px 0', color: '#fbbf24' }}>📊 요약</h5>
+                      <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{analysisResult.summary}</div>
+                    </div>
 
-                      {/* 문제점 */}
-                      {analysis.problems.length > 0 && (
-                        <>
-                          <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>⚠️ 문제점 ({analysis.problems.length}개)</h5>
-                          <div style={STYLES.scrollBox}>
-                            {analysis.problems.map((problem, i) => (
-                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${problem.severity >= 4 ? '#ef4444' : problem.severity >= 3 ? '#f59e0b' : '#3b82f6'}` }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>{problem.category}</span>
-                                  <span style={{ fontSize: '0.75rem', color: problem.severity >= 4 ? '#ef4444' : '#fbbf24' }}>심각도 {problem.severity}/5</span>
-                                </div>
-                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{problem.description}</div>
+                    {/* 문제점 */}
+                    {analysisResult.problems.length > 0 && (
+                      <>
+                        <h5 style={{ margin: '0 0 8px 0', color: '#ef4444' }}>⚠️ 문제점 ({analysisResult.problems.length}개)</h5>
+                        <div style={STYLES.scrollBox}>
+                          {analysisResult.problems.map((problem, i) => (
+                            <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px', borderLeft: `4px solid ${problem.severity >= 4 ? '#ef4444' : problem.severity >= 3 ? '#f59e0b' : '#3b82f6'}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>{problem.category}</span>
+                                <span style={{ fontSize: '0.75rem', color: problem.severity >= 4 ? '#ef4444' : '#fbbf24' }}>심각도 {problem.severity}/5</span>
                               </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                              <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{problem.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
-                      {/* 원인 분석 */}
-                      {analysis.rootCauses.length > 0 && (
-                        <>
-                          <h5 style={{ margin: '16px 0 8px 0', color: '#8b5cf6' }}>🔬 원인 분석</h5>
-                          <div style={STYLES.scrollBox}>
-                            {analysis.rootCauses.map((cause, i) => (
-                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
-                                <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginBottom: '4px' }}>{cause.type}</div>
-                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{cause.description}</div>
+                    {/* 원인 분석 */}
+                    {analysisResult.rootCauses.length > 0 && (
+                      <>
+                        <h5 style={{ margin: '16px 0 8px 0', color: '#8b5cf6' }}>🔬 원인 분석</h5>
+                        <div style={STYLES.scrollBox}>
+                          {analysisResult.rootCauses.map((cause, i) => (
+                            <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginBottom: '4px' }}>{cause.type}</div>
+                              <div style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>{cause.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* 개선 권장사항 */}
+                    {analysisResult.recommendations.length > 0 && (
+                      <>
+                        <h5 style={{ margin: '16px 0 8px 0', color: '#22c55e' }}>💡 개선 권장사항</h5>
+                        <div style={STYLES.scrollBox}>
+                          {analysisResult.recommendations.map((rec, i) => (
+                            <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.target}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>우선순위 {rec.priority}</span>
                               </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>[{rec.type}]</div>
+                              <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>{rec.suggestion}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#06b6d4' }}>→ {rec.expectedImpact}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
-                      {/* 개선 권장사항 */}
-                      {analysis.recommendations.length > 0 && (
-                        <>
-                          <h5 style={{ margin: '16px 0 8px 0', color: '#22c55e' }}>💡 개선 권장사항</h5>
-                          <div style={STYLES.scrollBox}>
-                            {analysis.recommendations.map((rec, i) => (
-                              <div key={i} style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', marginBottom: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                  <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#fbbf24' }}>{rec.target}</span>
-                                  <span style={{ fontSize: '0.75rem', color: '#22c55e' }}>우선순위 {rec.priority}</span>
-                                </div>
-                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>[{rec.type}]</div>
-                                <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>{rec.suggestion}</div>
-                                <div style={{ fontSize: '0.8rem', color: '#06b6d4' }}>→ {rec.expectedImpact}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      {/* 추가 조사 필요 */}
-                      {analysis.needsInvestigation.length > 0 && (
-                        <>
-                          <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🔎 추가 조사 필요</h5>
-                          <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
-                            {analysis.needsInvestigation.map((item, i) => (
-                              <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>• {item}</div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
+                    {/* 추가 조사 필요 */}
+                    {analysisResult.needsInvestigation.length > 0 && (
+                      <>
+                        <h5 style={{ margin: '16px 0 8px 0', color: '#f59e0b' }}>🔎 추가 조사 필요</h5>
+                        <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px' }}>
+                          {analysisResult.needsInvestigation.map((item, i) => (
+                            <div key={i} style={{ fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '4px' }}>• {item}</div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </>
             )}
 
