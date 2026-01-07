@@ -921,3 +921,667 @@ export function createEnemyHandCards(cards: Array<Partial<TestBattleHandCard>> =
     ...c,
   }));
 }
+
+// ==================== 즉시 효과 테스트용 팩토리 ====================
+
+/**
+ * 플레이어 상태 (카드 즉시 효과 처리용)
+ */
+export interface TestPlayerState {
+  hp?: number;
+  maxHp?: number;
+  strength?: number;
+  gold?: number;
+  energy?: number;
+  [key: string]: unknown;
+}
+
+/** 플레이어 상태 생성 (즉시 효과 테스트용) */
+export function createPlayerState(overrides: Partial<TestPlayerState> = {}): TestPlayerState {
+  return {
+    hp: 100,
+    maxHp: 100,
+    strength: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * 적 상태 (즉시 효과 처리용)
+ */
+export interface TestEnemyState {
+  hp?: number;
+  maxHp?: number;
+  [key: string]: unknown;
+}
+
+/** 적 상태 생성 (즉시 효과 테스트용) */
+export function createEnemyState(overrides: Partial<TestEnemyState> = {}): TestEnemyState {
+  return {
+    hp: 50,
+    maxHp: 50,
+    ...overrides,
+  };
+}
+
+/**
+ * NextTurnEffects 타입
+ */
+export interface TestNextTurnEffects {
+  bonusEnergy?: number;
+  [key: string]: unknown;
+}
+
+/** NextTurnEffects 생성 */
+export function createNextTurnEffects(overrides: Partial<TestNextTurnEffects> = {}): TestNextTurnEffects {
+  return {
+    bonusEnergy: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * processImmediateCardTraits 파라미터 타입
+ */
+export interface TestImmediateCardTraitsParams {
+  card: Card | { name?: string; id?: string; traits?: string[]; isGhost?: boolean; type?: string; [key: string]: unknown };
+  playerState: TestPlayerState;
+  nextTurnEffects: TestNextTurnEffects;
+  addLog: (msg: string) => void;
+  addVanishedCard?: (cardId: string) => void;
+}
+
+/** processImmediateCardTraits 파라미터 생성 */
+export function createImmediateCardTraitsParams(
+  overrides: Partial<TestImmediateCardTraitsParams> = {}
+): TestImmediateCardTraitsParams {
+  return {
+    card: createCard(),
+    playerState: createPlayerState(),
+    nextTurnEffects: createNextTurnEffects(),
+    addLog: () => {},
+    ...overrides,
+  };
+}
+
+/**
+ * SafeInitialPlayer 타입
+ */
+export interface TestSafeInitialPlayer {
+  maxHp?: number;
+  [key: string]: unknown;
+}
+
+/** SafeInitialPlayer 생성 */
+export function createSafeInitialPlayer(overrides: Partial<TestSafeInitialPlayer> = {}): TestSafeInitialPlayer {
+  return {
+    maxHp: 100,
+    ...overrides,
+  };
+}
+
+/**
+ * processCardPlayedRelicEffects 파라미터 타입
+ */
+export interface TestCardPlayedRelicEffectsParams {
+  relics: string[];
+  card: Card | { name?: string; isGhost?: boolean; [key: string]: unknown };
+  playerState: TestPlayerState;
+  enemyState: TestEnemyState;
+  safeInitialPlayer: TestSafeInitialPlayer | null;
+  addLog: (msg: string) => void;
+  setRelicActivated: (id: string | null) => void;
+}
+
+/** processCardPlayedRelicEffects 파라미터 생성 */
+export function createCardPlayedRelicEffectsParams(
+  overrides: Partial<TestCardPlayedRelicEffectsParams> = {}
+): TestCardPlayedRelicEffectsParams {
+  return {
+    relics: [],
+    card: createCard(),
+    playerState: createPlayerState(),
+    enemyState: createEnemyState(),
+    safeInitialPlayer: createSafeInitialPlayer(),
+    addLog: () => {},
+    setRelicActivated: () => {},
+    ...overrides,
+  };
+}
+
+/**
+ * 트레이트가 있는 카드 생성 (간편 팩토리)
+ */
+export function createCardWithTraits(
+  traits: string[],
+  overrides: Partial<Card> = {}
+): Card {
+  return createCard({
+    traits: traits as Card['traits'],
+    ...overrides,
+  });
+}
+
+/**
+ * 유령 카드 생성 (간편 팩토리)
+ */
+export function createGhostCard(overrides: Partial<Card & { isGhost: boolean }> = {}): Card & { isGhost: boolean } {
+  return {
+    ...createCard(overrides),
+    isGhost: true,
+    ...overrides,
+  };
+}
+
+// ==================== 공격 후 효과 테스트용 팩토리 ====================
+
+/**
+ * Special 효과용 전투 컨텍스트
+ */
+export interface TestSpecialBattleContext {
+  isLastCard?: boolean;
+  unusedAttackCards?: number;
+  blockDestroyed?: number;
+  isCritical?: boolean;
+  currentTurn?: number;
+  currentSp?: number;
+  [key: string]: unknown;
+}
+
+/** Special 효과용 전투 컨텍스트 생성 */
+export function createSpecialBattleContext(overrides: Partial<TestSpecialBattleContext> = {}): TestSpecialBattleContext {
+  return {
+    isLastCard: false,
+    unusedAttackCards: 0,
+    blockDestroyed: 0,
+    isCritical: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Special 효과용 Actor (공격자/방어자)
+ */
+export interface TestSpecialActor {
+  hp: number;
+  maxHp?: number;
+  block?: number;
+  def?: boolean;
+  tokens?: TokenState;
+  vulnMult?: number;
+  _persistentStrikeDamage?: number;
+  [key: string]: unknown;
+}
+
+/** Special 효과용 Actor 생성 */
+export function createSpecialActor(overrides: Partial<TestSpecialActor> = {}): TestSpecialActor {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    def: false,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/**
+ * processPostAttackSpecials 파라미터 타입
+ */
+export interface TestPostAttackSpecialsParams {
+  card: Card & { _applyBurn?: boolean };
+  attacker: TestSpecialActor;
+  defender: TestSpecialActor;
+  attackerName: 'player' | 'enemy';
+  damageDealt: number;
+  battleContext?: TestSpecialBattleContext;
+}
+
+/** processPostAttackSpecials 파라미터 생성 */
+export function createPostAttackSpecialsParams(
+  overrides: Partial<TestPostAttackSpecialsParams> = {}
+): TestPostAttackSpecialsParams {
+  return {
+    card: createCard({ damage: 10 }),
+    attacker: createSpecialActor(),
+    defender: createSpecialActor(),
+    attackerName: 'player',
+    damageDealt: 10,
+    battleContext: createSpecialBattleContext(),
+    ...overrides,
+  };
+}
+
+/**
+ * 특수 효과가 있는 카드 생성 (special 필드 포함)
+ */
+export function createSpecialEffectCard(
+  special: string,
+  overrides: Partial<Card & { _applyBurn?: boolean; hits?: number }> = {}
+): Card & { _applyBurn?: boolean; hits?: number } {
+  return {
+    ...createCard({ damage: 10 }),
+    special,
+    ...overrides,
+  };
+}
+
+// ==================== 턴 종료 상징 효과 테스트용 팩토리 ====================
+
+/**
+ * 상징 효과 타입
+ */
+export interface TestRelicEffect {
+  type: 'ON_TURN_END' | 'PASSIVE' | 'ON_CARD_PLAYED' | string;
+  condition?: (ctx: { cardsPlayedThisTurn: number; player: TestCombatant; enemy: TestCombatant }) => boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * 상징 정의 타입
+ */
+export interface TestRelicDef {
+  effects: TestRelicEffect;
+  [key: string]: unknown;
+}
+
+/**
+ * 상징 맵 타입 (RELICS)
+ */
+export interface TestRelicsMap {
+  [relicId: string]: TestRelicDef;
+}
+
+/** 상징 효과 생성 */
+export function createRelicEffect(
+  type: TestRelicEffect['type'],
+  overrides: Partial<TestRelicEffect> = {}
+): TestRelicEffect {
+  return {
+    type,
+    ...overrides,
+  };
+}
+
+/** 상징 정의 생성 */
+export function createRelicDef(
+  effectType: TestRelicEffect['type'],
+  overrides: Partial<TestRelicDef> = {}
+): TestRelicDef {
+  return {
+    effects: createRelicEffect(effectType),
+    ...overrides,
+  };
+}
+
+/** 상징 맵 생성 */
+export function createRelicsMap(relics: Record<string, TestRelicDef>): TestRelicsMap {
+  return relics;
+}
+
+/**
+ * 턴 종료 상징 효과 타입
+ */
+export interface TestTurnEndRelicEffects {
+  energyNextTurn: number;
+  strength: number;
+}
+
+/** 턴 종료 상징 효과 생성 */
+export function createTurnEndRelicEffects(
+  overrides: Partial<TestTurnEndRelicEffects> = {}
+): TestTurnEndRelicEffects {
+  return {
+    energyNextTurn: 0,
+    strength: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * 상징 처리 액션 타입
+ */
+export interface TestRelicProcessActions {
+  setRelicActivated: (relicId: string | null) => void;
+  setPlayer: (player: TestCombatant) => void;
+}
+
+/** 상징 처리 액션 생성 (vi.fn() 포함) */
+export function createRelicProcessActions(
+  overrides: Partial<TestRelicProcessActions> = {}
+): TestRelicProcessActions {
+  return {
+    setRelicActivated: () => {},
+    setPlayer: () => {},
+    ...overrides,
+  };
+}
+
+/**
+ * playTurnEndRelicAnimations 파라미터 타입
+ */
+export interface TestPlayTurnEndRelicAnimationsParams {
+  relics: string[];
+  RELICS: TestRelicsMap;
+  cardsPlayedThisTurn: number;
+  player: TestCombatant;
+  enemy: TestCombatant;
+  playSound: (frequency: number, duration: number) => void;
+  actions: TestRelicProcessActions;
+}
+
+/** playTurnEndRelicAnimations 파라미터 생성 */
+export function createPlayTurnEndRelicAnimationsParams(
+  overrides: Partial<TestPlayTurnEndRelicAnimationsParams> = {}
+): TestPlayTurnEndRelicAnimationsParams {
+  return {
+    relics: [],
+    RELICS: {},
+    cardsPlayedThisTurn: 0,
+    player: createCombatant(),
+    enemy: createCombatant(),
+    playSound: () => {},
+    actions: createRelicProcessActions(),
+    ...overrides,
+  };
+}
+
+/**
+ * applyTurnEndRelicEffectsToNextTurn 파라미터 타입
+ */
+export interface TestApplyTurnEndRelicEffectsParams {
+  turnEndRelicEffects: TestTurnEndRelicEffects;
+  nextTurnEffects: TestNextTurnEffects;
+  player: TestCombatant;
+  addLog: (message: string) => void;
+  actions: TestRelicProcessActions;
+}
+
+/** applyTurnEndRelicEffectsToNextTurn 파라미터 생성 */
+export function createApplyTurnEndRelicEffectsParams(
+  overrides: Partial<TestApplyTurnEndRelicEffectsParams> = {}
+): TestApplyTurnEndRelicEffectsParams {
+  return {
+    turnEndRelicEffects: createTurnEndRelicEffects(),
+    nextTurnEffects: createNextTurnEffects(),
+    player: createCombatant(),
+    addLog: () => {},
+    actions: createRelicProcessActions(),
+    ...overrides,
+  };
+}
+
+// ==================== 이변(Anomaly) 테스트용 팩토리 ====================
+
+/**
+ * 이변 효과 타입
+ */
+export interface TestAnomalyEffect {
+  type: 'ETHER_BAN' | 'ENERGY_REDUCTION' | 'SPEED_REDUCTION' | 'DRAW_REDUCTION' | 'INSIGHT_REDUCTION' | string;
+  value?: number;
+  description: string;
+}
+
+/**
+ * 이변 정의 타입
+ */
+export interface TestAnomaly {
+  id?: string;
+  name: string;
+  emoji: string;
+  color?: string;
+  description?: string;
+  getEffect: (level: number) => TestAnomalyEffect;
+}
+
+/**
+ * 활성 이변 타입 (레벨 포함)
+ */
+export interface TestActiveAnomaly {
+  anomaly: TestAnomaly;
+  level: number;
+}
+
+/**
+ * 강제 이변 설정 타입 (개발자 모드용)
+ */
+export interface TestForcedAnomaly {
+  anomalyId: string;
+  level: number;
+}
+
+/** 이변 효과 생성 */
+export function createAnomalyEffect(
+  type: TestAnomalyEffect['type'],
+  overrides: Partial<TestAnomalyEffect> = {}
+): TestAnomalyEffect {
+  return {
+    type,
+    description: `${type} effect`,
+    ...overrides,
+  };
+}
+
+/** 이변 정의 생성 */
+export function createAnomaly(overrides: Partial<TestAnomaly> = {}): TestAnomaly {
+  return {
+    id: 'test_anomaly',
+    name: 'Test Anomaly',
+    emoji: '🌀',
+    color: '#ff0000',
+    description: 'Test description',
+    getEffect: () => createAnomalyEffect('ETHER_BAN'),
+    ...overrides,
+  };
+}
+
+/** 활성 이변 생성 */
+export function createActiveAnomaly(
+  level: number = 1,
+  anomalyOverrides: Partial<TestAnomaly> = {}
+): TestActiveAnomaly {
+  return {
+    anomaly: createAnomaly(anomalyOverrides),
+    level,
+  };
+}
+
+/** 강제 이변 설정 생성 */
+export function createForcedAnomaly(
+  anomalyId: string,
+  level: number = 1
+): TestForcedAnomaly {
+  return {
+    anomalyId,
+    level,
+  };
+}
+
+/**
+ * 플레이어 상태 (이변 효과 적용용)
+ */
+export interface TestAnomalyPlayer {
+  hp: number;
+  maxHp?: number;
+  etherBan?: boolean;
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
+  insightPenalty?: number;
+  [key: string]: unknown;
+}
+
+/** 이변 플레이어 상태 생성 */
+export function createAnomalyPlayer(overrides: Partial<TestAnomalyPlayer> = {}): TestAnomalyPlayer {
+  return {
+    hp: 100,
+    maxHp: 100,
+    ...overrides,
+  };
+}
+
+/**
+ * 적 상태 (이변 효과용)
+ */
+export interface TestAnomalyEnemy {
+  hp?: number;
+  maxHp?: number;
+  [key: string]: unknown;
+}
+
+/** 이변 적 상태 생성 */
+export function createAnomalyEnemy(overrides: Partial<TestAnomalyEnemy> = {}): TestAnomalyEnemy {
+  return {
+    hp: 50,
+    maxHp: 50,
+    ...overrides,
+  };
+}
+
+// ==================== 던전 선택지 테스트용 팩토리 ====================
+
+/**
+ * 선택지 요구 조건 타입
+ */
+export interface TestChoiceRequirements {
+  item?: string;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * 스케일링 요구 조건 타입
+ */
+export interface TestScalingRequirement {
+  stat: 'strength' | 'agility' | 'insight';
+  baseValue: number;
+  increment: number;
+}
+
+/**
+ * 선택지 결과 타입
+ */
+export interface TestChoiceOutcome {
+  type: 'success' | 'failure' | 'in_progress';
+  text: string;
+  effect?: {
+    gold?: number;
+    hp?: number;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * 특수 선택지 오버라이드 타입
+ */
+export interface TestSpecialOverride {
+  requiredSpecial: string;
+  text: string;
+  outcome?: TestChoiceOutcome;
+}
+
+/**
+ * 던전 선택지 타입
+ */
+export interface TestDungeonChoice {
+  text: string;
+  repeatable?: boolean;
+  maxAttempts?: number;
+  warningAtAttempt?: number;
+  warningText?: string;
+  progressText?: string[];
+  requirements?: TestChoiceRequirements;
+  scalingRequirement?: TestScalingRequirement;
+  specialOverrides?: TestSpecialOverride[];
+  outcomes?: {
+    success?: TestChoiceOutcome;
+    failure?: TestChoiceOutcome;
+  };
+}
+
+/**
+ * 선택지 상태 타입
+ */
+export interface TestChoiceState {
+  completed?: boolean;
+  attempts?: number;
+}
+
+/**
+ * 캐릭터 스탯 타입
+ */
+export interface TestCharacterStats {
+  strength?: number;
+  agility?: number;
+  insight?: number;
+}
+
+/**
+ * 캐릭터 인벤토리 타입
+ */
+export interface TestCharacterInventory {
+  items?: string[];
+}
+
+/** 던전 선택지 생성 */
+export function createDungeonChoice(overrides: Partial<TestDungeonChoice> = {}): TestDungeonChoice {
+  return {
+    text: 'Test choice',
+    ...overrides,
+  };
+}
+
+/** 선택지 상태 생성 */
+export function createChoiceState(overrides: Partial<TestChoiceState> = {}): TestChoiceState {
+  return {
+    completed: false,
+    attempts: 0,
+    ...overrides,
+  };
+}
+
+/** 캐릭터 스탯 생성 */
+export function createCharacterStats(overrides: Partial<TestCharacterStats> = {}): TestCharacterStats {
+  return {
+    strength: 5,
+    agility: 5,
+    insight: 3,
+    ...overrides,
+  };
+}
+
+/** 캐릭터 인벤토리 생성 */
+export function createCharacterInventory(overrides: Partial<TestCharacterInventory> = {}): TestCharacterInventory {
+  return {
+    items: [],
+    ...overrides,
+  };
+}
+
+/** 특수 선택지 오버라이드 생성 */
+export function createSpecialOverride(
+  requiredSpecial: string,
+  text: string,
+  overrides: Partial<TestSpecialOverride> = {}
+): TestSpecialOverride {
+  return {
+    requiredSpecial,
+    text,
+    ...overrides,
+  };
+}
+
+/** 선택지 결과 생성 */
+export function createChoiceOutcome(
+  type: TestChoiceOutcome['type'],
+  text: string,
+  effect?: TestChoiceOutcome['effect']
+): TestChoiceOutcome {
+  return {
+    type,
+    text,
+    ...(effect && { effect }),
+  };
+}
