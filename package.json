@@ -21,7 +21,10 @@
     "balance-check": "npx tsx scripts/balance-check.ts",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "deploy-storybook": "storybook build -o storybook-static",
+    "perf:benchmark": "npx tsx scripts/perf-benchmark.ts",
+    "perf:bundle": "vite build && node scripts/bundle-analysis.js"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -37,6 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
+    "@storybook/addon-a11y": "^10.1.11",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/blocks": "^8.6.14",
     "@storybook/react-vite": "^10.1.11",
