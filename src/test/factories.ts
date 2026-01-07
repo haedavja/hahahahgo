@@ -1585,3 +1585,553 @@ export function createChoiceOutcome(
     ...(effect && { effect }),
   };
 }
+
+// ==================== 에테르 계산 팩토리 ====================
+
+/**
+ * 에테르 계산용 플레이어 타입
+ */
+export interface TestEtherCalcPlayer {
+  comboUsageCount: Record<string, number>;
+  etherMultiplier?: number;
+}
+
+/**
+ * 에테르 계산용 적 타입
+ */
+export interface TestEtherCalcEnemy {
+  comboUsageCount: Record<string, number>;
+}
+
+/**
+ * 콤보 타입
+ */
+export interface TestCombo {
+  name: string;
+}
+
+/**
+ * 디플레이션 정보 타입
+ */
+export interface TestDeflation {
+  gain: number;
+  multiplier: number;
+  usageCount: number;
+}
+
+/**
+ * 에테르 계산 파라미터 타입
+ */
+export interface TestEtherCalcParams {
+  playerCombo: TestCombo | null;
+  enemyCombo: TestCombo | null;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  finalComboMultiplier: number;
+  player: TestEtherCalcPlayer;
+  enemy: TestEtherCalcEnemy;
+}
+
+/**
+ * 플레이어 에테르 결과 타입
+ */
+export interface TestPlayerEtherResult {
+  baseComboMult?: number;
+  finalComboMult?: number;
+  relicMultBonus: number;
+  etherAmplifierMult: number;
+  beforeDeflation: number;
+  deflation: TestDeflation;
+  finalEther: number;
+  appliedEther: number;
+  overflow?: number;
+}
+
+/**
+ * 적 에테르 결과 타입
+ */
+export interface TestEnemyEtherResult {
+  comboMult: number;
+  beforeDeflation: number;
+  deflation: TestDeflation;
+  finalEther: number;
+  appliedEther: number;
+  halfEtherMult?: number;
+}
+
+/** 에테르 계산용 플레이어 생성 */
+export function createEtherCalcPlayer(overrides: Partial<TestEtherCalcPlayer> = {}): TestEtherCalcPlayer {
+  return {
+    comboUsageCount: {},
+    ...overrides,
+  };
+}
+
+/** 에테르 계산용 적 생성 */
+export function createEtherCalcEnemy(overrides: Partial<TestEtherCalcEnemy> = {}): TestEtherCalcEnemy {
+  return {
+    comboUsageCount: {},
+    ...overrides,
+  };
+}
+
+/** 콤보 생성 */
+export function createCombo(name: string): TestCombo {
+  return { name };
+}
+
+/** 디플레이션 정보 생성 */
+export function createDeflation(overrides: Partial<TestDeflation> = {}): TestDeflation {
+  return {
+    gain: 0,
+    multiplier: 1,
+    usageCount: 0,
+    ...overrides,
+  };
+}
+
+/** 에테르 계산 파라미터 생성 */
+export function createEtherCalcParams(overrides: Partial<TestEtherCalcParams> = {}): TestEtherCalcParams {
+  return {
+    playerCombo: null,
+    enemyCombo: null,
+    turnEtherAccumulated: 0,
+    enemyTurnEtherAccumulated: 0,
+    finalComboMultiplier: 1,
+    player: createEtherCalcPlayer(),
+    enemy: createEtherCalcEnemy(),
+    ...overrides,
+  };
+}
+
+/** 플레이어 에테르 결과 생성 */
+export function createPlayerEtherResult(overrides: Partial<TestPlayerEtherResult> = {}): TestPlayerEtherResult {
+  return {
+    relicMultBonus: 0,
+    etherAmplifierMult: 1,
+    beforeDeflation: 0,
+    deflation: createDeflation(),
+    finalEther: 0,
+    appliedEther: 0,
+    ...overrides,
+  };
+}
+
+/** 적 에테르 결과 생성 */
+export function createEnemyEtherResult(overrides: Partial<TestEnemyEtherResult> = {}): TestEnemyEtherResult {
+  return {
+    comboMult: 1,
+    beforeDeflation: 0,
+    deflation: createDeflation(),
+    finalEther: 0,
+    appliedEther: 0,
+    ...overrides,
+  };
+}
+
+/** 토큰 객체 생성 (에테르 계산용) */
+export function createEtherToken(id: string, overrides: Partial<TokenInstance> = {}): TokenInstance {
+  return {
+    id,
+    stacks: 1,
+    ...overrides,
+  };
+}
+
+// ==================== 핸드/덱 생성 팩토리 ====================
+
+/**
+ * 캐릭터 빌드 타입
+ */
+export interface TestCharacterBuild {
+  mainSpecials?: string[];
+  subSpecials?: string[];
+  ownedCards?: string[];
+}
+
+/**
+ * 덱 카드 타입 (내부 마킹 포함)
+ */
+export interface TestDeckCard {
+  id: string;
+  __handUid: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  traits?: string[];
+  enhancementLevel?: number;
+  enhancedStats?: unknown;
+  description?: string;
+}
+
+/**
+ * 카드 성장 엔트리 타입
+ */
+export interface TestCardGrowthEntry {
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  growthCount: number;
+  enhancementLevel: number;
+  specializationCount: number;
+  traits: string[];
+}
+
+/**
+ * 카드 성장 맵 타입
+ */
+export type TestCardGrowth = Record<string, TestCardGrowthEntry>;
+
+/** 캐릭터 빌드 생성 */
+export function createCharacterBuild(overrides: Partial<TestCharacterBuild> = {}): TestCharacterBuild {
+  return {
+    mainSpecials: [],
+    subSpecials: [],
+    ownedCards: [],
+    ...overrides,
+  };
+}
+
+/** 덱 카드 생성 */
+export function createDeckCard(id: string, uid: string, overrides: Partial<TestDeckCard> = {}): TestDeckCard {
+  return {
+    id,
+    __handUid: uid,
+    ...overrides,
+  };
+}
+
+/** 주특기 덱 카드 생성 */
+export function createMainSpecialDeckCard(id: string, uid: string, overrides: Partial<TestDeckCard> = {}): TestDeckCard {
+  return createDeckCard(id, uid, {
+    __isMainSpecial: true,
+    ...overrides,
+  });
+}
+
+/** 보조특기 덱 카드 생성 */
+export function createSubSpecialDeckCard(id: string, uid: string, overrides: Partial<TestDeckCard> = {}): TestDeckCard {
+  return createDeckCard(id, uid, {
+    __isSubSpecial: true,
+    ...overrides,
+  });
+}
+
+/** 카드 성장 엔트리 생성 */
+export function createCardGrowthEntry(overrides: Partial<TestCardGrowthEntry> = {}): TestCardGrowthEntry {
+  return {
+    rarity: 'common',
+    growthCount: 0,
+    enhancementLevel: 0,
+    specializationCount: 0,
+    traits: [],
+    ...overrides,
+  };
+}
+
+// ==================== 다중 타격 실행 팩토리 ====================
+
+/**
+ * 다중 타격 실행용 전투 컨텍스트 타입
+ */
+export interface TestMultiHitContext {
+  remainingEnergy: number;
+  enemyDisplayName: string;
+}
+
+/**
+ * 다중 타격 실행용 공격/방어자 타입
+ */
+export interface TestMultiHitCombatant {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def: boolean;
+  counter: number;
+  vulnMult: number;
+  strength: number;
+  tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+}
+
+/**
+ * 다중 타격용 카드 타입
+ */
+export interface TestMultiHitCard {
+  id: string;
+  name: string;
+  type: string;
+  damage: number;
+  hits: number;
+  speedCost: number;
+  cardCategory?: string;
+}
+
+/**
+ * 다중 타격 결과의 단일 타격 결과 타입
+ */
+export interface TestHitResult {
+  damage: number;
+  damageTaken: number;
+  blockDestroyed: number;
+  timelineAdvance: number;
+  events: unknown[];
+  attacker: TestMultiHitCombatant;
+  defender: TestMultiHitCombatant;
+}
+
+/**
+ * prepareMultiHitAttack 반환 타입
+ */
+export interface TestPrepareMultiHitResult {
+  hits: number;
+  firstHitCritical: boolean;
+  preProcessedResult: Record<string, unknown>;
+  modifiedCard: TestMultiHitCard;
+  currentAttacker: TestMultiHitCombatant;
+  currentDefender: TestMultiHitCombatant;
+  attackerRemainingEnergy: number;
+  firstHitResult: TestHitResult;
+}
+
+/** 다중 타격 실행용 전투 컨텍스트 생성 */
+export function createMultiHitContext(overrides: Partial<TestMultiHitContext> = {}): TestMultiHitContext {
+  return {
+    remainingEnergy: 3,
+    enemyDisplayName: '테스트 적',
+    ...overrides,
+  };
+}
+
+/** 다중 타격 실행용 공격/방어자 생성 */
+export function createMultiHitCombatant(overrides: Partial<TestMultiHitCombatant> = {}): TestMultiHitCombatant {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    strength: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/** 다중 타격용 카드 생성 */
+export function createMultiHitCard(overrides: Partial<TestMultiHitCard> = {}): TestMultiHitCard {
+  return {
+    id: 'test_card',
+    name: '테스트 카드',
+    type: 'attack',
+    damage: 10,
+    hits: 1,
+    speedCost: 5,
+    ...overrides,
+  };
+}
+
+/** 단일 타격 결과 생성 */
+export function createHitResult(overrides: Partial<TestHitResult> = {}): TestHitResult {
+  return {
+    damage: 10,
+    damageTaken: 0,
+    blockDestroyed: 0,
+    timelineAdvance: 0,
+    events: [],
+    attacker: createMultiHitCombatant(),
+    defender: createMultiHitCombatant({ hp: 90 }),
+    ...overrides,
+  };
+}
+
+/** prepareMultiHitAttack 결과 생성 */
+export function createPrepareMultiHitResult(overrides: Partial<TestPrepareMultiHitResult> = {}): TestPrepareMultiHitResult {
+  return {
+    hits: 1,
+    firstHitCritical: false,
+    preProcessedResult: {},
+    modifiedCard: createMultiHitCard(),
+    currentAttacker: createMultiHitCombatant(),
+    currentDefender: createMultiHitCombatant({ hp: 90 }),
+    attackerRemainingEnergy: 3,
+    firstHitResult: createHitResult(),
+    ...overrides,
+  };
+}
+
+// ==================== 공격 전 특수 효과 팩토리 ====================
+
+/**
+ * 공격 전 특수 효과용 엔티티 타입
+ */
+export interface TestPreAttackEntity {
+  hp: number;
+  maxHp: number;
+  block: number;
+  agility?: number;
+  tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
+}
+
+/**
+ * 공격 전 특수 효과용 카드 타입
+ */
+export interface TestPreAttackCard {
+  name: string;
+  damage?: number;
+  hits?: number;
+  special?: string | string[];
+  traits?: string[];
+  crossBonus?: { type: string; value: number };
+  _ignoreBlock?: boolean;
+}
+
+/**
+ * 공격 전 특수 효과용 전투 컨텍스트 타입
+ */
+export interface TestPreAttackBattleContext {
+  playerAttackCards?: TestPreAttackCard[];
+  remainingEnergy?: number;
+  queue?: Array<{ actor: string; sp: number; hasCrossed?: boolean }>;
+  currentSp?: number;
+  currentQIndex?: number;
+}
+
+/**
+ * 공격 전 특수 효과 파라미터 타입
+ */
+export interface TestPreAttackParams {
+  card: TestPreAttackCard;
+  attacker: TestPreAttackEntity;
+  defender: TestPreAttackEntity;
+  attackerName: string;
+  battleContext?: TestPreAttackBattleContext;
+}
+
+/** 공격 전 특수 효과용 엔티티 생성 */
+export function createPreAttackEntity(overrides: Partial<TestPreAttackEntity> = {}): TestPreAttackEntity {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides,
+  };
+}
+
+/** 공격 전 특수 효과용 카드 생성 */
+export function createPreAttackCard(overrides: Partial<TestPreAttackCard> = {}): TestPreAttackCard {
+  return {
+    name: 'Attack',
+    damage: 10,
+    ...overrides,
+  };
+}
+
+/** 공격 전 특수 효과 파라미터 생성 */
+export function createPreAttackParams(overrides: Partial<TestPreAttackParams> = {}): TestPreAttackParams {
+  return {
+    card: createPreAttackCard(),
+    attacker: createPreAttackEntity(),
+    defender: createPreAttackEntity(),
+    attackerName: 'player',
+    ...overrides,
+  };
+}
+
+// ==================== 전투 헬퍼 팩토리 ====================
+
+/**
+ * 적 데이터 타입
+ */
+export interface TestEnemyData {
+  id?: string;
+  name?: string;
+  emoji?: string;
+  hp?: number;
+  maxHp?: number;
+  ether?: number;
+  speed?: number;
+  maxSpeed?: number;
+  deck?: string[] | null;
+  cardsPerTurn?: number;
+  passives?: Record<string, boolean>;
+  tier?: number;
+  isBoss?: boolean;
+}
+
+/**
+ * 맵 노드 타입
+ */
+export interface TestMapNode {
+  id: string;
+  type: string;
+  layer?: number;
+  selectable: boolean;
+  cleared: boolean;
+  isStart?: boolean;
+  connections?: string[];
+  displayLabel?: string;
+}
+
+/**
+ * 게임 상태 타입 (travelToNode용)
+ */
+export interface TestGameState {
+  map: {
+    nodes: TestMapNode[];
+    currentNodeId?: string;
+  };
+  mapRisk?: number;
+  completedEvents?: string[];
+  pendingNextEvent?: string | null;
+  characterBuild?: {
+    mainSpecials: string[];
+    subSpecials: string[];
+    ownedCards: string[];
+  };
+  playerHp?: number;
+  maxHp?: number;
+}
+
+/** 적 데이터 생성 */
+export function createEnemyData(overrides: Partial<TestEnemyData> = {}): TestEnemyData {
+  return {
+    id: 'test_enemy',
+    name: '테스트 적',
+    emoji: '👾',
+    hp: 40,
+    ether: 100,
+    speed: 10,
+    deck: [],
+    cardsPerTurn: 2,
+    passives: {},
+    tier: 1,
+    isBoss: false,
+    ...overrides,
+  };
+}
+
+/** 맵 노드 생성 */
+export function createMapNode(overrides: Partial<TestMapNode> = {}): TestMapNode {
+  return {
+    id: 'node1',
+    type: 'battle',
+    selectable: true,
+    cleared: false,
+    connections: [],
+    ...overrides,
+  };
+}
+
+/** 게임 상태 생성 (travelToNode용) */
+export function createGameStateForTravel(overrides: Partial<TestGameState> = {}): TestGameState {
+  return {
+    map: {
+      nodes: [
+        { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
+        { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] },
+      ],
+    },
+    mapRisk: 0,
+    completedEvents: [],
+    pendingNextEvent: null,
+    ...overrides,
+  };
+}

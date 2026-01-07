@@ -16,22 +16,28 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { hasSpecial, processPreAttackSpecials } from './preAttackSpecials';
+import {
+  createPreAttackEntity,
+  createPreAttackCard,
+  createPreAttackParams,
+  type TestPreAttackCard,
+} from '../../../test/factories';
 
 describe('preAttackSpecials', () => {
   describe('hasSpecial', () => {
     it('special이 없으면 false를 반환해야 함', () => {
-      expect(hasSpecial({} as any, 'ignoreBlock')).toBe(false);
-      expect(hasSpecial(null as any, 'ignoreBlock')).toBe(false);
+      expect(hasSpecial({} as TestPreAttackCard, 'ignoreBlock')).toBe(false);
+      expect(hasSpecial(null as unknown as TestPreAttackCard, 'ignoreBlock')).toBe(false);
     });
 
     it('단일 special 문자열을 확인해야 함', () => {
-      const card = { special: 'ignoreBlock' } as any;
+      const card = createPreAttackCard({ special: 'ignoreBlock' });
       expect(hasSpecial(card, 'ignoreBlock')).toBe(true);
       expect(hasSpecial(card, 'other')).toBe(false);
     });
 
     it('special 배열을 확인해야 함', () => {
-      const card = { special: ['ignoreBlock', 'lifesteal'] } as any;
+      const card = createPreAttackCard({ special: ['ignoreBlock', 'lifesteal'] });
       expect(hasSpecial(card, 'ignoreBlock')).toBe(true);
       expect(hasSpecial(card, 'lifesteal')).toBe(true);
       expect(hasSpecial(card, 'other')).toBe(false);
@@ -39,21 +45,10 @@ describe('preAttackSpecials', () => {
   });
 
   describe('processPreAttackSpecials', () => {
-    const createEntity = (overrides = {}) => ({
-      hp: 100,
-      maxHp: 100,
-      block: 0,
-      tokens: { usage: [], turn: [], permanent: [] },
-      ...overrides
-    }) as any;
-
     it('기본 결과 구조를 반환해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Attack', damage: 10 } as any,
-        attacker: createEntity(),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Attack', damage: 10 }),
+      }));
 
       expect(result).toHaveProperty('modifiedCard');
       expect(result).toHaveProperty('attacker');
@@ -64,23 +59,20 @@ describe('preAttackSpecials', () => {
     });
 
     it('ignoreBlock은 _ignoreBlock 플래그를 설정해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Pierce', damage: 10, special: 'ignoreBlock' } as any,
-        attacker: createEntity(),
-        defender: createEntity({ block: 20 }),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Pierce', damage: 10, special: 'ignoreBlock' }),
+        defender: createPreAttackEntity({ block: 20 }),
+      }));
 
       expect(result.modifiedCard._ignoreBlock).toBe(true);
     });
 
     it('clearAllBlock은 양측 방어력을 0으로 만들어야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Clear', damage: 10, special: 'clearAllBlock' } as any,
-        attacker: createEntity({ block: 15 }),
-        defender: createEntity({ block: 20 }),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Clear', damage: 10, special: 'clearAllBlock' }),
+        attacker: createPreAttackEntity({ block: 15 }),
+        defender: createPreAttackEntity({ block: 20 }),
+      }));
 
       expect(result.attacker.block).toBe(0);
       expect(result.defender.block).toBe(0);
@@ -88,84 +80,69 @@ describe('preAttackSpecials', () => {
     });
 
     it('doubleDamageIfSolo는 유일한 공격 카드일 때 피해를 2배로 해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Solo', damage: 10, special: 'doubleDamageIfSolo' } as any,
-        attacker: createEntity(),
-        defender: createEntity(),
-        attackerName: 'player',
-        battleContext: { playerAttackCards: [{ name: 'Solo' } as any] } as any
-      } as any);
+      const soloCard = createPreAttackCard({ name: 'Solo', damage: 10, special: 'doubleDamageIfSolo' });
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: soloCard,
+        battleContext: { playerAttackCards: [{ name: 'Solo' }] },
+      }));
 
       expect(result.modifiedCard.damage).toBe(20);
     });
 
     it('doubleDamageIfSolo는 다른 공격 카드가 있으면 2배가 아니어야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Solo', damage: 10, special: 'doubleDamageIfSolo' } as any,
-        attacker: createEntity(),
-        defender: createEntity(),
-        attackerName: 'player',
-        battleContext: { playerAttackCards: [{ name: 'Solo' } as any, { name: 'Other' } as any] } as any
-      } as any);
+      const soloCard = createPreAttackCard({ name: 'Solo', damage: 10, special: 'doubleDamageIfSolo' });
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: soloCard,
+        battleContext: { playerAttackCards: [{ name: 'Solo' }, { name: 'Other' }] },
+      }));
 
       expect(result.modifiedCard.damage).toBe(10);
     });
 
     it('agilityBonus는 민첩 x5 추가 피해를 적용해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Agile', damage: 10, special: 'agilityBonus' } as any,
-        attacker: createEntity({ agility: 3 }),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Agile', damage: 10, special: 'agilityBonus' }),
+        attacker: createPreAttackEntity({ agility: 3 }),
+      }));
 
       expect(result.modifiedCard.damage).toBe(25); // 10 + 3*5
     });
 
     it('agilityBonus는 민첩 0이면 추가 피해가 없어야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Agile', damage: 10, special: 'agilityBonus' } as any,
-        attacker: createEntity({ agility: 0 }),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Agile', damage: 10, special: 'agilityBonus' }),
+        attacker: createPreAttackEntity({ agility: 0 }),
+      }));
 
       expect(result.modifiedCard.damage).toBe(10);
     });
 
     it('special이 없으면 카드가 수정되지 않아야 함', () => {
-      const originalCard = { name: 'Normal', damage: 10 } as any;
-      const result = processPreAttackSpecials({
-        card: originalCard,
-        attacker: createEntity(),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Normal', damage: 10 }),
+      }));
 
       expect(result.modifiedCard.damage).toBe(10);
       expect(result.events).toHaveLength(0);
     });
 
     it('cross 특성은 타임라인 겹침 시 피해 배율을 적용해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: {
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({
           name: 'Cross',
           damage: 10,
           traits: ['cross'],
-          crossBonus: { type: 'damage_mult', value: 2 }
-        } as any,
-        attacker: createEntity(),
-        defender: createEntity(),
-        attackerName: 'player',
+          crossBonus: { type: 'damage_mult', value: 2 },
+        }),
         battleContext: {
           queue: [
-            { actor: 'player', sp: 5, hasCrossed: true } as any,
-            { actor: 'enemy', sp: 5 } as any
+            { actor: 'player', sp: 5, hasCrossed: true },
+            { actor: 'enemy', sp: 5 },
           ],
           currentSp: 5,
-          currentQIndex: 0
-        } as any
-      } as any);
+          currentQIndex: 0,
+        },
+      }));
 
       expect(result.modifiedCard.damage).toBe(20);
     });
@@ -180,13 +157,10 @@ describe('preAttackSpecials', () => {
       });
 
       it('행동력당 타격 횟수를 계산해야 함', () => {
-        const result = processPreAttackSpecials({
-          card: { name: 'Roulette', damage: 5, special: 'gyrusRoulette' } as any,
-          attacker: createEntity(),
-          defender: createEntity(),
-          attackerName: 'player',
-          battleContext: { remainingEnergy: 3 } as any
-        } as any);
+        const result = processPreAttackSpecials(createPreAttackParams({
+          card: createPreAttackCard({ name: 'Roulette', damage: 5, special: 'gyrusRoulette' }),
+          battleContext: { remainingEnergy: 3 },
+        }));
 
         // Math.random이 0.3이므로 각 행동력당 2회 타격
         expect(result.modifiedCard.hits).toBe(6); // 3 * 2
@@ -194,38 +168,34 @@ describe('preAttackSpecials', () => {
     });
 
     it('tempeteDechainee는 기교 스택 x3 추가 타격을 해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Tempete', damage: 5, hits: 3, special: 'tempeteDechainee' } as any,
-        attacker: createEntity({
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Tempete', damage: 5, hits: 3, special: 'tempeteDechainee' }),
+        attacker: createPreAttackEntity({
           tokens: {
             usage: [],
             turn: [],
-            permanent: [{ id: 'finesse', stacks: 2 } as any]
-          }
+            permanent: [{ id: 'finesse', stacks: 2 }],
+          },
         }),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      }));
 
       // 기본 3 + 기교 2 * 3 = 9
       expect(result.modifiedCard.hits).toBe(9);
     });
 
     it('reloadSpray는 탄걸림을 제거해야 함', () => {
-      const result = processPreAttackSpecials({
-        card: { name: 'Reload', damage: 5, special: 'reloadSpray' } as any,
-        attacker: createEntity({
+      const result = processPreAttackSpecials(createPreAttackParams({
+        card: createPreAttackCard({ name: 'Reload', damage: 5, special: 'reloadSpray' }),
+        attacker: createPreAttackEntity({
           tokens: {
             usage: [],
             turn: [],
-            permanent: [{ id: 'gun_jam', stacks: 3 } as any]
-          }
+            permanent: [{ id: 'gun_jam', stacks: 3 }],
+          },
         }),
-        defender: createEntity(),
-        attackerName: 'player'
-      } as any);
+      }));
 
-      const gunJam = result.attacker.tokens!.permanent!.find(t => t.id === 'gun_jam');
+      const gunJam = result.attacker.tokens!.permanent!.find((t: { id: string }) => t.id === 'gun_jam');
       expect(gunJam).toBeUndefined();
     });
   });

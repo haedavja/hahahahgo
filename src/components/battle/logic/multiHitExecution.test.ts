@@ -15,8 +15,15 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { executeMultiHitAsync } from './multiHitExecution';
+import {
+  createMultiHitContext,
+  createMultiHitCombatant,
+  createMultiHitCard,
+  createHitResult,
+  createPrepareMultiHitResult,
+} from '../../../test/factories';
 
 // Mock dependencies
 vi.mock('./combatActions', () => ({
@@ -38,97 +45,46 @@ import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, roll
 import { processPerHitRoulette } from '../utils/cardSpecialEffects';
 
 describe('executeMultiHitAsync', () => {
-  const createCombatant = (overrides = {}) => ({
-    hp: 100,
-    maxHp: 100,
-    block: 0,
-    def: false,
-    counter: 0,
-    vulnMult: 1,
-    strength: 0,
-    tokens: { usage: [], turn: [], permanent: [] },
-    ...overrides
-  });
-
-  const createCard = (overrides = {}) => ({
-    id: 'test_card',
-    name: '테스트 카드',
-    type: 'attack',
-    damage: 10,
-    hits: 1,
-    speedCost: 5,
-    ...overrides
-  });
-
-  const createBattleContext = (overrides = {}) => ({
-    remainingEnergy: 3,
-    enemyDisplayName: '테스트 적',
-    ...overrides
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
 
     // 기본 mock 설정
-    (prepareMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
-      hits: 1,
-      firstHitCritical: false,
-      preProcessedResult: {},
-      modifiedCard: createCard(),
-      currentAttacker: createCombatant(),
-      currentDefender: createCombatant({ hp: 90 }),
-      attackerRemainingEnergy: 3,
-      firstHitResult: {
-        damage: 10,
-        damageTaken: 0,
-        blockDestroyed: 0,
-        timelineAdvance: 0,
-        events: [],
-        attacker: createCombatant(),
-        defender: createCombatant({ hp: 90 })
-      }
-    });
+    (prepareMultiHitAttack as Mock).mockReturnValue(createPrepareMultiHitResult());
 
-    (calculateSingleHit as ReturnType<typeof vi.fn>).mockReturnValue({
-      damage: 10,
-      damageTaken: 0,
-      blockDestroyed: 0,
-      timelineAdvance: 0,
-      events: [],
-      attacker: createCombatant(),
-      defender: createCombatant({ hp: 80 })
-    });
+    (calculateSingleHit as Mock).mockReturnValue(createHitResult({
+      defender: createMultiHitCombatant({ hp: 80 })
+    }));
 
-    (finalizeMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
-      attacker: createCombatant(),
-      defender: createCombatant({ hp: 80 }),
+    (finalizeMultiHitAttack as Mock).mockReturnValue({
+      attacker: createMultiHitCombatant(),
+      defender: createMultiHitCombatant({ hp: 80 }),
       events: [],
       logs: [],
       createdCards: []
     });
 
-    (rollCritical as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (rollCritical as Mock).mockReturnValue(false);
 
-    (processPerHitRoulette as ReturnType<typeof vi.fn>).mockReturnValue({
-      updatedAttacker: createCombatant(),
+    (processPerHitRoulette as Mock).mockReturnValue({
+      updatedAttacker: createMultiHitCombatant(),
       jammed: false
     });
   });
 
   describe('단일 타격 처리', () => {
     it('단일 타격 카드가 올바르게 처리되어야 함', async () => {
-      const attacker = createCombatant();
-      const defender = createCombatant();
-      const card = createCard({ hits: 1 });
-      const context = createBattleContext();
+      const attacker = createMultiHitCombatant();
+      const defender = createMultiHitCombatant();
+      const card = createMultiHitCard({ hits: 1 });
+      const context = createMultiHitContext();
       const callback = vi.fn();
 
       const result = await executeMultiHitAsync(
-        card as any,
-        attacker as any,
-        defender as any,
+        card,
+        attacker,
+        defender,
         'player',
-        context as any,
+        context,
         callback
       );
 
@@ -142,11 +98,11 @@ describe('executeMultiHitAsync', () => {
       const callback = vi.fn();
 
       await executeMultiHitAsync(
-        createCard() as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard(),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         callback
       );
 
@@ -157,33 +113,19 @@ describe('executeMultiHitAsync', () => {
 
   describe('다중 타격 처리', () => {
     beforeEach(() => {
-      (prepareMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
+      (prepareMultiHitAttack as Mock).mockReturnValue(createPrepareMultiHitResult({
         hits: 3,
-        firstHitCritical: false,
-        preProcessedResult: {},
-        modifiedCard: createCard({ hits: 3 }),
-        currentAttacker: createCombatant(),
-        currentDefender: createCombatant({ hp: 90 }),
-        attackerRemainingEnergy: 3,
-        firstHitResult: {
-          damage: 10,
-          damageTaken: 0,
-          blockDestroyed: 0,
-          timelineAdvance: 0,
-          events: [],
-          attacker: createCombatant(),
-          defender: createCombatant({ hp: 90 })
-        }
-      });
+        modifiedCard: createMultiHitCard({ hits: 3 }),
+      }));
     });
 
     it('3회 타격 카드의 총 피해가 올바르게 계산되어야 함', async () => {
       const result = await executeMultiHitAsync(
-        createCard({ hits: 3 }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 3 }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -196,11 +138,11 @@ describe('executeMultiHitAsync', () => {
       const callback = vi.fn();
 
       await executeMultiHitAsync(
-        createCard({ hits: 3 }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 3 }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         callback
       );
 
@@ -212,11 +154,11 @@ describe('executeMultiHitAsync', () => {
 
     it('다중 타격 시 로그가 생성되어야 함', async () => {
       const result = await executeMultiHitAsync(
-        createCard({ hits: 3 }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 3 }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -226,38 +168,24 @@ describe('executeMultiHitAsync', () => {
 
   describe('총기 카드 탄걸림', () => {
     beforeEach(() => {
-      (prepareMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
+      (prepareMultiHitAttack as Mock).mockReturnValue(createPrepareMultiHitResult({
         hits: 5,
-        firstHitCritical: false,
-        preProcessedResult: {},
-        modifiedCard: createCard({ hits: 5, cardCategory: 'gun', type: 'attack' }),
-        currentAttacker: createCombatant(),
-        currentDefender: createCombatant({ hp: 90 }),
-        attackerRemainingEnergy: 3,
-        firstHitResult: {
-          damage: 10,
-          damageTaken: 0,
-          blockDestroyed: 0,
-          timelineAdvance: 0,
-          events: [],
-          attacker: createCombatant(),
-          defender: createCombatant({ hp: 90 })
-        }
-      });
+        modifiedCard: createMultiHitCard({ hits: 5, cardCategory: 'gun', type: 'attack' }),
+      }));
     });
 
     it('첫 타격 후 탄걸림 시 jammed=true 반환', async () => {
-      (processPerHitRoulette as ReturnType<typeof vi.fn>).mockReturnValue({
-        updatedAttacker: createCombatant(),
+      (processPerHitRoulette as Mock).mockReturnValue({
+        updatedAttacker: createMultiHitCombatant(),
         jammed: true
       });
 
       const result = await executeMultiHitAsync(
-        createCard({ hits: 5, cardCategory: 'gun', type: 'attack' }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 5, cardCategory: 'gun', type: 'attack' }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -268,16 +196,16 @@ describe('executeMultiHitAsync', () => {
 
     it('중간 타격에서 탄걸림 시 남은 타격 취소', async () => {
       // 첫 타격은 성공, 두 번째 타격 후 탄걸림
-      (processPerHitRoulette as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce({ updatedAttacker: createCombatant(), jammed: false })
-        .mockReturnValueOnce({ updatedAttacker: createCombatant(), jammed: true });
+      (processPerHitRoulette as Mock)
+        .mockReturnValueOnce({ updatedAttacker: createMultiHitCombatant(), jammed: false })
+        .mockReturnValueOnce({ updatedAttacker: createMultiHitCombatant(), jammed: true });
 
       const result = await executeMultiHitAsync(
-        createCard({ hits: 5, cardCategory: 'gun', type: 'attack' }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 5, cardCategory: 'gun', type: 'attack' }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -288,31 +216,21 @@ describe('executeMultiHitAsync', () => {
 
   describe('치명타 처리', () => {
     it('첫 타격 치명타 시 isCritical=true', async () => {
-      (prepareMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
-        hits: 1,
+      (prepareMultiHitAttack as Mock).mockReturnValue(createPrepareMultiHitResult({
         firstHitCritical: true,
-        preProcessedResult: {},
-        modifiedCard: createCard(),
-        currentAttacker: createCombatant(),
-        currentDefender: createCombatant({ hp: 85 }),
-        attackerRemainingEnergy: 3,
-        firstHitResult: {
+        currentDefender: createMultiHitCombatant({ hp: 85 }),
+        firstHitResult: createHitResult({
           damage: 15, // 치명타 피해
-          damageTaken: 0,
-          blockDestroyed: 0,
-          timelineAdvance: 0,
-          events: [],
-          attacker: createCombatant(),
-          defender: createCombatant({ hp: 85 })
-        }
-      });
+          defender: createMultiHitCombatant({ hp: 85 })
+        }),
+      }));
 
       const result = await executeMultiHitAsync(
-        createCard() as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard(),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -321,36 +239,28 @@ describe('executeMultiHitAsync', () => {
     });
 
     it('다중 타격 중 일부 치명타 시 criticalHits 카운트', async () => {
-      (prepareMultiHitAttack as ReturnType<typeof vi.fn>).mockReturnValue({
+      (prepareMultiHitAttack as Mock).mockReturnValue(createPrepareMultiHitResult({
         hits: 3,
         firstHitCritical: true,
-        preProcessedResult: {},
-        modifiedCard: createCard({ hits: 3 }),
-        currentAttacker: createCombatant(),
-        currentDefender: createCombatant({ hp: 85 }),
-        attackerRemainingEnergy: 3,
-        firstHitResult: {
+        modifiedCard: createMultiHitCard({ hits: 3 }),
+        currentDefender: createMultiHitCombatant({ hp: 85 }),
+        firstHitResult: createHitResult({
           damage: 15,
-          damageTaken: 0,
-          blockDestroyed: 0,
-          timelineAdvance: 0,
-          events: [],
-          attacker: createCombatant(),
-          defender: createCombatant({ hp: 85 })
-        }
-      });
+          defender: createMultiHitCombatant({ hp: 85 })
+        }),
+      }));
 
       // 두 번째 타격도 치명타
-      (rollCritical as ReturnType<typeof vi.fn>)
+      (rollCritical as Mock)
         .mockReturnValueOnce(true)
         .mockReturnValueOnce(false);
 
       const result = await executeMultiHitAsync(
-        createCard({ hits: 3 }) as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard({ hits: 3 }),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'player',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
@@ -362,11 +272,11 @@ describe('executeMultiHitAsync', () => {
   describe('적 공격 처리', () => {
     it('적 공격자일 때 올바르게 처리되어야 함', async () => {
       const result = await executeMultiHitAsync(
-        createCard() as any,
-        createCombatant() as any,
-        createCombatant() as any,
+        createMultiHitCard(),
+        createMultiHitCombatant(),
+        createMultiHitCombatant(),
         'enemy',
-        createBattleContext() as any,
+        createMultiHitContext(),
         vi.fn()
       );
 
