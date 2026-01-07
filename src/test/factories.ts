@@ -636,3 +636,288 @@ export function createEnemyTimelineEntry(cardOverrides: Partial<Card> = {}): Tim
     card: createCard(cardOverrides),
   });
 }
+
+// ==================== 전투 테스트용 팩토리 ====================
+
+/**
+ * 전투 테스트용 Combatant (공격자/방어자) 타입
+ * cardSpecialEffects 등에서 사용
+ */
+export interface TestCombatant {
+  hp: number;
+  maxHp?: number;
+  block?: number;
+  def?: boolean;
+  counter?: number;
+  vulnMult?: number;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  tokens?: TokenState;
+  etherPts?: number;
+  etherCapacity?: number;
+}
+
+/** 전투 테스트용 Combatant 기본값 */
+const DEFAULT_COMBATANT: TestCombatant = {
+  hp: 100,
+  maxHp: 100,
+  block: 0,
+  tokens: { usage: [], turn: [], permanent: [] },
+};
+
+/** 전투 테스트용 Combatant 생성 */
+export function createCombatant(overrides: Partial<TestCombatant> = {}): TestCombatant {
+  return {
+    ...DEFAULT_COMBATANT,
+    ...overrides,
+    tokens: overrides.tokens ?? { usage: [], turn: [], permanent: [] },
+  };
+}
+
+/** 전투 테스트용 공격자 생성 */
+export function createAttacker(overrides: Partial<TestCombatant> = {}): TestCombatant {
+  return createCombatant(overrides);
+}
+
+/** 전투 테스트용 방어자 생성 */
+export function createDefender(overrides: Partial<TestCombatant> = {}): TestCombatant {
+  return createCombatant(overrides);
+}
+
+/**
+ * 전투 컨텍스트 (battleContext) 타입
+ */
+export interface TestBattleContext {
+  playerAttackCards?: Array<{ id: string; [key: string]: unknown }>;
+  enemyAttackCards?: Array<{ id: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+/** 전투 컨텍스트 생성 (확장) */
+export function createTestBattleContext(overrides: Partial<TestBattleContext> = {}): TestBattleContext {
+  return {
+    playerAttackCards: [],
+    enemyAttackCards: [],
+    ...overrides,
+  };
+}
+
+/**
+ * HandAction (큐 아이템) 타입
+ */
+export interface TestHandAction {
+  id?: string;
+  cardId?: string;
+  speed?: number;
+  owner?: 'player' | 'enemy';
+  card?: Partial<Card>;
+  [key: string]: unknown;
+}
+
+/** HandAction 생성 */
+export function createHandAction(overrides: Partial<TestHandAction> = {}): TestHandAction {
+  return {
+    id: 'action-1',
+    cardId: 'strike',
+    speed: 5,
+    owner: 'player',
+    ...overrides,
+  };
+}
+
+/** 플레이어 HandAction 배열 생성 */
+export function createPlayerActions(actions: Array<Partial<TestHandAction>> = []): TestHandAction[] {
+  return actions.map((a, i) => createHandAction({
+    id: `player-action-${i}`,
+    owner: 'player',
+    ...a,
+  }));
+}
+
+/** 적 HandAction 배열 생성 */
+export function createEnemyActions(actions: Array<Partial<TestHandAction>> = []): TestHandAction[] {
+  return actions.map((a, i) => createHandAction({
+    id: `enemy-action-${i}`,
+    owner: 'enemy',
+    ...a,
+  }));
+}
+
+// ==================== 적 AI 테스트용 팩토리 ====================
+
+/**
+ * 적 객체 타입 (decideEnemyMode 등에서 사용)
+ */
+export interface TestEnemyObj {
+  id: string;
+  deck?: string[];
+  [key: string]: unknown;
+}
+
+/** 적 객체 생성 */
+export function createEnemyObj(overrides: Partial<TestEnemyObj> = {}): TestEnemyObj {
+  return {
+    id: 'test-enemy',
+    deck: [],
+    ...overrides,
+  };
+}
+
+/**
+ * 적 AI 모드 타입
+ */
+export interface TestEnemyMode {
+  key: 'aggro' | 'turtle' | 'balanced';
+  name: string;
+  prefer: string;
+}
+
+/** 적 AI 모드 생성 */
+export function createEnemyMode(overrides: Partial<TestEnemyMode> = {}): TestEnemyMode {
+  return {
+    key: 'balanced',
+    name: '균형',
+    prefer: 'balanced',
+    ...overrides,
+  };
+}
+
+/**
+ * 적 유닛 타입 (다중 유닛 전투용)
+ */
+export interface TestEnemyUnit {
+  unitId: number;
+  hp: number;
+  maxHp?: number;
+  deck: string[];
+  [key: string]: unknown;
+}
+
+/** 적 유닛 생성 */
+export function createEnemyUnit(overrides: Partial<TestEnemyUnit> = {}): TestEnemyUnit {
+  return {
+    unitId: 1,
+    hp: 50,
+    maxHp: 50,
+    deck: [],
+    ...overrides,
+  };
+}
+
+/** 적 유닛 배열 생성 */
+export function createEnemyUnits(units: Array<Partial<TestEnemyUnit>> = []): TestEnemyUnit[] {
+  return units.map((u, i) => createEnemyUnit({
+    unitId: i + 1,
+    ...u,
+  }));
+}
+
+/**
+ * 적 카드 타입 (actionCost, speedCost 포함)
+ */
+export interface TestEnemyCard extends Card {
+  actionCost: number;
+  speedCost: number;
+  hits?: number;
+}
+
+/** 적 카드 생성 (AI 테스트용) */
+export function createEnemyAICard(
+  id: string,
+  type: CardType,
+  actionCost: number,
+  speedCost: number,
+  damage = 0,
+  block = 0
+): TestEnemyCard {
+  return {
+    id,
+    name: id,
+    type,
+    actionCost,
+    speedCost,
+    damage,
+    block,
+    hits: 1,
+    description: '',
+  };
+}
+
+/**
+ * 적 행동 타입 (generateEnemyActions 결과)
+ */
+export interface TestEnemyAction {
+  id: string;
+  damage?: number;
+  block?: number;
+  type?: CardType;
+  speedCost?: number;
+  isGhost?: boolean;
+  createdBy?: string;
+  __sourceUnitId?: number;
+  [key: string]: unknown;
+}
+
+/** 적 행동 생성 */
+export function createEnemyAction(overrides: Partial<TestEnemyAction> = {}): TestEnemyAction {
+  return {
+    id: 'test-action',
+    damage: 10,
+    type: 'attack',
+    speedCost: 5,
+    ...overrides,
+  };
+}
+
+// ==================== 전투 손패 팩토리 ====================
+
+/**
+ * 전투 손패 카드 타입 (computeBattlePlan 등에서 사용)
+ */
+export interface TestBattleHandCard {
+  id: string;
+  cardId: string;
+  speed: number;
+  owner: 'player' | 'enemy';
+  [key: string]: unknown;
+}
+
+/** 플레이어 손패 카드 생성 */
+export function createPlayerHandCard(overrides: Partial<TestBattleHandCard> = {}): TestBattleHandCard {
+  return {
+    id: 'player-card-1',
+    cardId: 'strike',
+    speed: 5,
+    owner: 'player',
+    ...overrides,
+  };
+}
+
+/** 적 손패 카드 생성 */
+export function createEnemyHandCard(overrides: Partial<TestBattleHandCard> = {}): TestBattleHandCard {
+  return {
+    id: 'enemy-card-1',
+    cardId: 'attack',
+    speed: 4,
+    owner: 'enemy',
+    ...overrides,
+  };
+}
+
+/** 플레이어 손패 배열 생성 */
+export function createPlayerHandCards(cards: Array<Partial<TestBattleHandCard>> = []): TestBattleHandCard[] {
+  return cards.map((c, i) => createPlayerHandCard({
+    id: `player-card-${i + 1}`,
+    ...c,
+  }));
+}
+
+/** 적 손패 배열 생성 */
+export function createEnemyHandCards(cards: Array<Partial<TestBattleHandCard>> = []): TestBattleHandCard[] {
+  return cards.map((c, i) => createEnemyHandCard({
+    id: `enemy-card-${i + 1}`,
+    ...c,
+  }));
+}

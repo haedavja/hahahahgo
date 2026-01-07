@@ -19,6 +19,10 @@ import {
   drawCharacterBuildHand,
   BATTLE_CARDS,
 } from './battleHelpers';
+import {
+  createPlayerHandCard,
+  createEnemyHandCard,
+} from '../test/factories';
 
 describe('createBattleEnemyData', () => {
   describe('정상 데이터 변환', () => {
@@ -292,8 +296,8 @@ describe('createReducerEnemyState', () => {
 
 describe('computeBattlePlan', () => {
   it('유효한 전투 계획을 반환해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -304,8 +308,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('preview에 timeline이 포함되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -315,8 +319,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('플레이어 HP가 주어지면 적용되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, 50, 100);
 
@@ -324,8 +328,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('다수 적 전투 시 enemyCount가 증가해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, null, null, 3);
 
@@ -1047,8 +1051,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('elite 전투 타입에서도 작동해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('elite', playerCards, enemyCards);
 
@@ -1056,8 +1060,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('boss 전투 타입에서도 작동해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('boss', playerCards, enemyCards);
 
@@ -1065,8 +1069,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('존재하지 않는 전투 타입은 default를 사용해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('unknown_type', playerCards, enemyCards);
 
