@@ -58,5 +58,9 @@ ddd.txt
 # Playwright outputs
 playwright-report/
 
+# Generated reports
+bundle-report.json
+storybook-static/
+
 # Local move-stash
 _moved_from_hahahahgo/
