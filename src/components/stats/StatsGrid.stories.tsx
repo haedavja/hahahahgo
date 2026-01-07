@@ -4,6 +4,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 import { StatsGrid } from './StatsGrid';
 import { STATS_COLORS } from './styles';
 
@@ -27,6 +28,13 @@ export const Default: Story = {
       { label: '평균 턴', value: '4.2' },
       { label: '총 피해', value: '12,500' },
     ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('총 전투')).toBeInTheDocument();
+    await expect(canvas.getByText('150')).toBeInTheDocument();
+    await expect(canvas.getByText('승률')).toBeInTheDocument();
+    await expect(canvas.getByText('75.5%')).toBeInTheDocument();
   },
 };
 

@@ -4,6 +4,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 import { SectionTitle } from './SectionTitle';
 
 const meta: Meta<typeof SectionTitle> = {
@@ -26,12 +27,20 @@ export const Default: Story = {
   args: {
     children: '전투 통계',
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('전투 통계')).toBeInTheDocument();
+  },
 };
 
 export const WithEmoji: Story = {
   args: {
     children: '전투 통계',
     emoji: '⚔️',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/⚔️.*전투 통계/)).toBeInTheDocument();
   },
 };
 
