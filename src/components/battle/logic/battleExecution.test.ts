@@ -10,6 +10,24 @@ import type { FullBattleState } from '../reducer/battleReducerState';
 import type { BattleActions } from '../hooks/useBattleState';
 import type { MutableRefObject } from 'react';
 
+// ==================== 테스트용 Mock 타입 ====================
+
+/** 테스트에서 사용하는 BattleActions 부분 집합 */
+interface MockBattleActions extends Partial<BattleActions> {
+  setExecutingCardIndex: ReturnType<typeof vi.fn>;
+  setUsedCardIndices: ReturnType<typeof vi.fn>;
+  setTimelineIndicatorVisible: ReturnType<typeof vi.fn>;
+  setDisappearingCards: ReturnType<typeof vi.fn>;
+  setHiddenCards: ReturnType<typeof vi.fn>;
+}
+
+/** 테스트에서 사용하는 FullBattleState 부분 집합 */
+interface MockBattleState extends Partial<FullBattleState> {
+  usedCardIndices?: number[];
+  disappearingCards: number[];
+  hiddenCards: number[];
+}
+
 // TIMING mock
 vi.mock('./battleConstants', () => ({
   TIMING: {
@@ -20,10 +38,10 @@ vi.mock('./battleConstants', () => ({
 }));
 
 describe('createStepOnceAnimations', () => {
-  let mockActions: BattleActions;
-  let mockBattleRef: MutableRefObject<FullBattleState>;
+  let mockActions: MockBattleActions;
+  let mockBattleRef: MutableRefObject<MockBattleState>;
   let mockEscapeUsedThisTurnRef: MutableRefObject<Set<string>>;
-  let mockBattleState: FullBattleState;
+  let mockBattleState: MockBattleState;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -34,13 +52,13 @@ describe('createStepOnceAnimations', () => {
       setTimelineIndicatorVisible: vi.fn(),
       setDisappearingCards: vi.fn(),
       setHiddenCards: vi.fn(),
-    } as unknown as BattleActions;
+    };
 
     mockBattleState = {
       usedCardIndices: [0, 1],
       disappearingCards: [],
       hiddenCards: [],
-    } as unknown as FullBattleState;
+    };
 
     mockBattleRef = {
       current: mockBattleState,
@@ -107,7 +125,7 @@ describe('createStepOnceAnimations', () => {
         usedCardIndices: undefined,
         disappearingCards: [],
         hiddenCards: [],
-      } as unknown as FullBattleState;
+      };
 
       const action: OrderItem = {
         actor: 'player',

@@ -107,7 +107,7 @@ const createMockParams = (overrides: Partial<ExecuteCardActionCoreParams> = {}):
   },
   consumeNextCardEffects: vi.fn(),
   ...overrides,
-} as unknown as ExecuteCardActionCoreParams);
+} as ExecuteCardActionCoreParams);
 
 // ==================== 테스트 ====================
 

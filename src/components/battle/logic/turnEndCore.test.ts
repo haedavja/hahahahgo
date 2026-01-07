@@ -157,7 +157,7 @@ const createMockParams = (overrides: Partial<FinishTurnCoreParams> = {}): Finish
     playSound: vi.fn(),
     actions,
     ...overrides,
-  } as unknown as FinishTurnCoreParams;
+  } as FinishTurnCoreParams;
 };
 
 // ==================== 테스트 ====================

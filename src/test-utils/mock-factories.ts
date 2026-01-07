@@ -355,6 +355,131 @@ export function createMockFullBattleState(overrides: DeepPartial<GameBattleState
   });
 }
 
+// ==================== 전투 엔티티 팩토리 ====================
+
+/**
+ * 테스트용 Player 타입
+ */
+export interface MockPlayer {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def?: boolean;
+  counter?: number;
+  vulnMult?: number;
+  strength?: number;
+  energy?: number;
+  maxEnergy?: number;
+  tokens: TokenState;
+  etherPts?: number;
+  etherOverflow?: number;
+  etherMultiplier?: number;
+}
+
+/**
+ * 테스트용 Enemy 타입
+ */
+export interface MockEnemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def?: boolean;
+  counter?: number;
+  vulnMult?: number;
+  tokens: TokenState;
+  energy?: number;
+  maxEnergy?: number;
+  etherPts?: number;
+  intent?: unknown;
+  grace?: unknown;
+}
+
+/**
+ * 테스트용 OrderItem 타입
+ */
+export interface MockOrderItem {
+  actor: 'player' | 'enemy';
+  card: Partial<GameCard>;
+  sp: number;
+  originalIndex?: number;
+  index?: number;
+  time?: number;
+}
+
+/**
+ * 테스트용 Relic 타입
+ */
+export interface MockRelic {
+  id: string;
+  name: string;
+  description?: string;
+  rarity?: string;
+  effect?: unknown;
+}
+
+/**
+ * 테스트용 Player 생성
+ */
+export function createMockPlayer(overrides: Partial<MockPlayer> = {}): MockPlayer {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    strength: 0,
+    energy: 6,
+    maxEnergy: 6,
+    tokens: {},
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 Enemy 생성
+ */
+export function createMockEnemy(overrides: Partial<MockEnemy> = {}): MockEnemy {
+  return {
+    hp: 50,
+    maxHp: 50,
+    block: 0,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    tokens: {},
+    energy: 3,
+    maxEnergy: 3,
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 OrderItem 생성
+ */
+export function createMockOrderItem(overrides: Partial<MockOrderItem> = {}): MockOrderItem {
+  return {
+    actor: 'player',
+    card: { id: 'test-card', name: '테스트 카드', type: 'attack' },
+    sp: 5,
+    originalIndex: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * 테스트용 Relic 생성
+ */
+export function createMockRelic(overrides: Partial<MockRelic> = {}): MockRelic {
+  return {
+    id: 'test-relic',
+    name: '테스트 상징',
+    description: '테스트용 상징입니다.',
+    rarity: 'common',
+    ...overrides,
+  };
+}
+
 // ==================== 유틸리티 함수 ====================
 
 /**
