@@ -51,6 +51,32 @@ export const CARD_ETHER_BY_RARITY: Record<string, number> = {
   legendary: 500
 };
 
+/** 특성 시너지 보너스 정의 */
+export const TRAIT_SYNERGY_BONUSES: Record<string, { threshold: number; bonus: number; name: string }> = {
+  // 기본 시너지 (2개 이상)
+  swift: { threshold: 2, bonus: 0.3, name: '신속 시너지' },
+  chain: { threshold: 2, bonus: 0.5, name: '연계 시너지' },
+  strongbone: { threshold: 2, bonus: 0.4, name: '강골 시너지' },
+  repeat: { threshold: 2, bonus: 0.4, name: '반복 시너지' },
+  mastery: { threshold: 2, bonus: 0.6, name: '숙련 시너지' },
+  // 전투 특성 시너지
+  striking: { threshold: 2, bonus: 0.3, name: '타격 시너지' },
+  counterattack: { threshold: 2, bonus: 0.4, name: '반격 시너지' },
+  piercing: { threshold: 2, bonus: 0.35, name: '관통 시너지' },
+  calm: { threshold: 2, bonus: 0.2, name: '침착 시너지' },
+  // 협동 특성 (50% 추가 획득)
+  cooperation: { threshold: 2, bonus: 0.5, name: '협동 시너지' },
+  // 성장 특성
+  training: { threshold: 2, bonus: 0.3, name: '단련 시너지' },
+  growth: { threshold: 2, bonus: 0.4, name: '성장 시너지' },
+  // 방어 특성
+  parry: { threshold: 2, bonus: 0.35, name: '패링 시너지' },
+  block: { threshold: 2, bonus: 0.25, name: '방어 시너지' },
+  // 기타 특성
+  quick: { threshold: 2, bonus: 0.25, name: '속공 시너지' },
+  heavy: { threshold: 2, bonus: 0.45, name: '중량 시너지' },
+};
+
 /**
  * 고비용 카드 보너스 계산
  *
@@ -83,6 +109,44 @@ export function calculateActionCostBonus(cards: (EtherCard | EtherCardEntry)[]):
     }
     return bonus;
   }, 0);
+}
+
+/**
+ * 특성 시너지 보너스 계산
+ *
+ * 같은 특성을 가진 카드가 2개 이상 제출되면 추가 에테르 배율을 부여합니다.
+ * 덱 구성의 시너지를 보상하여 전략적 덱빌딩을 유도합니다.
+ *
+ * @param cards - 에테르 계산 대상 카드 배열
+ * @returns { bonus: 총 시너지 보너스, synergies: 활성화된 시너지 이름 배열 }
+ */
+export function calculateTraitSynergyBonus(cards: (EtherCard | EtherCardEntry)[]): { bonus: number; synergies: string[] } {
+  const traitCount = new Map<string, number>();
+  const synergies: string[] = [];
+  let totalBonus = 0;
+
+  // 특성 집계
+  for (const entry of cards) {
+    const card = (entry as EtherCardEntry).card || entry as EtherCard;
+    // 유령카드와 소외 카드는 제외
+    if (card.isGhost || hasTrait(card, 'outcast')) continue;
+    if (card.traits) {
+      for (const trait of card.traits) {
+        traitCount.set(trait, (traitCount.get(trait) || 0) + 1);
+      }
+    }
+  }
+
+  // 시너지 보너스 계산
+  for (const [trait, count] of traitCount) {
+    const synergy = TRAIT_SYNERGY_BONUSES[trait];
+    if (synergy && count >= synergy.threshold) {
+      totalBonus += synergy.bonus;
+      synergies.push(synergy.name);
+    }
+  }
+
+  return { bonus: totalBonus, synergies };
 }
 
 /**
@@ -161,10 +225,11 @@ export function calculateComboEtherGain({
     ? calcCardsEther(cards as Array<EtherCard | EtherCardEntry>)
     : Math.round(cardCount * BASE_ETHER_PER_CARD);
 
-  // 2단계: 조합 배율 + 액션코스트 보너스
+  // 2단계: 조합 배율 + 액션코스트 보너스 + 특성 시너지
   const baseComboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
   const actionCostBonus = calculateActionCostBonus(cards as Array<EtherCard | EtherCardEntry>);
-  const comboMult = baseComboMult + actionCostBonus;
+  const traitSynergy = calculateTraitSynergyBonus(cards as Array<EtherCard | EtherCardEntry>);
+  const comboMult = baseComboMult + actionCostBonus + traitSynergy.bonus;
 
   // 3단계: 배율 적용
   const multiplied = Math.round(baseGain * comboMult * extraMultiplier);
@@ -181,6 +246,8 @@ export function calculateComboEtherGain({
     baseGain,
     comboMult: comboMult * extraMultiplier,
     actionCostBonus,
+    traitSynergyBonus: traitSynergy.bonus,
+    traitSynergies: traitSynergy.synergies,
     deflationPct,
     deflationMult: deflated.multiplier,
   };

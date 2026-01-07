@@ -393,6 +393,8 @@ export interface ComboEtherGainResult {
   baseGain: number;
   comboMult: number;
   actionCostBonus: number;
+  traitSynergyBonus?: number;
+  traitSynergies?: string[];
   deflationPct: number;
   deflationMult: number;
 }
