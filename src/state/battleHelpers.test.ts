@@ -874,6 +874,9 @@ describe('travelToNode', () => {
 
   describe('이벤트 노드 이동', () => {
     it('event 노드로 이동 시 event 페이로드가 생성되어야 함', () => {
+      // Math.random을 0.5로 고정하여 event 타입 유지 (>= 0.25면 event 유지)
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       const state = {
         map: {
           nodes: [
@@ -890,6 +893,8 @@ describe('travelToNode', () => {
 
       expect(result).not.toBeNull();
       expect(result?.target.type).toBe('event');
+
+      vi.restoreAllMocks();
     });
   });
 
