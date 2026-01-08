@@ -15,6 +15,43 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePhaseTransition } from './usePhaseTransition';
 
+// 테스트용 타입 정의
+interface TestCard {
+  id?: number;
+  speedCost?: number;
+  actionCost?: number;
+}
+
+interface TestPhaseTransitionProps {
+  battleRef: {
+    current: {
+      phase: string;
+      enemyPlan: { actions: unknown[]; mode: string | null; manuallyModified: boolean };
+      player: { etherPts: number; enemyFrozen: boolean };
+      fixedOrder: unknown[] | null;
+      frozenOrder: number;
+    };
+  };
+  battlePhase: string;
+  battleSelected: TestCard[];
+  selected: TestCard[];
+  fixedOrder: unknown[] | null;
+  effectiveAgility: number;
+  enemy: { etherPts: number; cardsPerTurn: number; units: unknown[] };
+  enemyPlan: { actions: unknown[]; mode: string | null; manuallyModified: boolean };
+  enemyCount: number;
+  player: { etherPts: number };
+  willOverdrive: boolean;
+  turnNumber: number;
+  rewindUsed: boolean;
+  respondSnapshot: { selectedSnapshot: unknown[]; enemyActions: unknown[] } | null;
+  devilDiceTriggeredRef: { current: boolean };
+  etherSlots: ReturnType<typeof vi.fn>;
+  playSound: ReturnType<typeof vi.fn>;
+  addLog: ReturnType<typeof vi.fn>;
+  actions: Record<string, ReturnType<typeof vi.fn>>;
+}
+
 // 유틸리티 모킹
 vi.mock('../utils/comboDetection', () => ({
   detectPokerCombo: vi.fn(() => null),
@@ -23,15 +60,15 @@ vi.mock('../utils/comboDetection', () => ({
 
 vi.mock('../utils/cardOrdering', () => ({
   createFixedOrder: vi.fn((playerCards, enemyCards) => [
-    ...playerCards.map((c: any) => ({ actor: 'player', card: c, sp: c.speedCost || 3 })),
-    ...enemyCards.map((c: any) => ({ actor: 'enemy', card: c, sp: c.speedCost || 5 }))
+    ...playerCards.map((c: { speedCost?: number }) => ({ actor: 'player', card: c, sp: c.speedCost || 3 })),
+    ...enemyCards.map((c: { speedCost?: number }) => ({ actor: 'enemy', card: c, sp: c.speedCost || 5 }))
   ])
 }));
 
 vi.mock('../utils/combatUtils', () => ({
   sortCombinedOrderStablePF: vi.fn((playerCards, enemyCards) => [
-    ...playerCards.map((c: any) => ({ actor: 'player', card: c, sp: c.speedCost || 3 })),
-    ...enemyCards.map((c: any) => ({ actor: 'enemy', card: c, sp: c.speedCost || 5 }))
+    ...playerCards.map((c: { speedCost?: number }) => ({ actor: 'player', card: c, sp: c.speedCost || 3 })),
+    ...enemyCards.map((c: { speedCost?: number }) => ({ actor: 'enemy', card: c, sp: c.speedCost || 5 }))
   ])
 }));
 
@@ -134,7 +171,7 @@ describe('usePhaseTransition', () => {
           }
         }
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -144,7 +181,7 @@ describe('usePhaseTransition', () => {
     });
 
     it('respond 페이즈로 전환', () => {
-      const { result } = renderHook(() => usePhaseTransition(defaultProps as any));
+      const { result } = renderHook(() => usePhaseTransition(defaultProps as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -154,7 +191,7 @@ describe('usePhaseTransition', () => {
     });
 
     it('적 행동 생성', () => {
-      const { result } = renderHook(() => usePhaseTransition(defaultProps as any));
+      const { result } = renderHook(() => usePhaseTransition(defaultProps as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -164,7 +201,7 @@ describe('usePhaseTransition', () => {
     });
 
     it('고정 순서 설정', () => {
-      const { result } = renderHook(() => usePhaseTransition(defaultProps as any));
+      const { result } = renderHook(() => usePhaseTransition(defaultProps as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -174,7 +211,7 @@ describe('usePhaseTransition', () => {
     });
 
     it('되감기 스냅샷 저장', () => {
-      const { result } = renderHook(() => usePhaseTransition(defaultProps as any));
+      const { result } = renderHook(() => usePhaseTransition(defaultProps as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -185,7 +222,7 @@ describe('usePhaseTransition', () => {
 
     it('이미 되감기 사용했으면 스냅샷 저장 안함', () => {
       const props = { ...defaultProps, rewindUsed: true };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.startResolve();
@@ -206,7 +243,7 @@ describe('usePhaseTransition', () => {
           }
         }
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -227,7 +264,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder: null
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -249,7 +286,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -271,7 +308,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -294,7 +331,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -319,7 +356,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -341,7 +378,7 @@ describe('usePhaseTransition', () => {
         },
         fixedOrder: []
       };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.beginResolveFromRespond();
@@ -354,7 +391,7 @@ describe('usePhaseTransition', () => {
   describe('rewindToSelect (되감기)', () => {
     it('이미 되감기 사용했으면 경고', () => {
       const props = { ...defaultProps, rewindUsed: true };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();
@@ -366,7 +403,7 @@ describe('usePhaseTransition', () => {
 
     it('스냅샷 없으면 경고', () => {
       const props = { ...defaultProps, respondSnapshot: null };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();
@@ -381,7 +418,7 @@ describe('usePhaseTransition', () => {
         enemyActions: []
       };
       const props = { ...defaultProps, respondSnapshot };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();
@@ -398,7 +435,7 @@ describe('usePhaseTransition', () => {
         enemyActions: []
       };
       const props = { ...defaultProps, respondSnapshot };
-      const { result } = renderHook(() => usePhaseTransition(props as any));
+      const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();

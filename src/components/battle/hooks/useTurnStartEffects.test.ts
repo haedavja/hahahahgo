@@ -98,6 +98,55 @@ vi.mock('../../../data/monsterEther', () => ({
   createInitialGraceState: vi.fn(() => ({ gracePts: 0 }))
 }));
 
+// 테스트용 타입 정의
+interface TestTurnStartEffectsProps {
+  battle: {
+    phase: string;
+    hand: unknown[];
+    deck: unknown[];
+    discardPile: unknown[];
+    vanishedCards: unknown[];
+    frozenOrder: number;
+    reflectionState: Record<string, unknown>;
+    enemyPlan: { mode: string | null; actions: unknown[]; manuallyModified: boolean };
+  };
+  player: {
+    hp: number;
+    maxHp: number;
+    block: number;
+    energy: number;
+    maxEnergy: number;
+    maxSpeed: number;
+    strength: number;
+    tokens: Record<string, unknown>;
+    etherMultiplier: number;
+  };
+  enemy: {
+    name: string;
+    hp: number;
+    maxHp: number;
+    etherPts: number;
+    strength?: number;
+    passives: Record<string, unknown>;
+    units: unknown[];
+  };
+  enemyPlan: { mode: string | null; actions: unknown[]; manuallyModified: boolean };
+  nextTurnEffects: Record<string, unknown>;
+  turnNumber: number;
+  baseMaxEnergy: number;
+  orderedRelicList: unknown[];
+  playerEgos: unknown[];
+  playerTraits: unknown[];
+  enemyCount: number;
+  battleRef: { current: Record<string, unknown> };
+  escapeBanRef: { current: Set<unknown> };
+  turnStartProcessedRef: { current: boolean };
+  etherSlots: ReturnType<typeof vi.fn>;
+  playSound: ReturnType<typeof vi.fn>;
+  addLog: ReturnType<typeof vi.fn>;
+  actions: Record<string, ReturnType<typeof vi.fn>>;
+}
+
 describe('useTurnStartEffects', () => {
   const mockActions = {
     setFixedOrder: vi.fn(),
@@ -171,7 +220,7 @@ describe('useTurnStartEffects', () => {
 
   describe('페이즈 체크', () => {
     it('select 페이즈에서만 실행', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setFixedOrder).toHaveBeenCalledWith(null);
     });
@@ -181,14 +230,14 @@ describe('useTurnStartEffects', () => {
         ...defaultProps,
         battle: { ...defaultProps.battle, phase: 'respond' }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setFixedOrder).not.toHaveBeenCalled();
     });
 
     it('중복 실행 방지', () => {
       defaultProps.turnStartProcessedRef.current = true;
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setPlayer).not.toHaveBeenCalled();
     });
@@ -200,7 +249,7 @@ describe('useTurnStartEffects', () => {
         ...defaultProps,
         nextTurnEffects: { bonusEnergy: 2 }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setPlayer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -214,7 +263,7 @@ describe('useTurnStartEffects', () => {
         ...defaultProps,
         nextTurnEffects: { energyPenalty: 2 }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setPlayer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -228,7 +277,7 @@ describe('useTurnStartEffects', () => {
         ...defaultProps,
         nextTurnEffects: { maxSpeedBonus: 10 }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setPlayer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -248,7 +297,7 @@ describe('useTurnStartEffects', () => {
           passives: { healPerTurn: 5 }
         }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setEnemy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -266,7 +315,7 @@ describe('useTurnStartEffects', () => {
           passives: { strengthPerTurn: 3 }
         }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setEnemy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -278,25 +327,25 @@ describe('useTurnStartEffects', () => {
 
   describe('초기화', () => {
     it('fixedOrder 초기화', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setFixedOrder).toHaveBeenCalledWith(null);
     });
 
     it('actionEvents 초기화', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setActionEvents).toHaveBeenCalledWith({});
     });
 
     it('canRedraw true 설정', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setCanRedraw).toHaveBeenCalledWith(true);
     });
 
     it('willOverdrive false 설정', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setWillOverdrive).toHaveBeenCalledWith(false);
     });
@@ -304,7 +353,7 @@ describe('useTurnStartEffects', () => {
 
   describe('적 행동 계획', () => {
     it('적 성향 결정', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setEnemyPlan).toHaveBeenCalled();
     });
@@ -321,7 +370,7 @@ describe('useTurnStartEffects', () => {
           }
         }
       };
-      renderHook(() => useTurnStartEffects(props as any));
+      renderHook(() => useTurnStartEffects(props as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setEnemyPlan).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -333,7 +382,7 @@ describe('useTurnStartEffects', () => {
 
   describe('손패 관리', () => {
     it('첫 턴에 선택 카드 초기화', () => {
-      renderHook(() => useTurnStartEffects(defaultProps as any));
+      renderHook(() => useTurnStartEffects(defaultProps as TestTurnStartEffectsProps as Parameters<typeof useTurnStartEffects>[0]));
 
       expect(mockActions.setSelected).toHaveBeenCalledWith([]);
     });

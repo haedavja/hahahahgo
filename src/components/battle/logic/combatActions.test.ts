@@ -6,6 +6,43 @@
 import { describe, it, expect, vi } from 'vitest';
 import { applyAction, applyAttack } from './combatActions';
 
+// 테스트용 타입 정의
+interface TestToken {
+  id: string;
+  stacks: number;
+  target?: string;
+}
+
+interface TestCombatant {
+  hp: number;
+  maxHp: number;
+  block: number;
+  def: boolean;
+  counter: number;
+  vulnMult: number;
+  strength: number;
+  tokens: { usage: TestToken[]; turn: TestToken[]; permanent: TestToken[] };
+}
+
+interface TestCard {
+  id: string;
+  name: string;
+  type: string;
+  damage?: number;
+  block?: number;
+  speedCost: number;
+  actionCost?: number;
+  hits?: number;
+  cardCategory?: string;
+  appliedTokens?: Array<{ id: string; stacks: number; target: string }>;
+}
+
+interface TestState {
+  player: TestCombatant;
+  enemy: TestCombatant;
+  log: string[];
+}
+
 describe('combatActions', () => {
   describe('applyAction', () => {
     const createPlayer = (overrides = {}) => ({
@@ -52,10 +89,10 @@ describe('combatActions', () => {
         ]
       };
 
-      const result = applyAction(state, 'player', card as any);
+      const result = applyAction(state as TestState as Parameters<typeof applyAction>[0], 'player', card as TestCard as Parameters<typeof applyAction>[2]);
 
       // 적(enemy)에게 dull, shaken 토큰이 적용되어야 함
-      const updatedEnemy = result.updatedState.enemy as any;
+      const updatedEnemy = result.updatedState.enemy as TestCombatant;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),
@@ -71,7 +108,7 @@ describe('combatActions', () => {
       expect(shakenToken?.stacks).toBe(3);
 
       // 플레이어에게 blurPlus 토큰이 적용되어야 함
-      const updatedPlayer = result.updatedState.player as any;
+      const updatedPlayer = result.updatedState.player as TestCombatant;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
@@ -96,9 +133,9 @@ describe('combatActions', () => {
         ]
       };
 
-      const result = applyAction(state, 'player', card as any);
+      const result = applyAction(state as TestState as Parameters<typeof applyAction>[0], 'player', card as TestCard as Parameters<typeof applyAction>[2]);
 
-      const updatedPlayer = result.updatedState.player as any;
+      const updatedPlayer = result.updatedState.player as TestCombatant;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
@@ -123,9 +160,9 @@ describe('combatActions', () => {
         ]
       };
 
-      const result = applyAction(state, 'player', card as any);
+      const result = applyAction(state as TestState as Parameters<typeof applyAction>[0], 'player', card as TestCard as Parameters<typeof applyAction>[2]);
 
-      const updatedEnemy = result.updatedState.enemy as any;
+      const updatedEnemy = result.updatedState.enemy as TestCombatant;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),
@@ -162,7 +199,7 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       expect(result.dealt).toBeGreaterThanOrEqual(10); // 기본 피해 또는 그 이상
       expect(result.defender.hp).toBeLessThan(100); // HP가 감소해야 함
@@ -179,7 +216,7 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       // 피해가 발생해야 함 (방어막이 먼저 소모됨)
       expect(result.dealt).toBeGreaterThanOrEqual(10);
@@ -198,7 +235,7 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       // 피해가 발생해야 함
       expect(result.dealt).toBeGreaterThanOrEqual(10);
@@ -219,14 +256,14 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       // 5 x 3 = 15 기본 피해 (치명타 여부에 따라 더 높을 수 있음)
       expect(result.dealt).toBeGreaterThanOrEqual(15);
     });
 
     it('null 입력 시 안전하게 처리되어야 함', () => {
-      const result = applyAttack(null as any, null as any, null as any, 'player');
+      const result = applyAttack(null as unknown as Parameters<typeof applyAttack>[0], null as unknown as Parameters<typeof applyAttack>[1], null as unknown as Parameters<typeof applyAttack>[2], 'player');
 
       expect(result.dealt).toBe(0);
       expect(result.taken).toBe(0);
@@ -244,7 +281,7 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       // 기본 10 + 힘 5 = 15 이상
       expect(result.dealt).toBeGreaterThanOrEqual(15);
@@ -261,7 +298,7 @@ describe('combatActions', () => {
         speedCost: 5
       };
 
-      const result = applyAttack(attacker as any, defender as any, card as any, 'player');
+      const result = applyAttack(attacker as TestCombatant as Parameters<typeof applyAttack>[0], defender as TestCombatant as Parameters<typeof applyAttack>[1], card as TestCard as Parameters<typeof applyAttack>[2], 'player');
 
       // 10 * 1.5 = 15
       expect(result.dealt).toBeGreaterThanOrEqual(15);
