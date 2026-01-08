@@ -109,32 +109,36 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   }
   if (bossNode) bossNode.type = "boss";
 
-  // 휴식 노드 등장 구간 (구간 내 랜덤 층에서 등장)
+  // 휴식 노드 등장 구간 (구간 내 모든 층에 휴식 노드 배치)
   const REST_ZONES: [number, number][] = [[6, 8], [12, 13]]; // 중반, 보스 직전
   // 정예 노드 등장 구간
-  const ELITE_ZONES: [number, number][] = [[3, 5], [9, 11]]; // 초중반, 후반
+  const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 초중반, 후반
+  // 휴식 금지 층 (시작 4단계)
+  const NO_REST_LAYERS = [0, 1, 2, 3];
 
-  // 휴식 노드 배치 (각 구간에서 랜덤 층 선택 후 1개씩)
+  // 휴식 노드 배치 (구간 내 모든 층에 각각 1개씩)
   const restLayers: number[] = [];
   REST_ZONES.forEach(([minLayer, maxLayer]) => {
-    const layer = randomInt(minLayer, maxLayer);
-    restLayers.push(layer);
-    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
-    if (layerNodes.length > 0) {
-      const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
-      restNode.type = "rest";
+    for (let layer = minLayer; layer <= maxLayer; layer++) {
+      restLayers.push(layer);
+      const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
+      if (layerNodes.length > 0) {
+        const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+        restNode.type = "rest";
+      }
     }
   });
 
-  // 정예 노드 배치 (각 구간에서 랜덤 층 선택 후 1개씩)
+  // 정예 노드 배치 (구간 내 모든 층에 각각 1개씩)
   const eliteLayers: number[] = [];
   ELITE_ZONES.forEach(([minLayer, maxLayer]) => {
-    const layer = randomInt(minLayer, maxLayer);
-    eliteLayers.push(layer);
-    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer && n.type !== "rest");
-    if (layerNodes.length > 0) {
-      const eliteNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
-      eliteNode.type = "elite";
+    for (let layer = minLayer; layer <= maxLayer; layer++) {
+      eliteLayers.push(layer);
+      const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer && n.type !== "rest");
+      if (layerNodes.length > 0) {
+        const eliteNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+        eliteNode.type = "elite";
+      }
     }
   });
 
@@ -153,12 +157,14 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
     // 이미 휴식/정예가 배치된 층에서는 중복 배치 방지
     const isRestLayer = restLayers.includes(node.layer);
     const isEliteLayer = eliteLayers.includes(node.layer);
+    // 시작 4단계에는 휴식 금지
+    const isNoRestLayer = NO_REST_LAYERS.includes(node.layer);
 
     // 기본 pool: 전투, 상점, 던전
     const pool: string[] = ["battle", "battle", "battle", "shop", "dungeon"];
 
-    // 고정 휴식 층이 아니면 비고정 휴식 추가
-    if (!isRestLayer) {
+    // 휴식 금지 층이 아니고, 고정 휴식 층도 아니면 비고정 휴식 추가
+    if (!isRestLayer && !isNoRestLayer) {
       pool.push("rest");
     }
     // 고정 정예 층이 아니면 비고정 정예 추가
