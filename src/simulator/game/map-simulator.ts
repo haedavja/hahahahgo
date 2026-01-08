@@ -82,6 +82,7 @@ export interface MapAnalysis {
 // 게임과 동일한 맵 설정
 const REST_FLOORS = [7, 13]; // 고정 휴식 층 (모든 노드가 휴식)
 const NO_REST_LAYERS = [0, 1, 2, 3]; // 휴식 금지 층
+const NO_SHOP_LAYERS = [0, 1, 2, 3]; // 상점 금지 층
 const MIN_DUNGEON_LAYER = 7; // 던전 등장 최소 층
 const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 정예 등장 구간
 
@@ -219,8 +220,12 @@ export class MapSimulator {
     const weights: Record<string, number> = {
       combat: 50,
       event: 25,
-      shop: 15,
     };
+
+    // 상점: 첫 4개 층 이후에만
+    if (!NO_SHOP_LAYERS.includes(layer)) {
+      weights.shop = 15;
+    }
 
     // 던전: 중반 이후에만
     if (layer >= MIN_DUNGEON_LAYER) {

@@ -115,6 +115,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 초중반, 후반
   // 휴식 금지 층 (시작 4단계)
   const NO_REST_LAYERS = [0, 1, 2, 3];
+  // 상점 금지 층 (시작 4단계)
+  const NO_SHOP_LAYERS = [0, 1, 2, 3];
   // 던전 등장 최소 층 (중반 이후)
   const MIN_DUNGEON_LAYER = 7;
 
@@ -163,8 +165,11 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
     // 인접 층에 휴식 노드가 있으면 연속 배치 금지
     const hasAdjacentRest = allRestLayers.has(node.layer - 1) || allRestLayers.has(node.layer + 1);
 
-    // 기본 pool: 전투, 상점
-    const pool: string[] = ["battle", "battle", "battle", "shop"];
+    // 기본 pool: 전투 (상점은 첫 4개 층 이후에만)
+    const pool: string[] = ["battle", "battle", "battle"];
+    if (!NO_SHOP_LAYERS.includes(node.layer)) {
+      pool.push("shop");
+    }
 
     // 중반 이후에만 던전 추가
     if (node.layer >= MIN_DUNGEON_LAYER) {
