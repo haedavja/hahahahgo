@@ -12,7 +12,7 @@ import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
 import { applyCombatEndEffects } from '../../lib/relicEffects';
 import { updateStats } from '../metaProgress';
-import { recordGameBattle, recordRunEnd } from '../../simulator/bridge/stats-bridge';
+import { recordGameBattle, recordRunEnd, recordRelicAcquired } from '../../simulator/bridge/stats-bridge';
 import {
   BATTLE_CARDS,
   resolveEnemyDeck,
@@ -163,6 +163,12 @@ export const createBattleActions: SliceCreator = (set) => ({
         rewardedRelicId = getRandomRelicReward(state.relics || [], isElite);
         if (rewardedRelicId && !newRelics.includes(rewardedRelicId)) {
           newRelics = [...newRelics, rewardedRelicId];
+          // 상징 획득 통계 기록
+          const battleSource = state.activeBattle.kind === 'boss' ? 'boss' : 'battle';
+          recordRelicAcquired(rewardedRelicId, {
+            floor: state.currentLayer,
+            source: battleSource,
+          });
         }
       }
 

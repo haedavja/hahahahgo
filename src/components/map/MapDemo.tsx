@@ -442,11 +442,6 @@ function MapDemoComponent() {
         </div>
       )}
 
-      <header>
-        <h1>로그라이크 경로 지도</h1>
-        <small>속도 시스템 기준 · React + Vite 시연</small>
-      </header>
-
       {/* 상징 표시 */}
       <Suspense fallback={null}>
         <RelicsBar
