@@ -96,6 +96,7 @@ export const BATTLE_REWARDS = {
     loot: { min: 2, max: 3 },
     intel: 1,
     memory: { min: 30, max: 45 },
+    relic: 1,  // 상징 확정 보상
   },
   /** 보스 전투 */
   boss: {

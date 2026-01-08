@@ -24,6 +24,7 @@ import {
   MAX_PLAYER_SELECTION,
 } from '../gameStoreHelpers';
 import { CARD_LIBRARY } from '../../data/cards';
+import { getRandomRelicReward } from '../../data/shop';
 
 export type BattleActionsSlice = BattleSliceActions;
 
@@ -154,6 +155,17 @@ export const createBattleActions: SliceCreator = (set) => ({
         ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
         : { next: state.resources, applied: {} };
 
+      // 상징 보상 처리 (정예 전투 등)
+      let newRelics = state.relics || [];
+      let rewardedRelicId: string | null = null;
+      if (resultLabel === 'victory' && rewardsDef.relic && rewardsDef.relic > 0) {
+        const isElite = state.activeBattle.kind === 'elite';
+        rewardedRelicId = getRandomRelicReward(state.relics || [], isElite);
+        if (rewardedRelicId && !newRelics.includes(rewardedRelicId)) {
+          newRelics = [...newRelics, rewardedRelicId];
+        }
+      }
+
       if (resultLabel === 'victory') {
         const enemyInfo = state.activeBattle.enemyInfo;
         const statsUpdate: Record<string, number> = {
@@ -260,9 +272,16 @@ export const createBattleActions: SliceCreator = (set) => ({
         if (import.meta.env.DEV) console.error('[StatsBridge] Error recording battle:', error);
       }
 
+      // 보상에 상징 ID 추가 (UI 표시용)
+      const appliedRewards = { ...rewards.applied };
+      if (rewardedRelicId) {
+        appliedRewards.relic = rewardedRelicId;
+      }
+
       return {
         ...state,
         resources: rewards.next as GameStore['resources'],
+        relics: newRelics,
         playerHp: Math.max(0, finalPlayerHp),
         maxHp: newMaxHp,
         activeBattle: null,
@@ -274,7 +293,7 @@ export const createBattleActions: SliceCreator = (set) => ({
           log: state.activeBattle.simulation?.lines ?? [],
           finalState: { player: { hp: finalPlayerHp } },
           initialState: null,
-          rewards: rewards.applied,
+          rewards: appliedRewards,
           enemyInfo: state.activeBattle.enemyInfo,
         },
       } as Partial<GameStore>;

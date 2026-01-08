@@ -475,3 +475,49 @@ export const SHOP_SERVICES = [
     effect: { type: 'reroll' },
   },
 ];
+
+/**
+ * 전투 보상용 랜덤 상징 선택
+ * @param ownedRelics - 이미 보유한 상징 ID 배열
+ * @param preferRare - 희귀 이상 등급 선호 여부 (정예 전투용)
+ * @returns 선택된 상징 ID 또는 null
+ */
+export function getRandomRelicReward(ownedRelics: string[] = [], preferRare: boolean = false): string | null {
+  // 사용 가능한 상징 필터링 (보유 중인 상징, 개발자 전용 제외)
+  const availableRelics = Object.values(RELICS).filter(r => {
+    if (ownedRelics.includes(r.id)) return false;
+    // 개발자 전용 상징 제외
+    if (r.id === 'infiniteShield' || r.id === 'perpetualEngine') return false;
+    return true;
+  });
+
+  if (availableRelics.length === 0) return null;
+
+  // 가중치 기반 랜덤 선택 (정예는 희귀 이상 확률 높음)
+  const relicWeights = preferRare
+    ? {
+        [RELIC_RARITIES.COMMON]: 1,     // 일반: 낮은 확률
+        [RELIC_RARITIES.RARE]: 4,       // 희귀: 높은 확률
+        [RELIC_RARITIES.SPECIAL]: 2,    // 특수: 중간 확률
+        [RELIC_RARITIES.LEGENDARY]: 0.5, // 전설: 낮은 확률
+      }
+    : {
+        [RELIC_RARITIES.COMMON]: 4,
+        [RELIC_RARITIES.RARE]: 2,
+        [RELIC_RARITIES.SPECIAL]: 1,
+        [RELIC_RARITIES.LEGENDARY]: 0.3,
+      };
+
+  const totalWeight = availableRelics.reduce((sum, r) => sum + (relicWeights[r.rarity] || 1), 0);
+  let rand = Math.random() * totalWeight;
+
+  for (const relic of availableRelics) {
+    rand -= relicWeights[relic.rarity] || 1;
+    if (rand <= 0) {
+      return relic.id;
+    }
+  }
+
+  // 폴백: 첫 번째 상징 반환
+  return availableRelics[0]?.id ?? null;
+}

@@ -53,6 +53,7 @@ export interface BattleRewards {
   material?: number;
   card?: number;
   memory?: number | { min: number; max: number };
+  relic?: number;  // 상징 보상 (정예 전투 등)
 }
 
 /** 전투 상태 스냅샷 */
