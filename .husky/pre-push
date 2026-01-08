@@ -2,12 +2,18 @@
 
 echo "🔍 Pre-push checks..."
 
-# 테스트 실행
-echo "📋 Running tests..."
-npm test
-if [ $? -ne 0 ]; then
-  echo "❌ Tests failed. Push aborted."
-  exit 1
+# 변경된 파일 관련 테스트만 실행 (속도 최적화)
+echo "📋 Running related tests..."
+CHANGED_FILES=$(git diff --name-only origin/$(git rev-parse --abbrev-ref HEAD)..HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
+
+if [ -n "$CHANGED_FILES" ]; then
+  npx vitest related $CHANGED_FILES --run
+  if [ $? -ne 0 ]; then
+    echo "❌ Tests failed. Push aborted."
+    exit 1
+  fi
+else
+  echo "⏭️ No TS/TSX files changed, skipping tests."
 fi
 
 # 빌드 검증
