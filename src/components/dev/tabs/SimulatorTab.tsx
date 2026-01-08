@@ -93,6 +93,10 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [analysisResult, setAnalysisResult] = useState<StatsAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
+  // 현재 선택된 전략의 통계 (useEffect보다 먼저 정의)
+  const stats = statsByStrategy[activeStrategyTab];
+  const hasAnyStats = statsByStrategy.balanced !== null || statsByStrategy.aggressive !== null || statsByStrategy.defensive !== null;
+
   // 타이머 cleanup
   useEffect(() => {
     return () => {
@@ -142,10 +146,6 @@ const SimulatorTab = memo(function SimulatorTab() {
   const [shopPriceMult, setShopPriceMult] = useState(1.0);
   const [enemySpeedBonus, setEnemySpeedBonus] = useState(0);
   const [startingCurseCards, setStartingCurseCards] = useState(0);
-
-  // 현재 선택된 전략의 통계
-  const stats = statsByStrategy[activeStrategyTab];
-  const hasAnyStats = statsByStrategy.balanced !== null || statsByStrategy.aggressive !== null || statsByStrategy.defensive !== null;
 
   // AI 공유용 복사 함수
   const copyForAI = useCallback(async () => {
