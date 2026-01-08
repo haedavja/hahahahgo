@@ -387,7 +387,7 @@ export class RunSimulator {
    */
   simulateRun(config: RunConfig): RunResult {
     const player = { ...config.initialPlayer };
-    const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
+    const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 15 });
 
     // 플레이어 스킬 레벨 설정
     if (config.skillLevel) {
