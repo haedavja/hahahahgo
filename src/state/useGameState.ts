@@ -175,8 +175,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
     if (!isRestLayer && !isNoRestLayer && !hasAdjacentRest) {
       pool.push("rest");
     }
-    // 고정 정예 층이 아니면 비고정 정예 추가
-    if (!isEliteLayer) {
+    // 고정 정예 층이 아니고 첫 4개 층이 아니면 비고정 정예 추가
+    if (!isEliteLayer && !NO_REST_LAYERS.includes(node.layer)) {
       pool.push("elite");
     }
 

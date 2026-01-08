@@ -35,6 +35,8 @@ vi.mock('../data/newEvents', () => ({
   EVENT_KEYS: ['event_001', 'event_002', 'event_003'],
   STAT_REQUIRING_EVENTS: [],  // 테스트에서는 스탯 요구 이벤트 없음
   STAT_EVENT_MIN_LAYER: 5,
+  EXPENSIVE_SHOP_EVENTS: [],  // 테스트에서는 고비용 이벤트 없음
+  EXPENSIVE_EVENT_MIN_LAYER: 4,
 }));
 
 // Mock metaProgress

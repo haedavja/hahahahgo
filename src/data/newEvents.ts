@@ -1213,6 +1213,12 @@ export const STAT_EVENT_MIN_LAYER = 5;
 // 스탯 요구 이벤트 키 목록 (캐시)
 export const STAT_REQUIRING_EVENTS = EVENT_KEYS.filter(hasStatRequirement);
 
+// 고비용 상점 이벤트 (수집가 등) - 초반에 등장 금지
+export const EXPENSIVE_SHOP_EVENTS = ['rare-collector'];
+
+// 고비용 상점 이벤트 최소 레이어 (첫 4개 층 이후)
+export const EXPENSIVE_EVENT_MIN_LAYER = 4;
+
 // 특수 상징 정보
 export const SPECIAL_RELICS = {
   "alparius-emblem": {
