@@ -115,6 +115,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 초중반, 후반
   // 휴식 금지 층 (시작 4단계)
   const NO_REST_LAYERS = [0, 1, 2, 3];
+  // 던전 등장 최소 층 (중반 이후)
+  const MIN_DUNGEON_LAYER = 7;
 
   // 휴식 노드 배치 (구간 내 모든 층에 각각 1개씩)
   const restLayers: number[] = [];
@@ -160,8 +162,13 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
     // 시작 4단계에는 휴식 금지
     const isNoRestLayer = NO_REST_LAYERS.includes(node.layer);
 
-    // 기본 pool: 전투, 상점, 던전
-    const pool: string[] = ["battle", "battle", "battle", "shop", "dungeon"];
+    // 기본 pool: 전투, 상점
+    const pool: string[] = ["battle", "battle", "battle", "shop"];
+
+    // 중반 이후에만 던전 추가
+    if (node.layer >= MIN_DUNGEON_LAYER) {
+      pool.push("dungeon");
+    }
 
     // 휴식 금지 층이 아니고, 고정 휴식 층도 아니면 비고정 휴식 추가
     if (!isRestLayer && !isNoRestLayer) {
@@ -177,7 +184,10 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
 
   let dungeonCandidate = nodes.find((n: MapNodeGenerated) => n.type === "dungeon");
   if (!dungeonCandidate) {
-    const selectPool = nodes.filter((n: MapNodeGenerated) => !n.isStart && n.type !== "boss");
+    // 중반 이후(층 7+)에서만 던전 선택
+    const selectPool = nodes.filter((n: MapNodeGenerated) =>
+      !n.isStart && n.type !== "boss" && n.layer >= MIN_DUNGEON_LAYER
+    );
     if (selectPool.length) {
       dungeonCandidate = selectPool[Math.floor(Math.random() * selectPool.length)];
       dungeonCandidate.type = "dungeon";
