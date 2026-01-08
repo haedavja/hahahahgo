@@ -89,13 +89,24 @@ describe('storageUtils', () => {
     });
 
     it('저장 실패 시 false를 반환한다', () => {
-      // localStorage.setItem을 실패하게 모킹
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
-        throw new Error('Storage full');
+      // localStorage.setItem을 실패하게 모킹 (happy-dom/jsdom 호환)
+      const originalSetItem = localStorage.setItem;
+      Object.defineProperty(localStorage, 'setItem', {
+        value: vi.fn().mockImplementation(() => {
+          throw new Error('Storage full');
+        }),
+        writable: true,
+        configurable: true,
       });
 
       const success = setStorageItem('failKey', { data: 'test' });
       expect(success).toBe(false);
+
+      Object.defineProperty(localStorage, 'setItem', {
+        value: originalSetItem,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 
@@ -143,12 +154,24 @@ describe('storageUtils', () => {
     });
 
     it('저장 실패 시 false를 반환한다', () => {
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
-        throw new Error('Storage full');
+      // localStorage.setItem을 실패하게 모킹 (happy-dom/jsdom 호환)
+      const originalSetItem = localStorage.setItem;
+      Object.defineProperty(localStorage, 'setItem', {
+        value: vi.fn().mockImplementation(() => {
+          throw new Error('Storage full');
+        }),
+        writable: true,
+        configurable: true,
       });
 
       const success = setStorageString('failKey', 'data');
       expect(success).toBe(false);
+
+      Object.defineProperty(localStorage, 'setItem', {
+        value: originalSetItem,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 
@@ -169,12 +192,24 @@ describe('storageUtils', () => {
     });
 
     it('제거 실패 시 false를 반환한다', () => {
-      vi.spyOn(Storage.prototype, 'removeItem').mockImplementationOnce(() => {
-        throw new Error('Storage error');
+      // localStorage.removeItem을 실패하게 모킹 (happy-dom/jsdom 호환)
+      const originalRemoveItem = localStorage.removeItem;
+      Object.defineProperty(localStorage, 'removeItem', {
+        value: vi.fn().mockImplementation(() => {
+          throw new Error('Storage error');
+        }),
+        writable: true,
+        configurable: true,
       });
 
       const success = removeStorageItem('failKey');
       expect(success).toBe(false);
+
+      Object.defineProperty(localStorage, 'removeItem', {
+        value: originalRemoveItem,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 

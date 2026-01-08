@@ -156,7 +156,8 @@ describe('cardRenderingUtils', () => {
 
       const { container } = render(result);
       const span = container.querySelector('span');
-      expect(span?.style.color).toBe('rgb(255, 0, 0)');
+      // happy-dom은 hex 유지, jsdom은 rgb로 변환
+      expect(['rgb(255, 0, 0)', '#ff0000']).toContain(span?.style.color);
     });
   });
 });
