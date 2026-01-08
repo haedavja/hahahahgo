@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useDamagePreview.test.js
  * @description 피해 미리보기 훅 테스트

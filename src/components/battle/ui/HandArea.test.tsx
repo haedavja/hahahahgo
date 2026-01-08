@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file HandArea.test.tsx
  * @description HandArea 컴포넌트 테스트

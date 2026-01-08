@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file metaProgress.test.ts
  * @description 메타 진행 시스템 테스트

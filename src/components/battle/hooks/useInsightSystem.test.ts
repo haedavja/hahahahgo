@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useInsightSystem.test.js
  * @description 통찰 시스템 훅 테스트

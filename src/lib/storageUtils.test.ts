@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file storageUtils.test.ts
  * @description localStorage 래퍼 유틸리티 테스트

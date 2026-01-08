@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useTimeline.test.js
  * @description 타임라인 훅 테스트

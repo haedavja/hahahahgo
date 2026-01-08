@@ -62,7 +62,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'happy-dom',
+    environment: 'node',
     setupFiles: ['./src/test/setup.js'],
     // E2E 테스트(Playwright)는 vitest에서 제외
     exclude: ['e2e/**', 'node_modules/**', '**/dist/**'],

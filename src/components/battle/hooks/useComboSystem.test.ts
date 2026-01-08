@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useComboSystem.test.js
  * @description 콤보 시스템 훅 테스트

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file soundUtils.test.ts
  * @description 사운드 유틸리티 테스트

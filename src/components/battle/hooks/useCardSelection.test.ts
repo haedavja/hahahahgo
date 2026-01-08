@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useCardSelection.test.js
  * @description 카드 선택 훅 테스트

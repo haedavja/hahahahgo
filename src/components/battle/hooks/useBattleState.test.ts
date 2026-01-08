@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useBattleState.test.js
  * @description useBattleState 훅 테스트

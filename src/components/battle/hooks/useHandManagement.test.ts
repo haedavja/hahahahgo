@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useHandManagement.test.js
  * @description useHandManagement 훅 테스트

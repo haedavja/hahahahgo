@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file cardRenderingUtils.test.tsx
  * @description 카드 렌더링 유틸리티 테스트

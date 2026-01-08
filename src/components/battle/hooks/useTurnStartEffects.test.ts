@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useTurnStartEffects.test.ts
  * @description 턴 시작 효과 처리 훅 테스트

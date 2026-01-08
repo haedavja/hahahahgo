@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file errorLogger.test.ts
  * @description 에러 로깅 시스템 테스트

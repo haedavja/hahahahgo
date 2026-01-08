@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file usePhaseTransition.test.ts
  * @description 전투 페이즈 전환 훅 테스트

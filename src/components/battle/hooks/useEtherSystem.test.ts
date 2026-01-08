@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useEtherSystem.test.js
  * @description useEtherSystem 훅 테스트

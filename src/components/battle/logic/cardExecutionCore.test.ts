@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file cardExecutionCore.test.ts
  * @description 카드 실행 핵심 로직 테스트

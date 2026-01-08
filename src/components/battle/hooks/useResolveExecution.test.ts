@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useResolveExecution.test.ts
  * @description 진행(resolve) 단계 실행 훅 테스트

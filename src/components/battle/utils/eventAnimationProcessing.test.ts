@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file eventAnimationProcessing.test.js
  * @description 액션 이벤트 애니메이션/사운드 시스템 테스트

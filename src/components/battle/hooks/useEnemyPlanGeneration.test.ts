@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file useEnemyPlanGeneration.test.ts
  * @description 적 행동 계획 자동 생성 훅 테스트

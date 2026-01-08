@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file ConfidenceBadge.test.tsx
  * @description ConfidenceBadge 컴포넌트 테스트

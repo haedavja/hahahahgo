@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * @file BattleModals.test.tsx
  * @description BattleModals 컴포넌트 테스트
