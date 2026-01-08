@@ -109,8 +109,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   }
   if (bossNode) bossNode.type = "boss";
 
-  // 휴식 노드 등장 구간 (구간 내 모든 층에 휴식 노드 배치)
-  const REST_ZONES: [number, number][] = [[6, 8], [12, 13]]; // 중반, 보스 직전
+  // 휴식 노드 고정 층 (해당 층의 모든 노드가 휴식 - 슬더스 스타일)
+  const REST_FLOORS = [7, 13]; // 중반, 보스 직전
   // 정예 노드 등장 구간
   const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 초중반, 후반
   // 휴식 금지 층 (시작 4단계)
@@ -118,17 +118,13 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   // 던전 등장 최소 층 (중반 이후)
   const MIN_DUNGEON_LAYER = 7;
 
-  // 휴식 노드 배치 (구간 내 모든 층의 모든 노드를 휴식으로 - 슬레이 더 스파이어 스타일)
-  const restLayers: number[] = [];
-  REST_ZONES.forEach(([minLayer, maxLayer]) => {
-    for (let layer = minLayer; layer <= maxLayer; layer++) {
-      restLayers.push(layer);
-      const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
-      // 해당 층의 모든 노드를 휴식으로 설정
-      layerNodes.forEach((node: MapNodeGenerated) => {
-        node.type = "rest";
-      });
-    }
+  // 휴식 노드 배치 (고정 층의 모든 노드를 휴식으로 - 슬레이 더 스파이어 스타일)
+  const restLayers: number[] = [...REST_FLOORS];
+  REST_FLOORS.forEach((layer) => {
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
+    layerNodes.forEach((node: MapNodeGenerated) => {
+      node.type = "rest";
+    });
   });
 
   // 정예 노드 배치 (구간 내 모든 층에 각각 1개씩)
