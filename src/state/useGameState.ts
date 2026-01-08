@@ -118,16 +118,16 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   // 던전 등장 최소 층 (중반 이후)
   const MIN_DUNGEON_LAYER = 7;
 
-  // 휴식 노드 배치 (구간 내 모든 층에 각각 1개씩)
+  // 휴식 노드 배치 (구간 내 모든 층의 모든 노드를 휴식으로 - 슬레이 더 스파이어 스타일)
   const restLayers: number[] = [];
   REST_ZONES.forEach(([minLayer, maxLayer]) => {
     for (let layer = minLayer; layer <= maxLayer; layer++) {
       restLayers.push(layer);
       const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
-      if (layerNodes.length > 0) {
-        const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
-        restNode.type = "rest";
-      }
+      // 해당 층의 모든 노드를 휴식으로 설정
+      layerNodes.forEach((node: MapNodeGenerated) => {
+        node.type = "rest";
+      });
     }
   });
 
