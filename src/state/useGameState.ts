@@ -154,13 +154,18 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
+  // 현재까지 배치된 휴식 노드 층 추적 (고정 + 랜덤)
+  const allRestLayers = new Set(restLayers);
+
   // 비고정 휴식/정예도 낮은 확률로 등장 (이미 배치된 층 제외)
   remaining.forEach((node: MapNodeGenerated) => {
     // 이미 휴식/정예가 배치된 층에서는 중복 배치 방지
-    const isRestLayer = restLayers.includes(node.layer);
+    const isRestLayer = allRestLayers.has(node.layer);
     const isEliteLayer = eliteLayers.includes(node.layer);
     // 시작 4단계에는 휴식 금지
     const isNoRestLayer = NO_REST_LAYERS.includes(node.layer);
+    // 인접 층에 휴식 노드가 있으면 연속 배치 금지
+    const hasAdjacentRest = allRestLayers.has(node.layer - 1) || allRestLayers.has(node.layer + 1);
 
     // 기본 pool: 전투, 상점
     const pool: string[] = ["battle", "battle", "battle", "shop"];
@@ -170,8 +175,8 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
       pool.push("dungeon");
     }
 
-    // 휴식 금지 층이 아니고, 고정 휴식 층도 아니면 비고정 휴식 추가
-    if (!isRestLayer && !isNoRestLayer) {
+    // 휴식 금지 층이 아니고, 고정 휴식 층도 아니고, 인접 층에 휴식이 없으면 비고정 휴식 추가
+    if (!isRestLayer && !isNoRestLayer && !hasAdjacentRest) {
       pool.push("rest");
     }
     // 고정 정예 층이 아니면 비고정 정예 추가
@@ -179,7 +184,13 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
       pool.push("elite");
     }
 
-    node.type = pool[Math.floor(Math.random() * pool.length)];
+    const selectedType = pool[Math.floor(Math.random() * pool.length)];
+    node.type = selectedType;
+
+    // 휴식이 배치되면 추적 목록에 추가
+    if (selectedType === "rest") {
+      allRestLayers.add(node.layer);
+    }
   });
 
   let dungeonCandidate = nodes.find((n: MapNodeGenerated) => n.type === "dungeon");
