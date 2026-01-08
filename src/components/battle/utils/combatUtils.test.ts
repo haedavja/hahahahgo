@@ -17,6 +17,13 @@
 import { describe, it, expect } from 'vitest';
 import { sortCombinedOrderStablePF, addEther, etherSlots } from './combatUtils';
 
+// 테스트용 타입 정의
+interface TestCard {
+  speedCost: number;
+  damage?: number;
+  name?: string;
+}
+
 describe('combatUtils', () => {
   describe('sortCombinedOrderStablePF', () => {
     it('빈 배열은 빈 결과를 반환해야 함', () => {
@@ -26,12 +33,12 @@ describe('combatUtils', () => {
     });
 
     it('플레이어 카드만 있을 때 속도 순으로 정렬해야 함', () => {
-      const playerCards = [
+      const playerCards: TestCard[] = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ] as any;
+      ];
 
-      const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], [], 0, 0);
 
       expect(result).toHaveLength(2);
       expect(result[0].sp).toBe(5);
@@ -39,12 +46,12 @@ describe('combatUtils', () => {
     });
 
     it('적 카드만 있을 때 속도 순으로 정렬해야 함', () => {
-      const enemyCards = [
+      const enemyCards: TestCard[] = [
         { speedCost: 4 },
         { speedCost: 2 }
-      ] as any;
+      ];
 
-      const result = sortCombinedOrderStablePF([], enemyCards, 0, 0);
+      const result = sortCombinedOrderStablePF([], enemyCards as Parameters<typeof sortCombinedOrderStablePF>[1], 0, 0);
 
       expect(result).toHaveLength(2);
       expect(result[0].sp).toBe(4);
@@ -52,10 +59,10 @@ describe('combatUtils', () => {
     });
 
     it('플레이어와 적 카드를 sp 순으로 정렬해야 함', () => {
-      const playerCards = [{ speedCost: 5 }] as any[];
-      const enemyCards = [{ speedCost: 3 }] as any[];
+      const playerCards: TestCard[] = [{ speedCost: 5 }];
+      const enemyCards: TestCard[] = [{ speedCost: 3 }];
 
-      const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], enemyCards as Parameters<typeof sortCombinedOrderStablePF>[1], 0, 0);
 
       // 적(sp=3)이 플레이어(sp=5)보다 먼저
       expect(result[0].actor).toBe('enemy');
@@ -65,22 +72,22 @@ describe('combatUtils', () => {
     });
 
     it('같은 sp일 때 플레이어가 우선되어야 함', () => {
-      const playerCards = [{ speedCost: 5 }] as any[];
-      const enemyCards = [{ speedCost: 5 }] as any[];
+      const playerCards: TestCard[] = [{ speedCost: 5 }];
+      const enemyCards: TestCard[] = [{ speedCost: 5 }];
 
-      const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], enemyCards as Parameters<typeof sortCombinedOrderStablePF>[1], 0, 0);
 
       expect(result[0].actor).toBe('player');
       expect(result[1].actor).toBe('enemy');
     });
 
     it('같은 sp, 같은 actor일 때 idx 순으로 정렬해야 함', () => {
-      const playerCards = [
+      const playerCards: TestCard[] = [
         { speedCost: 3 },
         { speedCost: 2 }
-      ] as any[];
+      ];
 
-      const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], [], 0, 0);
 
       // 첫 번째 카드: sp=3, 두 번째 카드: sp=5
       expect(result[0].sp).toBe(3);
@@ -90,10 +97,10 @@ describe('combatUtils', () => {
     });
 
     it('플레이어 민첩이 적용되어야 함', () => {
-      const playerCards = [{ speedCost: 10 }] as any[];
+      const playerCards: TestCard[] = [{ speedCost: 10 }];
       const playerAgility = 3;
 
-      const result = sortCombinedOrderStablePF(playerCards, [], playerAgility, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], [], playerAgility, 0);
 
       // 10 - 3 = 7
       expect(result[0].sp).toBe(7);
@@ -102,10 +109,10 @@ describe('combatUtils', () => {
     });
 
     it('적 민첩이 적용되어야 함', () => {
-      const enemyCards = [{ speedCost: 10 }] as any[];
+      const enemyCards: TestCard[] = [{ speedCost: 10 }];
       const enemyAgility = 2;
 
-      const result = sortCombinedOrderStablePF([], enemyCards, 0, enemyAgility);
+      const result = sortCombinedOrderStablePF([], enemyCards as Parameters<typeof sortCombinedOrderStablePF>[1], 0, enemyAgility);
 
       // 10 - 2 = 8
       expect(result[0].sp).toBe(8);
@@ -119,16 +126,16 @@ describe('combatUtils', () => {
     });
 
     it('복잡한 시나리오에서 올바른 순서를 반환해야 함', () => {
-      const playerCards = [
+      const playerCards: TestCard[] = [
         { speedCost: 6 },  // sp=6
         { speedCost: 4 }   // sp=10
-      ] as any[];
-      const enemyCards = [
+      ];
+      const enemyCards: TestCard[] = [
         { speedCost: 8 },  // sp=8
         { speedCost: 2 }   // sp=10
-      ] as any[];
+      ];
 
-      const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], enemyCards as Parameters<typeof sortCombinedOrderStablePF>[1], 0, 0);
 
       // 순서: player(6), enemy(8), player(10), enemy(10)
       // sp=10에서 플레이어 우선
@@ -143,9 +150,9 @@ describe('combatUtils', () => {
     });
 
     it('카드 데이터가 결과에 보존되어야 함', () => {
-      const playerCards = [{ speedCost: 5, damage: 10, name: 'Slash' }] as any[];
+      const playerCards: TestCard[] = [{ speedCost: 5, damage: 10, name: 'Slash' }];
 
-      const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
+      const result = sortCombinedOrderStablePF(playerCards as Parameters<typeof sortCombinedOrderStablePF>[0], [], 0, 0);
 
       expect(result[0].card.damage).toBe(10);
       expect(result[0].card.name).toBe('Slash');
@@ -158,20 +165,20 @@ describe('combatUtils', () => {
     });
 
     it('첫 번째 값이 null이면 0으로 처리해야 함', () => {
-      expect(addEther(null as any, 50)).toBe(50);
+      expect(addEther(null as unknown as number, 50)).toBe(50);
     });
 
     it('두 번째 값이 null이면 0으로 처리해야 함', () => {
-      expect(addEther(100, null as any)).toBe(100);
+      expect(addEther(100, null as unknown as number)).toBe(100);
     });
 
     it('두 값 모두 null이면 0을 반환해야 함', () => {
-      expect(addEther(null as any, null as any)).toBe(0);
+      expect(addEther(null as unknown as number, null as unknown as number)).toBe(0);
     });
 
     it('undefined도 0으로 처리해야 함', () => {
-      expect(addEther(undefined as any, 50)).toBe(50);
-      expect(addEther(100, undefined as any)).toBe(100);
+      expect(addEther(undefined as unknown as number, 50)).toBe(50);
+      expect(addEther(100, undefined as unknown as number)).toBe(100);
     });
 
     it('음수 값도 처리해야 함', () => {
@@ -190,13 +197,13 @@ describe('combatUtils', () => {
     it('null pts는 0으로 처리해야 함', () => {
       const mockCalculate = (pts: number) => pts;
 
-      expect(etherSlots(null as any, mockCalculate)).toBe(0);
+      expect(etherSlots(null as unknown as number, mockCalculate)).toBe(0);
     });
 
     it('undefined pts는 0으로 처리해야 함', () => {
       const mockCalculate = (pts: number) => pts;
 
-      expect(etherSlots(undefined as any, mockCalculate)).toBe(0);
+      expect(etherSlots(undefined as unknown as number, mockCalculate)).toBe(0);
     });
   });
 });

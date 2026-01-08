@@ -17,6 +17,26 @@
 import { describe, it, expect, vi } from 'vitest';
 import { STUN_RANGE, processStunEffect } from './stunProcessing';
 
+// 테스트용 타입 정의
+interface TestQueueEntry {
+  actor: string;
+  card: { name: string } | null;
+  sp?: number;
+}
+
+interface TestAction {
+  card: { name: string };
+  sp?: number;
+  actor: string;
+}
+
+interface TestStunEffectParams {
+  action: TestAction;
+  queue: (TestQueueEntry | null)[];
+  currentQIndex: number;
+  addLog: ReturnType<typeof vi.fn>;
+}
+
 describe('stunProcessing', () => {
   describe('STUN_RANGE', () => {
     it('기절 범위가 5여야 함', () => {
@@ -35,18 +55,18 @@ describe('stunProcessing', () => {
 
     it('범위 내 적 카드를 제거해야 함', () => {
       const addLog = vi.fn();
-      const action = {
+      const action: TestAction = {
         card: { name: 'Stun Card' },
         sp: 5,
         actor: 'player'
-      } as any;
+      };
 
       const result = processStunEffect({
         action,
         queue: createQueue(),
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       // 범위: 5~10, Enemy Attack(7), Enemy Skill(9)가 범위 내
       expect(result.updatedQueue).toHaveLength(3);
@@ -57,18 +77,18 @@ describe('stunProcessing', () => {
 
     it('stunEvent를 생성해야 함', () => {
       const addLog = vi.fn();
-      const action = {
+      const action: TestAction = {
         card: { name: 'Stun Card' },
         sp: 5,
         actor: 'player'
-      } as any;
+      };
 
       const result = processStunEffect({
         action,
         queue: createQueue(),
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.stunEvent).not.toBeNull();
       expect(result.stunEvent!.type).toBe('stun');
@@ -88,7 +108,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.stunEvent).toBeNull();
       expect(result.updatedQueue).toHaveLength(2);
@@ -107,7 +127,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Ally Card')).toBe(true);
       expect(result.updatedQueue.some(q => q.card!.name === 'Enemy Card')).toBe(false);
@@ -126,7 +146,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 1,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Past Enemy')).toBe(true);
       expect(result.updatedQueue.some(q => q.card!.name === 'Future Enemy')).toBe(false);
@@ -144,7 +164,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Same SP Enemy')).toBe(false);
       expect(result.stunEvent).not.toBeNull();
@@ -162,7 +182,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Edge Enemy')).toBe(false);
     });
@@ -179,7 +199,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Outside Enemy')).toBe(true);
       expect(result.stunEvent).toBeNull();
@@ -197,7 +217,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('기절'));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('Target Card'));
@@ -217,7 +237,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue).toHaveLength(1); // Stun 카드만 남음
       expect(result.stunEvent!.msg).toContain('3장');
@@ -235,7 +255,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       // 범위: 0~5, Enemy(3)는 범위 내
       expect(result.updatedQueue.some(q => q.card!.name === 'Enemy')).toBe(false);
@@ -254,7 +274,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       // sp가 없는 적은 범위 체크에서 제외
       expect(result.updatedQueue.some(q => q.card!.name === 'No SP Enemy')).toBe(true);
@@ -273,7 +293,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q.card!.name === 'Player Card')).toBe(false);
       expect(result.stunEvent!.actor).toBe('enemy');
@@ -281,7 +301,7 @@ describe('stunProcessing', () => {
 
     it('null 항목은 무시해야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: (TestQueueEntry | null)[] = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         null,
         { actor: 'enemy', card: { name: 'Enemy' }, sp: 7 }
@@ -292,7 +312,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      } as any);
+      } as TestStunEffectParams as Parameters<typeof processStunEffect>[0]);
 
       expect(result.updatedQueue.some(q => q?.card?.name === 'Enemy')).toBe(false);
     });

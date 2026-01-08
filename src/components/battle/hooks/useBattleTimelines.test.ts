@@ -29,6 +29,31 @@ vi.mock('../../../lib/agilityUtils', () => ({
   applyAgility: vi.fn((speed) => speed)
 }));
 
+// 테스트용 타입 정의
+interface TestCard {
+  id: number | string;
+  speedCost?: number;
+  actionCost?: number;
+}
+
+interface TestQueueEntry {
+  actor: string;
+  card: TestCard;
+  sp: number;
+}
+
+interface TestBattleTimelinesProps {
+  battlePhase: string;
+  battleSelected: TestCard[];
+  fixedOrder: TestQueueEntry[] | null;
+  battleQueue: TestQueueEntry[];
+  playerComboUsageCount: Record<string, number>;
+  effectiveAgility: number;
+  enemyPlanActions: TestCard[];
+  insightReveal: { visible: boolean; level: number };
+  selected: TestCard[];
+}
+
 describe('useBattleTimelines', () => {
   const defaultProps = {
     battlePhase: 'select',
@@ -48,7 +73,7 @@ describe('useBattleTimelines', () => {
 
   describe('select 페이즈', () => {
     it('선택 카드 없으면 빈 타임라인', () => {
-      const { result } = renderHook(() => useBattleTimelines(defaultProps as any));
+      const { result } = renderHook(() => useBattleTimelines(defaultProps as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.playerTimeline).toEqual([]);
       expect(result.current.enemyTimeline).toEqual([]);
@@ -64,7 +89,7 @@ describe('useBattleTimelines', () => {
         battleSelected: cards,
         selected: cards
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.playerTimeline).toHaveLength(2);
       expect(result.current.playerTimeline[0].sp).toBe(3);
@@ -77,7 +102,7 @@ describe('useBattleTimelines', () => {
         enemyPlanActions: [{ id: 'enemy1', speedCost: 4 }],
         insightReveal: { visible: false, level: 0 }
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.enemyTimeline).toEqual([]);
     });
@@ -93,7 +118,7 @@ describe('useBattleTimelines', () => {
         enemyPlanActions: enemyCards,
         insightReveal: { visible: true, level: 1 }
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.enemyTimeline).toHaveLength(2);
     });
@@ -109,7 +134,7 @@ describe('useBattleTimelines', () => {
         enemyPlanActions: enemyCards,
         insightReveal: { visible: true, level: 2 }
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.enemyTimeline).toHaveLength(3);
     });
@@ -127,11 +152,11 @@ describe('useBattleTimelines', () => {
         battlePhase: 'respond',
         fixedOrder
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.playerTimeline).toHaveLength(2);
-      expect((result.current.playerTimeline[0].card as any).id).toBe(1);
-      expect((result.current.playerTimeline[1].card as any).id).toBe(3);
+      expect((result.current.playerTimeline[0].card as TestCard).id).toBe(1);
+      expect((result.current.playerTimeline[1].card as TestCard).id).toBe(3);
     });
 
     it('fixedOrder에서 적 카드 필터', () => {
@@ -144,10 +169,10 @@ describe('useBattleTimelines', () => {
         battlePhase: 'respond',
         fixedOrder
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.enemyTimeline).toHaveLength(1);
-      expect((result.current.enemyTimeline[0].card as any).id).toBe(2);
+      expect((result.current.enemyTimeline[0].card as TestCard).id).toBe(2);
     });
 
     it('fixedOrder가 없으면 빈 배열', () => {
@@ -156,7 +181,7 @@ describe('useBattleTimelines', () => {
         battlePhase: 'respond',
         fixedOrder: null
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.playerTimeline).toEqual([]);
       expect(result.current.enemyTimeline).toEqual([]);
@@ -175,7 +200,7 @@ describe('useBattleTimelines', () => {
         battlePhase: 'resolve',
         battleQueue: queue
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.playerTimeline).toHaveLength(2);
     });
@@ -190,7 +215,7 @@ describe('useBattleTimelines', () => {
         battlePhase: 'resolve',
         battleQueue: queue
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       expect(result.current.enemyTimeline).toHaveLength(1);
     });
@@ -205,7 +230,7 @@ describe('useBattleTimelines', () => {
         selected: cards,
         effectiveAgility: 2
       };
-      const { result } = renderHook(() => useBattleTimelines(props as any));
+      const { result } = renderHook(() => useBattleTimelines(props as TestBattleTimelinesProps as Parameters<typeof useBattleTimelines>[0]));
 
       // effectiveAgility가 있을 때 타임라인이 생성되는지 확인
       expect(result.current.playerTimeline).toBeDefined();
