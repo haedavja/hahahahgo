@@ -1032,8 +1032,8 @@ export class RunSimulator {
           }
         }
       }
-      // 엘리트 상징 획득: 등급별 가중치 적용 (legendary 제외), 50% 확률
-      else if (isElite && getGlobalRandom().chance(0.5)) {
+      // 엘리트 상징 획득: 등급별 가중치 적용 (legendary 제외), 확정 획득
+      else if (isElite) {
         const allRelicIds = Object.keys(this.relicLibrary);
         const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
         if (availableRelics.length > 0) {
