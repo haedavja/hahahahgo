@@ -21,6 +21,36 @@ vi.mock('../../../lib/randomUtils', () => ({
   generateUid: vi.fn(() => 'ghost_uid_123')
 }));
 
+// 테스트용 타입 정의
+interface TestQueueEntry {
+  actor: string;
+  card: { id: string; isGhost?: boolean; createdBy?: string };
+  sp: number;
+}
+
+interface TestBattleRef {
+  current: {
+    queue: TestQueueEntry[];
+    qIndex: number;
+  };
+}
+
+interface TestBreachSelectionProps {
+  CARDS: Array<{ id: string; name: string; damage?: number; block?: number; speedCost: number; actionCost: number }>;
+  battleRef: TestBattleRef;
+  stepOnceRef: { current: ReturnType<typeof vi.fn> };
+  addLog: ReturnType<typeof vi.fn>;
+  actions: {
+    setQueue: ReturnType<typeof vi.fn>;
+    setQIndex: ReturnType<typeof vi.fn>;
+  };
+}
+
+interface TestBreachCard {
+  id: string;
+  breachSpOffset?: number;
+}
+
 describe('useBreachSelection', () => {
   const mockSetQueue = vi.fn();
   const mockSetQIndex = vi.fn();
@@ -32,7 +62,7 @@ describe('useBreachSelection', () => {
     { id: 'pierce', name: '찌르기', damage: 15, speedCost: 4, actionCost: 2 }
   ];
 
-  const defaultProps = {
+  const defaultProps: TestBreachSelectionProps = {
     CARDS,
     battleRef: {
       current: {
@@ -61,13 +91,13 @@ describe('useBreachSelection', () => {
 
   describe('초기 상태', () => {
     it('breachSelection null로 시작', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       expect(result.current.breachSelection).toBeNull();
     });
 
     it('필요한 함수들 반환', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       expect(result.current.setBreachSelection).toBeDefined();
       expect(result.current.handleBreachSelect).toBeDefined();
@@ -78,35 +108,35 @@ describe('useBreachSelection', () => {
 
   describe('handleBreachSelect', () => {
     it('breachSelectionRef 없으면 조기 반환', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
-        result.current.handleBreachSelect({ id: 'slash', name: '베기' } as any);
+        result.current.handleBreachSelect({ id: 'slash', name: '베기' } as Card);
       });
 
       expect(mockSetQueue).not.toHaveBeenCalled();
     });
 
     it('유령카드 생성 및 큐 삽입', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       // breachSelection 설정
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach', breachSpOffset: 2 }
+          breachCard: { id: 'breach', breachSpOffset: 2 } as TestBreachCard as Card
         };
         result.current.setBreachSelection({
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach', breachSpOffset: 2 }
-        } as any);
+          breachCard: { id: 'breach', breachSpOffset: 2 } as TestBreachCard as Card
+        });
       });
 
       // 카드 선택
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       expect(mockAddLog).toHaveBeenCalledWith(expect.stringContaining('베기'));
@@ -114,18 +144,18 @@ describe('useBreachSelection', () => {
     });
 
     it('선택 완료 후 breachSelection 초기화', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       expect(result.current.breachSelectionRef.current).toBeNull();
@@ -133,25 +163,25 @@ describe('useBreachSelection', () => {
 
     it('qIndex 업데이트', () => {
       // 각 테스트에서 새로운 battleRef 생성
-      const freshBattleRef = {
+      const freshBattleRef: TestBattleRef = {
         current: {
           queue: [{ actor: 'player', card: { id: 'test' }, sp: 5 }],
           qIndex: 0
         }
       };
-      const props = { ...defaultProps, battleRef: freshBattleRef };
-      const { result } = renderHook(() => useBreachSelection(props as any));
+      const props: TestBreachSelectionProps = { ...defaultProps, battleRef: freshBattleRef };
+      const { result } = renderHook(() => useBreachSelection(props as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       // qIndex는 currentQIndex(0) + 1 = 1
@@ -160,7 +190,7 @@ describe('useBreachSelection', () => {
 
     it('선택 후 stepOnce 호출 예약', () => {
       const mockStepOnce = vi.fn();
-      const props = {
+      const props: TestBreachSelectionProps = {
         ...defaultProps,
         stepOnceRef: { current: mockStepOnce },
         battleRef: {
@@ -170,18 +200,18 @@ describe('useBreachSelection', () => {
           }
         }
       };
-      const { result } = renderHook(() => useBreachSelection(props as any));
+      const { result } = renderHook(() => useBreachSelection(props as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       // setTimeout 실행
@@ -196,7 +226,7 @@ describe('useBreachSelection', () => {
 
   describe('다중 선택 (creationQueue)', () => {
     it('creationQueue에 다음 선택이 있으면 계속 진행', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       // creationQueue 설정
       act(() => {
@@ -204,20 +234,20 @@ describe('useBreachSelection', () => {
           {
             cards: CARDS as Card[],
             insertSp: 5,
-            breachCard: { id: 'creation' } as any,
+            breachCard: { id: 'creation' } as TestBreachCard as Card,
             totalSelections: 2,
             currentSelection: 2
           }
         ];
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       // 다음 선택 상태로 전환
@@ -226,19 +256,19 @@ describe('useBreachSelection', () => {
     });
 
     it('creationQueue가 비면 선택 완료', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.creationQueueRef.current = [];
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       expect(result.current.breachSelectionRef.current).toBeNull();
@@ -247,47 +277,47 @@ describe('useBreachSelection', () => {
 
   describe('유령카드 속성', () => {
     it('유령카드에 isGhost 플래그 설정', () => {
-      const { result } = renderHook(() => useBreachSelection(defaultProps as any));
+      const { result } = renderHook(() => useBreachSelection(defaultProps as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach' }
+          breachCard: { id: 'breach' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       const setQueueCall = mockSetQueue.mock.calls[0][0];
-      const ghostCard = setQueueCall.find((q: any) => q.card?.isGhost);
+      const ghostCard = setQueueCall.find((q: TestQueueEntry) => q.card?.isGhost);
       expect(ghostCard).toBeDefined();
       expect(ghostCard.card.isGhost).toBe(true);
     });
 
     it('유령카드에 createdBy 설정', () => {
       // 각 테스트에서 새로운 battleRef 생성
-      const freshBattleRef = {
+      const freshBattleRef: TestBattleRef = {
         current: {
           queue: [{ actor: 'player', card: { id: 'test' }, sp: 5 }],
           qIndex: 0
         }
       };
-      const props = { ...defaultProps, battleRef: freshBattleRef };
-      const { result } = renderHook(() => useBreachSelection(props as any));
+      const props: TestBreachSelectionProps = { ...defaultProps, battleRef: freshBattleRef };
+      const { result } = renderHook(() => useBreachSelection(props as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'parent_card' }
+          breachCard: { id: 'parent_card' } as TestBreachCard as Card
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       // 마지막 setQueue 호출에서 유령카드 확인
@@ -300,7 +330,7 @@ describe('useBreachSelection', () => {
 
   describe('큐 정렬', () => {
     it('sp 기준으로 정렬', () => {
-      const props = {
+      const props: TestBreachSelectionProps = {
         ...defaultProps,
         battleRef: {
           current: {
@@ -312,18 +342,18 @@ describe('useBreachSelection', () => {
           }
         }
       };
-      const { result } = renderHook(() => useBreachSelection(props as any));
+      const { result } = renderHook(() => useBreachSelection(props as Parameters<typeof useBreachSelection>[0]));
 
       act(() => {
         result.current.breachSelectionRef.current = {
-          cards: CARDS,
+          cards: CARDS as Card[],
           breachSp: 3,
-          breachCard: { id: 'breach', breachSpOffset: 2 } // sp = 5
+          breachCard: { id: 'breach', breachSpOffset: 2 } as TestBreachCard as Card // sp = 5
         };
       });
 
       act(() => {
-        result.current.handleBreachSelect(CARDS[0] as any);
+        result.current.handleBreachSelect(CARDS[0] as Card);
       });
 
       const newQueue = mockSetQueue.mock.calls[0][0];
