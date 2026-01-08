@@ -20,8 +20,8 @@ describe('battle-engine-types', () => {
       expect(DEFAULT_MAX_SPEED).toBe(30);
     });
 
-    it('DEFAULT_PLAYER_ENERGY는 6', () => {
-      expect(DEFAULT_PLAYER_ENERGY).toBe(6);
+    it('DEFAULT_PLAYER_ENERGY는 4', () => {
+      expect(DEFAULT_PLAYER_ENERGY).toBe(4);
     });
 
     it('DEFAULT_MAX_SUBMIT_CARDS는 5', () => {

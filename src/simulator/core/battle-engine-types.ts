@@ -8,7 +8,7 @@
 // ==================== 상수 ====================
 
 export const DEFAULT_MAX_SPEED = 30;
-export const DEFAULT_PLAYER_ENERGY = 6;
+export const DEFAULT_PLAYER_ENERGY = 4;
 export const DEFAULT_MAX_SUBMIT_CARDS = 5;
 export const DEFAULT_HAND_SIZE = 5;
 
