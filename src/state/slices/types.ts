@@ -52,6 +52,7 @@ export interface BattleRewards {
   intel?: number;
   material?: number;
   card?: number;
+  memory?: number | { min: number; max: number };
 }
 
 /** 전투 상태 스냅샷 */
@@ -158,6 +159,13 @@ export interface LastBattleResult {
 
 // ==================== 슬라이스 상태 타입 ====================
 
+/** 임시 버프 (노드 기반) */
+export interface TempBuff {
+  stat: 'strength' | 'agility' | 'insight';
+  value: number;
+  remainingNodes: number;
+}
+
 /** 플레이어 슬라이스 상태 */
 export interface PlayerSliceState {
   playerHp: number;
@@ -172,6 +180,7 @@ export interface PlayerSliceState {
   extraSubSpecialSlots: number;
   resources: Resources;
   itemBuffs: Record<string, number>;
+  tempBuffs: TempBuff[];
   metaBonuses?: { hp: number; gold: number };
 }
 
@@ -185,6 +194,8 @@ export interface PlayerSliceActions {
   applyDamage: (damage: number) => void;
   setPlayerHp: (hp: number) => void;
   clearItemBuffs: () => void;
+  applyTempBuff: (buff: TempBuff) => void;
+  tickTempBuffs: () => void;
 }
 
 /** 맵 슬라이스 상태 */
@@ -244,6 +255,14 @@ export interface BattleConfig {
   enemyHp?: number;
   tier?: number;
   rewards?: BattleRewards;
+  /** 적 그룹 ID */
+  groupId?: string;
+  /** 적 그룹 이름 */
+  groupName?: string;
+  /** 그룹 내 적 수 */
+  enemyCount?: number;
+  /** 그룹 구성 (적 ID 배열) */
+  composition?: string[];
 }
 
 /** 전투 결과 */

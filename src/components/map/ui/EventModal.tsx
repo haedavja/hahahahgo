@@ -22,6 +22,20 @@ interface EventOutcome {
   cost?: Record<string, number>;
   rewards?: EventRewards;
   text?: string;
+  // 전투 트리거 정보
+  combatTrigger?: boolean;
+  combatRewards?: Record<string, unknown>;
+  combatModifier?: { enemyHp?: number };
+  combatId?: string;
+}
+
+interface BattleConfig {
+  nodeId?: string;
+  kind?: string;
+  label?: string;
+  rewards?: Record<string, unknown>;
+  enemyId?: string;
+  enemyHp?: number;
 }
 
 interface EventModalProps {
@@ -30,6 +44,7 @@ interface EventModalProps {
   meetsStatRequirement: (req: Record<string, number> | undefined) => boolean;
   chooseEvent: (choiceId: string) => void;
   closeEvent: () => void;
+  startBattle?: (config: BattleConfig) => void;
 }
 
 export const EventModal = memo(function EventModal({
@@ -38,7 +53,38 @@ export const EventModal = memo(function EventModal({
   meetsStatRequirement,
   chooseEvent,
   closeEvent,
+  startBattle,
 }: EventModalProps) {
+  // React hooks 규칙: 모든 훅은 early return 전에 호출되어야 함
+  const handleChooseEvent = useCallback((choiceId: string) => {
+    chooseEvent(choiceId);
+  }, [chooseEvent]);
+
+  // 전투 트리거 시 전투 시작 후 이벤트 닫기
+  const handleClose = useCallback(() => {
+    if (!activeEvent) {
+      closeEvent();
+      return;
+    }
+    const outcome = activeEvent.outcome as EventOutcome | undefined;
+    if (outcome?.combatTrigger && startBattle) {
+      const battleConfig: BattleConfig = {
+        nodeId: `event-combat-${activeEvent.definition?.id || 'unknown'}`,
+        kind: 'combat',
+        label: outcome.choice || '이벤트 전투',
+        rewards: outcome.combatRewards || {},
+        enemyId: outcome.combatId,
+      };
+      // enemyHp 수정자가 있으면 적용 (예: 적 HP 50% 감소)
+      if (outcome.combatModifier?.enemyHp) {
+        battleConfig.enemyHp = Math.floor(30 * outcome.combatModifier.enemyHp);
+      }
+      startBattle(battleConfig);
+    }
+    closeEvent();
+  }, [activeEvent, startBattle, closeEvent]);
+
+  // Early return은 모든 훅 호출 후에 수행
   if (!activeEvent) return null;
 
   // 현재 스테이지에 맞는 description과 choices 가져오기
@@ -53,10 +99,6 @@ export const EventModal = memo(function EventModal({
     ? outcome.resultDescription
     : currentDescription;
 
-  const handleChooseEvent = useCallback((choiceId: string) => {
-    chooseEvent(choiceId);
-  }, [chooseEvent]);
-
   return (
     <div className="event-modal-overlay" data-testid="event-modal-overlay">
       <div className="event-modal" data-testid="event-modal">
@@ -68,7 +110,7 @@ export const EventModal = memo(function EventModal({
         {!activeEvent.resolved && (
           <div className="event-choices" data-testid="event-choices">
             {currentChoices.map((choice) => {
-              const affordable = canAfford(resources as unknown as Record<string, number>, choice.cost as Record<string, number> || {});
+              const affordable = canAfford(resources as Record<string, number>, choice.cost as Record<string, number> || {});
               const hasRequiredStats = meetsStatRequirement(choice.statRequirement);
               const canSelect = affordable && hasRequiredStats;
 
@@ -107,8 +149,8 @@ export const EventModal = memo(function EventModal({
             {outcome.rewards && Object.keys(outcome.rewards).length > 0 && (
               <p>획득: {formatApplied(outcome.rewards as Record<string, unknown>)}</p>
             )}
-            <button type="button" className="close-btn" onClick={closeEvent} data-testid="event-close-btn">
-              확인
+            <button type="button" className="close-btn" onClick={handleClose} data-testid="event-close-btn">
+              {outcome.combatTrigger ? '전투 시작!' : '확인'}
             </button>
           </div>
         )}

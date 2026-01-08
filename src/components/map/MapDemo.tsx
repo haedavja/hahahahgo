@@ -7,14 +7,18 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { RelicsBar, PathosBar, RestModal, EventModal } from "./ui";
 
 // Lazy loading for heavy components
+const EventModal = lazy(() => import("./ui/EventModal").then(m => ({ default: m.EventModal })));
 const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
 const DungeonExploration = lazy(() => import("../dungeon/DungeonExploration").then(m => ({ default: m.DungeonExploration })));
 const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
 const ShopModal = lazy(() => import("../shop/ShopModal").then(m => ({ default: m.ShopModal })));
+const RestModal = lazy(() => import("./ui/RestModal").then(m => ({ default: m.RestModal })));
 const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
+const StatsWidget = lazy(() => import("./ui/StatsWidget").then(m => ({ default: m.StatsWidget })));
+const RelicsBar = lazy(() => import("./ui/RelicsBar").then(m => ({ default: m.RelicsBar })));
+const PathosBar = lazy(() => import("./ui/PathosBar").then(m => ({ default: m.PathosBar })));
 import {
   NODE_WIDTH,
   NODE_HEIGHT,
@@ -92,6 +96,39 @@ const RESOURCE_MATERIAL_STYLE: CSSProperties = {
 
 const USAGE_SUCCESS_STYLE: CSSProperties = {
   color: '#86efac'
+};
+
+const TEMP_BUFF_CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '10px',
+  left: '10px',
+  zIndex: 100,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  padding: '8px 12px',
+  background: 'rgba(0, 0, 0, 0.75)',
+  borderRadius: '8px',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  fontSize: '13px',
+  fontWeight: 600,
+};
+
+const TEMP_BUFF_ITEM_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+};
+
+const TEMP_BUFF_VALUE_STYLE: CSSProperties = {
+  color: '#86efac',
+  fontWeight: 700,
+};
+
+const TEMP_BUFF_REMAINING_STYLE: CSSProperties = {
+  color: '#94a3b8',
+  fontSize: '11px',
+  marginLeft: '4px',
 };
 
 function MapDemoComponent() {
@@ -173,7 +210,7 @@ function MapDemoComponent() {
   }, [orderedRelics]);
 
   // 플레이어 스탯 셀렉터 (그룹화)
-  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs, characterBuild } = useGameStore(
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs, tempBuffs, characterBuild } = useGameStore(
     useShallow((state) => ({
       playerHp: state.playerHp,
       maxHp: state.maxHp,
@@ -184,6 +221,7 @@ function MapDemoComponent() {
       cardUpgrades: state.cardUpgrades || {},
       cardGrowth: state.cardGrowth || {},
       itemBuffs: state.itemBuffs || {},
+      tempBuffs: state.tempBuffs || [],
       characterBuild: state.characterBuild,
     }))
   );
@@ -194,7 +232,8 @@ function MapDemoComponent() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources
+    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources, applyTempBuff,
+    startBattle
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -213,6 +252,8 @@ function MapDemoComponent() {
       specializeCard: state.specializeCard,
       useItem: state.useItem,
       setResources: state.setResources,
+      applyTempBuff: state.applyTempBuff,
+      startBattle: state.startBattle,
     }))
   );
 
@@ -224,10 +265,33 @@ function MapDemoComponent() {
     }
   }, [resources.gold, setResources]);
 
-  // 아이템 버프를 포함한 유효 스탯 계산
-  const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
-  const effectiveAgility = playerAgility + (itemBuffs.agility || 0);
-  const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
+  // 은총화 소비 헬퍼
+  const spendGrace = useCallback((amount: number) => {
+    const currentGrace = resources.grace ?? 0;
+    if (currentGrace >= amount) {
+      setResources({ grace: currentGrace - amount });
+    }
+  }, [resources.grace, setResources]);
+
+  // 기억 획득 헬퍼 (명상용)
+  const gainMemory = useCallback((amount: number) => {
+    const currentMemory = resources.memory ?? 0;
+    setResources({ memory: currentMemory + amount });
+  }, [resources.memory, setResources]);
+
+  // tempBuffs를 스탯별로 합산
+  const tempBuffTotals = useMemo(() => {
+    const totals: Record<string, number> = { strength: 0, agility: 0, insight: 0 };
+    for (const buff of tempBuffs) {
+      totals[buff.stat] = (totals[buff.stat] || 0) + buff.value;
+    }
+    return totals;
+  }, [tempBuffs]);
+
+  // 아이템 버프 + 임시 버프를 포함한 유효 스탯 계산
+  const effectiveStrength = playerStrength + (itemBuffs.strength || 0) + (tempBuffTotals.strength || 0);
+  const effectiveAgility = playerAgility + (itemBuffs.agility || 0) + (tempBuffTotals.agility || 0);
+  const effectiveInsight = playerInsight + (itemBuffs.insight || 0) + (tempBuffTotals.insight || 0);
 
   // 스탯 요구사항 충족 여부 체크 (아이템 버프 포함)
   const meetsStatRequirement = useCallback((statRequirement: Record<string, number> | undefined) => {
@@ -359,25 +423,48 @@ function MapDemoComponent() {
 
   return (
     <div className="app-shell">
+      {/* 우측 상단 통계 위젯 */}
+      <Suspense fallback={null}>
+        <StatsWidget />
+      </Suspense>
+
+      {/* 좌측 상단 임시 버프 표시 */}
+      {tempBuffs.length > 0 && (
+        <div style={TEMP_BUFF_CONTAINER_STYLE} data-testid="temp-buffs-display">
+          <div style={{ color: '#fbbf24', marginBottom: '4px', fontSize: '11px' }}>⏳ 임시 버프</div>
+          {tempBuffs.map((buff, idx) => (
+            <div key={`${buff.stat}-${idx}`} style={TEMP_BUFF_ITEM_STYLE}>
+              <span>{(STAT_LABELS as Record<string, string>)[buff.stat] || buff.stat}</span>
+              <span style={TEMP_BUFF_VALUE_STYLE}>+{buff.value}</span>
+              <span style={TEMP_BUFF_REMAINING_STYLE}>({buff.remainingNodes}칸)</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <header>
         <h1>로그라이크 경로 지도</h1>
         <small>속도 시스템 기준 · React + Vite 시연</small>
       </header>
 
       {/* 상징 표시 */}
-      <RelicsBar
-        orderedRelics={orderedRelics}
-        hoveredRelic={hoveredRelic}
-        relicActivated={relicActivated}
-        actions={{
-          setHoveredRelic: actions.setHoveredRelic,
-          setRelicActivated: actions.setRelicActivated,
-          setOrderedRelics: actions.setOrderedRelics,
-        }}
-      />
+      <Suspense fallback={null}>
+        <RelicsBar
+          orderedRelics={orderedRelics}
+          hoveredRelic={hoveredRelic}
+          relicActivated={relicActivated}
+          actions={{
+            setHoveredRelic: actions.setHoveredRelic,
+            setRelicActivated: actions.setRelicActivated,
+            setOrderedRelics: actions.setOrderedRelics,
+          }}
+        />
+      </Suspense>
 
       {/* 장착 파토스 표시 */}
-      <PathosBar />
+      <Suspense fallback={null}>
+        <PathosBar />
+      </Suspense>
 
       <div className="legend">
         {LEGEND.map((item: { icon: string; label: string }) => (
@@ -510,33 +597,44 @@ function MapDemoComponent() {
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
-      <EventModal
-        activeEvent={activeEvent}
-        resources={resources}
-        meetsStatRequirement={meetsStatRequirement}
-        chooseEvent={chooseEvent}
-        closeEvent={closeEvent}
-      />
+      {activeEvent && (
+        <Suspense fallback={null}>
+          <EventModal
+            activeEvent={activeEvent}
+            resources={resources}
+            meetsStatRequirement={meetsStatRequirement}
+            chooseEvent={chooseEvent}
+            closeEvent={closeEvent}
+            startBattle={startBattle}
+          />
+        </Suspense>
+      )}
 
       {activeRest && (
-        <RestModal
-          memoryValue={memoryValue}
-          playerHp={playerHp}
-          maxHp={maxHp}
-          canAwaken={canAwaken}
-          playerTraits={playerTraits}
-          cardUpgrades={cardUpgrades}
-          cardGrowth={cardGrowth}
-          gold={resources.gold ?? 0}
-          ownedCards={ownedCards}
-          closeRest={closeRest}
-          awakenAtRest={awakenAtRest}
-          healAtRest={healAtRest}
-          upgradeCardRarity={upgradeCardRarity}
-          enhanceCard={enhanceCard}
-          specializeCard={specializeCard}
-          spendGold={spendGold}
-        />
+        <Suspense fallback={null}>
+          <RestModal
+            memoryValue={memoryValue}
+            playerHp={playerHp}
+            maxHp={maxHp}
+            canAwaken={canAwaken}
+            playerTraits={playerTraits}
+            cardUpgrades={cardUpgrades}
+            cardGrowth={cardGrowth}
+            gold={resources.gold ?? 0}
+            grace={resources.grace ?? 0}
+            ownedCards={ownedCards}
+            closeRest={closeRest}
+            awakenAtRest={awakenAtRest}
+            healAtRest={healAtRest}
+            upgradeCardRarity={upgradeCardRarity}
+            enhanceCard={enhanceCard}
+            specializeCard={specializeCard}
+            spendGold={spendGold}
+            spendGrace={spendGrace}
+            gainMemory={gainMemory}
+            applyTempBuff={applyTempBuff}
+          />
+        </Suspense>
       )}
 
       {activeBattle && (
@@ -635,7 +733,7 @@ function MapDemoComponent() {
               setShowAllCards(value);
               try {
                 localStorage.setItem('showAllCards', value.toString());
-              } catch {}
+              } catch { /* ignore localStorage write failure */ }
             }}
           />
         </Suspense>

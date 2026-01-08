@@ -12,3 +12,4 @@ export { EventTab } from './EventTab';
 export { CardsTab } from './CardsTab';
 // SimulatorTab is lazy-loaded in DevTools.tsx, not exported here to enable code splitting
 export { BalanceTab } from './BalanceTab';
+export { StatsTab } from './StatsTab';

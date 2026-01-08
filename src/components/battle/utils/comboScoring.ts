@@ -11,7 +11,6 @@
  */
 
 import type {
-  Card,
   ComboName,
   ComboScoringCard,
   ComboScoringEnemy,
@@ -65,7 +64,7 @@ export function calculateComboScore(cards: ComboScoringCard[]): ComboScoreResult
     return { comboName: null, score: 0, multiplier: 1 };
   }
 
-  const combo = detectPokerCombo(cards as unknown as Card[]);
+  const combo = detectPokerCombo(cards);
 
   if (!combo) {
     return { comboName: null, score: 0, multiplier: 1 };

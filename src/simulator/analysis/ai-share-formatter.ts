@@ -237,6 +237,15 @@ export function formatRunStatsForAI(
   lines.push(`- Avg Gold Earned: ${num(stats.avgGoldEarned)}`);
   lines.push(`- Avg Cards in Deck: ${num(stats.avgCardsInDeck)}`);
 
+  // 영혼파괴/육체파괴 통계
+  const totalVictories = (stats.soulDestructions || 0) + (stats.physicalDestructions || 0);
+  if (totalVictories > 0) {
+    const soulRate = ((stats.soulDestructions || 0) / totalVictories * 100).toFixed(1);
+    const physRate = ((stats.physicalDestructions || 0) / totalVictories * 100).toFixed(1);
+    lines.push(`- Soul Destructions (Ether Victory): ${stats.soulDestructions || 0} (${soulRate}%)`);
+    lines.push(`- Physical Destructions (HP Victory): ${stats.physicalDestructions || 0} (${physRate}%)`);
+  }
+
   // 사망 원인
   if (stats.deathCauses && Object.keys(stats.deathCauses).length > 0) {
     lines.push('');
@@ -244,7 +253,7 @@ export function formatRunStatsForAI(
     const sorted = Object.entries(stats.deathCauses)
       .sort((a, b) => b[1] - a[1]);
     for (const [cause, count] of sorted) {
-      const rate = count / stats.totalRuns;
+      const rate = count / Math.max(1, stats.totalRuns);
       lines.push(`- ${cause}: ${count} (${pct(rate)})`);
     }
   }
@@ -338,6 +347,14 @@ export function formatDetailedStatsForAI(
     lines.push(`- Success Rate: ${pct(stats.runStats.successRate)}`);
     lines.push(`- Avg Layer: ${num(stats.runStats.avgLayerReached)}`);
     lines.push(`- Avg Battles Won: ${num(stats.runStats.avgBattlesWon)}`);
+    // 영혼파괴/육체파괴 통계
+    const totalWins = (stats.runStats.soulDestructions || 0) + (stats.runStats.physicalDestructions || 0);
+    if (totalWins > 0) {
+      const soulRate = ((stats.runStats.soulDestructions || 0) / totalWins * 100).toFixed(1);
+      const physRate = ((stats.runStats.physicalDestructions || 0) / totalWins * 100).toFixed(1);
+      lines.push(`- Soul Destructions (Ether): ${stats.runStats.soulDestructions || 0} (${soulRate}%)`);
+      lines.push(`- Physical Destructions (HP): ${stats.runStats.physicalDestructions || 0} (${physRate}%)`);
+    }
   }
 
   // 원본 JSON

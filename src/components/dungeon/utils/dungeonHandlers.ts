@@ -6,7 +6,7 @@
 import type { DungeonObject } from '../../../types/game';
 import type { BattleConfig } from '../../../state/slices/types';
 import type { Resources } from '../../../types';
-import { getRandomEnemy } from '../../battle/battleData';
+import { getRandomEnemy, getRandomEnemyGroup, ENEMIES } from '../../battle/battleData';
 import {
   playRewardSound,
   playDangerSound,
@@ -107,8 +107,11 @@ export const OBJECT_HANDLERS = {
     const dungeonDepth = context.segmentIndex || 0;
     const tier = Math.min(4, Math.max(1, Math.floor(dungeonDepth / 2) + 1));
 
-    // 티어 기반 랜덤 적 선택
-    const enemy = getRandomEnemy(tier);
+    // 티어 기반 랜덤 적 그룹 선택
+    const group = getRandomEnemyGroup(tier);
+    // 그룹의 첫 번째 적 정보 (대표 적)
+    const primaryEnemyId = group.enemies[0];
+    const primaryEnemy = ENEMIES.find(e => e.id === primaryEnemyId);
 
     // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
     context.preBattleState.current = {
@@ -120,10 +123,15 @@ export const OBJECT_HANDLERS = {
     context.startBattle({
       nodeId: `dungeon-${context.currentRoomKey || context.segmentIndex}`,
       kind: "combat",
-      label: enemy?.name || "던전 몬스터",
-      enemyId: enemy?.id,
+      label: group.name || primaryEnemy?.name || "던전 몬스터",
+      enemyId: primaryEnemyId,
       tier,
       rewards: {}, // 던전에서는 수동으로 보상 처리하므로 자동 보상 비활성화
+      // 그룹 정보 전달
+      groupId: group.id,
+      groupName: group.name,
+      enemyCount: group.enemies.length,
+      composition: group.enemies,
     });
   },
 

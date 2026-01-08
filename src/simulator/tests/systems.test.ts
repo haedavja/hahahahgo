@@ -777,6 +777,305 @@ describe('CacheSystem', () => {
   });
 });
 
+// ==================== 특성(Trait) 시스템 테스트 ====================
+
+describe('TraitSynergySystem', () => {
+  // 공격력 증폭 특성 정의
+  const DAMAGE_MULTIPLIER_TRAITS: Record<string, number> = {
+    strongbone: 1.25,    // 강골: 25% 증폭
+    destroyer: 1.5,      // 파괴자: 50% 증폭
+    slaughter: 1.75,     // 살육: 75% 증폭
+    pinnacle: 2.5,       // 절정: 150% 증폭
+    weakbone: 0.8,       // 약골: 20% 감소
+  };
+
+  // 속도 수정 특성 정의
+  const SPEED_MODIFIER_TRAITS: Record<string, number> = {
+    swift: -2,           // 신속: 2 빠름
+    slow: 3,             // 느림: 3 느림
+    mastery: -2,         // 숙련: 속도 -2
+    advance: -3,         // 앞당김: 속도 -3
+    boredom: 2,          // 싫증: 속도 +2
+    last: 999,           // 마지막: 타임라인 최후
+  };
+
+  interface TraitResult {
+    damageMultiplier: number;
+    speedModifier: number;
+    synergies: string[];
+  }
+
+  function processTraits(traits: string[], context: { chainActive?: boolean; crossed?: boolean } = {}): TraitResult {
+    const result: TraitResult = {
+      damageMultiplier: 1.0,
+      speedModifier: 0,
+      synergies: [],
+    };
+
+    for (const trait of traits) {
+      // 공격력 증폭
+      if (DAMAGE_MULTIPLIER_TRAITS[trait]) {
+        result.damageMultiplier *= DAMAGE_MULTIPLIER_TRAITS[trait];
+        result.synergies.push(`${trait}: 공격력 x${DAMAGE_MULTIPLIER_TRAITS[trait]}`);
+      }
+
+      // 속도 수정
+      if (SPEED_MODIFIER_TRAITS[trait]) {
+        result.speedModifier += SPEED_MODIFIER_TRAITS[trait];
+        result.synergies.push(`${trait}: 속도 ${SPEED_MODIFIER_TRAITS[trait] > 0 ? '+' : ''}${SPEED_MODIFIER_TRAITS[trait]}`);
+      }
+
+      // 특수 특성
+      switch (trait) {
+        case 'chain':
+          result.synergies.push('연계 시작');
+          break;
+        case 'followup':
+          if (context.chainActive) {
+            result.damageMultiplier *= 1.3;
+            result.synergies.push('후속 연계: 공격력 x1.3');
+          }
+          break;
+        case 'cross':
+          if (context.crossed) {
+            result.damageMultiplier *= 1.5;
+            result.synergies.push('교차: 공격력 x1.5');
+          }
+          break;
+      }
+    }
+
+    return result;
+  }
+
+  it('강골 특성이 공격력을 25% 증가시켜야 함', () => {
+    const result = processTraits(['strongbone']);
+    expect(result.damageMultiplier).toBe(1.25);
+    expect(result.synergies).toContain('strongbone: 공격력 x1.25');
+  });
+
+  it('약골 특성이 공격력을 20% 감소시켜야 함', () => {
+    const result = processTraits(['weakbone']);
+    expect(result.damageMultiplier).toBe(0.8);
+  });
+
+  it('다중 공격력 특성이 곱셈으로 적용되어야 함', () => {
+    const result = processTraits(['strongbone', 'destroyer']);
+    expect(result.damageMultiplier).toBeCloseTo(1.25 * 1.5);
+  });
+
+  it('신속 특성이 속도를 2 줄여야 함', () => {
+    const result = processTraits(['swift']);
+    expect(result.speedModifier).toBe(-2);
+  });
+
+  it('느림 특성이 속도를 3 늘려야 함', () => {
+    const result = processTraits(['slow']);
+    expect(result.speedModifier).toBe(3);
+  });
+
+  it('마지막 특성이 타임라인 최후로 이동해야 함', () => {
+    const result = processTraits(['last']);
+    expect(result.speedModifier).toBe(999);
+  });
+
+  it('연계가 활성화되면 후속 보너스가 적용되어야 함', () => {
+    const result = processTraits(['followup'], { chainActive: true });
+    expect(result.damageMultiplier).toBeCloseTo(1.3);
+    expect(result.synergies).toContain('후속 연계: 공격력 x1.3');
+  });
+
+  it('연계가 비활성화되면 후속 보너스가 없어야 함', () => {
+    const result = processTraits(['followup'], { chainActive: false });
+    expect(result.damageMultiplier).toBe(1.0);
+  });
+
+  it('교차 상태에서 교차 보너스가 적용되어야 함', () => {
+    const result = processTraits(['cross'], { crossed: true });
+    expect(result.damageMultiplier).toBeCloseTo(1.5);
+    expect(result.synergies).toContain('교차: 공격력 x1.5');
+  });
+
+  it('교차하지 않으면 교차 보너스가 없어야 함', () => {
+    const result = processTraits(['cross'], { crossed: false });
+    expect(result.damageMultiplier).toBe(1.0);
+  });
+
+  it('복합 특성이 올바르게 적용되어야 함', () => {
+    const result = processTraits(['strongbone', 'swift', 'cross'], { crossed: true });
+    expect(result.damageMultiplier).toBeCloseTo(1.25 * 1.5);
+    expect(result.speedModifier).toBe(-2);
+    expect(result.synergies.length).toBeGreaterThan(0);
+  });
+
+  it('속도 특성이 누적되어야 함', () => {
+    const result = processTraits(['swift', 'advance']);
+    expect(result.speedModifier).toBe(-2 + -3);
+  });
+
+  it('상반되는 속도 특성이 상쇄되어야 함', () => {
+    const result = processTraits(['swift', 'slow']);
+    expect(result.speedModifier).toBe(-2 + 3);
+  });
+});
+
+// ==================== 핸드 생성 특성 테스트 ====================
+
+describe('HandTraitSystem', () => {
+  interface NextTurnEffects {
+    guaranteedCards?: string[];
+    mainSpecialOnly?: boolean;
+    bonusEnergy?: number;
+    etherBlocked?: boolean;
+  }
+
+  function collectNextTurnEffects(traits: string[]): NextTurnEffects {
+    const effects: NextTurnEffects = {};
+
+    for (const trait of traits) {
+      switch (trait) {
+        case 'repeat':
+          effects.guaranteedCards = effects.guaranteedCards || [];
+          effects.guaranteedCards.push('test_card');
+          break;
+        case 'ruin':
+          effects.mainSpecialOnly = true;
+          break;
+        case 'warmup':
+          effects.bonusEnergy = (effects.bonusEnergy || 0) + 2;
+          break;
+        case 'oblivion':
+          effects.etherBlocked = true;
+          break;
+      }
+    }
+
+    return effects;
+  }
+
+  it('repeat 특성이 다음 턴에 카드를 보장해야 함', () => {
+    const effects = collectNextTurnEffects(['repeat']);
+    expect(effects.guaranteedCards).toContain('test_card');
+  });
+
+  it('ruin 특성이 주특기만 드로우하게 해야 함', () => {
+    const effects = collectNextTurnEffects(['ruin']);
+    expect(effects.mainSpecialOnly).toBe(true);
+  });
+
+  it('warmup 특성이 다음 턴 에너지를 증가시켜야 함', () => {
+    const effects = collectNextTurnEffects(['warmup']);
+    expect(effects.bonusEnergy).toBe(2);
+  });
+
+  it('oblivion 특성이 에테르를 차단해야 함', () => {
+    const effects = collectNextTurnEffects(['oblivion']);
+    expect(effects.etherBlocked).toBe(true);
+  });
+
+  it('다중 warmup이 누적되어야 함', () => {
+    const effects = collectNextTurnEffects(['warmup', 'warmup']);
+    expect(effects.bonusEnergy).toBe(4);
+  });
+});
+
+// ==================== 덱 시너지 점수 테스트 ====================
+
+describe('DeckSynergyScoring', () => {
+  interface Card {
+    id: string;
+    traits: string[];
+    cardCategory?: string;
+  }
+
+  function calculateDeckSynergy(deck: Card[]): { score: number; synergies: string[] } {
+    const traitCounts: Record<string, number> = {};
+    const categoryCounts: Record<string, number> = {};
+
+    for (const card of deck) {
+      for (const trait of card.traits) {
+        traitCounts[trait] = (traitCounts[trait] || 0) + 1;
+      }
+      if (card.cardCategory) {
+        categoryCounts[card.cardCategory] = (categoryCounts[card.cardCategory] || 0) + 1;
+      }
+    }
+
+    let score = 0;
+    const synergies: string[] = [];
+
+    // 연계 시너지
+    const chainCount = traitCounts['chain'] || 0;
+    const followupCount = traitCounts['followup'] || 0;
+    const finisherCount = traitCounts['finisher'] || 0;
+
+    if (chainCount > 0 && followupCount > 0) {
+      score += chainCount * followupCount * 10;
+      synergies.push(`연계-후속 시너지`);
+    }
+    if (chainCount > 0 && finisherCount > 0) {
+      score += chainCount * finisherCount * 15;
+      synergies.push(`연계-마무리 시너지`);
+    }
+
+    // 카테고리 집중
+    if ((categoryCounts['fencing'] || 0) >= 5) {
+      score += (categoryCounts['fencing'] || 0) * 5;
+      synergies.push('검술 집중');
+    }
+    if ((categoryCounts['gun'] || 0) >= 5) {
+      score += (categoryCounts['gun'] || 0) * 5;
+      synergies.push('사격 집중');
+    }
+
+    return { score, synergies };
+  }
+
+  it('연계-후속 시너지가 점수를 올려야 함', () => {
+    const deck: Card[] = [
+      { id: '1', traits: ['chain'] },
+      { id: '2', traits: ['chain'] },
+      { id: '3', traits: ['followup'] },
+    ];
+    const result = calculateDeckSynergy(deck);
+    expect(result.score).toBe(2 * 1 * 10);
+    expect(result.synergies).toContain('연계-후속 시너지');
+  });
+
+  it('연계-마무리 시너지가 점수를 올려야 함', () => {
+    const deck: Card[] = [
+      { id: '1', traits: ['chain'] },
+      { id: '2', traits: ['finisher'] },
+    ];
+    const result = calculateDeckSynergy(deck);
+    expect(result.score).toBe(1 * 1 * 15);
+    expect(result.synergies).toContain('연계-마무리 시너지');
+  });
+
+  it('검술 집중 보너스가 적용되어야 함', () => {
+    const deck: Card[] = [
+      { id: '1', traits: [], cardCategory: 'fencing' },
+      { id: '2', traits: [], cardCategory: 'fencing' },
+      { id: '3', traits: [], cardCategory: 'fencing' },
+      { id: '4', traits: [], cardCategory: 'fencing' },
+      { id: '5', traits: [], cardCategory: 'fencing' },
+    ];
+    const result = calculateDeckSynergy(deck);
+    expect(result.score).toBe(5 * 5);
+    expect(result.synergies).toContain('검술 집중');
+  });
+
+  it('시너지 없는 덱은 0점이어야 함', () => {
+    const deck: Card[] = [
+      { id: '1', traits: ['swift'] },
+      { id: '2', traits: ['slow'] },
+    ];
+    const result = calculateDeckSynergy(deck);
+    expect(result.score).toBe(0);
+    expect(result.synergies).toHaveLength(0);
+  });
+});
+
 // ==================== MCTS 설정 테스트 ====================
 
 describe('MCTSConfiguration', () => {

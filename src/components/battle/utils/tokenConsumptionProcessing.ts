@@ -5,12 +5,7 @@
 
 import { removeToken, getAllTokens, getTokenStacks, setTokenStacks } from '../../../lib/tokenUtils';
 import { getMinFinesse } from '../../../lib/logosEffects';
-import type { TokenEntity, TokenInstance } from '../../../types';
-
-interface TokenEffect {
-  type: string;
-  value?: number;
-}
+import type { TokenEntity } from '../../../types';
 
 interface RequiredToken {
   id: string;
@@ -43,12 +38,12 @@ export function processRequiredTokenConsumption(params: TokenConsumptionParams):
       // 로고스 효과: 배틀 왈츠 Lv1 - 최소 기교 보장
       if (req.id === 'finesse') {
         const minFinesse = getMinFinesse();
-        const currentStacks = getTokenStacks(P as TokenEntity, 'finesse');
+        const currentStacks = getTokenStacks(P, 'finesse');
         const targetStacks = Math.max(minFinesse, currentStacks - req.stacks);
         const actualConsume = currentStacks - targetStacks;
 
         if (actualConsume > 0) {
-          const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', actualConsume);
+          const tokenRemoveResult = removeToken(P, req.id, 'permanent', actualConsume);
           P = { ...P, tokens: tokenRemoveResult.tokens };
           addLog(`✨ 기교 -${actualConsume} 소모${minFinesse > 0 && actualConsume < req.stacks ? ` (최소 ${minFinesse} 유지)` : ''}`);
           updatedTokens = true;
@@ -56,7 +51,7 @@ export function processRequiredTokenConsumption(params: TokenConsumptionParams):
           addLog(`✨ 기교: 최소 ${minFinesse} 유지 (소모 없음)`);
         }
       } else {
-        const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
+        const tokenRemoveResult = removeToken(P, req.id, 'permanent', req.stacks);
         P = { ...P, tokens: tokenRemoveResult.tokens };
         addLog(`✨ ${req.id} -${req.stacks} 소모`);
         updatedTokens = true;
@@ -97,8 +92,7 @@ export function processBurnDamage(params: BurnDamageParams): BurnDamageResult {
   const burnEvents: BurnDamageResult['burnEvents'] = [];
 
   if (actor === 'player') {
-    const playerBurnTokens = (getAllTokens(P as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>)
-      .filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
+    const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
 
     if (playerBurnTokens.length > 0) {
       const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
@@ -113,8 +107,7 @@ export function processBurnDamage(params: BurnDamageParams): BurnDamageResult {
       });
     }
   } else if (actor === 'enemy') {
-    const enemyBurnTokens = (getAllTokens(E as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>)
-      .filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
+    const enemyBurnTokens = getAllTokens(E).filter(t => t.effect?.type === 'BURN');
 
     if (enemyBurnTokens.length > 0) {
       const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);

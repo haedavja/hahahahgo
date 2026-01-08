@@ -10,8 +10,14 @@
 
 import type {
   SimActionEvent as AnimActionEvent,
-  HandAction as AnimAction,
 } from '../../../types';
+
+// 이벤트 애니메이션에서 필요한 action 최소 속성
+interface AnimAction {
+  actor: 'player' | 'enemy';
+  card?: { type?: string } | null;
+  [key: string]: unknown;
+}
 
 interface EventAnimActions {
   setEnemyHit: (hit: boolean) => void;

@@ -12,7 +12,8 @@
 import { useCallback, useState, useRef } from 'react';
 import type { BreachSelection } from '../../../types';
 import type { Card, LogFunction } from '../../../types/core';
-import type { BattleRef, BattleAction } from '../../../types/combat';
+import type { BattleAction } from '../../../types/combat';
+import type { BattleRefValue } from '../../../types/hooks';
 import { generateUid } from '../../../lib/randomUtils';
 
 // 카드 창조 큐 아이템
@@ -28,12 +29,13 @@ export interface CreationQueueItem {
 // useBreachSelection 훅 파라미터 타입
 export interface UseBreachSelectionParams {
   CARDS: Card[];
-  battleRef: React.MutableRefObject<BattleRef>;
+  battleRef: React.MutableRefObject<BattleRefValue | null>;
   stepOnceRef: React.MutableRefObject<(() => void) | null>;
   addLog: LogFunction;
   actions: {
-    setQueue: (queue: BattleAction[]) => void;
+    setQueue: (queue: unknown[]) => void;
     setQIndex: (index: number) => void;
+    [key: string]: unknown;
   };
 }
 
@@ -57,7 +59,7 @@ export function useBreachSelection({
   const breachSelectionRef = useRef<BreachSelection | null>(null);
   const creationQueueRef = useRef<CreationQueueItem[]>([]);
 
-  const handleBreachSelect = useCallback((selectedCard: Card, idx?: number) => {
+  const handleBreachSelect = useCallback((selectedCard: Card, _idx: number) => {
     const breach = breachSelectionRef.current;
     if (!breach) return;
 

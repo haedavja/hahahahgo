@@ -12,7 +12,8 @@ import { useEffect, type MutableRefObject } from 'react';
 import { generateEnemyActions, assignSourceUnitToActions } from '../utils/enemyAI';
 import type { Card } from '../../../types/core';
 import type { BattlePhase } from '../reducer/battleReducerActions';
-import type { AICard, AIMode, AIEnemy } from '../../../types';
+import type { AIMode, AIEnemy } from '../../../types';
+import { aiCardsToCards } from '../../../types/systems';
 
 interface EnemyPlan {
   actions?: Card[];
@@ -42,7 +43,7 @@ interface UseEnemyPlanGenerationParams {
   enemy: EnemyState | null;
   enemyPlan: EnemyPlan;
   enemyCount: number;
-  battleRef: MutableRefObject<BattleRefValue>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   etherSlots: (pts: number) => number;
   actions: {
     setEnemyPlan: (plan: { mode: AIMode | null; actions: Card[] }) => void;
@@ -88,7 +89,7 @@ export function useEnemyPlanGeneration(params: UseEnemyPlanGenerationParams): vo
     const slots = etherSlots(Number(enemy?.etherPts ?? 0));
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
     const rawActions = generateEnemyActions(enemy as AIEnemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
-    const generatedActions = assignSourceUnitToActions(rawActions as AICard[], enemy?.units || []);
-    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions as unknown as Card[] });
+    const generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
+    actions.setEnemyPlan({ mode: latestMode, actions: aiCardsToCards(generatedActions) });
   }, [phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy, enemyCount, battleRef, etherSlots, actions]);
 }

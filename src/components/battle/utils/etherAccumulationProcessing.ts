@@ -13,7 +13,7 @@ import type {
   PassiveStats,
   RelicTriggeredRefs,
   RelicTrigger,
-  Relic
+  EtherCard
 } from '../../../types';
 
 /**
@@ -36,15 +36,15 @@ interface PlayerEtherAccumulationParams {
   orderedRelicList: string[];
   cardUpgrades: Record<string, unknown>;
   resolvedPlayerCards: number;
-  playerTimeline: Card[];
-  relics: Relic[];
+  playerTimeline: Array<{ [key: string]: unknown }>;
+  relics: string[];
   triggeredRefs: RelicTriggeredRefs;
   calculatePassiveEffects: (relicIds: string[]) => PassiveStats;
   getCardEtherGain: (card: Card | Partial<Card>) => number;
   collectTriggeredRelics: (params: {
     orderedRelicList: string[];
     resolvedPlayerCards: number;
-    playerTimeline: Card[];
+    playerTimeline: Array<{ [key: string]: unknown }> | null;
     triggeredRefs: RelicTriggeredRefs;
   }) => RelicTrigger[];
   playRelicActivationSequence: (
@@ -70,7 +70,7 @@ interface PlayerEtherAccumulationResult {
 interface EnemyEtherAccumulationParams {
   card: Card;
   enemyTurnEtherAccumulated: number;
-  getCardEtherGain: (card: Card | Partial<Card>) => number;
+  getCardEtherGain: (card: EtherCard) => number;
   actions: Pick<EtherAccumActions, 'setEnemyTurnEtherAccumulated'>;
 }
 

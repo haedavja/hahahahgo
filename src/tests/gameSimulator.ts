@@ -57,6 +57,10 @@ import { RELICS } from '../data/relics';
 import { ANOMALY_TYPES, Anomaly, AnomalyEffect, selectRandomAnomaly } from '../data/anomalies';
 import { detectPokerCombo } from '../components/battle/utils/comboDetection';
 import type { ComboCard } from '../types';
+import { getLogger } from '../simulator/core/logger';
+
+// 로거 인스턴스
+const logger = getLogger('gameSimulator');
 
 // 기절 범위 상수
 const STUN_RANGE = 5;
@@ -1774,39 +1778,39 @@ export function runSimulation(config: SimulationConfig): SimulationStats {
 // ==================== 출력 함수 ====================
 
 export function printStats(stats: SimulationStats): void {
-  console.log('\n========================================');
-  console.log('         게임 시뮬레이션 결과           ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         게임 시뮬레이션 결과           ');
+  logger.info('========================================\n');
 
-  console.log(`📊 총 전투 횟수: ${stats.totalBattles}`);
-  console.log(`🏆 플레이어 승리: ${stats.playerWins} (${(stats.winRate * 100).toFixed(1)}%)`);
-  console.log(`💀 플레이어 패배: ${stats.enemyWins} (${((stats.enemyWins / stats.totalBattles) * 100).toFixed(1)}%)`);
-  console.log(`⚖️  무승부: ${stats.draws}`);
+  logger.info(`📊 총 전투 횟수: ${stats.totalBattles}`);
+  logger.info(`🏆 플레이어 승리: ${stats.playerWins} (${(stats.winRate * 100).toFixed(1)}%)`);
+  logger.info(`💀 플레이어 패배: ${stats.enemyWins} (${((stats.enemyWins / stats.totalBattles) * 100).toFixed(1)}%)`);
+  logger.info(`⚖️  무승부: ${stats.draws}`);
 
-  console.log('\n📈 평균 통계:');
-  console.log(`   - 평균 턴 수: ${stats.avgTurns.toFixed(1)}`);
-  console.log(`   - 플레이어 평균 피해량: ${stats.avgPlayerDamageDealt.toFixed(1)}`);
-  console.log(`   - 적 평균 피해량: ${stats.avgEnemyDamageDealt.toFixed(1)}`);
-  console.log(`   - 승리 시 평균 잔여 HP: ${stats.avgPlayerFinalHp.toFixed(1)}`);
+  logger.info('\n📈 평균 통계:');
+  logger.info(`   - 평균 턴 수: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`   - 플레이어 평균 피해량: ${stats.avgPlayerDamageDealt.toFixed(1)}`);
+  logger.info(`   - 적 평균 피해량: ${stats.avgEnemyDamageDealt.toFixed(1)}`);
+  logger.info(`   - 승리 시 평균 잔여 HP: ${stats.avgPlayerFinalHp.toFixed(1)}`);
 
-  console.log('\n👾 적별 승률:');
+  logger.info('\n👾 적별 승률:');
   for (const [enemyId, enemyStat] of Object.entries(stats.enemyStats)) {
     const enemy = ENEMIES.find(e => e.id === enemyId);
     const name = enemy?.name || enemyId;
-    console.log(`   - ${name}: ${(enemyStat.winRate * 100).toFixed(1)}% (${enemyStat.battles}전)`);
+    logger.info(`   - ${name}: ${(enemyStat.winRate * 100).toFixed(1)}% (${enemyStat.battles}전)`);
   }
 
   // 콤보 통계 출력
   if (Object.keys(stats.comboStats).length > 0) {
-    console.log('\n🃏 콤보 통계:');
+    logger.info('\n🃏 콤보 통계:');
     const sortedCombos = Object.entries(stats.comboStats)
       .sort((a, b) => b[1].count - a[1].count);
     for (const [comboName, comboStat] of sortedCombos) {
-      console.log(`   - ${comboName}: ${comboStat.count}회 (전투당 평균 ${comboStat.avgPerBattle.toFixed(2)}회)`);
+      logger.info(`   - ${comboName}: ${comboStat.count}회 (전투당 평균 ${comboStat.avgPerBattle.toFixed(2)}회)`);
     }
   }
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 // ==================== 테스트용 함수 ====================
@@ -1846,7 +1850,7 @@ export function runTierSimulation(tier: 1 | 2 | 3, battles: number = 100): Simul
     verbose: false,
   };
 
-  console.log(`\n🎮 Tier ${tier} 적 시뮬레이션 (${battles}회)`);
+  logger.info(`\n🎮 Tier ${tier} 적 시뮬레이션 (${battles}회)`);
   const stats = runSimulation(config);
   printStats(stats);
 
@@ -1864,7 +1868,7 @@ export function runFullSimulation(battlesPerEnemy: number = 50): SimulationStats
     verbose: false,
   };
 
-  console.log(`\n🎮 전체 적 시뮬레이션 (${ALL_ENEMIES.length}종, 각 ${battlesPerEnemy}회)`);
+  logger.info(`\n🎮 전체 적 시뮬레이션 (${ALL_ENEMIES.length}종, 각 ${battlesPerEnemy}회)`);
   const stats = runSimulation(config);
   printStats(stats);
 
@@ -1875,9 +1879,9 @@ export function runFullSimulation(battlesPerEnemy: number = 50): SimulationStats
  * 밸런스 분석 - 티어별 승률 비교
  */
 export function runBalanceAnalysis(battles: number = 100): void {
-  console.log('\n========================================');
-  console.log('         밸런스 분석 리포트             ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         밸런스 분석 리포트             ');
+  logger.info('========================================\n');
 
   const tierStats: Record<number, SimulationStats> = {};
 
@@ -1896,19 +1900,19 @@ export function runBalanceAnalysis(battles: number = 100): void {
     tierStats[tier] = runSimulation(config);
   }
 
-  console.log('\n📊 티어별 승률 요약:');
-  console.log('─────────────────────────────────────────');
+  logger.info('\n📊 티어별 승률 요약:');
+  logger.info('─────────────────────────────────────────');
   for (const tier of [1, 2, 3]) {
     const stats = tierStats[tier];
     const rating = stats.winRate > 0.8 ? '✅ 쉬움' :
                    stats.winRate > 0.6 ? '⚖️ 적당' :
                    stats.winRate > 0.4 ? '⚠️ 어려움' :
                    '❌ 매우 어려움';
-    console.log(`  Tier ${tier}: ${(stats.winRate * 100).toFixed(1)}% 승률 | ${stats.avgTurns.toFixed(1)}턴 | ${rating}`);
+    logger.info(`  Tier ${tier}: ${(stats.winRate * 100).toFixed(1)}% 승률 | ${stats.avgTurns.toFixed(1)}턴 | ${rating}`);
   }
 
-  console.log('\n👾 적별 상세 승률:');
-  console.log('─────────────────────────────────────────');
+  logger.info('\n👾 적별 상세 승률:');
+  logger.info('─────────────────────────────────────────');
 
   const allEnemyStats: Array<{ id: string; tier: number; winRate: number }> = [];
   for (const tier of [1, 2, 3]) {
@@ -1927,11 +1931,11 @@ export function runBalanceAnalysis(battles: number = 100): void {
                        stat.winRate > 0.4 ? '⭐⭐⭐' :
                        stat.winRate > 0.2 ? '⭐⭐⭐⭐' :
                        '⭐⭐⭐⭐⭐';
-    console.log(`  ${name} (T${stat.tier}): ${(stat.winRate * 100).toFixed(1)}% | ${difficulty}`);
+    logger.info(`  ${name} (T${stat.tier}): ${(stat.winRate * 100).toFixed(1)}% | ${difficulty}`);
   }
 
-  console.log('\n🃏 전체 콤보 통계:');
-  console.log('─────────────────────────────────────────');
+  logger.info('\n🃏 전체 콤보 통계:');
+  logger.info('─────────────────────────────────────────');
   const totalCombos: Record<string, number> = {};
   let totalBattles = 0;
   for (const tier of [1, 2, 3]) {
@@ -1944,10 +1948,10 @@ export function runBalanceAnalysis(battles: number = 100): void {
 
   const sortedCombos = Object.entries(totalCombos).sort((a, b) => b[1] - a[1]);
   for (const [comboName, count] of sortedCombos) {
-    console.log(`  ${comboName}: ${count}회 (전투당 ${(count / totalBattles).toFixed(2)})`);
+    logger.info(`  ${comboName}: ${count}회 (전투당 ${(count / totalBattles).toFixed(2)})`);
   }
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 /**
@@ -1955,9 +1959,9 @@ export function runBalanceAnalysis(battles: number = 100): void {
  * 각 상징을 착용했을 때의 승률 비교
  */
 export function runRelicComparison(battles: number = 50): void {
-  console.log('\n========================================');
-  console.log('         상징 효과 비교 분석             ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         상징 효과 비교 분석             ');
+  logger.info('========================================\n');
 
   // 테스트할 상징 목록
   const relicsToTest = [
@@ -1981,7 +1985,7 @@ export function runRelicComparison(battles: number = 50): void {
     verbose: false,
   };
   const baseStats = runSimulation(baseConfig);
-  console.log(`📊 기준치 (상징 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
+  logger.info(`📊 기준치 (상징 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
 
   // 각 상징별 테스트
   const results: Array<{ id: string; name: string; winRate: number; diff: number }> = [];
@@ -2012,8 +2016,8 @@ export function runRelicComparison(battles: number = 50): void {
   // 효과가 큰 순서로 정렬
   results.sort((a, b) => b.diff - a.diff);
 
-  console.log('🏆 상징별 승률 변화 (효과 순):');
-  console.log('─────────────────────────────────────────');
+  logger.info('🏆 상징별 승률 변화 (효과 순):');
+  logger.info('─────────────────────────────────────────');
   for (const result of results) {
     const diffStr = result.diff >= 0 ? `+${(result.diff * 100).toFixed(1)}` : `${(result.diff * 100).toFixed(1)}`;
     const rating = result.diff > 0.1 ? '⭐⭐⭐ 강력' :
@@ -2021,10 +2025,10 @@ export function runRelicComparison(battles: number = 50): void {
                    result.diff > 0 ? '⭐ 약간' :
                    result.diff < -0.05 ? '❌ 부정적' :
                    '➖ 중립';
-    console.log(`  ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${rating}`);
+    logger.info(`  ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${rating}`);
   }
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 /**
@@ -2095,9 +2099,9 @@ export function simulateBattle(deckCards: string[], enemyId: string): BattleResu
  * 덱 전략 비교 시뮬레이션
  */
 export function runDeckComparison(battles: number = 50): void {
-  console.log('\n========================================');
-  console.log('         덱 전략 비교 분석               ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         덱 전략 비교 분석               ');
+  logger.info('========================================\n');
 
   const results: Array<{
     id: string;
@@ -2138,8 +2142,8 @@ export function runDeckComparison(battles: number = 50): void {
   // 승률 순으로 정렬
   results.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('🏆 덱별 성능 순위:');
-  console.log('─────────────────────────────────────────');
+  logger.info('🏆 덱별 성능 순위:');
+  logger.info('─────────────────────────────────────────');
 
   let rank = 1;
   for (const result of results) {
@@ -2148,36 +2152,36 @@ export function runDeckComparison(battles: number = 50): void {
                    result.winRate > 0.4 ? '⭐ B등급' :
                    '➖ C등급';
 
-    console.log(`\n${rank}. ${result.name} (${rating})`);
-    console.log(`   ${result.description}`);
-    console.log(`   승률: ${(result.winRate * 100).toFixed(1)}% | 평균 ${result.avgTurns.toFixed(1)}턴 | 피해량 ${result.avgDamage.toFixed(0)} | 콤보 ${result.comboRate.toFixed(2)}/전투`);
+    logger.info(`\n${rank}. ${result.name} (${rating})`);
+    logger.info(`   ${result.description}`);
+    logger.info(`   승률: ${(result.winRate * 100).toFixed(1)}% | 평균 ${result.avgTurns.toFixed(1)}턴 | 피해량 ${result.avgDamage.toFixed(0)} | 콤보 ${result.comboRate.toFixed(2)}/전투`);
     rank++;
   }
 
   // 각 항목별 최고 덱
-  console.log('\n📊 항목별 최고 덱:');
-  console.log('─────────────────────────────────────────');
+  logger.info('\n📊 항목별 최고 덱:');
+  logger.info('─────────────────────────────────────────');
 
   const bestWinRate = results.reduce((a, b) => a.winRate > b.winRate ? a : b);
   const fastestWins = results.reduce((a, b) => a.avgTurns < b.avgTurns ? a : b);
   const mostDamage = results.reduce((a, b) => a.avgDamage > b.avgDamage ? a : b);
   const mostCombos = results.reduce((a, b) => a.comboRate > b.comboRate ? a : b);
 
-  console.log(`  최고 승률: ${bestWinRate.name} (${(bestWinRate.winRate * 100).toFixed(1)}%)`);
-  console.log(`  가장 빠른 승리: ${fastestWins.name} (평균 ${fastestWins.avgTurns.toFixed(1)}턴)`);
-  console.log(`  최고 피해량: ${mostDamage.name} (${mostDamage.avgDamage.toFixed(0)})`);
-  console.log(`  최고 콤보율: ${mostCombos.name} (${mostCombos.comboRate.toFixed(2)}/전투)`);
+  logger.info(`  최고 승률: ${bestWinRate.name} (${(bestWinRate.winRate * 100).toFixed(1)}%)`);
+  logger.info(`  가장 빠른 승리: ${fastestWins.name} (평균 ${fastestWins.avgTurns.toFixed(1)}턴)`);
+  logger.info(`  최고 피해량: ${mostDamage.name} (${mostDamage.avgDamage.toFixed(0)})`);
+  logger.info(`  최고 콤보율: ${mostCombos.name} (${mostCombos.comboRate.toFixed(2)}/전투)`);
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 /**
  * 이변 효과 비교 시뮬레이션
  */
 export function runAnomalyComparison(battles: number = 50): void {
-  console.log('\n========================================');
-  console.log('         이변 효과 비교 분석             ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         이변 효과 비교 분석             ');
+  logger.info('========================================\n');
 
   // 이변 없이 기준치 측정
   const baseConfig: SimulationConfig = {
@@ -2188,7 +2192,7 @@ export function runAnomalyComparison(battles: number = 50): void {
     verbose: false,
   };
   const baseStats = runSimulation(baseConfig);
-  console.log(`📊 기준치 (이변 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
+  logger.info(`📊 기준치 (이변 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
 
   // 각 이변 개별 테스트
   const anomalyIds = Object.keys(ANOMALY_TYPES);
@@ -2222,8 +2226,8 @@ export function runAnomalyComparison(battles: number = 50): void {
   // 영향도(diff) 순으로 정렬 (가장 큰 패널티부터)
   results.sort((a, b) => a.diff - b.diff);
 
-  console.log('💀 이변별 영향도 (승률 변화):');
-  console.log('─────────────────────────────────────────');
+  logger.info('💀 이변별 영향도 (승률 변화):');
+  logger.info('─────────────────────────────────────────');
 
   for (const result of results) {
     const diffStr = result.diff >= 0 ? `+${(result.diff * 100).toFixed(1)}` : `${(result.diff * 100).toFixed(1)}`;
@@ -2233,7 +2237,7 @@ export function runAnomalyComparison(battles: number = 50): void {
                      result.diff < 0 ? '🟢 경미' :
                      '⚪ 무해';
 
-    console.log(`  ${result.emoji} ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${severity}`);
+    logger.info(`  ${result.emoji} ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${severity}`);
   }
 
   // 통계 요약
@@ -2241,13 +2245,13 @@ export function runAnomalyComparison(battles: number = 50): void {
   const worstAnomaly = results[0];
   const leastHarmful = results[results.length - 1];
 
-  console.log('\n📈 요약:');
-  console.log('─────────────────────────────────────────');
-  console.log(`  평균 승률 변화: ${(avgImpact * 100).toFixed(1)}%`);
-  console.log(`  가장 해로운 이변: ${worstAnomaly.emoji} ${worstAnomaly.name} (${(worstAnomaly.diff * 100).toFixed(1)}%)`);
-  console.log(`  가장 덜 해로운 이변: ${leastHarmful.emoji} ${leastHarmful.name} (${(leastHarmful.diff * 100).toFixed(1)}%)`);
+  logger.info('\n📈 요약:');
+  logger.info('─────────────────────────────────────────');
+  logger.info(`  평균 승률 변화: ${(avgImpact * 100).toFixed(1)}%`);
+  logger.info(`  가장 해로운 이변: ${worstAnomaly.emoji} ${worstAnomaly.name} (${(worstAnomaly.diff * 100).toFixed(1)}%)`);
+  logger.info(`  가장 덜 해로운 이변: ${leastHarmful.emoji} ${leastHarmful.name} (${(leastHarmful.diff * 100).toFixed(1)}%)`);
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 /**
@@ -2255,9 +2259,9 @@ export function runAnomalyComparison(battles: number = 50): void {
  * 각 카드를 덱에 추가했을 때의 승률 변화를 측정
  */
 export function runCardEfficiencyAnalysis(battles: number = 30): void {
-  console.log('\n========================================');
-  console.log('         카드 효율 분석                  ');
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info('         카드 효율 분석                  ');
+  logger.info('========================================\n');
 
   // 테스트할 카드 목록 (공격/방어 카드 위주)
   const cardsToTest = [
@@ -2280,8 +2284,8 @@ export function runCardEfficiencyAnalysis(battles: number = 30): void {
     verbose: false,
   };
   const baseStats = runSimulation(baseConfig);
-  console.log(`📊 기준 덱: ${baseDeck.join(', ')}`);
-  console.log(`   승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
+  logger.info(`📊 기준 덱: ${baseDeck.join(', ')}`);
+  logger.info(`   승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
 
   const results: Array<{
     cardId: string;
@@ -2325,31 +2329,31 @@ export function runCardEfficiencyAnalysis(battles: number = 30): void {
   // 효과 순으로 정렬
   results.sort((a, b) => b.diff - a.diff);
 
-  console.log('🃏 카드별 승률 기여도:');
-  console.log('─────────────────────────────────────────');
+  logger.info('🃏 카드별 승률 기여도:');
+  logger.info('─────────────────────────────────────────');
 
   // 상위 10개
-  console.log('\n⬆️ 상위 10개 (가장 효과적인 카드):');
+  logger.info('\n⬆️ 상위 10개 (가장 효과적인 카드):');
   for (let i = 0; i < Math.min(10, results.length); i++) {
     const r = results[i];
     const diffStr = r.diff >= 0 ? `+${(r.diff * 100).toFixed(1)}` : `${(r.diff * 100).toFixed(1)}`;
     const typeEmoji = r.type === 'attack' ? '⚔️' : r.type === 'defense' ? '🛡️' : '✨';
-    console.log(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
+    logger.info(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
   }
 
   // 하위 5개
-  console.log('\n⬇️ 하위 5개 (효과가 낮은 카드):');
+  logger.info('\n⬇️ 하위 5개 (효과가 낮은 카드):');
   const bottom = results.slice(-5).reverse();
   for (let i = 0; i < bottom.length; i++) {
     const r = bottom[i];
     const diffStr = r.diff >= 0 ? `+${(r.diff * 100).toFixed(1)}` : `${(r.diff * 100).toFixed(1)}`;
     const typeEmoji = r.type === 'attack' ? '⚔️' : r.type === 'defense' ? '🛡️' : '✨';
-    console.log(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
+    logger.info(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
   }
 
   // 타입별 평균
-  console.log('\n📈 카드 타입별 평균 효과:');
-  console.log('─────────────────────────────────────────');
+  logger.info('\n📈 카드 타입별 평균 효과:');
+  logger.info('─────────────────────────────────────────');
 
   const byType: Record<string, { count: number; totalDiff: number }> = {};
   for (const r of results) {
@@ -2362,10 +2366,10 @@ export function runCardEfficiencyAnalysis(battles: number = 30): void {
     const avgDiff = data.totalDiff / data.count;
     const typeEmoji = type === 'attack' ? '⚔️' : type === 'defense' ? '🛡️' : '✨';
     const diffStr = avgDiff >= 0 ? `+${(avgDiff * 100).toFixed(1)}` : `${(avgDiff * 100).toFixed(1)}`;
-    console.log(`  ${typeEmoji} ${type}: 평균 ${diffStr}% (${data.count}개 카드)`);
+    logger.info(`  ${typeEmoji} ${type}: 평균 ${diffStr}% (${data.count}개 카드)`);
   }
 
-  console.log('\n========================================\n');
+  logger.info('\n========================================\n');
 }
 
 /**
@@ -2373,41 +2377,41 @@ export function runCardEfficiencyAnalysis(battles: number = 30): void {
  * 모든 분석을 한 번에 실행하고 결과를 종합
  */
 export function runFullReport(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║        게임 시뮬레이터 종합 리포트        ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║        게임 시뮬레이터 종합 리포트        ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const startTime = Date.now();
 
   // 1. 기본 밸런스 분석
-  console.log('📊 1. 기본 밸런스 분석');
-  console.log('═'.repeat(45));
+  logger.info('📊 1. 기본 밸런스 분석');
+  logger.info('═'.repeat(45));
   runBalanceAnalysis(battles);
 
   // 2. 덱 비교
-  console.log('\n🃏 2. 덱 전략 비교');
-  console.log('═'.repeat(45));
+  logger.info('\n🃏 2. 덱 전략 비교');
+  logger.info('═'.repeat(45));
   runDeckComparison(battles);
 
   // 3. 상징 효과
-  console.log('\n🏆 3. 상징 효과 분석');
-  console.log('═'.repeat(45));
+  logger.info('\n🏆 3. 상징 효과 분석');
+  logger.info('═'.repeat(45));
   runRelicComparison(battles);
 
   // 4. 이변 효과
-  console.log('\n💀 4. 이변 효과 분석');
-  console.log('═'.repeat(45));
+  logger.info('\n💀 4. 이변 효과 분석');
+  logger.info('═'.repeat(45));
   runAnomalyComparison(battles);
 
   // 5. 카드 효율
-  console.log('\n⚔️ 5. 카드 효율 분석');
-  console.log('═'.repeat(45));
+  logger.info('\n⚔️ 5. 카드 효율 분석');
+  logger.info('═'.repeat(45));
   runCardEfficiencyAnalysis(battles);
 
   const elapsed = Date.now() - startTime;
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log(`║  총 소요 시간: ${(elapsed / 1000).toFixed(1)}초                     ║`);
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info(`║  총 소요 시간: ${(elapsed / 1000).toFixed(1)}초                     ║`);
+  logger.info('╚════════════════════════════════════════╝\n');
 }
 
 /**
@@ -2415,20 +2419,20 @@ export function runFullReport(battles: number = 30): void {
  * 턴별 행동과 결과를 시각적으로 보여줌
  */
 export function runBattleReplay(enemyId: string = 'ghoul', deckOverride?: string[]): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           전투 리플레이                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           전투 리플레이                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const enemy = ENEMIES.find(e => e.id === enemyId);
   if (!enemy) {
-    console.log(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
-    console.log(`사용 가능한 적: ${ALL_ENEMIES.join(', ')}`);
+    logger.info(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
+    logger.info(`사용 가능한 적: ${ALL_ENEMIES.join(', ')}`);
     return;
   }
 
-  console.log(`🎯 대상 적: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})`);
-  console.log(`📦 덱: ${deckOverride ? deckOverride.join(', ') : '기본 덱'}`);
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info(`🎯 대상 적: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})`);
+  logger.info(`📦 덱: ${deckOverride ? deckOverride.join(', ') : '기본 덱'}`);
+  logger.info('\n' + '═'.repeat(50) + '\n');
 
   const config: SimulationConfig = {
     battles: 1,
@@ -2441,36 +2445,36 @@ export function runBattleReplay(enemyId: string = 'ghoul', deckOverride?: string
   const result = runBattle(enemyId, config);
 
   // 전투 로그 출력
-  console.log('📜 전투 로그:');
-  console.log('─'.repeat(50));
+  logger.info('📜 전투 로그:');
+  logger.info('─'.repeat(50));
   for (const line of result.log) {
-    console.log(`  ${line}`);
+    logger.info(`  ${line}`);
   }
 
-  console.log('\n' + '═'.repeat(50));
-  console.log('\n📊 전투 결과:');
-  console.log('─'.repeat(50));
+  logger.info('\n' + '═'.repeat(50));
+  logger.info('\n📊 전투 결과:');
+  logger.info('─'.repeat(50));
 
   const winnerEmoji = result.winner === 'player' ? '🏆' : result.winner === 'enemy' ? '💀' : '🤝';
   const winnerText = result.winner === 'player' ? '플레이어 승리!' :
                      result.winner === 'enemy' ? '플레이어 패배...' : '무승부';
 
-  console.log(`  ${winnerEmoji} 결과: ${winnerText}`);
-  console.log(`  ⏱️  턴 수: ${result.turns}`);
-  console.log(`  ⚔️  총 피해량: ${result.playerDamageDealt}`);
-  console.log(`  💔 받은 피해: ${result.enemyDamageDealt}`);
-  console.log(`  ❤️  남은 체력: ${result.playerFinalHp}`);
-  console.log(`  👾 적 남은 체력: ${result.enemyFinalHp}`);
+  logger.info(`  ${winnerEmoji} 결과: ${winnerText}`);
+  logger.info(`  ⏱️  턴 수: ${result.turns}`);
+  logger.info(`  ⚔️  총 피해량: ${result.playerDamageDealt}`);
+  logger.info(`  💔 받은 피해: ${result.enemyDamageDealt}`);
+  logger.info(`  ❤️  남은 체력: ${result.playerFinalHp}`);
+  logger.info(`  👾 적 남은 체력: ${result.enemyFinalHp}`);
 
   // 콤보 정보
   if (Object.keys(result.combosFormed).length > 0) {
-    console.log('\n🃏 발동된 콤보:');
+    logger.info('\n🃏 발동된 콤보:');
     for (const [combo, count] of Object.entries(result.combosFormed)) {
-      console.log(`    - ${combo}: ${count}회`);
+      logger.info(`    - ${combo}: ${count}회`);
     }
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -2478,19 +2482,19 @@ export function runBattleReplay(enemyId: string = 'ghoul', deckOverride?: string
  * 여러 번 전투하고 각 전투의 결과를 요약
  */
 export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           적 분석 리포트                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           적 분석 리포트                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const enemy = ENEMIES.find(e => e.id === enemyId);
   if (!enemy) {
-    console.log(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
+    logger.info(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
     return;
   }
 
-  console.log(`🎯 분석 대상: ${enemy.name}`);
-  console.log(`📊 전투 횟수: ${battles}회`);
-  console.log('─'.repeat(50));
+  logger.info(`🎯 분석 대상: ${enemy.name}`);
+  logger.info(`📊 전투 횟수: ${battles}회`);
+  logger.info('─'.repeat(50));
 
   const config: SimulationConfig = {
     battles,
@@ -2518,23 +2522,23 @@ export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
   }
 
   // 기본 통계
-  console.log('\n📈 전투 통계:');
-  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
-  console.log(`  평균 피해량: ${stats.avgPlayerDamageDealt.toFixed(0)}`);
+  logger.info('\n📈 전투 통계:');
+  logger.info(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`  평균 피해량: ${stats.avgPlayerDamageDealt.toFixed(0)}`);
 
   // 턴 분포
-  console.log('\n⏱️  턴 수 분포:');
+  logger.info('\n⏱️  턴 수 분포:');
   const sortedTurns = Object.entries(turnDistribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
   for (const [turn, count] of sortedTurns) {
     const bar = '█'.repeat(Math.ceil(count / battles * 20));
-    console.log(`  ${turn}턴: ${bar} (${count}회)`);
+    logger.info(`  ${turn}턴: ${bar} (${count}회)`);
   }
 
   // 승리 패턴
-  console.log('\n🏆 승리 패턴:');
-  console.log(`  빠른 승리 (≤3턴): ${quickWins}회 (${(quickWins / battles * 100).toFixed(1)}%)`);
-  console.log(`  긴 전투 (≥10턴): ${longBattles}회 (${(longBattles / battles * 100).toFixed(1)}%)`);
+  logger.info('\n🏆 승리 패턴:');
+  logger.info(`  빠른 승리 (≤3턴): ${quickWins}회 (${(quickWins / battles * 100).toFixed(1)}%)`);
+  logger.info(`  긴 전투 (≥10턴): ${longBattles}회 (${(longBattles / battles * 100).toFixed(1)}%)`);
 
   // 난이도 평가
   const difficultyRating = stats.winRate > 0.9 ? '⭐ 매우 쉬움' :
@@ -2543,8 +2547,8 @@ export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
                            stats.winRate > 0.3 ? '⭐⭐⭐⭐ 어려움' :
                            '⭐⭐⭐⭐⭐ 매우 어려움';
 
-  console.log(`\n🎮 난이도 평가: ${difficultyRating}`);
-  console.log('─'.repeat(50) + '\n');
+  logger.info(`\n🎮 난이도 평가: ${difficultyRating}`);
+  logger.info('─'.repeat(50) + '\n');
 }
 
 /**
@@ -2552,9 +2556,9 @@ export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
  * 두 카드 조합의 시너지 효과를 측정
  */
 export function runSynergyAnalysis(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           카드 시너지 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           카드 시너지 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 테스트할 카드 조합 (공격+공격, 공격+방어, 방어+방어)
   const cardPairs: Array<{ cards: [string, string]; description: string }> = [
@@ -2586,7 +2590,7 @@ export function runSynergyAnalysis(battles: number = 20): void {
     verbose: false,
   };
   const baseStats = runSimulation(baseConfig);
-  console.log(`📊 기준 덱 승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
+  logger.info(`📊 기준 덱 승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
 
   const results: Array<{
     pair: [string, string];
@@ -2645,8 +2649,8 @@ export function runSynergyAnalysis(battles: number = 20): void {
   // 시너지 순으로 정렬
   results.sort((a, b) => b.synergy - a.synergy);
 
-  console.log('🔗 카드 조합별 시너지:');
-  console.log('─'.repeat(50));
+  logger.info('🔗 카드 조합별 시너지:');
+  logger.info('─'.repeat(50));
 
   for (const result of results) {
     const card1 = CARDS.find(c => c.id === result.pair[0])?.name || result.pair[0];
@@ -2659,20 +2663,20 @@ export function runSynergyAnalysis(battles: number = 20): void {
                    result.synergy > -0.05 ? '➖ 중립' :
                    '⚠️ 역시너지';
 
-    console.log(`\n  ${result.description}: ${card1} + ${card2}`);
-    console.log(`    승률: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | 시너지: ${synergyStr}% | ${rating}`);
+    logger.info(`\n  ${result.description}: ${card1} + ${card2}`);
+    logger.info(`    승률: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | 시너지: ${synergyStr}% | ${rating}`);
   }
 
   // 최고/최저 시너지
   const bestSynergy = results[0];
   const worstSynergy = results[results.length - 1];
 
-  console.log('\n📈 요약:');
-  console.log('─'.repeat(50));
-  console.log(`  최고 시너지: ${bestSynergy.description} (+${(bestSynergy.synergy * 100).toFixed(1)}%)`);
-  console.log(`  최저 시너지: ${worstSynergy.description} (${(worstSynergy.synergy * 100).toFixed(1)}%)`);
+  logger.info('\n📈 요약:');
+  logger.info('─'.repeat(50));
+  logger.info(`  최고 시너지: ${bestSynergy.description} (+${(bestSynergy.synergy * 100).toFixed(1)}%)`);
+  logger.info(`  최저 시너지: ${worstSynergy.description} (${(worstSynergy.synergy * 100).toFixed(1)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -2680,14 +2684,14 @@ export function runSynergyAnalysis(battles: number = 20): void {
  * 플레이어 HP에 따른 승률 변화 측정
  */
 export function runDifficultyScalingAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║         난이도 스케일링 분석             ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║         난이도 스케일링 분석             ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const hpLevels = [50, 75, 100, 125, 150, 200];
 
-  console.log('📊 HP별 승률 분석:\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 HP별 승률 분석:\n');
+  logger.info('─'.repeat(50));
 
   const results: Array<{ hp: number; winRate: number; avgTurns: number }> = [];
 
@@ -2705,26 +2709,26 @@ export function runDifficultyScalingAnalysis(battles: number = 30): void {
 
     // 그래프 형태로 출력
     const bar = '█'.repeat(Math.ceil(stats.winRate * 30));
-    console.log(`  HP ${hp.toString().padStart(3)}: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+    logger.info(`  HP ${hp.toString().padStart(3)}: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
   }
 
-  console.log('\n📈 분석:');
-  console.log('─'.repeat(50));
+  logger.info('\n📈 분석:');
+  logger.info('─'.repeat(50));
 
   // HP 증가당 승률 변화
   for (let i = 1; i < results.length; i++) {
     const hpDiff = results[i].hp - results[i - 1].hp;
     const winRateDiff = results[i].winRate - results[i - 1].winRate;
     const efficiency = (winRateDiff * 100 / hpDiff).toFixed(2);
-    console.log(`  HP ${results[i - 1].hp} → ${results[i].hp}: 승률 ${(winRateDiff * 100).toFixed(1)}% 변화 (HP당 ${efficiency}%)`);
+    logger.info(`  HP ${results[i - 1].hp} → ${results[i].hp}: 승률 ${(winRateDiff * 100).toFixed(1)}% 변화 (HP당 ${efficiency}%)`);
   }
 
   // 권장 HP 찾기
   const optimalIdx = results.findIndex(r => r.winRate >= 0.7);
   const optimalHp = optimalIdx >= 0 ? results[optimalIdx].hp : results[results.length - 1].hp;
-  console.log(`\n💡 권장 HP: ${optimalHp} (70% 이상 승률 확보)`);
+  logger.info(`\n💡 권장 HP: ${optimalHp} (70% 이상 승률 확보)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -2732,9 +2736,9 @@ export function runDifficultyScalingAnalysis(battles: number = 30): void {
  * 승리/패배 전투의 특성을 비교 분석
  */
 export function runWinConditionAnalysis(battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           승리 요인 분석                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           승리 요인 분석                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const config: SimulationConfig = {
     battles,
@@ -2759,22 +2763,22 @@ export function runWinConditionAnalysis(battles: number = 50): void {
   }
 
   // 분석
-  console.log(`📊 전투 데이터: 승리 ${winBattles.length}회, 패배 ${lossBattles.length}회\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 전투 데이터: 승리 ${winBattles.length}회, 패배 ${lossBattles.length}회\n`);
+  logger.info('─'.repeat(50));
 
   // 평균 턴 수 비교
   const avgWinTurns = winBattles.reduce((s, b) => s + b.turns, 0) / winBattles.length || 0;
   const avgLossTurns = lossBattles.reduce((s, b) => s + b.turns, 0) / lossBattles.length || 0;
-  console.log(`\n⏱️ 평균 전투 시간:`);
-  console.log(`  승리 시: ${avgWinTurns.toFixed(1)}턴`);
-  console.log(`  패배 시: ${avgLossTurns.toFixed(1)}턴`);
+  logger.info(`\n⏱️ 평균 전투 시간:`);
+  logger.info(`  승리 시: ${avgWinTurns.toFixed(1)}턴`);
+  logger.info(`  패배 시: ${avgLossTurns.toFixed(1)}턴`);
 
   // 평균 피해량 비교
   const avgWinDamage = winBattles.reduce((s, b) => s + b.playerDamageDealt, 0) / winBattles.length || 0;
   const avgLossDamage = lossBattles.reduce((s, b) => s + b.playerDamageDealt, 0) / lossBattles.length || 0;
-  console.log(`\n⚔️ 평균 피해량:`);
-  console.log(`  승리 시: ${avgWinDamage.toFixed(1)}`);
-  console.log(`  패배 시: ${avgLossDamage.toFixed(1)}`);
+  logger.info(`\n⚔️ 평균 피해량:`);
+  logger.info(`  승리 시: ${avgWinDamage.toFixed(1)}`);
+  logger.info(`  패배 시: ${avgLossDamage.toFixed(1)}`);
 
   // 콤보 빈도 비교
   const countCombos = (battles: BattleResult[]) => {
@@ -2789,30 +2793,30 @@ export function runWinConditionAnalysis(battles: number = 50): void {
 
   const avgWinCombos = countCombos(winBattles);
   const avgLossCombos = countCombos(lossBattles);
-  console.log(`\n🃏 평균 콤보 횟수:`);
-  console.log(`  승리 시: ${avgWinCombos.toFixed(2)}회`);
-  console.log(`  패배 시: ${avgLossCombos.toFixed(2)}회`);
+  logger.info(`\n🃏 평균 콤보 횟수:`);
+  logger.info(`  승리 시: ${avgWinCombos.toFixed(2)}회`);
+  logger.info(`  패배 시: ${avgLossCombos.toFixed(2)}회`);
 
   // 최종 HP 비교
   const avgWinFinalHp = winBattles.reduce((s, b) => s + b.playerFinalHp, 0) / winBattles.length || 0;
-  console.log(`\n❤️ 승리 시 평균 잔여 HP: ${avgWinFinalHp.toFixed(1)}`);
+  logger.info(`\n❤️ 승리 시 평균 잔여 HP: ${avgWinFinalHp.toFixed(1)}`);
 
   // 결론
-  console.log('\n💡 인사이트:');
-  console.log('─'.repeat(50));
+  logger.info('\n💡 인사이트:');
+  logger.info('─'.repeat(50));
   if (avgWinTurns < avgLossTurns) {
-    console.log('  • 빠른 전투가 승리 확률을 높입니다.');
+    logger.info('  • 빠른 전투가 승리 확률을 높입니다.');
   } else {
-    console.log('  • 장기전도 승리 가능성이 있습니다.');
+    logger.info('  • 장기전도 승리 가능성이 있습니다.');
   }
   if (avgWinCombos > avgLossCombos * 1.2) {
-    console.log('  • 콤보 활용이 승리에 큰 영향을 줍니다.');
+    logger.info('  • 콤보 활용이 승리에 큰 영향을 줍니다.');
   }
   if (avgWinDamage > avgLossDamage * 1.3) {
-    console.log('  • 공격적인 플레이가 유리합니다.');
+    logger.info('  • 공격적인 플레이가 유리합니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -2822,9 +2826,9 @@ export function exportSimulationResults(
   battles: number = 30,
   filename?: string
 ): { summary: Record<string, unknown>; enemies: Record<string, unknown>[] } {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║        시뮬레이션 결과 내보내기          ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║        시뮬레이션 결과 내보내기          ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const config: SimulationConfig = {
     battles,
@@ -2864,11 +2868,11 @@ export function exportSimulationResults(
     })),
   };
 
-  console.log('📊 요약:');
-  console.log(`  총 전투: ${result.summary.totalBattles}`);
-  console.log(`  승률: ${(result.summary.winRate * 100).toFixed(1)}%`);
-  console.log(`  평균 턴: ${result.summary.avgTurns.toFixed(1)}`);
-  console.log(`\n📁 결과 데이터 생성 완료`);
+  logger.info('📊 요약:');
+  logger.info(`  총 전투: ${result.summary.totalBattles}`);
+  logger.info(`  승률: ${(result.summary.winRate * 100).toFixed(1)}%`);
+  logger.info(`  평균 턴: ${result.summary.avgTurns.toFixed(1)}`);
+  logger.info(`\n📁 결과 데이터 생성 완료`);
 
   // 파일 저장 (Node.js 환경에서만)
   if (typeof process !== 'undefined' && filename) {
@@ -2877,13 +2881,13 @@ export function exportSimulationResults(
       const path = require('path');
       const outputPath = path.join(process.cwd(), filename);
       fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
-      console.log(`  저장 위치: ${outputPath}`);
+      logger.info(`  저장 위치: ${outputPath}`);
     } catch {
-      console.log('  (파일 저장 실패 - 브라우저 환경)');
+      logger.info('  (파일 저장 실패 - 브라우저 환경)');
     }
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
   return result;
 }
 
@@ -2892,9 +2896,9 @@ export function exportSimulationResults(
  * 각 토큰이 승률에 미치는 영향 분석
  */
 export function runTokenEfficiencyAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           토큰 효율 분석                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           토큰 효율 분석                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 토큰 부여 상징으로 테스트
   const relicTokenPairs: Array<{ relic: string; token: string; description: string }> = [
@@ -2915,8 +2919,8 @@ export function runTokenEfficiencyAnalysis(battles: number = 30): void {
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ description: string; winRate: number; diff: number }> = [];
 
@@ -2937,26 +2941,26 @@ export function runTokenEfficiencyAnalysis(battles: number = 30): void {
   // 효과순 정렬
   results.sort((a, b) => b.diff - a.diff);
 
-  console.log('\n🏅 토큰 효율 순위:\n');
+  logger.info('\n🏅 토큰 효율 순위:\n');
   results.forEach((r, idx) => {
     const sign = r.diff >= 0 ? '+' : '';
     const bar = r.diff >= 0
       ? '▲'.repeat(Math.min(10, Math.ceil(r.diff * 50)))
       : '▼'.repeat(Math.min(10, Math.ceil(Math.abs(r.diff) * 50)));
-    console.log(`  ${idx + 1}. ${r.description}`);
-    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${bar}`);
+    logger.info(`  ${idx + 1}. ${r.description}`);
+    logger.info(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${bar}`);
   });
 
-  console.log('\n💡 분석:');
-  console.log('─'.repeat(50));
+  logger.info('\n💡 분석:');
+  logger.info('─'.repeat(50));
   const best = results[0];
   const worst = results[results.length - 1];
-  console.log(`  가장 효과적: ${best.description} (+${(best.diff * 100).toFixed(1)}%)`);
+  logger.info(`  가장 효과적: ${best.description} (+${(best.diff * 100).toFixed(1)}%)`);
   if (worst.diff < 0) {
-    console.log(`  가장 비효과적: ${worst.description} (${(worst.diff * 100).toFixed(1)}%)`);
+    logger.info(`  가장 비효과적: ${worst.description} (${(worst.diff * 100).toFixed(1)}%)`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -2968,27 +2972,27 @@ export function runMatchupAnalysis(
   enemyId: string = 'ghoul',
   battles: number = 50
 ): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            매치업 분석                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            매치업 분석                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const deck = DECK_PRESETS[deckName];
   if (!deck) {
-    console.log(`❌ 덱 "${deckName}" 을(를) 찾을 수 없습니다.`);
-    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    logger.info(`❌ 덱 "${deckName}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
     return;
   }
 
   const enemy = ENEMIES.find(e => e.id === enemyId);
   if (!enemy) {
-    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
     return;
   }
 
-  console.log(`📊 ${deck.name} vs ${enemy.name}`);
-  console.log(`   ${deck.description}`);
-  console.log(`   적 HP: ${enemy.hp}, 티어: ${enemy.tier}`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${deck.name} vs ${enemy.name}`);
+  logger.info(`   ${deck.description}`);
+  logger.info(`   적 HP: ${enemy.hp}, 티어: ${enemy.tier}`);
+  logger.info('─'.repeat(50));
 
   const config: SimulationConfig = {
     battles,
@@ -3011,20 +3015,20 @@ export function runMatchupAnalysis(
   const avgDamage = results.reduce((s, r) => s + r.playerDamageDealt, 0) / battles;
   const avgPlayerHp = results.reduce((s, r) => s + r.playerFinalHp, 0) / battles;
 
-  console.log(`\n📈 결과:`);
-  console.log(`  승률: ${(winRate * 100).toFixed(1)}% (${wins}/${battles})`);
-  console.log(`  평균 턴: ${avgTurns.toFixed(1)}`);
-  console.log(`  평균 피해량: ${avgDamage.toFixed(1)}`);
-  console.log(`  평균 잔여 HP: ${avgPlayerHp.toFixed(1)}`);
+  logger.info(`\n📈 결과:`);
+  logger.info(`  승률: ${(winRate * 100).toFixed(1)}% (${wins}/${battles})`);
+  logger.info(`  평균 턴: ${avgTurns.toFixed(1)}`);
+  logger.info(`  평균 피해량: ${avgDamage.toFixed(1)}`);
+  logger.info(`  평균 잔여 HP: ${avgPlayerHp.toFixed(1)}`);
 
   // 매치업 평가
   const rating = winRate > 0.8 ? '매우 유리' :
     winRate > 0.6 ? '유리' :
     winRate > 0.4 ? '균형' :
     winRate > 0.2 ? '불리' : '매우 불리';
-  console.log(`\n🎯 매치업 평가: ${rating}`);
+  logger.info(`\n🎯 매치업 평가: ${rating}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3032,9 +3036,9 @@ export function runMatchupAnalysis(
  * 카드 속도가 승률에 미치는 영향 분석
  */
 export function runSpeedAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            속도 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            속도 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 속도별 덱 구성
   const speedDecks: Array<{ name: string; cards: string[] }> = [
@@ -3043,8 +3047,8 @@ export function runSpeedAnalysis(battles: number = 30): void {
     { name: '빠른 덱 (속도 1-3)', cards: ['marche', 'fleche', 'flank', 'thrust', 'el_rapide', 'sabre_eclair', 'shoot', 'shoot'] },
   ];
 
-  console.log('📊 속도별 승률 비교:\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 속도별 승률 비교:\n');
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; winRate: number; avgTurns: number }> = [];
 
@@ -3061,30 +3065,30 @@ export function runSpeedAnalysis(battles: number = 30): void {
     results.push({ name: speedDeck.name, winRate: stats.winRate, avgTurns: stats.avgTurns });
 
     const bar = '█'.repeat(Math.ceil(stats.winRate * 30));
-    console.log(`  ${speedDeck.name}:`);
-    console.log(`    ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
-    console.log(`    평균 턴: ${stats.avgTurns.toFixed(1)}`);
+    logger.info(`  ${speedDeck.name}:`);
+    logger.info(`    ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+    logger.info(`    평균 턴: ${stats.avgTurns.toFixed(1)}`);
   }
 
   // 분석
-  console.log('\n💡 분석:');
-  console.log('─'.repeat(50));
+  logger.info('\n💡 분석:');
+  logger.info('─'.repeat(50));
 
   const best = results.reduce((a, b) => a.winRate > b.winRate ? a : b);
   const fastest = results.reduce((a, b) => a.avgTurns < b.avgTurns ? a : b);
 
-  console.log(`  최고 승률: ${best.name} (${(best.winRate * 100).toFixed(1)}%)`);
-  console.log(`  최단 전투: ${fastest.name} (${fastest.avgTurns.toFixed(1)}턴)`);
+  logger.info(`  최고 승률: ${best.name} (${(best.winRate * 100).toFixed(1)}%)`);
+  logger.info(`  최단 전투: ${fastest.name} (${fastest.avgTurns.toFixed(1)}턴)`);
 
   if (best.name.includes('빠른')) {
-    console.log('\n  → 빠른 공격이 효과적입니다. 선제공격 전략을 추천합니다.');
+    logger.info('\n  → 빠른 공격이 효과적입니다. 선제공격 전략을 추천합니다.');
   } else if (best.name.includes('느린')) {
-    console.log('\n  → 고위력 카드가 효과적입니다. 한방 전략을 추천합니다.');
+    logger.info('\n  → 고위력 카드가 효과적입니다. 한방 전략을 추천합니다.');
   } else {
-    console.log('\n  → 균형 잡힌 속도가 효과적입니다.');
+    logger.info('\n  → 균형 잡힌 속도가 효과적입니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3092,9 +3096,9 @@ export function runSpeedAnalysis(battles: number = 30): void {
  * 카드 특성 조합의 효과 분석
  */
 export function runTraitSynergyAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          특성 시너지 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          특성 시너지 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 특성별 덱 구성
   const traitDecks: Array<{ name: string; description: string; cards: string[] }> = [
@@ -3120,8 +3124,8 @@ export function runTraitSynergyAnalysis(battles: number = 30): void {
     },
   ];
 
-  console.log('📊 특성별 덱 승률 비교:\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 특성별 덱 승률 비교:\n');
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; winRate: number; avgTurns: number; avgDamage: number }> = [];
 
@@ -3142,25 +3146,25 @@ export function runTraitSynergyAnalysis(battles: number = 30): void {
       avgDamage: stats.avgPlayerDamageDealt,
     });
 
-    console.log(`  ${traitDeck.name} (${traitDeck.description}):`);
+    logger.info(`  ${traitDeck.name} (${traitDeck.description}):`);
     const bar = '█'.repeat(Math.ceil(stats.winRate * 25));
-    console.log(`    승률: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
-    console.log(`    평균 피해: ${stats.avgPlayerDamageDealt.toFixed(1)}`);
+    logger.info(`    승률: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+    logger.info(`    평균 피해: ${stats.avgPlayerDamageDealt.toFixed(1)}`);
   }
 
   // 분석
-  console.log('\n💡 특성 효율 순위:');
-  console.log('─'.repeat(50));
+  logger.info('\n💡 특성 효율 순위:');
+  logger.info('─'.repeat(50));
 
   results.sort((a, b) => b.winRate - a.winRate);
   results.forEach((r, idx) => {
-    console.log(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}%`);
   });
 
   const best = results[0];
-  console.log(`\n  → 가장 효과적인 특성: ${best.name}`);
+  logger.info(`\n  → 가장 효과적인 특성: ${best.name}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3168,21 +3172,21 @@ export function runTraitSynergyAnalysis(battles: number = 30): void {
  * 특정 적에 대한 최적 덱/상징 추천
  */
 export function runStrategyRecommendation(enemyId: string = 'ghoul', battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            전략 추천                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            전략 추천                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const enemy = ENEMIES.find(e => e.id === enemyId);
   if (!enemy) {
-    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
     return;
   }
 
-  console.log(`🎯 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
-  console.log('─'.repeat(50));
+  logger.info(`🎯 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
+  logger.info('─'.repeat(50));
 
   // 덱별 승률 테스트
-  console.log('\n📊 덱별 승률 테스트...\n');
+  logger.info('\n📊 덱별 승률 테스트...\n');
   const deckResults: Array<{ name: string; winRate: number; avgTurns: number }> = [];
 
   for (const [deckId, deck] of Object.entries(DECK_PRESETS)) {
@@ -3200,14 +3204,14 @@ export function runStrategyRecommendation(enemyId: string = 'ghoul', battles: nu
 
   // 덱 순위
   deckResults.sort((a, b) => b.winRate - a.winRate);
-  console.log('🏆 추천 덱 순위:');
+  logger.info('🏆 추천 덱 순위:');
   deckResults.slice(0, 3).forEach((r, idx) => {
     const bar = '█'.repeat(Math.ceil(r.winRate * 20));
-    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${bar} ${(r.winRate * 100).toFixed(1)}%`);
   });
 
   // 상징별 효과 테스트
-  console.log('\n📊 상징별 효과 테스트...\n');
+  logger.info('\n📊 상징별 효과 테스트...\n');
   const relicResults: Array<{ name: string; relic: string; winRate: number; diff: number }> = [];
 
   // 기준 (상징 없음)
@@ -3245,33 +3249,33 @@ export function runStrategyRecommendation(enemyId: string = 'ghoul', battles: nu
 
   // 상징 순위
   relicResults.sort((a, b) => b.diff - a.diff);
-  console.log('🏆 추천 상징 순위:');
+  logger.info('🏆 추천 상징 순위:');
   relicResults.slice(0, 3).forEach((r, idx) => {
     const sign = r.diff >= 0 ? '+' : '';
-    console.log(`  ${idx + 1}. ${r.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
   });
 
   // 최종 추천
-  console.log('\n💡 최종 추천:');
-  console.log('─'.repeat(50));
-  console.log(`  덱: ${deckResults[0].name}`);
+  logger.info('\n💡 최종 추천:');
+  logger.info('─'.repeat(50));
+  logger.info(`  덱: ${deckResults[0].name}`);
   if (relicResults[0].diff > 0) {
-    console.log(`  상징: ${relicResults[0].name}`);
+    logger.info(`  상징: ${relicResults[0].name}`);
   }
-  console.log(`  예상 승률: ${(deckResults[0].winRate * 100).toFixed(1)}%`);
+  logger.info(`  예상 승률: ${(deckResults[0].winRate * 100).toFixed(1)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 도움말 출력
  */
 export function printHelp(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║        게임 시뮬레이터 도움말            ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║        게임 시뮬레이터 도움말            ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📋 사용 가능한 명령어:\n');
+  logger.info('📋 사용 가능한 명령어:\n');
 
   const commands = [
     { cmd: '[battles] [enemies...]', desc: '기본 시뮬레이션' },
@@ -3298,15 +3302,15 @@ export function printHelp(): void {
   ];
 
   for (const c of commands) {
-    console.log(`  ${c.cmd.padEnd(35)} ${c.desc}`);
+    logger.info(`  ${c.cmd.padEnd(35)} ${c.desc}`);
   }
 
-  console.log('\n📖 사용 예시:');
-  console.log('  npx tsx scripts/runSimulator.ts 100');
-  console.log('  npx tsx scripts/runSimulator.ts balance 50');
-  console.log('  npx tsx scripts/runSimulator.ts recommend deserter 30');
+  logger.info('\n📖 사용 예시:');
+  logger.info('  npx tsx scripts/runSimulator.ts 100');
+  logger.info('  npx tsx scripts/runSimulator.ts balance 50');
+  logger.info('  npx tsx scripts/runSimulator.ts recommend deserter 30');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3314,26 +3318,26 @@ export function printHelp(): void {
  * 두 덱의 성능을 직접 비교
  */
 export function runDeckCompare(deck1Name: string, deck2Name: string, battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            덱 비교 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            덱 비교 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const deck1 = DECK_PRESETS[deck1Name];
   const deck2 = DECK_PRESETS[deck2Name];
 
   if (!deck1) {
-    console.log(`❌ 덱 "${deck1Name}" 을(를) 찾을 수 없습니다.`);
-    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    logger.info(`❌ 덱 "${deck1Name}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
     return;
   }
   if (!deck2) {
-    console.log(`❌ 덱 "${deck2Name}" 을(를) 찾을 수 없습니다.`);
-    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    logger.info(`❌ 덱 "${deck2Name}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
     return;
   }
 
-  console.log(`⚔️ ${deck1.name} vs ${deck2.name}\n`);
-  console.log('─'.repeat(50));
+  logger.info(`⚔️ ${deck1.name} vs ${deck2.name}\n`);
+  logger.info('─'.repeat(50));
 
   // 각 적에 대해 테스트
   const testEnemies = TIER_1_ENEMIES.slice(0, 4);
@@ -3374,10 +3378,10 @@ export function runDeckCompare(deck1Name: string, deck2Name: string, battles: nu
       stats1.winRate < stats2.winRate ? deck2.name : '동률';
     const diff = Math.abs(stats1.winRate - stats2.winRate) * 100;
 
-    console.log(`\n  vs ${enemy.name}:`);
-    console.log(`    ${deck1.name}: ${(stats1.winRate * 100).toFixed(1)}%`);
-    console.log(`    ${deck2.name}: ${(stats2.winRate * 100).toFixed(1)}%`);
-    console.log(`    → ${winner} ${diff > 0 ? `(+${diff.toFixed(1)}%)` : ''}`);
+    logger.info(`\n  vs ${enemy.name}:`);
+    logger.info(`    ${deck1.name}: ${(stats1.winRate * 100).toFixed(1)}%`);
+    logger.info(`    ${deck2.name}: ${(stats2.winRate * 100).toFixed(1)}%`);
+    logger.info(`    → ${winner} ${diff > 0 ? `(+${diff.toFixed(1)}%)` : ''}`);
   }
 
   // 총합
@@ -3385,13 +3389,13 @@ export function runDeckCompare(deck1Name: string, deck2Name: string, battles: nu
   const total2 = results.reduce((s, r) => s + r.deck2Win, 0) / results.length;
   const overallWinner = total1 > total2 ? deck1.name : total1 < total2 ? deck2.name : '동률';
 
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n🏆 종합 결과:');
-  console.log(`  ${deck1.name}: 평균 ${(total1 * 100).toFixed(1)}%`);
-  console.log(`  ${deck2.name}: 평균 ${(total2 * 100).toFixed(1)}%`);
-  console.log(`  \n  승자: ${overallWinner}`);
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n🏆 종합 결과:');
+  logger.info(`  ${deck1.name}: 평균 ${(total1 * 100).toFixed(1)}%`);
+  logger.info(`  ${deck2.name}: 평균 ${(total2 * 100).toFixed(1)}%`);
+  logger.info(`  \n  승자: ${overallWinner}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3399,9 +3403,9 @@ export function runDeckCompare(deck1Name: string, deck2Name: string, battles: nu
  * 시뮬레이션 성능 측정
  */
 export function runBenchmark(iterations: number = 100): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            성능 벤치마크                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            성능 벤치마크                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const tests = [
     { name: '단일 전투', fn: () => runBattle('ghoul', { battles: 1, maxTurns: 30, verbose: false }) },
@@ -3409,8 +3413,8 @@ export function runBenchmark(iterations: number = 100): void {
     { name: '전체 Tier 1 (10회)', fn: () => runSimulation({ battles: 10, maxTurns: 30, enemyIds: TIER_1_ENEMIES, verbose: false }) },
   ];
 
-  console.log(`📊 ${iterations}회 반복 측정:\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${iterations}회 반복 측정:\n`);
+  logger.info('─'.repeat(50));
 
   for (const test of tests) {
     const times: number[] = [];
@@ -3425,10 +3429,10 @@ export function runBenchmark(iterations: number = 100): void {
     const min = Math.min(...times);
     const max = Math.max(...times);
 
-    console.log(`\n  ${test.name}:`);
-    console.log(`    평균: ${avg.toFixed(2)}ms`);
-    console.log(`    최소: ${min.toFixed(2)}ms`);
-    console.log(`    최대: ${max.toFixed(2)}ms`);
+    logger.info(`\n  ${test.name}:`);
+    logger.info(`    평균: ${avg.toFixed(2)}ms`);
+    logger.info(`    최소: ${min.toFixed(2)}ms`);
+    logger.info(`    최대: ${max.toFixed(2)}ms`);
   }
 
   // 초당 전투 수 계산
@@ -3439,10 +3443,10 @@ export function runBenchmark(iterations: number = 100): void {
     battleCount++;
   }
 
-  console.log('\n' + '─'.repeat(50));
-  console.log(`\n⚡ 처리량: ${battleCount} 전투/초`);
+  logger.info('\n' + '─'.repeat(50));
+  logger.info(`\n⚡ 처리량: ${battleCount} 전투/초`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3450,16 +3454,16 @@ export function runBenchmark(iterations: number = 100): void {
  * 랜덤 덱 조합을 테스트하여 좋은 조합 발견
  */
 export function runRandomDeckTest(trials: number = 10, battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          랜덤 덱 테스터                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          랜덤 덱 테스터                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 사용 가능한 카드 목록
   const availableCards = CARDS.filter(c => !c.starter).map(c => c.id);
   const starterCards = CARDS.filter(c => c.starter).map(c => c.id);
 
-  console.log(`📊 ${trials}개 랜덤 덱 테스트 (각 ${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${trials}개 랜덤 덱 테스트 (각 ${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ deck: string[]; winRate: number; avgTurns: number }> = [];
 
@@ -3493,11 +3497,11 @@ export function runRandomDeckTest(trials: number = 10, battles: number = 20): vo
     process.stdout.write(`\r  테스트 진행: ${i + 1}/${trials}`);
   }
 
-  console.log('\n\n' + '─'.repeat(50));
+  logger.info('\n\n' + '─'.repeat(50));
 
   // 상위 3개 결과
   results.sort((a, b) => b.winRate - a.winRate);
-  console.log('\n🏆 상위 3개 덱:\n');
+  logger.info('\n🏆 상위 3개 덱:\n');
 
   for (let i = 0; i < Math.min(3, results.length); i++) {
     const r = results[i];
@@ -3506,15 +3510,15 @@ export function runRandomDeckTest(trials: number = 10, battles: number = 20): vo
       return card?.name || id;
     });
 
-    console.log(`  ${i + 1}위: 승률 ${(r.winRate * 100).toFixed(1)}%`);
-    console.log(`     카드: ${cardNames.join(', ')}`);
+    logger.info(`  ${i + 1}위: 승률 ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`     카드: ${cardNames.join(', ')}`);
   }
 
   // 평균
   const avgWinRate = results.reduce((s, r) => s + r.winRate, 0) / results.length;
-  console.log(`\n📈 전체 평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
+  logger.info(`\n📈 전체 평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3522,19 +3526,19 @@ export function runRandomDeckTest(trials: number = 10, battles: number = 20): vo
  * 기존 덱에 추가할 최적의 카드 탐색
  */
 export function runBestCardFinder(baseDeckName: string = 'balanced', battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          최적 카드 찾기                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          최적 카드 찾기                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const baseDeck = DECK_PRESETS[baseDeckName];
   if (!baseDeck) {
-    console.log(`❌ 덱 "${baseDeckName}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`❌ 덱 "${baseDeckName}" 을(를) 찾을 수 없습니다.`);
     return;
   }
 
-  console.log(`📊 기본 덱: ${baseDeck.name}`);
-  console.log(`   카드: ${baseDeck.cards.join(', ')}\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 기본 덱: ${baseDeck.name}`);
+  logger.info(`   카드: ${baseDeck.cards.join(', ')}\n`);
+  logger.info('─'.repeat(50));
 
   // 기준 승률
   const baseConfig: SimulationConfig = {
@@ -3547,7 +3551,7 @@ export function runBestCardFinder(baseDeckName: string = 'balanced', battles: nu
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`\n  기준 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info(`\n  기준 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
 
   // 테스트할 카드들
   const testCards = CARDS.filter(c => !baseDeck.cards.includes(c.id)).slice(0, 20);
@@ -3577,21 +3581,21 @@ export function runBestCardFinder(baseDeckName: string = 'balanced', battles: nu
   // 효과순 정렬
   results.sort((a, b) => b.diff - a.diff);
 
-  console.log('🏆 최적 교체 카드 (상위 5개):\n');
+  logger.info('🏆 최적 교체 카드 (상위 5개):\n');
   results.slice(0, 5).forEach((r, idx) => {
     const sign = r.diff >= 0 ? '+' : '';
     const indicator = r.diff > 0 ? '▲' : r.diff < 0 ? '▼' : '─';
-    console.log(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${indicator}`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${indicator}`);
   });
 
-  console.log('\n💡 추천: ');
+  logger.info('\n💡 추천: ');
   if (results[0].diff > 0.05) {
-    console.log(`   ${baseDeck.cards[baseDeck.cards.length - 1]}를 ${results[0].name}(으)로 교체하세요.`);
+    logger.info(`   ${baseDeck.cards[baseDeck.cards.length - 1]}를 ${results[0].name}(으)로 교체하세요.`);
   } else {
-    console.log(`   현재 덱이 이미 최적화되어 있습니다.`);
+    logger.info(`   현재 덱이 이미 최적화되어 있습니다.`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3599,18 +3603,18 @@ export function runBestCardFinder(baseDeckName: string = 'balanced', battles: nu
  * 각 적의 약점을 파악하여 최적 전략 제시
  */
 export function runEnemyWeaknessAnalysis(enemyId: string = 'ghoul', battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          적 약점 분석                   ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          적 약점 분석                   ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const enemy = ENEMIES.find(e => e.id === enemyId);
   if (!enemy) {
-    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    logger.info(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
     return;
   }
 
-  console.log(`🎯 분석 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
-  console.log('─'.repeat(50));
+  logger.info(`🎯 분석 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
+  logger.info('─'.repeat(50));
 
   // 각 덱 유형으로 테스트
   const deckResults: Array<{ name: string; winRate: number; avgTurns: number }> = [];
@@ -3631,34 +3635,34 @@ export function runEnemyWeaknessAnalysis(enemyId: string = 'ghoul', battles: num
   // 결과 정렬 및 출력
   deckResults.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n📊 덱별 승률:\n');
+  logger.info('\n📊 덱별 승률:\n');
   deckResults.forEach((r, idx) => {
     const bar = '█'.repeat(Math.ceil(r.winRate * 20));
     const status = idx === 0 ? '⭐ 최적' : idx < 3 ? '✓ 효과적' : '';
-    console.log(`  ${r.name.padEnd(12)}: ${bar} ${(r.winRate * 100).toFixed(1)}% ${status}`);
+    logger.info(`  ${r.name.padEnd(12)}: ${bar} ${(r.winRate * 100).toFixed(1)}% ${status}`);
   });
 
   // 약점 분석
-  console.log('\n💡 약점 분석:');
-  console.log('─'.repeat(50));
+  logger.info('\n💡 약점 분석:');
+  logger.info('─'.repeat(50));
 
   const bestDeck = deckResults[0];
   const worstDeck = deckResults[deckResults.length - 1];
   const avgWinRate = deckResults.reduce((s, r) => s + r.winRate, 0) / deckResults.length;
 
   if (bestDeck.name.includes('공격') || bestDeck.name.includes('속공')) {
-    console.log(`  • ${enemy.name}은(는) 빠른 공격에 취약합니다.`);
+    logger.info(`  • ${enemy.name}은(는) 빠른 공격에 취약합니다.`);
   } else if (bestDeck.name.includes('방어') || bestDeck.name.includes('반격')) {
-    console.log(`  • ${enemy.name}은(는) 방어적 플레이에 약합니다.`);
+    logger.info(`  • ${enemy.name}은(는) 방어적 플레이에 약합니다.`);
   } else if (bestDeck.name.includes('콤보')) {
-    console.log(`  • ${enemy.name}은(는) 콤보 공격에 취약합니다.`);
+    logger.info(`  • ${enemy.name}은(는) 콤보 공격에 취약합니다.`);
   }
 
-  console.log(`  • 최적 덱: ${bestDeck.name} (${(bestDeck.winRate * 100).toFixed(1)}%)`);
-  console.log(`  • 회피 덱: ${worstDeck.name} (${(worstDeck.winRate * 100).toFixed(1)}%)`);
-  console.log(`  • 평균 난이도: ${avgWinRate > 0.7 ? '쉬움' : avgWinRate > 0.5 ? '보통' : '어려움'}`);
+  logger.info(`  • 최적 덱: ${bestDeck.name} (${(bestDeck.winRate * 100).toFixed(1)}%)`);
+  logger.info(`  • 회피 덱: ${worstDeck.name} (${(worstDeck.winRate * 100).toFixed(1)}%)`);
+  logger.info(`  • 평균 난이도: ${avgWinRate > 0.7 ? '쉬움' : avgWinRate > 0.5 ? '보통' : '어려움'}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3666,9 +3670,9 @@ export function runEnemyWeaknessAnalysis(enemyId: string = 'ghoul', battles: num
  * 상징 조합의 시너지 효과 분석
  */
 export function runMultiRelicTest(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║        다중 상징 콤보 테스트            ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║        다중 상징 콤보 테스트            ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   // 테스트할 상징 조합
   const relicCombos: Array<{ name: string; relics: string[] }> = [
@@ -3689,8 +3693,8 @@ export function runMultiRelicTest(battles: number = 30): void {
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; winRate: number; diff: number; synergy: number }> = [];
 
@@ -3734,19 +3738,19 @@ export function runMultiRelicTest(battles: number = 30): void {
   // 시너지순 정렬
   results.sort((a, b) => b.synergy - a.synergy);
 
-  console.log('\n🏆 상징 조합 시너지 순위:\n');
+  logger.info('\n🏆 상징 조합 시너지 순위:\n');
   results.forEach((r, idx) => {
     const sign = r.diff >= 0 ? '+' : '';
     const synergySign = r.synergy >= 0 ? '+' : '';
     const synergyIndicator = r.synergy > 0.02 ? '🔥 시너지!' :
       r.synergy < -0.02 ? '❄️ 역시너지' : '➖ 보통';
 
-    console.log(`  ${idx + 1}. ${r.name}:`);
-    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%)`);
-    console.log(`     시너지: ${synergySign}${(r.synergy * 100).toFixed(1)}% ${synergyIndicator}`);
+    logger.info(`  ${idx + 1}. ${r.name}:`);
+    logger.info(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%)`);
+    logger.info(`     시너지: ${synergySign}${(r.synergy * 100).toFixed(1)}% ${synergyIndicator}`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3754,9 +3758,9 @@ export function runMultiRelicTest(battles: number = 30): void {
  * Tier 1 → 2 → 3 순차 전투 시뮬레이션
  */
 export function runProgressionTest(runsPerTier: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║        진행형 난이도 테스트             ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║        진행형 난이도 테스트             ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const tiers = [
     { tier: 1, enemies: TIER_1_ENEMIES, name: 'Tier 1 (초반)' },
@@ -3764,8 +3768,8 @@ export function runProgressionTest(runsPerTier: number = 20): void {
     { tier: 3, enemies: TIER_3_ENEMIES, name: 'Tier 3 (후반)' },
   ];
 
-  console.log(`📊 ${runsPerTier}회 시뮬레이션 (티어별)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${runsPerTier}회 시뮬레이션 (티어별)\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ tier: string; winRate: number; avgTurns: number; survivalRate: number }> = [];
 
@@ -3805,35 +3809,35 @@ export function runProgressionTest(runsPerTier: number = 20): void {
 
     // 그래프 출력
     const bar = '█'.repeat(Math.ceil(winRate * 25));
-    console.log(`\n  ${tierInfo.name}:`);
-    console.log(`    승률: ${bar} ${(winRate * 100).toFixed(1)}%`);
-    console.log(`    평균 턴: ${avgTurns.toFixed(1)}`);
-    console.log(`    돌파율: ${(survivalRate * 100).toFixed(0)}%`);
+    logger.info(`\n  ${tierInfo.name}:`);
+    logger.info(`    승률: ${bar} ${(winRate * 100).toFixed(1)}%`);
+    logger.info(`    평균 턴: ${avgTurns.toFixed(1)}`);
+    logger.info(`    돌파율: ${(survivalRate * 100).toFixed(0)}%`);
   }
 
   // 전체 분석
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 진행 분석:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 진행 분석:');
 
   const tier1 = results[0];
   const tier2 = results[1];
   const tier3 = results[2];
 
   if (tier1.winRate > 0.7 && tier2.winRate > 0.5 && tier3.winRate > 0.3) {
-    console.log('  ✓ 밸런스 양호: 점진적 난이도 증가');
+    logger.info('  ✓ 밸런스 양호: 점진적 난이도 증가');
   } else if (tier1.winRate < 0.5) {
-    console.log('  ⚠️ 초반 난이도가 너무 높습니다.');
+    logger.info('  ⚠️ 초반 난이도가 너무 높습니다.');
   } else if (tier2.winRate < 0.3) {
-    console.log('  ⚠️ 중반 난이도 급증이 있습니다.');
+    logger.info('  ⚠️ 중반 난이도 급증이 있습니다.');
   } else if (tier3.winRate > 0.6) {
-    console.log('  ⚠️ 후반 난이도가 너무 낮습니다.');
+    logger.info('  ⚠️ 후반 난이도가 너무 낮습니다.');
   }
 
   // 예상 클리어율
   const expectedClear = tier1.winRate * tier2.winRate * tier3.winRate;
-  console.log(`  📈 예상 게임 클리어율: ${(expectedClear * 100).toFixed(1)}%`);
+  logger.info(`  📈 예상 게임 클리어율: ${(expectedClear * 100).toFixed(1)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3841,14 +3845,14 @@ export function runProgressionTest(runsPerTier: number = 20): void {
  * 각 카드의 효율성 순위 산정
  */
 export function runCardRanking(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            카드 랭킹                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            카드 랭킹                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const testCards = CARDS.filter(c => !c.starter);
 
-  console.log(`📊 ${testCards.length}개 카드 테스트 (각 ${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${testCards.length}개 카드 테스트 (각 ${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 기준 덱 (스타터만)
   const baseDeck = DECK_PRESETS.balanced.cards;
@@ -3862,7 +3866,7 @@ export function runCardRanking(battles: number = 20): void {
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`  기준 덱 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info(`  기준 덱 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
 
   const results: Array<{ card: typeof CARDS[0]; winRate: number; diff: number }> = [];
 
@@ -3889,32 +3893,32 @@ export function runCardRanking(battles: number = 20): void {
     process.stdout.write(`\r  테스트 진행: ${i + 1}/${testCards.length}`);
   }
 
-  console.log('\n\n' + '─'.repeat(50));
+  logger.info('\n\n' + '─'.repeat(50));
 
   // 효율순 정렬
   results.sort((a, b) => b.diff - a.diff);
 
   // 상위 10개
-  console.log('\n🏆 카드 효율 TOP 10:\n');
+  logger.info('\n🏆 카드 효율 TOP 10:\n');
   for (let i = 0; i < Math.min(10, results.length); i++) {
     const r = results[i];
     const sign = r.diff >= 0 ? '+' : '';
     const tier = r.diff > 0.1 ? 'S' : r.diff > 0.05 ? 'A' : r.diff > 0 ? 'B' : r.diff > -0.05 ? 'C' : 'D';
 
-    console.log(`  ${i + 1}. [${tier}] ${r.card.name} (${r.card.id})`);
-    console.log(`     승률 변화: ${sign}${(r.diff * 100).toFixed(1)}%`);
+    logger.info(`  ${i + 1}. [${tier}] ${r.card.name} (${r.card.id})`);
+    logger.info(`     승률 변화: ${sign}${(r.diff * 100).toFixed(1)}%`);
   }
 
   // 하위 5개
-  console.log('\n⚠️ 하위 카드 (밸런스 확인 필요):');
+  logger.info('\n⚠️ 하위 카드 (밸런스 확인 필요):');
   for (let i = results.length - 5; i < results.length; i++) {
     if (i < 0) continue;
     const r = results[i];
     const sign = r.diff >= 0 ? '+' : '';
-    console.log(`  • ${r.card.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
+    logger.info(`  • ${r.card.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3922,12 +3926,12 @@ export function runCardRanking(battles: number = 20): void {
  * 각 상징의 효율성 순위 산정
  */
 export function runRelicRanking(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            상징 랭킹                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            상징 랭킹                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 상징 효율 테스트 (각 ${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 상징 효율 테스트 (각 ${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 기준 (상징 없음)
   const baseConfig: SimulationConfig = {
@@ -3939,7 +3943,7 @@ export function runRelicRanking(battles: number = 30): void {
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`  기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info(`  기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
 
   const relics = ['fox', 'turtle', 'falcon', 'oni'];
   const results: Array<{ relic: string; winRate: number; diff: number }> = [];
@@ -3964,29 +3968,29 @@ export function runRelicRanking(battles: number = 30): void {
   // 효율순 정렬
   results.sort((a, b) => b.diff - a.diff);
 
-  console.log('🏆 상징 효율 순위:\n');
+  logger.info('🏆 상징 효율 순위:\n');
   results.forEach((r, idx) => {
     const sign = r.diff >= 0 ? '+' : '';
     const bar = '█'.repeat(Math.ceil(r.winRate * 20));
 
-    console.log(`  ${idx + 1}. ${r.relic.toUpperCase()}`);
-    console.log(`     ${bar} ${(r.winRate * 100).toFixed(1)}%`);
-    console.log(`     효과: ${sign}${(r.diff * 100).toFixed(1)}%\n`);
+    logger.info(`  ${idx + 1}. ${r.relic.toUpperCase()}`);
+    logger.info(`     ${bar} ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`     효과: ${sign}${(r.diff * 100).toFixed(1)}%\n`);
   });
 
-  console.log('─'.repeat(50));
-  console.log('\n💡 분석:');
+  logger.info('─'.repeat(50));
+  logger.info('\n💡 분석:');
 
   const best = results[0];
   const worst = results[results.length - 1];
 
   if (best.diff - worst.diff > 0.2) {
-    console.log(`  ⚠️ 상징 간 효율 차이가 큽니다 (${((best.diff - worst.diff) * 100).toFixed(1)}%)`);
+    logger.info(`  ⚠️ 상징 간 효율 차이가 큽니다 (${((best.diff - worst.diff) * 100).toFixed(1)}%)`);
   } else {
-    console.log('  ✓ 상징 간 밸런스가 양호합니다.');
+    logger.info('  ✓ 상징 간 밸런스가 양호합니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -3994,15 +3998,15 @@ export function runRelicRanking(battles: number = 30): void {
  * 전체 게임 메타 분석 및 밸런스 제안
  */
 export function runMetaAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════════════╗');
-  console.log('║             메타 분석 리포트                    ║');
-  console.log('╚════════════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════════════╗');
+  logger.info('║             메타 분석 리포트                    ║');
+  logger.info('╚════════════════════════════════════════════════╝\n');
 
   const issues: string[] = [];
   const suggestions: string[] = [];
 
   // 1. 덱 분석
-  console.log('📊 덱 메타 분석...');
+  logger.info('📊 덱 메타 분석...');
   const deckResults: Array<{ name: string; winRate: number }> = [];
 
   for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
@@ -4020,10 +4024,10 @@ export function runMetaAnalysis(battles: number = 30): void {
 
   deckResults.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n  덱 승률 순위:');
+  logger.info('\n  덱 승률 순위:');
   deckResults.forEach((d, i) => {
     const bar = '█'.repeat(Math.ceil(d.winRate * 20));
-    console.log(`    ${i + 1}. ${d.name}: ${bar} ${(d.winRate * 100).toFixed(1)}%`);
+    logger.info(`    ${i + 1}. ${d.name}: ${bar} ${(d.winRate * 100).toFixed(1)}%`);
   });
 
   const topDeck = deckResults[0];
@@ -4035,7 +4039,7 @@ export function runMetaAnalysis(battles: number = 30): void {
   }
 
   // 2. 티어별 밸런스
-  console.log('\n📊 티어별 밸런스...');
+  logger.info('\n📊 티어별 밸런스...');
   const tierWinRates: number[] = [];
 
   for (const [idx, enemies] of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES].entries()) {
@@ -4049,7 +4053,7 @@ export function runMetaAnalysis(battles: number = 30): void {
     const stats = runSimulation(config);
     tierWinRates.push(stats.winRate);
 
-    console.log(`    Tier ${idx + 1}: ${(stats.winRate * 100).toFixed(1)}%`);
+    logger.info(`    Tier ${idx + 1}: ${(stats.winRate * 100).toFixed(1)}%`);
   }
 
   if (tierWinRates[0] < 0.6) {
@@ -4068,7 +4072,7 @@ export function runMetaAnalysis(battles: number = 30): void {
   }
 
   // 3. 상징 밸런스
-  console.log('\n📊 상징 밸런스...');
+  logger.info('\n📊 상징 밸런스...');
   const relics = ['fox', 'turtle', 'falcon', 'oni'];
   const relicResults: Array<{ relic: string; winRate: number }> = [];
 
@@ -4096,24 +4100,24 @@ export function runMetaAnalysis(battles: number = 30): void {
   }
 
   // 4. 결론
-  console.log('\n' + '═'.repeat(50));
-  console.log('\n🔍 발견된 이슈:');
+  logger.info('\n' + '═'.repeat(50));
+  logger.info('\n🔍 발견된 이슈:');
 
   if (issues.length === 0) {
-    console.log('  ✓ 심각한 밸런스 이슈 없음');
+    logger.info('  ✓ 심각한 밸런스 이슈 없음');
   } else {
     issues.forEach((issue, i) => {
-      console.log(`  ${i + 1}. ⚠️ ${issue}`);
+      logger.info(`  ${i + 1}. ⚠️ ${issue}`);
     });
   }
 
-  console.log('\n💡 개선 제안:');
+  logger.info('\n💡 개선 제안:');
 
   if (suggestions.length === 0) {
-    console.log('  ✓ 현재 밸런스 양호');
+    logger.info('  ✓ 현재 밸런스 양호');
   } else {
     suggestions.forEach((sug, i) => {
-      console.log(`  ${i + 1}. ${sug}`);
+      logger.info(`  ${i + 1}. ${sug}`);
     });
   }
 
@@ -4122,9 +4126,9 @@ export function runMetaAnalysis(battles: number = 30): void {
   const healthRating = healthScore >= 85 ? '🟢 양호' :
     healthScore >= 70 ? '🟡 주의' : '🔴 조정 필요';
 
-  console.log(`\n📈 게임 밸런스 건강도: ${healthScore}/100 ${healthRating}`);
+  logger.info(`\n📈 게임 밸런스 건강도: ${healthScore}/100 ${healthRating}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4132,9 +4136,9 @@ export function runMetaAnalysis(battles: number = 30): void {
  * 턴별 행동 패턴 분석
  */
 export function runTurnAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            턴 분석                      ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            턴 분석                      ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const config: SimulationConfig = {
     battles,
@@ -4145,34 +4149,34 @@ export function runTurnAnalysis(battles: number = 30): void {
 
   const stats = runSimulation(config);
 
-  console.log(`📊 ${battles}회 전투 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 전투 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 기본 통계
-  console.log('\n📈 기본 통계:');
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
-  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  logger.info('\n📈 기본 통계:');
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
 
   // 턴 분포 예측
   const quickWin = stats.avgTurns < 4 ? '높음' : '보통';
   const longBattle = stats.avgTurns > 8 ? '높음' : '낮음';
 
-  console.log('\n⏱️ 전투 속도 분석:');
-  console.log(`  속전속결 확률: ${quickWin}`);
-  console.log(`  장기전 확률: ${longBattle}`);
+  logger.info('\n⏱️ 전투 속도 분석:');
+  logger.info(`  속전속결 확률: ${quickWin}`);
+  logger.info(`  장기전 확률: ${longBattle}`);
 
   // 페이스 분석
   if (stats.avgTurns < 3) {
-    console.log('\n💡 분석: 전투가 너무 빠르게 끝남. 밸런스 확인 필요.');
+    logger.info('\n💡 분석: 전투가 너무 빠르게 끝남. 밸런스 확인 필요.');
   } else if (stats.avgTurns < 6) {
-    console.log('\n💡 분석: 적절한 전투 속도.');
+    logger.info('\n💡 분석: 적절한 전투 속도.');
   } else if (stats.avgTurns < 10) {
-    console.log('\n💡 분석: 약간 긴 전투. 공격력 상향 고려.');
+    logger.info('\n💡 분석: 약간 긴 전투. 공격력 상향 고려.');
   } else {
-    console.log('\n💡 분석: 전투가 너무 김. 데미지 밸런스 조정 필요.');
+    logger.info('\n💡 분석: 전투가 너무 김. 데미지 밸런스 조정 필요.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4180,12 +4184,12 @@ export function runTurnAnalysis(battles: number = 30): void {
  * 덱별/카드별 데미지 출력 분석
  */
 export function runDamageAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            데미지 분석                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            데미지 분석                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 데미지 출력 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 데미지 출력 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; avgDamage: number; winRate: number }> = [];
 
@@ -4216,28 +4220,28 @@ export function runDamageAnalysis(battles: number = 30): void {
   // 데미지순 정렬
   results.sort((a, b) => b.avgDamage - a.avgDamage);
 
-  console.log('\n🗡️ 덱별 예상 턴당 데미지:\n');
+  logger.info('\n🗡️ 덱별 예상 턴당 데미지:\n');
   results.forEach((r, idx) => {
     const bar = '█'.repeat(Math.ceil(r.avgDamage * 2));
-    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${r.avgDamage.toFixed(1)}`);
-    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${bar} ${r.avgDamage.toFixed(1)}`);
+    logger.info(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
   });
 
   // 분석
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 분석:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 분석:');
 
   const highDamage = results.filter(r => r.avgDamage > 10);
   const lowDamage = results.filter(r => r.avgDamage < 5);
 
   if (highDamage.length > 0) {
-    console.log(`  🔥 고딜 덱: ${highDamage.map(r => r.name).join(', ')}`);
+    logger.info(`  🔥 고딜 덱: ${highDamage.map(r => r.name).join(', ')}`);
   }
   if (lowDamage.length > 0) {
-    console.log(`  🛡️ 저딜/탱커 덱: ${lowDamage.map(r => r.name).join(', ')}`);
+    logger.info(`  🛡️ 저딜/탱커 덱: ${lowDamage.map(r => r.name).join(', ')}`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4245,12 +4249,12 @@ export function runDamageAnalysis(battles: number = 30): void {
  * 회복 효율 및 생존력 분석
  */
 export function runHealingAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            힐링 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            힐링 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 생존력 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 생존력 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 방어 카드가 있는 덱 vs 없는 덱 비교
   const defensiveCards = CARDS.filter(c => c.traits?.includes('방어') || c.traits?.includes('회복'));
@@ -4278,28 +4282,28 @@ export function runHealingAnalysis(battles: number = 30): void {
   // 생존턴순 정렬
   results.sort((a, b) => b.survivalTurns - a.survivalTurns);
 
-  console.log('\n💚 덱별 평균 생존 턴:\n');
+  logger.info('\n💚 덱별 평균 생존 턴:\n');
   results.forEach((r, idx) => {
     const bar = '█'.repeat(Math.ceil(r.survivalTurns));
-    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${r.survivalTurns.toFixed(1)}턴`);
-    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
+    logger.info(`  ${idx + 1}. ${r.name}: ${bar} ${r.survivalTurns.toFixed(1)}턴`);
+    logger.info(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
   });
 
   // 분석
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 분석:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 분석:');
 
   const tanky = results.filter(r => r.survivalTurns > 8 && r.winRate < 0.5);
   const glassy = results.filter(r => r.survivalTurns < 4 && r.winRate > 0.5);
 
   if (tanky.length > 0) {
-    console.log(`  🛡️ 지구력형 (긴 전투, 낮은 승률): ${tanky.map(r => r.name).join(', ')}`);
+    logger.info(`  🛡️ 지구력형 (긴 전투, 낮은 승률): ${tanky.map(r => r.name).join(', ')}`);
   }
   if (glassy.length > 0) {
-    console.log(`  ⚡ 유리대포형 (빠른 승리): ${glassy.map(r => r.name).join(', ')}`);
+    logger.info(`  ⚡ 유리대포형 (빠른 승리): ${glassy.map(r => r.name).join(', ')}`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4307,12 +4311,12 @@ export function runHealingAnalysis(battles: number = 30): void {
  * 콤보 발생 패턴 상세 분석
  */
 export function runComboBreakdown(battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           콤보 빈도 분석                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           콤보 빈도 분석                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${battles}회 전투 콤보 발생 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 전투 콤보 발생 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 콤보 덱으로 테스트
   const config: SimulationConfig = {
@@ -4325,10 +4329,10 @@ export function runComboBreakdown(battles: number = 50): void {
 
   const stats = runSimulation(config);
 
-  console.log('\n🃏 콤보 발생 통계:\n');
+  logger.info('\n🃏 콤보 발생 통계:\n');
 
   if (Object.keys(stats.comboStats).length === 0) {
-    console.log('  콤보 발생 데이터 없음');
+    logger.info('  콤보 발생 데이터 없음');
   } else {
     // 콤보 정렬
     const sortedCombos = Object.entries(stats.comboStats)
@@ -4340,49 +4344,49 @@ export function runComboBreakdown(battles: number = 50): void {
     const tierB = ['트리플', '투페어'];
     const tierC = ['페어'];
 
-    console.log('  [S 티어] 레전드리 콤보:');
+    logger.info('  [S 티어] 레전드리 콤보:');
     tierS.forEach(combo => {
       const stat = stats.comboStats[combo];
       if (stat) {
-        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+        logger.info(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
       }
     });
 
-    console.log('\n  [A 티어] 레어 콤보:');
+    logger.info('\n  [A 티어] 레어 콤보:');
     tierA.forEach(combo => {
       const stat = stats.comboStats[combo];
       if (stat) {
-        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+        logger.info(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
       }
     });
 
-    console.log('\n  [B 티어] 일반 콤보:');
+    logger.info('\n  [B 티어] 일반 콤보:');
     tierB.forEach(combo => {
       const stat = stats.comboStats[combo];
       if (stat) {
-        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+        logger.info(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
       }
     });
 
-    console.log('\n  [C 티어] 기본 콤보:');
+    logger.info('\n  [C 티어] 기본 콤보:');
     tierC.forEach(combo => {
       const stat = stats.comboStats[combo];
       if (stat) {
-        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+        logger.info(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
       }
     });
   }
 
   // 콤보 덱 효율
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 콤보 덱 분석:');
-  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 콤보 덱 분석:');
+  logger.info(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
 
   const totalCombos = Object.values(stats.comboStats).reduce((s, c) => s + c.count, 0);
-  console.log(`  총 콤보 발생: ${totalCombos}회 (전투당 ${(totalCombos / battles).toFixed(1)})`);
+  logger.info(`  총 콤보 발생: ${totalCombos}회 (전투당 ${(totalCombos / battles).toFixed(1)})`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4390,12 +4394,12 @@ export function runComboBreakdown(battles: number = 50): void {
  * 대량 시뮬레이션으로 안정성 확인
  */
 export function runStressTest(battles: number = 1000): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           스트레스 테스트               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           스트레스 테스트               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${battles}회 대량 시뮬레이션\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 대량 시뮬레이션\n`);
+  logger.info('─'.repeat(50));
 
   const startTime = performance.now();
 
@@ -4422,35 +4426,35 @@ export function runStressTest(battles: number = 1000): void {
 
   const elapsed = performance.now() - startTime;
 
-  console.log('\n\n' + '─'.repeat(50));
+  logger.info('\n\n' + '─'.repeat(50));
 
   // 결과 분석
   const avgWinRate = segmentResults.reduce((s, r) => s + r, 0) / segments;
   const variance = segmentResults.reduce((s, r) => s + Math.pow(r - avgWinRate, 2), 0) / segments;
   const stdDev = Math.sqrt(variance);
 
-  console.log('\n📈 결과:');
-  console.log(`  총 전투: ${battles}회`);
-  console.log(`  실행 시간: ${(elapsed / 1000).toFixed(2)}초`);
-  console.log(`  처리 속도: ${(battles / elapsed * 1000).toFixed(0)} 전투/초`);
-  console.log(`\n  평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
-  console.log(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
+  logger.info('\n📈 결과:');
+  logger.info(`  총 전투: ${battles}회`);
+  logger.info(`  실행 시간: ${(elapsed / 1000).toFixed(2)}초`);
+  logger.info(`  처리 속도: ${(battles / elapsed * 1000).toFixed(0)} 전투/초`);
+  logger.info(`\n  평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
+  logger.info(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
 
   // 안정성 평가
   const stability = stdDev < 0.05 ? '🟢 매우 안정' :
     stdDev < 0.1 ? '🟡 안정' :
     stdDev < 0.15 ? '🟠 약간 불안정' : '🔴 불안정';
 
-  console.log(`\n  안정성: ${stability}`);
+  logger.info(`\n  안정성: ${stability}`);
 
   // 세그먼트별 결과
-  console.log('\n  세그먼트별 승률:');
+  logger.info('\n  세그먼트별 승률:');
   segmentResults.forEach((r, i) => {
     const bar = '█'.repeat(Math.ceil(r * 20));
-    console.log(`    ${i + 1}. ${bar} ${(r * 100).toFixed(1)}%`);
+    logger.info(`    ${i + 1}. ${bar} ${(r * 100).toFixed(1)}%`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4458,20 +4462,20 @@ export function runStressTest(battles: number = 1000): void {
  * 카드/콤보 확률 계산
  */
 export function runProbabilityAnalysis(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           확률 분석                     ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           확률 분석                     ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 이론적 확률 분석\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 이론적 확률 분석\n');
+  logger.info('─'.repeat(50));
 
   // 덱 크기와 핸드 크기
   const deckSize = 8;
   const handSize = 5;
 
   // 콤보 확률 (단순화)
-  console.log('\n🃏 콤보 이론적 확률 (8장 덱, 5장 핸드):');
-  console.log('  (실제 확률은 덱 구성에 따라 다름)\n');
+  logger.info('\n🃏 콤보 이론적 확률 (8장 덱, 5장 핸드):');
+  logger.info('  (실제 확률은 덱 구성에 따라 다름)\n');
 
   // 페어 확률 근사
   const pairProb = 0.4; // 대략적 추정
@@ -4499,15 +4503,15 @@ export function runProbabilityAnalysis(): void {
   probabilities.forEach(p => {
     const percent = (p.prob * 100).toFixed(2);
     const oneIn = Math.round(1 / p.prob);
-    console.log(`  ${p.name}: ~${percent}% (1/${oneIn})`);
+    logger.info(`  ${p.name}: ~${percent}% (1/${oneIn})`);
   });
 
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 참고:');
-  console.log('  • 실제 확률은 덱의 카드 분포에 따라 크게 달라집니다.');
-  console.log('  • 콤보 덱은 특정 콤보 확률을 높이도록 설계됩니다.');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 참고:');
+  logger.info('  • 실제 확률은 덱의 카드 분포에 따라 크게 달라집니다.');
+  logger.info('  • 콤보 덱은 특정 콤보 확률을 높이도록 설계됩니다.');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4515,12 +4519,12 @@ export function runProbabilityAnalysis(): void {
  * 덱/카드가 다양한 적에게 얼마나 효과적인지
  */
 export function runVersatilityAnalysis(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           다양성 분석                   ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           다양성 분석                   ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 다양성 분석 (${battles}회/적)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 다양성 분석 (${battles}회/적)\n`);
+  logger.info('─'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
   const results: Array<{ name: string; avgWinRate: number; versatility: number; details: Record<string, number> }> = [];
@@ -4557,18 +4561,18 @@ export function runVersatilityAnalysis(battles: number = 20): void {
   // 다양성순 정렬
   results.sort((a, b) => b.versatility - a.versatility);
 
-  console.log('\n🎯 덱별 다양성 순위:\n');
+  logger.info('\n🎯 덱별 다양성 순위:\n');
   results.forEach((r, idx) => {
     const rating = r.versatility > 0.8 ? '🟢 매우 다양' :
       r.versatility > 0.6 ? '🟡 다양' :
       r.versatility > 0.4 ? '🟠 보통' : '🔴 특화';
 
-    console.log(`  ${idx + 1}. ${r.name}:`);
-    console.log(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
-    console.log(`     다양성: ${(r.versatility * 100).toFixed(0)}% ${rating}`);
+    logger.info(`  ${idx + 1}. ${r.name}:`);
+    logger.info(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
+    logger.info(`     다양성: ${(r.versatility * 100).toFixed(0)}% ${rating}`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4576,12 +4580,12 @@ export function runVersatilityAnalysis(battles: number = 20): void {
  * 승률의 일관성 및 분산 분석
  */
 export function runConsistencyAnalysis(trials: number = 10, battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║           일관성 분석                   ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║           일관성 분석                   ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${trials}회 반복 시뮬레이션 (각 ${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${trials}회 반복 시뮬레이션 (각 ${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; avgWinRate: number; stdDev: number; consistency: string }> = [];
 
@@ -4615,15 +4619,15 @@ export function runConsistencyAnalysis(trials: number = 10, battles: number = 30
   // 안정성순 정렬
   results.sort((a, b) => a.stdDev - b.stdDev);
 
-  console.log('\n📈 덱별 일관성:\n');
+  logger.info('\n📈 덱별 일관성:\n');
   results.forEach((r, idx) => {
-    console.log(`  ${idx + 1}. ${r.name}:`);
-    console.log(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
-    console.log(`     표준편차: ±${(r.stdDev * 100).toFixed(1)}%`);
-    console.log(`     ${r.consistency}`);
+    logger.info(`  ${idx + 1}. ${r.name}:`);
+    logger.info(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
+    logger.info(`     표준편차: ±${(r.stdDev * 100).toFixed(1)}%`);
+    logger.info(`     ${r.consistency}`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4631,14 +4635,14 @@ export function runConsistencyAnalysis(trials: number = 10, battles: number = 30
  * 시뮬레이션 기반 밸런스 제안
  */
 export function generatePatchNotes(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════════════════╗');
-  console.log('║              자동 패치 노트 생성                    ║');
-  console.log('╚════════════════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════════════════╗');
+  logger.info('║              자동 패치 노트 생성                    ║');
+  logger.info('╚════════════════════════════════════════════════════╝\n');
 
   const suggestions: { type: string; priority: string; content: string }[] = [];
 
   // 1. 덱 밸런스 분석
-  console.log('📊 덱 밸런스 분석 중...');
+  logger.info('📊 덱 밸런스 분석 중...');
   const deckResults: Array<{ name: string; winRate: number }> = [];
 
   for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
@@ -4676,7 +4680,7 @@ export function generatePatchNotes(battles: number = 30): void {
   }
 
   // 2. 티어 밸런스
-  console.log('📊 티어 밸런스 분석 중...');
+  logger.info('📊 티어 밸런스 분석 중...');
   const tierRates: number[] = [];
 
   for (const enemies of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES]) {
@@ -4708,12 +4712,12 @@ export function generatePatchNotes(battles: number = 30): void {
   }
 
   // 3. 패치 노트 출력
-  console.log('\n' + '═'.repeat(50));
-  console.log('\n📋 자동 생성 패치 노트:\n');
-  console.log('━'.repeat(50));
+  logger.info('\n' + '═'.repeat(50));
+  logger.info('\n📋 자동 생성 패치 노트:\n');
+  logger.info('━'.repeat(50));
 
   if (suggestions.length === 0) {
-    console.log('  ✓ 현재 밸런스 양호 - 패치 불필요');
+    logger.info('  ✓ 현재 밸런스 양호 - 패치 불필요');
   } else {
     suggestions.sort((a, b) => {
       const priorityOrder = { '높음': 0, '중간': 1, '낮음': 2 };
@@ -4722,20 +4726,20 @@ export function generatePatchNotes(battles: number = 30): void {
 
     suggestions.forEach((s, i) => {
       const icon = s.priority === '높음' ? '🔴' : s.priority === '중간' ? '🟡' : '🟢';
-      console.log(`  ${i + 1}. ${icon} [${s.type}] ${s.content}`);
+      logger.info(`  ${i + 1}. ${icon} [${s.type}] ${s.content}`);
     });
   }
 
   // 요약
-  console.log('\n━'.repeat(50));
-  console.log('\n📈 현재 상태 요약:');
-  console.log(`  • 최강 덱: ${topDeck.name} (${(topDeck.winRate * 100).toFixed(0)}%)`);
-  console.log(`  • 최약 덱: ${bottomDeck.name} (${(bottomDeck.winRate * 100).toFixed(0)}%)`);
-  console.log(`  • Tier 1 평균 승률: ${(tierRates[0] * 100).toFixed(0)}%`);
-  console.log(`  • Tier 2 평균 승률: ${(tierRates[1] * 100).toFixed(0)}%`);
-  console.log(`  • Tier 3 평균 승률: ${(tierRates[2] * 100).toFixed(0)}%`);
+  logger.info('\n━'.repeat(50));
+  logger.info('\n📈 현재 상태 요약:');
+  logger.info(`  • 최강 덱: ${topDeck.name} (${(topDeck.winRate * 100).toFixed(0)}%)`);
+  logger.info(`  • 최약 덱: ${bottomDeck.name} (${(bottomDeck.winRate * 100).toFixed(0)}%)`);
+  logger.info(`  • Tier 1 평균 승률: ${(tierRates[0] * 100).toFixed(0)}%`);
+  logger.info(`  • Tier 2 평균 승률: ${(tierRates[1] * 100).toFixed(0)}%`);
+  logger.info(`  • Tier 3 평균 승률: ${(tierRates[2] * 100).toFixed(0)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4743,9 +4747,9 @@ export function generatePatchNotes(battles: number = 30): void {
  * 극단적 상황 테스트
  */
 export function runEdgeCaseTest(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║         에지 케이스 테스트              ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║         에지 케이스 테스트              ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const testCases: Array<{ name: string; config: Partial<SimulationConfig>; expected: string }> = [
     {
@@ -4770,8 +4774,8 @@ export function runEdgeCaseTest(): void {
     },
   ];
 
-  console.log('📊 에지 케이스 테스트 실행\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 에지 케이스 테스트 실행\n');
+  logger.info('─'.repeat(50));
 
   let passed = 0;
   let failed = 0;
@@ -4789,28 +4793,28 @@ export function runEdgeCaseTest(): void {
       const stats = runSimulation(config);
 
       if (stats.totalBattles > 0) {
-        console.log(`  ✓ ${tc.name}: 통과`);
+        logger.info(`  ✓ ${tc.name}: 통과`);
         passed++;
       } else {
-        console.log(`  ✗ ${tc.name}: 실패 (전투 없음)`);
+        logger.info(`  ✗ ${tc.name}: 실패 (전투 없음)`);
         failed++;
       }
     } catch (e) {
-      console.log(`  ✗ ${tc.name}: 오류 - ${e}`);
+      logger.info(`  ✗ ${tc.name}: 오류 - ${e}`);
       failed++;
     }
   });
 
-  console.log('\n' + '─'.repeat(50));
-  console.log(`\n결과: ${passed}/${testCases.length} 통과`);
+  logger.info('\n' + '─'.repeat(50));
+  logger.info(`\n결과: ${passed}/${testCases.length} 통과`);
 
   if (failed === 0) {
-    console.log('  🟢 모든 에지 케이스 통과!');
+    logger.info('  🟢 모든 에지 케이스 통과!');
   } else {
-    console.log(`  🔴 ${failed}개 실패`);
+    logger.info(`  🔴 ${failed}개 실패`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4818,9 +4822,9 @@ export function runEdgeCaseTest(): void {
  * 게임 밸런스 빠른 진단
  */
 export function runQuickCheck(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          빠른 상태 체크                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          빠른 상태 체크                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
   const battles = 20;
 
@@ -4835,31 +4839,31 @@ export function runQuickCheck(): void {
   const stats = runSimulation(config);
 
   // 상태 표시
-  console.log('📊 현재 상태:\n');
+  logger.info('📊 현재 상태:\n');
 
   const overallStatus = stats.winRate > 0.7 ? '🟢' :
     stats.winRate > 0.4 ? '🟡' : '🔴';
 
-  console.log(`  전체 승률: ${overallStatus} ${(stats.winRate * 100).toFixed(0)}%`);
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`  전체 승률: ${overallStatus} ${(stats.winRate * 100).toFixed(0)}%`);
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
 
   // 콤보 상태
   const totalCombos = Object.values(stats.comboStats).reduce((s, c) => s + c.count, 0);
   const comboStatus = totalCombos > battles * 2 ? '🟢 활발' : totalCombos > battles ? '🟡 보통' : '🔴 저조';
-  console.log(`  콤보 활성도: ${comboStatus}`);
+  logger.info(`  콤보 활성도: ${comboStatus}`);
 
   // 추천
-  console.log('\n💡 추천:');
+  logger.info('\n💡 추천:');
 
   if (stats.winRate > 0.8) {
-    console.log('  • 난이도 상향 필요');
+    logger.info('  • 난이도 상향 필요');
   } else if (stats.winRate < 0.4) {
-    console.log('  • 플레이어 강화 또는 적 약화 필요');
+    logger.info('  • 플레이어 강화 또는 적 약화 필요');
   } else {
-    console.log('  • 현재 밸런스 양호');
+    logger.info('  • 현재 밸런스 양호');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4867,12 +4871,12 @@ export function runQuickCheck(): void {
  * AI 카드 선택 로직 테스트
  */
 export function runAITest(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            AI 테스트                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            AI 테스트                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 AI 카드 선택 성능 테스트 (${battles}회)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 AI 카드 선택 성능 테스트 (${battles}회)\n`);
+  logger.info('─'.repeat(50));
 
   // 다양한 덱으로 테스트
   const results: Array<{ deck: string; winRate: number }> = [];
@@ -4891,27 +4895,27 @@ export function runAITest(battles: number = 20): void {
   }
 
   // 결과 출력
-  console.log('\n🤖 AI 성능 (덱별):\n');
+  logger.info('\n🤖 AI 성능 (덱별):\n');
   results.sort((a, b) => b.winRate - a.winRate);
 
   results.forEach((r, idx) => {
     const bar = '█'.repeat(Math.ceil(r.winRate * 20));
-    console.log(`  ${idx + 1}. ${r.deck}: ${bar} ${(r.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${idx + 1}. ${r.deck}: ${bar} ${(r.winRate * 100).toFixed(0)}%`);
   });
 
   // 분석
   const avgWinRate = results.reduce((s, r) => s + r.winRate, 0) / results.length;
-  console.log(`\n  AI 평균 성능: ${(avgWinRate * 100).toFixed(0)}%`);
+  logger.info(`\n  AI 평균 성능: ${(avgWinRate * 100).toFixed(0)}%`);
 
   if (avgWinRate > 0.6) {
-    console.log('  💡 AI가 효과적으로 카드를 선택하고 있습니다.');
+    logger.info('  💡 AI가 효과적으로 카드를 선택하고 있습니다.');
   } else if (avgWinRate > 0.4) {
-    console.log('  💡 AI 카드 선택 로직 개선 여지가 있습니다.');
+    logger.info('  💡 AI 카드 선택 로직 개선 여지가 있습니다.');
   } else {
-    console.log('  ⚠️ AI 카드 선택 로직 검토가 필요합니다.');
+    logger.info('  ⚠️ AI 카드 선택 로직 검토가 필요합니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4919,12 +4923,12 @@ export function runAITest(battles: number = 20): void {
  * 전투 시간 분포 분석
  */
 export function runTimeTrialTest(battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          시간 기록 테스트               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          시간 기록 테스트               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${battles}회 전투 시간 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 전투 시간 분석\n`);
+  logger.info('─'.repeat(50));
 
   const times: number[] = [];
 
@@ -4950,15 +4954,15 @@ export function runTimeTrialTest(battles: number = 50): void {
   const min = times[0];
   const max = times[battles - 1];
 
-  console.log('\n⏱️ 시간 통계:\n');
-  console.log(`  평균: ${avg.toFixed(2)}ms`);
-  console.log(`  중앙값: ${median.toFixed(2)}ms`);
-  console.log(`  P95: ${p95.toFixed(2)}ms`);
-  console.log(`  최소: ${min.toFixed(2)}ms`);
-  console.log(`  최대: ${max.toFixed(2)}ms`);
+  logger.info('\n⏱️ 시간 통계:\n');
+  logger.info(`  평균: ${avg.toFixed(2)}ms`);
+  logger.info(`  중앙값: ${median.toFixed(2)}ms`);
+  logger.info(`  P95: ${p95.toFixed(2)}ms`);
+  logger.info(`  최소: ${min.toFixed(2)}ms`);
+  logger.info(`  최대: ${max.toFixed(2)}ms`);
 
   // 분포 히스토그램
-  console.log('\n📊 시간 분포:');
+  logger.info('\n📊 시간 분포:');
   const buckets = [0, 0, 0, 0, 0]; // <1ms, 1-2ms, 2-5ms, 5-10ms, >10ms
 
   times.forEach(t => {
@@ -4972,10 +4976,10 @@ export function runTimeTrialTest(battles: number = 50): void {
   const labels = ['<1ms', '1-2ms', '2-5ms', '5-10ms', '>10ms'];
   labels.forEach((label, i) => {
     const bar = '█'.repeat(Math.ceil(buckets[i] / battles * 50));
-    console.log(`  ${label.padEnd(7)}: ${bar} ${buckets[i]}`);
+    logger.info(`  ${label.padEnd(7)}: ${bar} ${buckets[i]}`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -4983,9 +4987,9 @@ export function runTimeTrialTest(battles: number = 50): void {
  * 모든 분석 결과 요약
  */
 export function runSummary(): void {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                    게임 시뮬레이터 요약                      ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════════════════════════╗');
+  logger.info('║                    게임 시뮬레이터 요약                      ║');
+  logger.info('╚════════════════════════════════════════════════════════════╝\n');
 
   const battles = 20;
 
@@ -4999,13 +5003,13 @@ export function runSummary(): void {
 
   const stats = runSimulation(config);
 
-  console.log('📊 기본 통계:\n');
-  console.log(`  승률: ${(stats.winRate * 100).toFixed(0)}%`);
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
-  console.log(`  총 전투: ${stats.totalBattles}`);
+  logger.info('📊 기본 통계:\n');
+  logger.info(`  승률: ${(stats.winRate * 100).toFixed(0)}%`);
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`  총 전투: ${stats.totalBattles}`);
 
   // 티어별 현황
-  console.log('\n📈 티어별 승률:');
+  logger.info('\n📈 티어별 승률:');
 
   for (const [idx, enemies] of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES].entries()) {
     const tierConfig: SimulationConfig = {
@@ -5017,19 +5021,19 @@ export function runSummary(): void {
 
     const tierStats = runSimulation(tierConfig);
     const bar = '█'.repeat(Math.ceil(tierStats.winRate * 20));
-    console.log(`  Tier ${idx + 1}: ${bar} ${(tierStats.winRate * 100).toFixed(0)}%`);
+    logger.info(`  Tier ${idx + 1}: ${bar} ${(tierStats.winRate * 100).toFixed(0)}%`);
   }
 
   // 가용 명령어
-  console.log('\n📋 사용 가능한 분석 명령어:');
-  console.log('  balance, tier, full, relic, deck, anomaly, card');
-  console.log('  synergy, scaling, wincond, export, token, matchup');
-  console.log('  speed, trait, recommend, weakness, multirelic, progression');
-  console.log('  cardrank, relicrank, meta, turn, damage, healing, combobreak');
-  console.log('  stress, prob, versatility, consistency, patchnotes, edge');
-  console.log('  quickcheck, aitest, timetrial, summary, help');
+  logger.info('\n📋 사용 가능한 분석 명령어:');
+  logger.info('  balance, tier, full, relic, deck, anomaly, card');
+  logger.info('  synergy, scaling, wincond, export, token, matchup');
+  logger.info('  speed, trait, recommend, weakness, multirelic, progression');
+  logger.info('  cardrank, relicrank, meta, turn, damage, healing, combobreak');
+  logger.info('  stress, prob, versatility, consistency, patchnotes, edge');
+  logger.info('  quickcheck, aitest, timetrial, summary, help');
 
-  console.log('\n' + '═'.repeat(65) + '\n');
+  logger.info('\n' + '═'.repeat(65) + '\n');
 }
 
 /**
@@ -5037,12 +5041,12 @@ export function runSummary(): void {
  * AI 기반 최적 덱 추천
  */
 export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║            덱 빌더                      ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║            덱 빌더                      ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${targetEnemy}에 대한 최적 덱 찾기\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${targetEnemy}에 대한 최적 덱 찾기\n`);
+  logger.info('─'.repeat(50));
 
   // 모든 기존 덱 테스트
   const deckResults: Array<{ name: string; winRate: number }> = [];
@@ -5063,14 +5067,14 @@ export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 
   // 정렬
   deckResults.sort((a, b) => b.winRate - a.winRate);
 
-  console.log(`\n🎯 ${targetEnemy}에 추천 덱:\n`);
+  logger.info(`\n🎯 ${targetEnemy}에 추천 덱:\n`);
   deckResults.slice(0, 3).forEach((d, i) => {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
-    console.log(`  ${medal} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
   });
 
   // 추천 상징
-  console.log('\n🔮 추천 상징:');
+  logger.info('\n🔮 추천 상징:');
   const relics = ['fox', 'turtle', 'falcon', 'oni'];
   const relicResults: Array<{ relic: string; winRate: number }> = [];
 
@@ -5089,9 +5093,9 @@ export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 
   }
 
   relicResults.sort((a, b) => b.winRate - a.winRate);
-  console.log(`  추천: ${relicResults[0].relic.toUpperCase()} (${(relicResults[0].winRate * 100).toFixed(0)}%)`);
+  logger.info(`  추천: ${relicResults[0].relic.toUpperCase()} (${(relicResults[0].winRate * 100).toFixed(0)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5099,12 +5103,12 @@ export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 
  * 가상 시나리오 테스트
  */
 export function runWhatIfAnalysis(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║         What-If 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║         What-If 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 가상 시나리오 분석\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 가상 시나리오 분석\n');
+  logger.info('─'.repeat(50));
 
   const battles = 30;
 
@@ -5119,7 +5123,7 @@ export function runWhatIfAnalysis(): void {
   const baseStats = runSimulation(baseConfig);
   const baseWinRate = baseStats.winRate;
 
-  console.log(`  현재 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+  logger.info(`  현재 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
 
   // 시나리오들
   const scenarios = [
@@ -5129,7 +5133,7 @@ export function runWhatIfAnalysis(): void {
     { name: '카드 드로우 +1', description: '드로우 증가' },
   ];
 
-  console.log('🔮 시나리오 분석:\n');
+  logger.info('🔮 시나리오 분석:\n');
 
   // 각 시나리오의 예상 효과
   scenarios.forEach(s => {
@@ -5137,12 +5141,12 @@ export function runWhatIfAnalysis(): void {
     const estimated = baseWinRate * (1 + Math.random() * 0.1);
     const change = ((estimated - baseWinRate) * 100).toFixed(1);
     const sign = parseFloat(change) >= 0 ? '+' : '';
-    console.log(`  • ${s.name}: ${sign}${change}% (${s.description})`);
+    logger.info(`  • ${s.name}: ${sign}${change}% (${s.description})`);
   });
 
-  console.log('\n💡 참고: 실제 효과는 게임 로직 수정 후 테스트 필요');
+  logger.info('\n💡 참고: 실제 효과는 게임 로직 수정 후 테스트 필요');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5150,12 +5154,12 @@ export function runWhatIfAnalysis(): void {
  * 상세 결과를 CSV로 내보내기
  */
 export function exportToCSV(battles: number = 30, filename: string = 'sim_results.csv'): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║         CSV 내보내기                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║         CSV 내보내기                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${battles}회 시뮬레이션 결과 CSV 생성\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 시뮬레이션 결과 CSV 생성\n`);
+  logger.info('─'.repeat(50));
 
   const rows: string[] = [];
   rows.push('enemy_id,deck,relic,win_rate,avg_turns');
@@ -5181,16 +5185,16 @@ export function exportToCSV(battles: number = 30, filename: string = 'sim_result
   }
 
   // 파일 저장 (콘솔 출력)
-  console.log('\n\n' + '─'.repeat(50));
-  console.log('\n📄 CSV 데이터 (처음 10줄):');
-  rows.slice(0, 10).forEach(row => console.log(`  ${row}`));
+  logger.info('\n\n' + '─'.repeat(50));
+  logger.info('\n📄 CSV 데이터 (처음 10줄):');
+  rows.slice(0, 10).forEach(row => logger.info(`  ${row}`));
 
-  console.log(`\n  ... 총 ${rows.length}줄`);
+  logger.info(`\n  ... 총 ${rows.length}줄`);
 
   // 실제 파일 저장은 fs 모듈 필요
-  console.log(`\n💾 파일명: ${filename} (콘솔 출력 전용)`);
+  logger.info(`\n💾 파일명: ${filename} (콘솔 출력 전용)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5198,18 +5202,18 @@ export function exportToCSV(battles: number = 30, filename: string = 'sim_result
  * 덱 vs 적 매치업 히트맵
  */
 export function runHeatmapAnalysis(battles: number = 15): void {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                    매치업 히트맵                            ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════════════════════════╗');
+  logger.info('║                    매치업 히트맵                            ║');
+  logger.info('╚════════════════════════════════════════════════════════════╝\n');
 
   const decks = Object.keys(DECK_PRESETS).slice(0, 4);
   const enemies = [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)];
 
-  console.log('📊 덱 vs 적 승률 히트맵\n');
+  logger.info('📊 덱 vs 적 승률 히트맵\n');
 
   // 헤더
-  console.log('         ', enemies.map(e => e.padEnd(10)).join(' '));
-  console.log('─'.repeat(60));
+  logger.info('         ', enemies.map(e => e.padEnd(10)).join(' '));
+  logger.info('─'.repeat(60));
 
   for (const deckName of decks) {
     const row: string[] = [];
@@ -5231,13 +5235,13 @@ export function runHeatmapAnalysis(battles: number = 15): void {
       row.push(`${color}${(stats.winRate * 100).toFixed(0).padStart(3)}%`);
     }
 
-    console.log(`${deckName.padEnd(10)}`, row.join('   '));
+    logger.info(`${deckName.padEnd(10)}`, row.join('   '));
   }
 
-  console.log('\n─'.repeat(60));
-  console.log('범례: 🟢 >70% | 🟡 >50% | 🟠 >30% | 🔴 ≤30%');
+  logger.info('\n─'.repeat(60));
+  logger.info('범례: 🟢 >70% | 🟡 >50% | 🟠 >30% | 🔴 ≤30%');
 
-  console.log('\n' + '═'.repeat(65) + '\n');
+  logger.info('\n' + '═'.repeat(65) + '\n');
 }
 
 /**
@@ -5245,12 +5249,12 @@ export function runHeatmapAnalysis(battles: number = 15): void {
  * 적별 최적 카운터 덱 찾기
  */
 export function runCounterAnalysis(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          카운터 전략 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          카운터 전략 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 적별 카운터 덱 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 적별 카운터 덱 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const testEnemies = [...TIER_1_ENEMIES.slice(0, 3), ...TIER_2_ENEMIES.slice(0, 2)];
 
@@ -5277,12 +5281,12 @@ export function runCounterAnalysis(battles: number = 20): void {
     const best = deckResults[0];
     const worst = deckResults[deckResults.length - 1];
 
-    console.log(`\n  ${enemy.name}:`);
-    console.log(`    🏆 베스트: ${best.name} (${(best.winRate * 100).toFixed(0)}%)`);
-    console.log(`    ⚠️ 비추천: ${worst.name} (${(worst.winRate * 100).toFixed(0)}%)`);
+    logger.info(`\n  ${enemy.name}:`);
+    logger.info(`    🏆 베스트: ${best.name} (${(best.winRate * 100).toFixed(0)}%)`);
+    logger.info(`    ⚠️ 비추천: ${worst.name} (${(worst.winRate * 100).toFixed(0)}%)`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5290,15 +5294,15 @@ export function runCounterAnalysis(battles: number = 20): void {
  * 에테르 사용 효율 분석
  */
 export function runResourceManagement(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          자원 관리 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          자원 관리 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 에테르 효율 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 에테르 효율 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 덱 비용 분석
-  console.log('\n💎 덱별 평균 에테르 비용:\n');
+  logger.info('\n💎 덱별 평균 에테르 비용:\n');
 
   for (const [name, preset] of Object.entries(DECK_PRESETS)) {
     const totalCost = preset.cards.reduce((sum, cardId) => {
@@ -5309,11 +5313,11 @@ export function runResourceManagement(battles: number = 30): void {
     const avgCost = totalCost / preset.cards.length;
     const bar = '█'.repeat(Math.ceil(avgCost * 3));
 
-    console.log(`  ${name.padEnd(12)}: ${bar} ${avgCost.toFixed(1)}`);
+    logger.info(`  ${name.padEnd(12)}: ${bar} ${avgCost.toFixed(1)}`);
   }
 
   // 효율성 테스트
-  console.log('\n📈 에테르당 승률 효율:\n');
+  logger.info('\n📈 에테르당 승률 효율:\n');
 
   const efficiencyResults: Array<{ name: string; efficiency: number }> = [];
 
@@ -5340,10 +5344,10 @@ export function runResourceManagement(battles: number = 30): void {
 
   efficiencyResults.forEach((r, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
-    console.log(`  ${medal} ${r.name}: ${(r.efficiency * 100).toFixed(2)} 효율점`);
+    logger.info(`  ${medal} ${r.name}: ${(r.efficiency * 100).toFixed(2)} 효율점`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5351,12 +5355,12 @@ export function runResourceManagement(battles: number = 30): void {
  * 장기전 성능 분석
  */
 export function runLongBattleAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          장기전 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          장기전 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 장기전 (50턴) 성능 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 장기전 (50턴) 성능 분석\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; winRate: number; avgTurns: number }> = [];
 
@@ -5380,30 +5384,30 @@ export function runLongBattleAnalysis(battles: number = 30): void {
 
   results.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n⚔️ 장기전 덱 순위:\n');
+  logger.info('\n⚔️ 장기전 덱 순위:\n');
   results.forEach((r, i) => {
     const rating = r.winRate > 0.5 ? '🌟' :
       r.winRate > 0.3 ? '⭐' :
       r.winRate > 0.1 ? '✦' : '○';
 
-    console.log(`  ${i + 1}. ${r.name.padEnd(12)}: ${rating} ${(r.winRate * 100).toFixed(0)}% (${r.avgTurns.toFixed(1)}턴)`);
+    logger.info(`  ${i + 1}. ${r.name.padEnd(12)}: ${rating} ${(r.winRate * 100).toFixed(0)}% (${r.avgTurns.toFixed(1)}턴)`);
   });
 
   // 분석
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 장기전 특성:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 장기전 특성:');
 
   const bestLong = results[0];
   const worstLong = results[results.length - 1];
 
-  console.log(`  🏆 장기전 강자: ${bestLong.name}`);
-  console.log(`  ⚠️ 장기전 취약: ${worstLong.name}`);
+  logger.info(`  🏆 장기전 강자: ${bestLong.name}`);
+  logger.info(`  ⚠️ 장기전 취약: ${worstLong.name}`);
 
   if (bestLong.avgTurns > 20) {
-    console.log(`  📌 ${bestLong.name}은(는) 지구전형 덱`);
+    logger.info(`  📌 ${bestLong.name}은(는) 지구전형 덱`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5411,12 +5415,12 @@ export function runLongBattleAnalysis(battles: number = 30): void {
  * 버스트 데미지 잠재력 분석
  */
 export function runBurstDamageAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          순간 폭딜 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          순간 폭딜 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 버스트 데미지 잠재력 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 버스트 데미지 잠재력 분석\n`);
+  logger.info('─'.repeat(50));
 
   const results: Array<{ name: string; burstPotential: number; quickWins: number }> = [];
 
@@ -5445,24 +5449,24 @@ export function runBurstDamageAnalysis(battles: number = 30): void {
 
   results.sort((a, b) => b.burstPotential - a.burstPotential);
 
-  console.log('\n💥 버스트 데미지 순위:\n');
+  logger.info('\n💥 버스트 데미지 순위:\n');
   results.forEach((r, i) => {
     const bar = '█'.repeat(Math.ceil(r.burstPotential));
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
 
-    console.log(`  ${medal} ${r.name.padEnd(12)}: ${bar} (${r.burstPotential.toFixed(1)}점)`);
-    console.log(`     빠른 승리율: ${(r.quickWins * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${r.name.padEnd(12)}: ${bar} (${r.burstPotential.toFixed(1)}점)`);
+    logger.info(`     빠른 승리율: ${(r.quickWins * 100).toFixed(0)}%`);
   });
 
   // 분석
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 폭딜 분석:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 폭딜 분석:');
 
   const topBurst = results[0];
-  console.log(`  🔥 최고 폭딜덱: ${topBurst.name}`);
-  console.log(`  ⚡ 평균 처치 속도: ${(10 - topBurst.burstPotential / topBurst.quickWins).toFixed(1)}턴`);
+  logger.info(`  🔥 최고 폭딜덱: ${topBurst.name}`);
+  logger.info(`  ⚡ 평균 처치 속도: ${(10 - topBurst.burstPotential / topBurst.quickWins).toFixed(1)}턴`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5470,12 +5474,12 @@ export function runBurstDamageAnalysis(battles: number = 30): void {
  * 무작위 요소의 영향 분석
  */
 export function runRandomEventAnalysis(trials: number = 10): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          랜덤 이벤트 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          랜덤 이벤트 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${trials}회 반복 랜덤 요소 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${trials}회 반복 랜덤 요소 분석\n`);
+  logger.info('─'.repeat(50));
 
   const winRates: number[] = [];
 
@@ -5498,20 +5502,20 @@ export function runRandomEventAnalysis(trials: number = 10): void {
   const min = Math.min(...winRates);
   const max = Math.max(...winRates);
 
-  console.log('\n📈 랜덤 변동성 분석:\n');
-  console.log(`  평균 승률: ${(avg * 100).toFixed(1)}%`);
-  console.log(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
-  console.log(`  범위: ${(min * 100).toFixed(1)}% ~ ${(max * 100).toFixed(1)}%`);
-  console.log(`  변동폭: ${((max - min) * 100).toFixed(1)}%`);
+  logger.info('\n📈 랜덤 변동성 분석:\n');
+  logger.info(`  평균 승률: ${(avg * 100).toFixed(1)}%`);
+  logger.info(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
+  logger.info(`  범위: ${(min * 100).toFixed(1)}% ~ ${(max * 100).toFixed(1)}%`);
+  logger.info(`  변동폭: ${((max - min) * 100).toFixed(1)}%`);
 
   // 안정성 평가
   const stability = stdDev < 0.05 ? '🟢 매우 안정' :
     stdDev < 0.10 ? '🟡 안정' :
     stdDev < 0.15 ? '🟠 보통' : '🔴 불안정';
 
-  console.log(`\n💡 안정성 평가: ${stability}`);
+  logger.info(`\n💡 안정성 평가: ${stability}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5519,12 +5523,12 @@ export function runRandomEventAnalysis(trials: number = 10): void {
  * 대량 시뮬레이션 성능 테스트
  */
 export function runDummyDataTest(scale: number = 100): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          더미 데이터 테스트             ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          더미 데이터 테스트             ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${scale}회 대량 시뮬레이션\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${scale}회 대량 시뮬레이션\n`);
+  logger.info('─'.repeat(50));
 
   const startTime = performance.now();
 
@@ -5538,18 +5542,18 @@ export function runDummyDataTest(scale: number = 100): void {
   const stats = runSimulation(config);
   const elapsed = performance.now() - startTime;
 
-  console.log('\n📈 성능 결과:\n');
-  console.log(`  총 전투: ${stats.totalBattles}`);
-  console.log(`  총 시간: ${elapsed.toFixed(0)}ms`);
-  console.log(`  전투당 시간: ${(elapsed / stats.totalBattles).toFixed(2)}ms`);
-  console.log(`  초당 전투: ${(stats.totalBattles / elapsed * 1000).toFixed(0)}`);
+  logger.info('\n📈 성능 결과:\n');
+  logger.info(`  총 전투: ${stats.totalBattles}`);
+  logger.info(`  총 시간: ${elapsed.toFixed(0)}ms`);
+  logger.info(`  전투당 시간: ${(elapsed / stats.totalBattles).toFixed(2)}ms`);
+  logger.info(`  초당 전투: ${(stats.totalBattles / elapsed * 1000).toFixed(0)}`);
 
   // 메모리 사용량 (대략적)
-  console.log('\n📊 시뮬레이션 통계:');
-  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
-  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info('\n📊 시뮬레이션 통계:');
+  logger.info(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  logger.info(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5557,12 +5561,12 @@ export function runDummyDataTest(scale: number = 100): void {
  * 전투 패턴의 주기성 분석
  */
 export function runCyclicAnalysis(battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          주기 분석                      ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          주기 분석                      ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 ${battles}회 전투 주기 패턴 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 ${battles}회 전투 주기 패턴 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 10회씩 5세트 분석
   const sets = 5;
@@ -5581,10 +5585,10 @@ export function runCyclicAnalysis(battles: number = 50): void {
     setResults.push(stats.winRate);
   }
 
-  console.log('\n📈 세트별 승률 추이:\n');
+  logger.info('\n📈 세트별 승률 추이:\n');
   setResults.forEach((rate, i) => {
     const bar = '█'.repeat(Math.ceil(rate * 20));
-    console.log(`  세트 ${i + 1}: ${bar} ${(rate * 100).toFixed(1)}%`);
+    logger.info(`  세트 ${i + 1}: ${bar} ${(rate * 100).toFixed(1)}%`);
   });
 
   // 추세 분석
@@ -5592,9 +5596,9 @@ export function runCyclicAnalysis(battles: number = 50): void {
   const trendDesc = trend > 0.05 ? '📈 상승 추세' :
     trend < -0.05 ? '📉 하락 추세' : '➡️ 안정';
 
-  console.log(`\n💡 추세: ${trendDesc} (${(trend * 100).toFixed(1)}%)`);
+  logger.info(`\n💡 추세: ${trendDesc} (${(trend * 100).toFixed(1)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5602,12 +5606,12 @@ export function runCyclicAnalysis(battles: number = 50): void {
  * 게임 진행 마일스톤 달성 분석
  */
 export function runMilestoneAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          마일스톤 분석                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          마일스톤 분석                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 진행도 마일스톤 분석\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 진행도 마일스톤 분석\n');
+  logger.info('─'.repeat(50));
 
   // 티어별 마일스톤
   const milestones = [
@@ -5616,7 +5620,7 @@ export function runMilestoneAnalysis(battles: number = 30): void {
     { name: 'Tier 3 보스전', enemies: TIER_3_ENEMIES.slice(0, 1), target: 0.3 },
   ];
 
-  console.log('\n🎯 마일스톤 달성 현황:\n');
+  logger.info('\n🎯 마일스톤 달성 현황:\n');
 
   milestones.forEach(m => {
     const config: SimulationConfig = {
@@ -5631,14 +5635,14 @@ export function runMilestoneAnalysis(battles: number = 30): void {
     const icon = achieved ? '✅' : '❌';
     const progress = Math.min(100, (stats.winRate / m.target) * 100);
 
-    console.log(`  ${icon} ${m.name}`);
-    console.log(`     목표: ${(m.target * 100).toFixed(0)}% | 현재: ${(stats.winRate * 100).toFixed(0)}%`);
-    console.log(`     진행률: ${'█'.repeat(Math.ceil(progress / 5))} ${progress.toFixed(0)}%`);
+    logger.info(`  ${icon} ${m.name}`);
+    logger.info(`     목표: ${(m.target * 100).toFixed(0)}% | 현재: ${(stats.winRate * 100).toFixed(0)}%`);
+    logger.info(`     진행률: ${'█'.repeat(Math.ceil(progress / 5))} ${progress.toFixed(0)}%`);
   });
 
   // 전체 진행도
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n📈 전체 진행도:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n📈 전체 진행도:');
 
   const tier1Config: SimulationConfig = { battles: 10, maxTurns: 30, enemyIds: TIER_1_ENEMIES, verbose: false };
   const tier2Config: SimulationConfig = { battles: 10, maxTurns: 30, enemyIds: TIER_2_ENEMIES, verbose: false };
@@ -5650,9 +5654,9 @@ export function runMilestoneAnalysis(battles: number = 30): void {
 
   const overall = (t1 * 0.3 + t2 * 0.4 + t3 * 0.3) * 100;
 
-  console.log(`  게임 완료도: ${overall.toFixed(0)}%`);
+  logger.info(`  게임 완료도: ${overall.toFixed(0)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5660,12 +5664,12 @@ export function runMilestoneAnalysis(battles: number = 30): void {
  * 최적의 콤보 조합 찾기
  */
 export function runComboOptimization(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          콤보 최적화 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          콤보 최적화 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 콤보 발생률 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 콤보 발생률 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const deckComboStats: Array<{ name: string; comboRate: number; winRate: number }> = [];
 
@@ -5691,31 +5695,31 @@ export function runComboOptimization(battles: number = 30): void {
 
   deckComboStats.sort((a, b) => b.comboRate - a.comboRate);
 
-  console.log('\n🃏 덱별 콤보 발생률:\n');
+  logger.info('\n🃏 덱별 콤보 발생률:\n');
   deckComboStats.forEach((d, i) => {
     const bar = '█'.repeat(Math.ceil(d.comboRate * 5));
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
-    console.log(`  ${medal} ${d.name.padEnd(12)}: ${bar} ${d.comboRate.toFixed(2)}/전투`);
-    console.log(`     승률: ${(d.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${d.name.padEnd(12)}: ${bar} ${d.comboRate.toFixed(2)}/전투`);
+    logger.info(`     승률: ${(d.winRate * 100).toFixed(0)}%`);
   });
 
   // 콤보-승률 상관관계
-  console.log('\n' + '─'.repeat(50));
-  console.log('\n💡 콤보-승률 상관관계:');
+  logger.info('\n' + '─'.repeat(50));
+  logger.info('\n💡 콤보-승률 상관관계:');
 
   const highCombo = deckComboStats.filter(d => d.comboRate > 1);
   const lowCombo = deckComboStats.filter(d => d.comboRate < 0.5);
 
   if (highCombo.length > 0) {
     const avgWin = highCombo.reduce((s, d) => s + d.winRate, 0) / highCombo.length;
-    console.log(`  고콤보 덱 평균 승률: ${(avgWin * 100).toFixed(0)}%`);
+    logger.info(`  고콤보 덱 평균 승률: ${(avgWin * 100).toFixed(0)}%`);
   }
   if (lowCombo.length > 0) {
     const avgWin = lowCombo.reduce((s, d) => s + d.winRate, 0) / lowCombo.length;
-    console.log(`  저콤보 덱 평균 승률: ${(avgWin * 100).toFixed(0)}%`);
+    logger.info(`  저콤보 덱 평균 승률: ${(avgWin * 100).toFixed(0)}%`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5723,12 +5727,12 @@ export function runComboOptimization(battles: number = 30): void {
  * 연속 전투 내구력 측정
  */
 export function runEnduranceTest(battles: number = 50): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          내구력 테스트                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          내구력 테스트                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 연속 ${battles}회 전투 내구력 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 연속 ${battles}회 전투 내구력 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 연속 전투 시뮬레이션 (HP 누적 손실)
   const results: Array<{ name: string; avgHpLoss: number; survivability: number }> = [];
@@ -5756,15 +5760,15 @@ export function runEnduranceTest(battles: number = 50): void {
 
   results.sort((a, b) => a.avgHpLoss - b.avgHpLoss);
 
-  console.log('\n💪 내구력 순위 (전투당 평균 HP 손실):\n');
+  logger.info('\n💪 내구력 순위 (전투당 평균 HP 손실):\n');
   results.forEach((r, i) => {
     const bar = '█'.repeat(Math.ceil(20 - r.avgHpLoss / 3));
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
-    console.log(`  ${medal} ${r.name.padEnd(12)}: ${bar} ${r.avgHpLoss.toFixed(1)} HP/전투`);
-    console.log(`     생존률: ${(r.survivability * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${r.name.padEnd(12)}: ${bar} ${r.avgHpLoss.toFixed(1)} HP/전투`);
+    logger.info(`     생존률: ${(r.survivability * 100).toFixed(0)}%`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5772,12 +5776,12 @@ export function runEnduranceTest(battles: number = 50): void {
  * 종합 밸런스 점수 산출
  */
 export function runBalanceScore(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          밸런스 점수 계산               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          밸런스 점수 계산               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 게임 밸런스 종합 점수 산출\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 게임 밸런스 종합 점수 산출\n');
+  logger.info('─'.repeat(50));
 
   const battles = 20;
   const scores: { [key: string]: number } = {};
@@ -5821,23 +5825,23 @@ export function runBalanceScore(): void {
   // 종합 점수
   const totalScore = Object.values(scores).reduce((s, v) => s + v, 0) / Object.keys(scores).length;
 
-  console.log('\n📈 세부 점수:\n');
+  logger.info('\n📈 세부 점수:\n');
   for (const [category, score] of Object.entries(scores)) {
     const bar = '█'.repeat(Math.ceil(score / 5));
     const rating = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🔴';
-    console.log(`  ${rating} ${category.padEnd(15)}: ${bar} ${score.toFixed(0)}`);
+    logger.info(`  ${rating} ${category.padEnd(15)}: ${bar} ${score.toFixed(0)}`);
   }
 
-  console.log('\n' + '─'.repeat(50));
-  console.log(`\n🏆 종합 밸런스 점수: ${totalScore.toFixed(0)}/100`);
+  logger.info('\n' + '─'.repeat(50));
+  logger.info(`\n🏆 종합 밸런스 점수: ${totalScore.toFixed(0)}/100`);
 
   const grade = totalScore >= 90 ? 'S (완벽)' :
     totalScore >= 80 ? 'A (우수)' :
     totalScore >= 70 ? 'B (양호)' :
     totalScore >= 60 ? 'C (보통)' : 'D (개선필요)';
-  console.log(`   등급: ${grade}`);
+  logger.info(`   등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5845,15 +5849,15 @@ export function runBalanceScore(): void {
  * 카드 드로우 패턴 분석
  */
 export function runDrawAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          드로우 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          드로우 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱 구성 및 드로우 효율 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱 구성 및 드로우 효율 분석\n`);
+  logger.info('─'.repeat(50));
 
   // 덱 구성 분석
-  console.log('\n🃏 덱별 카드 구성:\n');
+  logger.info('\n🃏 덱별 카드 구성:\n');
 
   for (const [name, preset] of Object.entries(DECK_PRESETS)) {
     const cards = preset.cards;
@@ -5869,14 +5873,14 @@ export function runDrawAnalysis(battles: number = 30): void {
 
     const utilityCards = cards.length - attackCards - defenseCards;
 
-    console.log(`  ${name}:`);
-    console.log(`    공격: ${'🗡️'.repeat(attackCards)} (${attackCards})`);
-    console.log(`    방어: ${'🛡️'.repeat(defenseCards)} (${defenseCards})`);
-    console.log(`    유틸: ${'⚙️'.repeat(utilityCards)} (${utilityCards})`);
+    logger.info(`  ${name}:`);
+    logger.info(`    공격: ${'🗡️'.repeat(attackCards)} (${attackCards})`);
+    logger.info(`    방어: ${'🛡️'.repeat(defenseCards)} (${defenseCards})`);
+    logger.info(`    유틸: ${'⚙️'.repeat(utilityCards)} (${utilityCards})`);
   }
 
   // 효율 테스트
-  console.log('\n📈 드로우 효율 순위:\n');
+  logger.info('\n📈 드로우 효율 순위:\n');
 
   const efficiencyResults: Array<{ name: string; efficiency: number }> = [];
 
@@ -5899,10 +5903,10 @@ export function runDrawAnalysis(battles: number = 30): void {
 
   efficiencyResults.forEach((r, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
-    console.log(`  ${medal} ${r.name}: ${(r.efficiency * 100).toFixed(1)} 효율`);
+    logger.info(`  ${medal} ${r.name}: ${(r.efficiency * 100).toFixed(1)} 효율`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5910,12 +5914,12 @@ export function runDrawAnalysis(battles: number = 30): void {
  * 카드 속성(특성) 간의 상성 관계 분석
  */
 export function runAttributeAffinity(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          속성상성 분석                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          속성상성 분석                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 카드 특성별 성능 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 카드 특성별 성능 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 특성별 카드 분류
   const traitGroups: Record<string, string[]> = {};
@@ -5956,19 +5960,19 @@ export function runAttributeAffinity(battles: number = 20): void {
   // 승률 순 정렬
   traitStats.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n🎯 특성별 승률 순위:\n');
+  logger.info('\n🎯 특성별 승률 순위:\n');
   traitStats.forEach((s, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(s.winRate * 20));
-    console.log(`  ${medal} ${s.trait.padEnd(10)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${s.trait.padEnd(10)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
   });
 
   // 상성 매트릭스
-  console.log('\n⚔️ 특성 간 상성 (최상위 3개 특성):\n');
+  logger.info('\n⚔️ 특성 간 상성 (최상위 3개 특성):\n');
   const topTraits = traitStats.slice(0, 3).map(t => t.trait);
 
-  console.log(`         | ${topTraits.map(t => t.padEnd(8)).join(' | ')}`);
-  console.log('  ' + '─'.repeat(40));
+  logger.info(`         | ${topTraits.map(t => t.padEnd(8)).join(' | ')}`);
+  logger.info('  ' + '─'.repeat(40));
 
   for (const t1 of topTraits) {
     const row = [t1.padEnd(8)];
@@ -5981,10 +5985,10 @@ export function runAttributeAffinity(battles: number = 20): void {
         row.push(score >= 0.5 ? '  🟢   ' : '  🔴   ');
       }
     }
-    console.log(`  ${row.join(' | ')}`);
+    logger.info(`  ${row.join(' | ')}`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -5992,12 +5996,12 @@ export function runAttributeAffinity(battles: number = 20): void {
  * 턴당 행동량 및 자원 효율 분석
  */
 export function runTurnEconomy(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          턴경제 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          턴경제 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 턴당 행동 효율 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 턴당 행동 효율 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const deckEconomy: Array<{ name: string; actionsPerTurn: number; damagePerTurn: number; efficiency: number }> = [];
 
@@ -6024,13 +6028,13 @@ export function runTurnEconomy(battles: number = 30): void {
   // 효율 순 정렬
   deckEconomy.sort((a, b) => b.efficiency - a.efficiency);
 
-  console.log('\n📈 덱별 턴 효율:\n');
-  console.log('  덱            | 턴당피해 | 효율점수');
-  console.log('  ' + '─'.repeat(40));
+  logger.info('\n📈 덱별 턴 효율:\n');
+  logger.info('  덱            | 턴당피해 | 효율점수');
+  logger.info('  ' + '─'.repeat(40));
 
   deckEconomy.forEach((d, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
-    console.log(`  ${medal} ${d.name.padEnd(12)}: ${d.damagePerTurn.toFixed(1).padStart(8)} | ${d.efficiency.toFixed(1).padStart(8)}`);
+    logger.info(`  ${medal} ${d.name.padEnd(12)}: ${d.damagePerTurn.toFixed(1).padStart(8)} | ${d.efficiency.toFixed(1).padStart(8)}`);
   });
 
   // 경제 지표
@@ -6038,13 +6042,13 @@ export function runTurnEconomy(battles: number = 30): void {
   const bestDeck = deckEconomy[0];
   const worstDeck = deckEconomy[deckEconomy.length - 1];
 
-  console.log('\n📊 경제 지표:\n');
-  console.log(`  평균 효율: ${avgEfficiency.toFixed(1)}`);
-  console.log(`  최고 효율: ${bestDeck.name} (${bestDeck.efficiency.toFixed(1)})`);
-  console.log(`  최저 효율: ${worstDeck.name} (${worstDeck.efficiency.toFixed(1)})`);
-  console.log(`  효율 격차: ${((bestDeck.efficiency - worstDeck.efficiency) / avgEfficiency * 100).toFixed(0)}%`);
+  logger.info('\n📊 경제 지표:\n');
+  logger.info(`  평균 효율: ${avgEfficiency.toFixed(1)}`);
+  logger.info(`  최고 효율: ${bestDeck.name} (${bestDeck.efficiency.toFixed(1)})`);
+  logger.info(`  최저 효율: ${worstDeck.name} (${worstDeck.efficiency.toFixed(1)})`);
+  logger.info(`  효율 격차: ${((bestDeck.efficiency - worstDeck.efficiency) / avgEfficiency * 100).toFixed(0)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6052,12 +6056,12 @@ export function runTurnEconomy(battles: number = 30): void {
  * 적 조합별 위험도 평가
  */
 export function runRiskAssessment(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          위험도 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          위험도 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 적 조합별 위험도 평가 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 적 조합별 위험도 평가 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const riskData: Array<{ enemies: string; riskScore: number; avgTurns: number; lossRate: number }> = [];
 
@@ -6095,33 +6099,33 @@ export function runRiskAssessment(battles: number = 20): void {
   // 위험도 순 정렬
   riskData.sort((a, b) => b.riskScore - a.riskScore);
 
-  console.log('\n⚠️ 적 조합별 위험도 순위:\n');
+  logger.info('\n⚠️ 적 조합별 위험도 순위:\n');
   riskData.forEach((r, i) => {
     const danger = r.riskScore >= 0.5 ? '🔴' : r.riskScore >= 0.25 ? '🟡' : '🟢';
     const bar = '█'.repeat(Math.ceil(r.riskScore * 20));
-    console.log(`  ${danger} ${r.enemies.padEnd(20)}: ${bar} (패배율: ${(r.lossRate * 100).toFixed(0)}%)`);
+    logger.info(`  ${danger} ${r.enemies.padEnd(20)}: ${bar} (패배율: ${(r.lossRate * 100).toFixed(0)}%)`);
   });
 
   // 위험 요약
   const avgRisk = riskData.reduce((s, r) => s + r.riskScore, 0) / riskData.length;
   const highRiskCount = riskData.filter(r => r.riskScore >= 0.5).length;
 
-  console.log('\n📊 위험 요약:\n');
-  console.log(`  평균 위험도: ${(avgRisk * 100).toFixed(0)}%`);
-  console.log(`  고위험 조합: ${highRiskCount}개`);
-  console.log(`  저위험 조합: ${riskData.length - highRiskCount}개`);
+  logger.info('\n📊 위험 요약:\n');
+  logger.info(`  평균 위험도: ${(avgRisk * 100).toFixed(0)}%`);
+  logger.info(`  고위험 조합: ${highRiskCount}개`);
+  logger.info(`  저위험 조합: ${riskData.length - highRiskCount}개`);
 
   // 권장사항
-  console.log('\n💡 권장사항:\n');
+  logger.info('\n💡 권장사항:\n');
   if (highRiskCount > riskData.length / 2) {
-    console.log('  ⚠️ 전반적인 난이도가 높습니다. 방어 덱을 권장합니다.');
+    logger.info('  ⚠️ 전반적인 난이도가 높습니다. 방어 덱을 권장합니다.');
   } else if (avgRisk < 0.2) {
-    console.log('  ⚠️ 난이도가 낮습니다. 적 강화를 고려하세요.');
+    logger.info('  ⚠️ 난이도가 낮습니다. 적 강화를 고려하세요.');
   } else {
-    console.log('  ✅ 균형 잡힌 난이도입니다.');
+    logger.info('  ✅ 균형 잡힌 난이도입니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6129,12 +6133,12 @@ export function runRiskAssessment(battles: number = 20): void {
  * 덱별 다양한 상황 적응력 분석
  */
 export function runAdaptabilityTest(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          적응력 테스트                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          적응력 테스트                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 적응력 분석 (${battles}회 전투/시나리오)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 적응력 분석 (${battles}회 전투/시나리오)\n`);
+  logger.info('─'.repeat(50));
 
   // 테스트 시나리오
   const scenarios = [
@@ -6173,35 +6177,35 @@ export function runAdaptabilityTest(battles: number = 20): void {
   // 평균 점수 순 정렬
   adaptability.sort((a, b) => b.avgScore - a.avgScore);
 
-  console.log('\n🎯 시나리오별 승률:\n');
-  console.log(`  ${'덱'.padEnd(12)} | ${scenarios.map(s => s.name.padEnd(8)).join(' | ')}`);
-  console.log('  ' + '─'.repeat(60));
+  logger.info('\n🎯 시나리오별 승률:\n');
+  logger.info(`  ${'덱'.padEnd(12)} | ${scenarios.map(s => s.name.padEnd(8)).join(' | ')}`);
+  logger.info('  ' + '─'.repeat(60));
 
   adaptability.forEach((a, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
     const scoreStr = a.scores.map(s => `${(s * 100).toFixed(0).padStart(5)}%`).join('  | ');
-    console.log(`  ${medal} ${a.deck.padEnd(10)}: ${scoreStr}`);
+    logger.info(`  ${medal} ${a.deck.padEnd(10)}: ${scoreStr}`);
   });
 
   // 적응력 점수
-  console.log('\n🔄 적응력 순위 (일관성 기반):\n');
+  logger.info('\n🔄 적응력 순위 (일관성 기반):\n');
   adaptability.sort((a, b) => b.consistency - a.consistency);
 
   adaptability.forEach((a, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(a.consistency * 20));
-    console.log(`  ${medal} ${a.deck.padEnd(12)}: ${bar} ${(a.consistency * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${a.deck.padEnd(12)}: ${bar} ${(a.consistency * 100).toFixed(0)}%`);
   });
 
   // 권장 덱
   const mostAdaptable = adaptability[0];
   const leastAdaptable = adaptability[adaptability.length - 1];
 
-  console.log('\n💡 분석 결과:\n');
-  console.log(`  가장 적응력 높음: ${mostAdaptable.deck} (${(mostAdaptable.consistency * 100).toFixed(0)}%)`);
-  console.log(`  가장 적응력 낮음: ${leastAdaptable.deck} (${(leastAdaptable.consistency * 100).toFixed(0)}%)`);
+  logger.info('\n💡 분석 결과:\n');
+  logger.info(`  가장 적응력 높음: ${mostAdaptable.deck} (${(mostAdaptable.consistency * 100).toFixed(0)}%)`);
+  logger.info(`  가장 적응력 낮음: ${leastAdaptable.deck} (${(leastAdaptable.consistency * 100).toFixed(0)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6209,12 +6213,12 @@ export function runAdaptabilityTest(battles: number = 20): void {
  * 토큰 조합별 시너지 효과 분석
  */
 export function runTokenSynergy(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          토큰 시너지 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          토큰 시너지 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 토큰 조합별 효과 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 토큰 조합별 효과 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 토큰 타입 정의
   const tokenTypes = ['공세', '방어', '회피', '취약', '무딤', '흡수', '기교', '집중'];
@@ -6242,21 +6246,21 @@ export function runTokenSynergy(battles: number = 30): void {
   // 결과 정렬
   synergyResults.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n🎯 토큰별 효과 순위:\n');
+  logger.info('\n🎯 토큰별 효과 순위:\n');
   synergyResults.forEach((s, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(s.winRate * 20));
-    console.log(`  ${medal} ${s.combo.padEnd(8)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${s.combo.padEnd(8)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
   });
 
   // 시너지 매트릭스
-  console.log('\n⚡ 토큰 시너지 추천:\n');
-  console.log('  공세 + 취약: 공격력 극대화');
-  console.log('  방어 + 흡수: 생존력 극대화');
-  console.log('  회피 + 기교: 회피 기반 전략');
-  console.log('  집중 + 공세: 치명타 극대화');
+  logger.info('\n⚡ 토큰 시너지 추천:\n');
+  logger.info('  공세 + 취약: 공격력 극대화');
+  logger.info('  방어 + 흡수: 생존력 극대화');
+  logger.info('  회피 + 기교: 회피 기반 전략');
+  logger.info('  집중 + 공세: 치명타 극대화');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6264,12 +6268,12 @@ export function runTokenSynergy(battles: number = 30): void {
  * 덱 내 카드 구성 비율 분석
  */
 export function runCompositionAnalysis(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          카드 편성 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          카드 편성 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 카드 편성 및 효율 분석\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 카드 편성 및 효율 분석\n`);
+  logger.info('─'.repeat(50));
 
   const compositionData: Array<{
     deck: string;
@@ -6320,24 +6324,24 @@ export function runCompositionAnalysis(battles: number = 20): void {
   // 승률 순 정렬
   compositionData.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n🃏 덱별 카드 비율:\n');
-  console.log('  덱            | 공격  | 방어  | 유틸  | 승률');
-  console.log('  ' + '─'.repeat(50));
+  logger.info('\n🃏 덱별 카드 비율:\n');
+  logger.info('  덱            | 공격  | 방어  | 유틸  | 승률');
+  logger.info('  ' + '─'.repeat(50));
 
   compositionData.forEach((c, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
-    console.log(`  ${medal} ${c.deck.padEnd(12)}: ${(c.attackRatio * 100).toFixed(0).padStart(4)}% | ${(c.defenseRatio * 100).toFixed(0).padStart(4)}% | ${(c.utilityRatio * 100).toFixed(0).padStart(4)}% | ${(c.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${medal} ${c.deck.padEnd(12)}: ${(c.attackRatio * 100).toFixed(0).padStart(4)}% | ${(c.defenseRatio * 100).toFixed(0).padStart(4)}% | ${(c.utilityRatio * 100).toFixed(0).padStart(4)}% | ${(c.winRate * 100).toFixed(0)}%`);
   });
 
   // 최적 비율 분석
   const bestDeck = compositionData[0];
-  console.log('\n💡 최적 편성 분석:\n');
-  console.log(`  최고 승률 덱: ${bestDeck.deck}`);
-  console.log(`  공격 비율: ${(bestDeck.attackRatio * 100).toFixed(0)}%`);
-  console.log(`  방어 비율: ${(bestDeck.defenseRatio * 100).toFixed(0)}%`);
-  console.log(`  유틸 비율: ${(bestDeck.utilityRatio * 100).toFixed(0)}%`);
+  logger.info('\n💡 최적 편성 분석:\n');
+  logger.info(`  최고 승률 덱: ${bestDeck.deck}`);
+  logger.info(`  공격 비율: ${(bestDeck.attackRatio * 100).toFixed(0)}%`);
+  logger.info(`  방어 비율: ${(bestDeck.defenseRatio * 100).toFixed(0)}%`);
+  logger.info(`  유틸 비율: ${(bestDeck.utilityRatio * 100).toFixed(0)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6345,12 +6349,12 @@ export function runCompositionAnalysis(battles: number = 20): void {
  * 카드 키워드(특성) 사용 빈도 분석
  */
 export function runKeywordAnalysis(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          키워드 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          키워드 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 카드 키워드(특성) 사용 빈도 분석\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 카드 키워드(특성) 사용 빈도 분석\n');
+  logger.info('─'.repeat(50));
 
   // 키워드 빈도 계산
   const keywordCount: Record<string, number> = {};
@@ -6368,30 +6372,30 @@ export function runKeywordAnalysis(): void {
   const sortedKeywords = Object.entries(keywordCount)
     .sort((a, b) => b[1] - a[1]);
 
-  console.log('\n🏷️ 키워드 빈도 순위:\n');
+  logger.info('\n🏷️ 키워드 빈도 순위:\n');
   sortedKeywords.forEach(([keyword, count], i) => {
     const bar = '█'.repeat(Math.min(count, 20));
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${keyword.padEnd(10)}: ${bar} (${count}개)`);
+    logger.info(`  ${(i + 1).toString().padStart(2)}. ${keyword.padEnd(10)}: ${bar} (${count}개)`);
   });
 
   // 상위 키워드 상세
-  console.log('\n📋 상위 5개 키워드 카드 목록:\n');
+  logger.info('\n📋 상위 5개 키워드 카드 목록:\n');
   sortedKeywords.slice(0, 5).forEach(([keyword, count]) => {
-    console.log(`  [${keyword}] (${count}개):`);
+    logger.info(`  [${keyword}] (${count}개):`);
     const cards = keywordCards[keyword].slice(0, 5);
-    console.log(`    ${cards.join(', ')}${keywordCards[keyword].length > 5 ? '...' : ''}`);
+    logger.info(`    ${cards.join(', ')}${keywordCards[keyword].length > 5 ? '...' : ''}`);
   });
 
   // 희귀 키워드
   const rareKeywords = sortedKeywords.filter(([, count]) => count <= 2);
   if (rareKeywords.length > 0) {
-    console.log('\n💎 희귀 키워드 (2개 이하):\n');
+    logger.info('\n💎 희귀 키워드 (2개 이하):\n');
     rareKeywords.forEach(([keyword, count]) => {
-      console.log(`  ${keyword}: ${count}개`);
+      logger.info(`  ${keyword}: ${count}개`);
     });
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6399,12 +6403,12 @@ export function runKeywordAnalysis(): void {
  * 상황별 최적 전략 추천
  */
 export function runOptimalStrategy(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          최적 전략 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          최적 전략 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 상황별 최적 전략 추천 (${battles}회 전투/조합)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 상황별 최적 전략 추천 (${battles}회 전투/조합)\n`);
+  logger.info('─'.repeat(50));
 
   // 시나리오별 최적 덱 찾기
   const scenarios = [
@@ -6443,10 +6447,10 @@ export function runOptimalStrategy(battles: number = 20): void {
     });
   }
 
-  console.log('\n🎯 상황별 최적 덱:\n');
+  logger.info('\n🎯 상황별 최적 덱:\n');
   strategies.forEach(s => {
     const rating = s.winRate >= 0.8 ? '🟢' : s.winRate >= 0.5 ? '🟡' : '🔴';
-    console.log(`  ${rating} ${s.scenario.padEnd(15)}: ${s.bestDeck} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
+    logger.info(`  ${rating} ${s.scenario.padEnd(15)}: ${s.bestDeck} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
   });
 
   // 범용 추천
@@ -6457,20 +6461,20 @@ export function runOptimalStrategy(battles: number = 20): void {
 
   const sortedDecks = Object.entries(deckUsage).sort((a, b) => b[1] - a[1]);
 
-  console.log('\n🏆 범용성 높은 덱:\n');
+  logger.info('\n🏆 범용성 높은 덱:\n');
   sortedDecks.forEach(([deck, count], i) => {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-    console.log(`  ${medal} ${deck}: ${count}개 시나리오에서 최적`);
+    logger.info(`  ${medal} ${deck}: ${count}개 시나리오에서 최적`);
   });
 
   // 전략 가이드
-  console.log('\n📖 전략 가이드:\n');
-  console.log('  - 단일 적: 화력 집중 덱 추천');
-  console.log('  - 다수 적: 범위 공격 덱 추천');
-  console.log('  - 강한 적: 방어/생존 덱 추천');
-  console.log('  - 혼합 전: 밸런스 덱 추천');
+  logger.info('\n📖 전략 가이드:\n');
+  logger.info('  - 단일 적: 화력 집중 덱 추천');
+  logger.info('  - 다수 적: 범위 공격 덱 추천');
+  logger.info('  - 강한 적: 방어/생존 덱 추천');
+  logger.info('  - 혼합 전: 밸런스 덱 추천');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6478,12 +6482,12 @@ export function runOptimalStrategy(battles: number = 20): void {
  * 덱별 순간 최대 피해량 분석
  */
 export function runBurstPotential(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          폭발력 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          폭발력 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 순간 최대 피해량 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 순간 최대 피해량 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const burstData: Array<{ deck: string; maxDamage: number; avgDamage: number; burstRatio: number }> = [];
 
@@ -6513,23 +6517,23 @@ export function runBurstPotential(battles: number = 20): void {
   // 최대 피해 순 정렬
   burstData.sort((a, b) => b.maxDamage - a.maxDamage);
 
-  console.log('\n💥 폭발력 순위:\n');
-  console.log('  덱            | 최대피해 | 평균피해 | 폭발계수');
-  console.log('  ' + '─'.repeat(50));
+  logger.info('\n💥 폭발력 순위:\n');
+  logger.info('  덱            | 최대피해 | 평균피해 | 폭발계수');
+  logger.info('  ' + '─'.repeat(50));
 
   burstData.forEach((b, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
-    console.log(`  ${medal} ${b.deck.padEnd(12)}: ${b.maxDamage.toFixed(0).padStart(8)} | ${b.avgDamage.toFixed(0).padStart(8)} | ${b.burstRatio.toFixed(2)}`);
+    logger.info(`  ${medal} ${b.deck.padEnd(12)}: ${b.maxDamage.toFixed(0).padStart(8)} | ${b.avgDamage.toFixed(0).padStart(8)} | ${b.burstRatio.toFixed(2)}`);
   });
 
   // 폭발력 분석
   const highBurst = burstData.filter(b => b.burstRatio >= 1.5);
-  console.log('\n💡 폭발력 높은 덱:\n');
+  logger.info('\n💡 폭발력 높은 덱:\n');
   highBurst.forEach(b => {
-    console.log(`  🔥 ${b.deck}: 폭발계수 ${b.burstRatio.toFixed(2)}`);
+    logger.info(`  🔥 ${b.deck}: 폭발계수 ${b.burstRatio.toFixed(2)}`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6537,12 +6541,12 @@ export function runBurstPotential(battles: number = 20): void {
  * 다양한 전략의 효율 비교
  */
 export function runStrategyComparison(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          전략 비교 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          전략 비교 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 전략별 효율 비교 (${battles}회 전투/전략)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 전략별 효율 비교 (${battles}회 전투/전략)\n`);
+  logger.info('─'.repeat(50));
 
   // 전략 정의
   const strategies = [
@@ -6590,19 +6594,19 @@ export function runStrategyComparison(battles: number = 20): void {
   // 승률 순 정렬
   strategyResults.sort((a, b) => b.winRate - a.winRate);
 
-  console.log('\n🎯 전략별 효율:\n');
+  logger.info('\n🎯 전략별 효율:\n');
   strategyResults.forEach((s, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(s.winRate * 20));
-    console.log(`  ${medal} ${s.strategy.padEnd(12)}: ${bar} ${(s.winRate * 100).toFixed(0)}% (${s.avgTurns.toFixed(1)}턴)`);
+    logger.info(`  ${medal} ${s.strategy.padEnd(12)}: ${bar} ${(s.winRate * 100).toFixed(0)}% (${s.avgTurns.toFixed(1)}턴)`);
   });
 
   // 전략 추천
   const bestStrategy = strategyResults[0];
-  console.log('\n💡 추천 전략:\n');
-  console.log(`  🏆 ${bestStrategy.strategy} 전략이 가장 효과적 (승률 ${(bestStrategy.winRate * 100).toFixed(0)}%)`);
+  logger.info('\n💡 추천 전략:\n');
+  logger.info(`  🏆 ${bestStrategy.strategy} 전략이 가장 효과적 (승률 ${(bestStrategy.winRate * 100).toFixed(0)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6610,12 +6614,12 @@ export function runStrategyComparison(battles: number = 20): void {
  * 방어 및 회복 효율 분석
  */
 export function runDamageAbsorption(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          피해 흡수 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          피해 흡수 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 피해 흡수 효율 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 피해 흡수 효율 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const absorptionData: Array<{
     deck: string;
@@ -6649,27 +6653,27 @@ export function runDamageAbsorption(battles: number = 20): void {
   // 효율 순 정렬
   absorptionData.sort((a, b) => b.efficiency - a.efficiency);
 
-  console.log('\n🛡️ 피해 흡수 순위:\n');
-  console.log('  덱            | 받은피해 | 생존률 | 효율');
-  console.log('  ' + '─'.repeat(45));
+  logger.info('\n🛡️ 피해 흡수 순위:\n');
+  logger.info('  덱            | 받은피해 | 생존률 | 효율');
+  logger.info('  ' + '─'.repeat(45));
 
   absorptionData.forEach((a, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
-    console.log(`  ${medal} ${a.deck.padEnd(12)}: ${a.avgDamageTaken.toFixed(0).padStart(8)} | ${(a.survivalRate * 100).toFixed(0).padStart(5)}% | ${a.efficiency.toFixed(1)}`);
+    logger.info(`  ${medal} ${a.deck.padEnd(12)}: ${a.avgDamageTaken.toFixed(0).padStart(8)} | ${(a.survivalRate * 100).toFixed(0).padStart(5)}% | ${a.efficiency.toFixed(1)}`);
   });
 
   // 방어 덱 분석
   const tankDecks = absorptionData.filter(a => a.efficiency >= 10);
-  console.log('\n💡 탱크 덱 (효율 10 이상):\n');
+  logger.info('\n💡 탱크 덱 (효율 10 이상):\n');
   if (tankDecks.length > 0) {
     tankDecks.forEach(d => {
-      console.log(`  🛡️ ${d.deck}: 효율 ${d.efficiency.toFixed(1)}`);
+      logger.info(`  🛡️ ${d.deck}: 효율 ${d.efficiency.toFixed(1)}`);
     });
   } else {
-    console.log('  ⚠️ 탱크 덱이 없습니다.');
+    logger.info('  ⚠️ 탱크 덱이 없습니다.');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6677,12 +6681,12 @@ export function runDamageAbsorption(battles: number = 20): void {
  * 적 처치 패턴 분석
  */
 export function runKillChainAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          연속 킬 분석                   ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          연속 킬 분석                   ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 적 처치 패턴 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 적 처치 패턴 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const killData: Array<{
     deck: string;
@@ -6717,27 +6721,27 @@ export function runKillChainAnalysis(battles: number = 30): void {
   // 킬 효율 순 정렬
   killData.sort((a, b) => b.killEfficiency - a.killEfficiency);
 
-  console.log('\n⚔️ 킬 효율 순위:\n');
+  logger.info('\n⚔️ 킬 효율 순위:\n');
   killData.forEach((k, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(k.killEfficiency / 5));
-    console.log(`  ${medal} ${k.deck.padEnd(12)}: ${bar} (효율: ${k.killEfficiency.toFixed(1)})`);
+    logger.info(`  ${medal} ${k.deck.padEnd(12)}: ${bar} (효율: ${k.killEfficiency.toFixed(1)})`);
   });
 
   // 평균 킬 분석
-  console.log('\n📈 평균 처치 수:\n');
+  logger.info('\n📈 평균 처치 수:\n');
   killData.sort((a, b) => b.avgKillsPerBattle - a.avgKillsPerBattle);
   killData.slice(0, 5).forEach((k, i) => {
-    console.log(`  ${i + 1}. ${k.deck}: ${k.avgKillsPerBattle.toFixed(1)} 적/전투`);
+    logger.info(`  ${i + 1}. ${k.deck}: ${k.avgKillsPerBattle.toFixed(1)} 적/전투`);
   });
 
   // 킬 팁
-  console.log('\n💡 킬 체인 팁:\n');
-  console.log('  - 높은 피해: 빠른 처치');
-  console.log('  - 낮은 턴 수: 효율적 전투');
-  console.log('  - 높은 승률: 안정적 처치');
+  logger.info('\n💡 킬 체인 팁:\n');
+  logger.info('  - 높은 피해: 빠른 처치');
+  logger.info('  - 낮은 턴 수: 효율적 전투');
+  logger.info('  - 높은 승률: 안정적 처치');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6745,12 +6749,12 @@ export function runKillChainAnalysis(battles: number = 30): void {
  * 시뮬레이션 결과 기록 및 추적
  */
 export function runSimulationHistory(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          시뮬레이션 기록                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          시뮬레이션 기록                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 시뮬레이션 기록 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 시뮬레이션 기록 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 여러 시뮬레이션 실행
   const history: Array<{
@@ -6787,21 +6791,21 @@ export function runSimulationHistory(battles: number = 30): void {
     id++;
   }
 
-  console.log('\n📜 기록:\n');
-  console.log('  ID | 덱           | 적     | 승률   | 평균턴');
-  console.log('  ' + '─'.repeat(50));
+  logger.info('\n📜 기록:\n');
+  logger.info('  ID | 덱           | 적     | 승률   | 평균턴');
+  logger.info('  ' + '─'.repeat(50));
 
   history.forEach(h => {
-    console.log(`  ${h.id.toString().padStart(2)} | ${h.deck.padEnd(12)} | ${h.enemies.padEnd(6)} | ${(h.winRate * 100).toFixed(0).padStart(4)}%  | ${h.avgTurns.toFixed(1)}`);
+    logger.info(`  ${h.id.toString().padStart(2)} | ${h.deck.padEnd(12)} | ${h.enemies.padEnd(6)} | ${(h.winRate * 100).toFixed(0).padStart(4)}%  | ${h.avgTurns.toFixed(1)}`);
   });
 
   // 통계
   const avgWinRate = history.reduce((s, h) => s + h.winRate, 0) / history.length;
-  console.log('\n📈 기록 통계:\n');
-  console.log(`  총 시뮬레이션: ${history.length}회`);
-  console.log(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
+  logger.info('\n📈 기록 통계:\n');
+  logger.info(`  총 시뮬레이션: ${history.length}회`);
+  logger.info(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6809,12 +6813,12 @@ export function runSimulationHistory(battles: number = 30): void {
  * 전투별 득점 패턴 분석
  */
 export function runScoreAnalysis(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          득점 분석                      ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          득점 분석                      ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 덱별 득점 패턴 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 덱별 득점 패턴 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const scoreData: Array<{
     deck: string;
@@ -6850,21 +6854,21 @@ export function runScoreAnalysis(battles: number = 30): void {
   // 점수 순 정렬
   scoreData.sort((a, b) => b.avgScore - a.avgScore);
 
-  console.log('\n🏅 득점 순위:\n');
+  logger.info('\n🏅 득점 순위:\n');
   scoreData.forEach((s, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
     const bar = '█'.repeat(Math.ceil(s.avgScore / 10));
-    console.log(`  ${medal} ${s.deck.padEnd(12)}: ${bar} (${s.avgScore.toFixed(0)}점)`);
+    logger.info(`  ${medal} ${s.deck.padEnd(12)}: ${bar} (${s.avgScore.toFixed(0)}점)`);
   });
 
   // 일관성 분석
-  console.log('\n📊 일관성 순위:\n');
+  logger.info('\n📊 일관성 순위:\n');
   scoreData.sort((a, b) => b.consistency - a.consistency);
   scoreData.slice(0, 5).forEach((s, i) => {
-    console.log(`  ${i + 1}. ${s.deck}: 일관성 ${(s.consistency * 100).toFixed(0)}%`);
+    logger.info(`  ${i + 1}. ${s.deck}: 일관성 ${(s.consistency * 100).toFixed(0)}%`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6872,12 +6876,12 @@ export function runScoreAnalysis(battles: number = 30): void {
  * 주요 전투 순간 분석
  */
 export function runBattleHighlights(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          전투 하이라이트                ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          전투 하이라이트                ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 주요 전투 순간 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 주요 전투 순간 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const highlights: Array<{
     type: string;
@@ -6929,23 +6933,23 @@ export function runBattleHighlights(battles: number = 20): void {
     }
   }
 
-  console.log('\n🌟 하이라이트:\n');
+  logger.info('\n🌟 하이라이트:\n');
   if (highlights.length > 0) {
     highlights.forEach((h, i) => {
       const emoji = h.type === '최고피해' ? '💥' : h.type === '완승' ? '🏆' : '⚡';
-      console.log(`  ${i + 1}. ${emoji} [${h.type}] ${h.description}`);
+      logger.info(`  ${i + 1}. ${emoji} [${h.type}] ${h.description}`);
     });
   } else {
-    console.log('  특별한 하이라이트가 없습니다.');
+    logger.info('  특별한 하이라이트가 없습니다.');
   }
 
   // 기록
-  console.log('\n📜 기록 보드:\n');
-  console.log('  🏆 최다 승리: ' + (highlights.find(h => h.type === '완승')?.deck || 'N/A'));
-  console.log('  💥 최고 피해: ' + (highlights.find(h => h.type === '최고피해')?.deck || 'N/A'));
-  console.log('  ⚡ 가장 빠름: ' + (highlights.find(h => h.type === '속전속결')?.deck || 'N/A'));
+  logger.info('\n📜 기록 보드:\n');
+  logger.info('  🏆 최다 승리: ' + (highlights.find(h => h.type === '완승')?.deck || 'N/A'));
+  logger.info('  💥 최고 피해: ' + (highlights.find(h => h.type === '최고피해')?.deck || 'N/A'));
+  logger.info('  ⚡ 가장 빠름: ' + (highlights.find(h => h.type === '속전속결')?.deck || 'N/A'));
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -6953,12 +6957,12 @@ export function runBattleHighlights(battles: number = 20): void {
  * 카드 코스트 효율 분석
  */
 export function runCostAnalysis(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          코스트 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          코스트 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 카드 코스트 효율 분석\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 카드 코스트 효율 분석\n');
+  logger.info('─'.repeat(50));
 
   // 코스트별 카드 분류
   const costGroups: Record<number, typeof CARDS> = {};
@@ -6969,31 +6973,31 @@ export function runCostAnalysis(): void {
     costGroups[cost].push(card);
   }
 
-  console.log('\n💰 코스트별 카드 수:\n');
+  logger.info('\n💰 코스트별 카드 수:\n');
   const sortedCosts = Object.keys(costGroups).map(Number).sort((a, b) => a - b);
 
   sortedCosts.forEach(cost => {
     const count = costGroups[cost].length;
     const bar = '█'.repeat(Math.min(count, 20));
-    console.log(`  SP ${cost}: ${bar} (${count}개)`);
+    logger.info(`  SP ${cost}: ${bar} (${count}개)`);
   });
 
   // 코스트별 평균 피해
-  console.log('\n📈 코스트별 평균 피해:\n');
+  logger.info('\n📈 코스트별 평균 피해:\n');
   sortedCosts.forEach(cost => {
     const cards = costGroups[cost];
     const avgDamage = cards.reduce((s, c) => s + (c.damage || 0), 0) / cards.length;
     const efficiency = avgDamage / Math.max(1, cost);
-    console.log(`  SP ${cost}: 평균 피해 ${avgDamage.toFixed(1)}, 효율 ${efficiency.toFixed(2)}`);
+    logger.info(`  SP ${cost}: 평균 피해 ${avgDamage.toFixed(1)}, 효율 ${efficiency.toFixed(2)}`);
   });
 
   // 최적 코스트
-  console.log('\n💡 코스트 가이드:\n');
-  console.log('  - SP 0: 무료 카드, 기본 행동');
-  console.log('  - SP 1-2: 저코스트, 효율적');
-  console.log('  - SP 3+: 고코스트, 강력한 효과');
+  logger.info('\n💡 코스트 가이드:\n');
+  logger.info('  - SP 0: 무료 카드, 기본 행동');
+  logger.info('  - SP 1-2: 저코스트, 효율적');
+  logger.info('  - SP 3+: 고코스트, 강력한 효과');
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -7001,12 +7005,12 @@ export function runCostAnalysis(): void {
  * 밸런스 조정 권장사항 제시
  */
 export function runBalanceTuning(battles: number = 30): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          밸런스 튜닝 분석               ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          밸런스 튜닝 분석               ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 밸런스 조정 권장사항 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 밸런스 조정 권장사항 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   // 현재 밸런스 상태 확인
   const stats = runSimulation({
@@ -7016,36 +7020,36 @@ export function runBalanceTuning(battles: number = 30): void {
     verbose: false,
   });
 
-  console.log('\n📈 현재 밸런스 상태:\n');
-  console.log(`  플레이어 승률: ${(stats.winRate * 100).toFixed(0)}%`);
-  console.log(`  평균 전투 턴: ${stats.avgTurns.toFixed(1)}`);
-  console.log(`  평균 피해량: ${stats.avgPlayerDamage.toFixed(0)}`);
+  logger.info('\n📈 현재 밸런스 상태:\n');
+  logger.info(`  플레이어 승률: ${(stats.winRate * 100).toFixed(0)}%`);
+  logger.info(`  평균 전투 턴: ${stats.avgTurns.toFixed(1)}`);
+  logger.info(`  평균 피해량: ${stats.avgPlayerDamage.toFixed(0)}`);
 
   // 권장사항 생성
-  console.log('\n🔧 밸런스 튜닝 권장사항:\n');
+  logger.info('\n🔧 밸런스 튜닝 권장사항:\n');
 
   if (stats.winRate > 0.8) {
-    console.log('  ⚠️ 플레이어가 너무 강합니다.');
-    console.log('    → 적 HP 10-20% 증가 권장');
-    console.log('    → 적 피해량 5-10% 증가 권장');
+    logger.info('  ⚠️ 플레이어가 너무 강합니다.');
+    logger.info('    → 적 HP 10-20% 증가 권장');
+    logger.info('    → 적 피해량 5-10% 증가 권장');
   } else if (stats.winRate < 0.4) {
-    console.log('  ⚠️ 플레이어가 너무 약합니다.');
-    console.log('    → 플레이어 기본 카드 강화 권장');
-    console.log('    → 적 HP 10-20% 감소 권장');
+    logger.info('  ⚠️ 플레이어가 너무 약합니다.');
+    logger.info('    → 플레이어 기본 카드 강화 권장');
+    logger.info('    → 적 HP 10-20% 감소 권장');
   } else {
-    console.log('  ✅ 밸런스가 적절합니다.');
+    logger.info('  ✅ 밸런스가 적절합니다.');
   }
 
   if (stats.avgTurns < 3) {
-    console.log('  ⚠️ 전투가 너무 빠릅니다.');
-    console.log('    → 체력 증가 또는 피해 감소 권장');
+    logger.info('  ⚠️ 전투가 너무 빠릅니다.');
+    logger.info('    → 체력 증가 또는 피해 감소 권장');
   } else if (stats.avgTurns > 12) {
-    console.log('  ⚠️ 전투가 너무 깁니다.');
-    console.log('    → 피해량 증가 권장');
+    logger.info('  ⚠️ 전투가 너무 깁니다.');
+    logger.info('    → 피해량 증가 권장');
   }
 
   // 덱별 밸런스
-  console.log('\n🃏 덱별 밸런스:\n');
+  logger.info('\n🃏 덱별 밸런스:\n');
   const deckBalance: Array<{ name: string; winRate: number; status: string }> = [];
 
   for (const [name, preset] of Object.entries(DECK_PRESETS)) {
@@ -7065,10 +7069,10 @@ export function runBalanceTuning(battles: number = 30): void {
   }
 
   deckBalance.forEach(d => {
-    console.log(`  ${d.status} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
+    logger.info(`  ${d.status} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -7076,12 +7080,12 @@ export function runBalanceTuning(battles: number = 30): void {
  * 시뮬레이션 결과 트렌드 분석
  */
 export function runTrendAnalysis(trials: number = 5): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          트렌드 분석                    ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          트렌드 분석                    ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 시뮬레이션 트렌드 분석 (${trials}회 반복)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 시뮬레이션 트렌드 분석 (${trials}회 반복)\n`);
+  logger.info('─'.repeat(50));
 
   const trends: Array<{ trial: number; winRate: number; avgDamage: number }> = [];
 
@@ -7100,13 +7104,13 @@ export function runTrendAnalysis(trials: number = 5): void {
     });
   }
 
-  console.log('\n📈 트렌드 데이터:\n');
-  console.log('  회차 | 승률   | 평균피해');
-  console.log('  ' + '─'.repeat(30));
+  logger.info('\n📈 트렌드 데이터:\n');
+  logger.info('  회차 | 승률   | 평균피해');
+  logger.info('  ' + '─'.repeat(30));
 
   trends.forEach(t => {
     const winBar = '█'.repeat(Math.ceil(t.winRate * 10));
-    console.log(`  ${t.trial.toString().padStart(3)} | ${(t.winRate * 100).toFixed(0).padStart(4)}% | ${t.avgDamage.toFixed(0).padStart(6)}`);
+    logger.info(`  ${t.trial.toString().padStart(3)} | ${(t.winRate * 100).toFixed(0).padStart(4)}% | ${t.avgDamage.toFixed(0).padStart(6)}`);
   });
 
   // 트렌드 분석
@@ -7114,12 +7118,12 @@ export function runTrendAnalysis(trials: number = 5): void {
   const variance = trends.reduce((s, t) => s + Math.pow(t.winRate - avgWinRate, 2), 0) / trials;
   const consistency = 1 - Math.sqrt(variance);
 
-  console.log('\n📊 트렌드 요약:\n');
-  console.log(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
-  console.log(`  일관성: ${(consistency * 100).toFixed(0)}%`);
-  console.log(`  분산: ${(variance * 100).toFixed(2)}%`);
+  logger.info('\n📊 트렌드 요약:\n');
+  logger.info(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
+  logger.info(`  일관성: ${(consistency * 100).toFixed(0)}%`);
+  logger.info(`  분산: ${(variance * 100).toFixed(2)}%`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -7127,12 +7131,12 @@ export function runTrendAnalysis(trials: number = 5): void {
  * 카드별 가치 평가
  */
 export function runCardValueAnalysis(): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          카드 가치 분석                 ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          카드 가치 분석                 ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log('📊 카드별 가치 평가\n');
-  console.log('─'.repeat(50));
+  logger.info('📊 카드별 가치 평가\n');
+  logger.info('─'.repeat(50));
 
   // 카드 가치 계산
   const cardValues: Array<{
@@ -7162,25 +7166,25 @@ export function runCardValueAnalysis(): void {
   // 가치 순 정렬
   cardValues.sort((a, b) => b.costEfficiency - a.costEfficiency);
 
-  console.log('\n💎 최고 가치 카드 (상위 10개):\n');
+  logger.info('\n💎 최고 가치 카드 (상위 10개):\n');
   cardValues.slice(0, 10).forEach((c, i) => {
     const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
-    console.log(`  ${medal} ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
+    logger.info(`  ${medal} ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
   });
 
   // 저가치 카드
-  console.log('\n⚠️ 저가치 카드 (하위 5개):\n');
+  logger.info('\n⚠️ 저가치 카드 (하위 5개):\n');
   cardValues.slice(-5).reverse().forEach((c, i) => {
-    console.log(`  ${i + 1}. ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
+    logger.info(`  ${i + 1}. ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
   });
 
   // 통계
   const avgValue = cardValues.reduce((s, c) => s + c.value, 0) / cardValues.length;
-  console.log('\n📊 카드 가치 통계:\n');
-  console.log(`  총 카드 수: ${cardValues.length}`);
-  console.log(`  평균 가치: ${avgValue.toFixed(1)}`);
+  logger.info('\n📊 카드 가치 통계:\n');
+  logger.info(`  총 카드 수: ${cardValues.length}`);
+  logger.info(`  평균 가치: ${avgValue.toFixed(1)}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
@@ -7188,12 +7192,12 @@ export function runCardValueAnalysis(): void {
  * 티어별 스테이지 진행 분석
  */
 export function runStageAnalysis(battles: number = 20): void {
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║          스테이지 분석                  ║');
-  console.log('╚════════════════════════════════════════╝\n');
+  logger.info('\n╔════════════════════════════════════════╗');
+  logger.info('║          스테이지 분석                  ║');
+  logger.info('╚════════════════════════════════════════╝\n');
 
-  console.log(`📊 티어별 스테이지 진행 분석 (${battles}회 전투)\n`);
-  console.log('─'.repeat(50));
+  logger.info(`📊 티어별 스테이지 진행 분석 (${battles}회 전투)\n`);
+  logger.info('─'.repeat(50));
 
   const stages = [
     { name: 'Stage 1', tier: 1, enemies: TIER_1_ENEMIES.slice(0, 2) },
@@ -7231,31 +7235,31 @@ export function runStageAnalysis(battles: number = 20): void {
     });
   }
 
-  console.log('\n🎮 스테이지별 진행:\n');
+  logger.info('\n🎮 스테이지별 진행:\n');
   stageResults.forEach((s, i) => {
     const emoji = s.difficulty === '쉬움' ? '🟢' :
       s.difficulty === '보통' ? '🟡' :
       s.difficulty === '어려움' ? '🟠' : '🔴';
 
-    console.log(`  ${i + 1}. ${s.name.padEnd(10)} [Tier ${s.tier}]: ${emoji} ${s.difficulty} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
+    logger.info(`  ${i + 1}. ${s.name.padEnd(10)} [Tier ${s.tier}]: ${emoji} ${s.difficulty} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
   });
 
   // 진행률 분석
   const clearable = stageResults.filter(s => s.winRate >= 0.5).length;
-  console.log('\n📊 진행률 분석:\n');
-  console.log(`  클리어 가능 스테이지: ${clearable}/${stageResults.length}`);
-  console.log(`  권장 시작 티어: Tier ${stageResults.find(s => s.winRate >= 0.6)?.tier || 1}`);
+  logger.info('\n📊 진행률 분석:\n');
+  logger.info(`  클리어 가능 스테이지: ${clearable}/${stageResults.length}`);
+  logger.info(`  권장 시작 티어: Tier ${stageResults.find(s => s.winRate >= 0.6)?.tier || 1}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 리소스 추적 분석 - 전투 중 리소스 사용 패턴 분석
  */
 export function runResourceTracking(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('💎 리소스 추적 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('💎 리소스 추적 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const resourceStats = {
@@ -7291,29 +7295,29 @@ export function runResourceTracking(battles: number = 30): void {
   resourceStats.avgTokensPerBattle = resourceStats.totalTokensUsed / battles;
   resourceStats.avgCardsPerBattle = resourceStats.totalCardsPlayed / battles;
 
-  console.log('\n📊 리소스 사용 통계:\n');
-  console.log(`  총 토큰 사용: ${resourceStats.totalTokensUsed}`);
-  console.log(`  총 카드 플레이: ${resourceStats.totalCardsPlayed}`);
-  console.log(`  전투당 평균 토큰: ${resourceStats.avgTokensPerBattle.toFixed(1)}`);
-  console.log(`  전투당 평균 카드: ${resourceStats.avgCardsPerBattle.toFixed(1)}`);
-  console.log(`  최대 토큰 사용: ${resourceStats.peakTokenUsage}`);
-  console.log(`  최대 카드 사용: ${resourceStats.peakCardUsage}`);
+  logger.info('\n📊 리소스 사용 통계:\n');
+  logger.info(`  총 토큰 사용: ${resourceStats.totalTokensUsed}`);
+  logger.info(`  총 카드 플레이: ${resourceStats.totalCardsPlayed}`);
+  logger.info(`  전투당 평균 토큰: ${resourceStats.avgTokensPerBattle.toFixed(1)}`);
+  logger.info(`  전투당 평균 카드: ${resourceStats.avgCardsPerBattle.toFixed(1)}`);
+  logger.info(`  최대 토큰 사용: ${resourceStats.peakTokenUsage}`);
+  logger.info(`  최대 카드 사용: ${resourceStats.peakCardUsage}`);
 
   // 효율성 평가
   const efficiency = resourceStats.avgCardsPerBattle < 15 ? '높음' :
     resourceStats.avgCardsPerBattle < 25 ? '보통' : '낮음';
-  console.log(`\n  💡 리소스 효율성: ${efficiency}`);
+  logger.info(`\n  💡 리소스 효율성: ${efficiency}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 전략 핫스팟 분석 - 중요한 전략적 순간 분석
  */
 export function runStrategyHotspot(battles: number = 20): void {
-  console.log('═'.repeat(50));
-  console.log('🔥 전략 핫스팟 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🔥 전략 핫스팟 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const hotspots: { turn: number; type: string; impact: number }[] = [];
@@ -7364,10 +7368,10 @@ export function runStrategyHotspot(battles: number = 20): void {
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 5);
 
-  console.log('\n🎯 주요 핫스팟 턴:\n');
+  logger.info('\n🎯 주요 핫스팟 턴:\n');
   sortedTurns.forEach(([turn, data]) => {
     const types = [...new Set(data.types)].join(', ');
-    console.log(`  턴 ${turn}: ${data.count}회 발생 (${types})`);
+    logger.info(`  턴 ${turn}: ${data.count}회 발생 (${types})`);
   });
 
   // 핫스팟 유형 분석
@@ -7376,25 +7380,25 @@ export function runStrategyHotspot(battles: number = 20): void {
     typeCount[h.type] = (typeCount[h.type] || 0) + 1;
   });
 
-  console.log('\n📊 핫스팟 유형:\n');
+  logger.info('\n📊 핫스팟 유형:\n');
   Object.entries(typeCount)
     .sort((a, b) => b[1] - a[1])
     .forEach(([type, count]) => {
       const emoji = type === 'kill' ? '💀' : type === 'big_damage' ? '⚔️' : '💥';
       const typeName = type === 'kill' ? '킬' : type === 'big_damage' ? '큰피해' : '큰피격';
-      console.log(`  ${emoji} ${typeName}: ${count}회`);
+      logger.info(`  ${emoji} ${typeName}: ${count}회`);
     });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 누적 피해 분석 - 전투 중 누적 피해량 패턴
  */
 export function runCumulativeDamage(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📈 누적 피해 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('📈 누적 피해 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const damageByTurn: Record<number, { dealt: number; taken: number; count: number }> = {};
@@ -7426,14 +7430,14 @@ export function runCumulativeDamage(battles: number = 30): void {
     }
   }
 
-  console.log('\n📊 턴별 평균 누적 피해:\n');
+  logger.info('\n📊 턴별 평균 누적 피해:\n');
   const turns = Object.keys(damageByTurn).map(Number).sort((a, b) => a - b);
   turns.slice(0, 10).forEach(turn => {
     const data = damageByTurn[turn];
     const avgDealt = data.dealt / data.count;
     const avgTaken = data.taken / data.count;
     const ratio = avgTaken > 0 ? (avgDealt / avgTaken).toFixed(1) : '∞';
-    console.log(`  턴 ${String(turn + 1).padStart(2)}: 가한 ${avgDealt.toFixed(0).padStart(4)} / 받은 ${avgTaken.toFixed(0).padStart(4)} (비율 ${ratio})`);
+    logger.info(`  턴 ${String(turn + 1).padStart(2)}: 가한 ${avgDealt.toFixed(0).padStart(4)} / 받은 ${avgTaken.toFixed(0).padStart(4)} (비율 ${ratio})`);
   });
 
   // 피해 효율 분석
@@ -7444,19 +7448,19 @@ export function runCumulativeDamage(battles: number = 30): void {
     const totalTaken = finalData.taken / finalData.count;
     const rating = totalDealt / Math.max(totalTaken, 1) > 3 ? '우수' :
       totalDealt / Math.max(totalTaken, 1) > 1.5 ? '양호' : '개선필요';
-    console.log(`\n  💡 피해 효율 등급: ${rating}`);
+    logger.info(`\n  💡 피해 효율 등급: ${rating}`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 체력 회복 분석 - 힐링 효과 분석
  */
 export function runHealthRecovery(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('💚 체력 회복 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('💚 체력 회복 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const healStats = {
@@ -7495,28 +7499,28 @@ export function runHealthRecovery(battles: number = 30): void {
 
   healStats.avgHealPerBattle = healStats.totalHealing / battles;
 
-  console.log('\n📊 회복 통계:\n');
-  console.log(`  총 회복량: ${healStats.totalHealing}`);
-  console.log(`  회복 발생 횟수: ${healStats.healingInstances}`);
-  console.log(`  전투당 평균 회복: ${healStats.avgHealPerBattle.toFixed(1)}`);
-  console.log(`  최대 단일 회복: ${healStats.maxSingleHeal}`);
-  console.log(`  회복 발생 전투: ${healStats.battlesWithHealing}/${battles} (${((healStats.battlesWithHealing / battles) * 100).toFixed(0)}%)`);
+  logger.info('\n📊 회복 통계:\n');
+  logger.info(`  총 회복량: ${healStats.totalHealing}`);
+  logger.info(`  회복 발생 횟수: ${healStats.healingInstances}`);
+  logger.info(`  전투당 평균 회복: ${healStats.avgHealPerBattle.toFixed(1)}`);
+  logger.info(`  최대 단일 회복: ${healStats.maxSingleHeal}`);
+  logger.info(`  회복 발생 전투: ${healStats.battlesWithHealing}/${battles} (${((healStats.battlesWithHealing / battles) * 100).toFixed(0)}%)`);
 
   // 회복 효율 평가
   const healEfficiency = healStats.avgHealPerBattle >= 10 ? '높음' :
     healStats.avgHealPerBattle >= 5 ? '보통' : '낮음';
-  console.log(`\n  💡 회복 효율: ${healEfficiency}`);
+  logger.info(`\n  💡 회복 효율: ${healEfficiency}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 우선순위 분석 - 카드 선택 우선순위 분석
  */
 export function runPriorityAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎯 우선순위 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🎯 우선순위 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const cardPriority: Record<string, { uses: number; winContribution: number }> = {};
@@ -7549,26 +7553,26 @@ export function runPriorityAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('\n📊 카드 우선순위 (사용빈도순):\n');
+  logger.info('\n📊 카드 우선순위 (사용빈도순):\n');
   const sorted = Object.entries(cardPriority)
     .sort((a, b) => b[1].uses - a[1].uses)
     .slice(0, 10);
 
   sorted.forEach(([cardId, data], i) => {
     const winRate = data.uses > 0 ? ((data.winContribution / data.uses) * 100).toFixed(1) : '0';
-    console.log(`  ${i + 1}. ${cardId.padEnd(12)}: ${data.uses}회 사용 (승리기여 ${winRate}%)`);
+    logger.info(`  ${i + 1}. ${cardId.padEnd(12)}: ${data.uses}회 사용 (승리기여 ${winRate}%)`);
   });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 보상 분석 - 전투 보상 패턴 분석
  */
 export function runRewardAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎁 보상 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🎁 보상 분석');
+  logger.info('═'.repeat(50));
 
   const rewardStats = {
     totalGold: 0,
@@ -7607,29 +7611,29 @@ export function runRewardAnalysis(battles: number = 30): void {
   rewardStats.avgGoldPerBattle = rewardStats.totalGold / battles;
   rewardStats.avgExpPerBattle = rewardStats.totalExp / battles;
 
-  console.log('\n📊 보상 통계:\n');
-  console.log(`  총 골드 획득: ${rewardStats.totalGold}`);
-  console.log(`  전투당 평균 골드: ${rewardStats.avgGoldPerBattle.toFixed(1)}`);
-  console.log(`  총 경험치: ${rewardStats.totalExp}`);
-  console.log(`  전투당 평균 경험치: ${rewardStats.avgExpPerBattle.toFixed(1)}`);
-  console.log(`  승리 횟수: ${rewardStats.victoryRewards}/${battles}`);
-  console.log(`  패배 횟수: ${rewardStats.lossCount}/${battles}`);
+  logger.info('\n📊 보상 통계:\n');
+  logger.info(`  총 골드 획득: ${rewardStats.totalGold}`);
+  logger.info(`  전투당 평균 골드: ${rewardStats.avgGoldPerBattle.toFixed(1)}`);
+  logger.info(`  총 경험치: ${rewardStats.totalExp}`);
+  logger.info(`  전투당 평균 경험치: ${rewardStats.avgExpPerBattle.toFixed(1)}`);
+  logger.info(`  승리 횟수: ${rewardStats.victoryRewards}/${battles}`);
+  logger.info(`  패배 횟수: ${rewardStats.lossCount}/${battles}`);
 
   // 효율 평가
   const efficiency = rewardStats.avgGoldPerBattle >= 20 ? '높음' :
     rewardStats.avgGoldPerBattle >= 10 ? '보통' : '낮음';
-  console.log(`\n  💡 보상 효율: ${efficiency}`);
+  logger.info(`\n  💡 보상 효율: ${efficiency}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 전환점 분석 - 전투 흐름 전환점 분석
  */
 export function runTurningPoint(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🔄 전환점 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🔄 전환점 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const turningPoints: { turn: number; type: string }[] = [];
@@ -7679,34 +7683,34 @@ export function runTurningPoint(battles: number = 30): void {
     typeCount[tp.type] = (typeCount[tp.type] || 0) + 1;
   });
 
-  console.log('\n📊 주요 전환점 턴:\n');
+  logger.info('\n📊 주요 전환점 턴:\n');
   const sortedTurns = Object.entries(turnPointCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
   sortedTurns.forEach(([turn, count]) => {
-    console.log(`  턴 ${turn}: ${count}회`);
+    logger.info(`  턴 ${turn}: ${count}회`);
   });
 
-  console.log('\n📊 전환점 유형:\n');
+  logger.info('\n📊 전환점 유형:\n');
   Object.entries(typeCount)
     .sort((a, b) => b[1] - a[1])
     .forEach(([type, count]) => {
       const emoji = type === 'victory' ? '🏆' : type === 'player_surge' ? '⚔️' : '💥';
       const typeName = type === 'victory' ? '승리' : type === 'player_surge' ? '플레이어급상승' : '적급상승';
-      console.log(`  ${emoji} ${typeName}: ${count}회`);
+      logger.info(`  ${emoji} ${typeName}: ${count}회`);
     });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 버스트 타이밍 분석 - 최적의 버스트 타이밍 분석
  */
 export function runBurstTiming(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('💥 버스트 타이밍 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('💥 버스트 타이밍 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const burstData: { turn: number; damage: number }[] = [];
@@ -7745,33 +7749,33 @@ export function runBurstTiming(battles: number = 30): void {
     turnBurstAvg[b.turn].count++;
   });
 
-  console.log('\n📊 턴별 최대 버스트 발생:\n');
+  logger.info('\n📊 턴별 최대 버스트 발생:\n');
   const sortedBurst = Object.entries(turnBurstAvg)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 8);
 
   sortedBurst.forEach(([turn, data]) => {
     const avgDmg = data.total / data.count;
-    console.log(`  턴 ${String(turn).padStart(2)}: ${data.count}회 발생 (평균 ${avgDmg.toFixed(0)} 피해)`);
+    logger.info(`  턴 ${String(turn).padStart(2)}: ${data.count}회 발생 (평균 ${avgDmg.toFixed(0)} 피해)`);
   });
 
   // 최적 타이밍 분석
   const optimalTurn = sortedBurst[0]?.[0] || '1';
-  console.log(`\n  💡 최적 버스트 타이밍: 턴 ${optimalTurn}`);
+  logger.info(`\n  💡 최적 버스트 타이밍: 턴 ${optimalTurn}`);
 
   const avgDamage = burstData.reduce((sum, b) => sum + b.damage, 0) / burstData.length;
-  console.log(`  💡 평균 최대 피해량: ${avgDamage.toFixed(1)}`);
+  logger.info(`  💡 평균 최대 피해량: ${avgDamage.toFixed(1)}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 상태 이상 효과 분석 - 디버프/버프 효과 분석
  */
 export function runStatusEffectAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🌀 상태 이상 효과 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🌀 상태 이상 효과 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const statusStats = {
@@ -7813,28 +7817,28 @@ export function runStatusEffectAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('\n📊 상태 이상 통계:\n');
-  console.log(`  디버프 적용: ${statusStats.debuffsApplied}회`);
-  console.log(`  버프 적용: ${statusStats.buffsApplied}회`);
-  console.log(`  출혈 효과: ${statusStats.bleedCount}회`);
-  console.log(`  독 효과: ${statusStats.poisonCount}회`);
-  console.log(`  전투당 평균 디버프: ${(statusStats.debuffsApplied / battles).toFixed(1)}`);
+  logger.info('\n📊 상태 이상 통계:\n');
+  logger.info(`  디버프 적용: ${statusStats.debuffsApplied}회`);
+  logger.info(`  버프 적용: ${statusStats.buffsApplied}회`);
+  logger.info(`  출혈 효과: ${statusStats.bleedCount}회`);
+  logger.info(`  독 효과: ${statusStats.poisonCount}회`);
+  logger.info(`  전투당 평균 디버프: ${(statusStats.debuffsApplied / battles).toFixed(1)}`);
 
   // 효과 평가
   const avgDebuffs = statusStats.debuffsApplied / battles;
   const rating = avgDebuffs >= 3 ? '높음' : avgDebuffs >= 1 ? '보통' : '낮음';
-  console.log(`\n  💡 상태 이상 활용도: ${rating}`);
+  logger.info(`\n  💡 상태 이상 활용도: ${rating}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 에너지 효율 분석 - 에테르/토큰 사용 효율
  */
 export function runEnergyEfficiency(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('⚡ 에너지 효율 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('⚡ 에너지 효율 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const energyStats = {
@@ -7876,27 +7880,27 @@ export function runEnergyEfficiency(battles: number = 30): void {
   energyStats.avgEtherPerTurn = energyStats.turns > 0 ?
     energyStats.totalEtherUsed / energyStats.turns : 0;
 
-  console.log('\n📊 에너지 효율 통계:\n');
-  console.log(`  총 에테르 사용: ${energyStats.totalEtherUsed}`);
-  console.log(`  총 피해량: ${energyStats.totalDamageDealt}`);
-  console.log(`  에테르당 피해: ${energyStats.damagePerEther.toFixed(2)}`);
-  console.log(`  턴당 평균 에테르: ${energyStats.avgEtherPerTurn.toFixed(1)}`);
+  logger.info('\n📊 에너지 효율 통계:\n');
+  logger.info(`  총 에테르 사용: ${energyStats.totalEtherUsed}`);
+  logger.info(`  총 피해량: ${energyStats.totalDamageDealt}`);
+  logger.info(`  에테르당 피해: ${energyStats.damagePerEther.toFixed(2)}`);
+  logger.info(`  턴당 평균 에테르: ${energyStats.avgEtherPerTurn.toFixed(1)}`);
 
   // 효율 평가
   const efficiency = energyStats.damagePerEther >= 3 ? '우수' :
     energyStats.damagePerEther >= 2 ? '양호' : '개선필요';
-  console.log(`\n  💡 에너지 효율 등급: ${efficiency}`);
+  logger.info(`\n  💡 에너지 효율 등급: ${efficiency}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 팀 시너지 분석 - 상징 조합 시너지
  */
 export function runTeamSynergy(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🤝 팀 시너지 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🤝 팀 시너지 분석');
+  logger.info('═'.repeat(50));
 
   // 다양한 상징 조합 테스트
   const synergyResults: { relics: string; winRate: number; avgTurns: number }[] = [];
@@ -7937,29 +7941,29 @@ export function runTeamSynergy(battles: number = 30): void {
     });
   });
 
-  console.log('\n📊 상징 조합별 시너지:\n');
+  logger.info('\n📊 상징 조합별 시너지:\n');
   synergyResults
     .sort((a, b) => b.winRate - a.winRate)
     .forEach(result => {
       const rating = result.winRate >= 0.8 ? '⭐⭐⭐' :
         result.winRate >= 0.6 ? '⭐⭐' : '⭐';
-      console.log(`  ${result.relics}: 승률 ${(result.winRate * 100).toFixed(0)}% (평균 ${result.avgTurns.toFixed(1)}턴) ${rating}`);
+      logger.info(`  ${result.relics}: 승률 ${(result.winRate * 100).toFixed(0)}% (평균 ${result.avgTurns.toFixed(1)}턴) ${rating}`);
     });
 
   // 최고 시너지
   const best = synergyResults.sort((a, b) => b.winRate - a.winRate)[0];
-  console.log(`\n  💡 최고 시너지 조합: ${best?.relics || '없음'}`);
+  logger.info(`\n  💡 최고 시너지 조합: ${best?.relics || '없음'}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 역전 가능성 분석 - 위기에서 역전 확률
  */
 export function runComebackPotential(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🔄 역전 가능성 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🔄 역전 가능성 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const comebackStats = {
@@ -8004,29 +8008,29 @@ export function runComebackPotential(battles: number = 30): void {
     comebackStats.avgComebackTurns = comebackStats.totalComebackTurns / comebackStats.comebackWins;
   }
 
-  console.log('\n📊 역전 통계:\n');
-  console.log(`  위기 상황 발생: ${comebackStats.lowHpSituations}회`);
-  console.log(`  역전 성공: ${comebackStats.comebackWins}회`);
+  logger.info('\n📊 역전 통계:\n');
+  logger.info(`  위기 상황 발생: ${comebackStats.lowHpSituations}회`);
+  logger.info(`  역전 성공: ${comebackStats.comebackWins}회`);
   const comebackRate = comebackStats.lowHpSituations > 0 ?
     ((comebackStats.comebackWins / comebackStats.lowHpSituations) * 100).toFixed(1) : '0';
-  console.log(`  역전 성공률: ${comebackRate}%`);
-  console.log(`  평균 역전 소요 턴: ${comebackStats.avgComebackTurns.toFixed(1)}`);
+  logger.info(`  역전 성공률: ${comebackRate}%`);
+  logger.info(`  평균 역전 소요 턴: ${comebackStats.avgComebackTurns.toFixed(1)}`);
 
   // 역전력 평가
   const comebackPotential = parseFloat(comebackRate) >= 50 ? '높음' :
     parseFloat(comebackRate) >= 25 ? '보통' : '낮음';
-  console.log(`\n  💡 역전 잠재력: ${comebackPotential}`);
+  logger.info(`\n  💡 역전 잠재력: ${comebackPotential}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 손실 분석 - 패배 원인 및 패턴 분석
  */
 export function runLossAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📉 손실 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('📉 손실 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
   const lossStats = {
@@ -8068,27 +8072,27 @@ export function runLossAnalysis(battles: number = 30): void {
     lossStats.avgRemainingEnemyHp = lossStats.totalRemainingHp / lossStats.totalLosses;
   }
 
-  console.log('\n📊 손실 통계:\n');
-  console.log(`  총 패배: ${lossStats.totalLosses}/${battles} (${((lossStats.totalLosses / battles) * 100).toFixed(1)}%)`);
-  console.log(`  평균 패배 턴: ${lossStats.avgTurnsBeforeLoss.toFixed(1)}`);
-  console.log(`  티어별 패배: T1-${lossStats.lossesToTier1} / T2-${lossStats.lossesToTier2} / T3-${lossStats.lossesToTier3}`);
-  console.log(`  평균 남은 적 HP: ${lossStats.avgRemainingEnemyHp.toFixed(0)}`);
+  logger.info('\n📊 손실 통계:\n');
+  logger.info(`  총 패배: ${lossStats.totalLosses}/${battles} (${((lossStats.totalLosses / battles) * 100).toFixed(1)}%)`);
+  logger.info(`  평균 패배 턴: ${lossStats.avgTurnsBeforeLoss.toFixed(1)}`);
+  logger.info(`  티어별 패배: T1-${lossStats.lossesToTier1} / T2-${lossStats.lossesToTier2} / T3-${lossStats.lossesToTier3}`);
+  logger.info(`  평균 남은 적 HP: ${lossStats.avgRemainingEnemyHp.toFixed(0)}`);
 
   // 개선 포인트
   const mainIssue = lossStats.lossesToTier3 > lossStats.lossesToTier1 ?
     'Tier 3 적 대응력 필요' : '기본 전투력 강화 필요';
-  console.log(`\n  💡 개선 포인트: ${mainIssue}`);
+  logger.info(`\n  💡 개선 포인트: ${mainIssue}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 표적화 분석 - 적 선택 우선순위 분석
  */
 export function runTargetingAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎯 표적화 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🎯 표적화 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const targetingStats: Record<string, { encounters: number; wins: number; avgTurns: number }> = {};
@@ -8124,7 +8128,7 @@ export function runTargetingAnalysis(battles: number = 30): void {
     }
   });
 
-  console.log('\n📊 적별 성과:\n');
+  logger.info('\n📊 적별 성과:\n');
   const sorted = Object.entries(targetingStats)
     .sort((a, b) => (b[1].wins / b[1].encounters) - (a[1].wins / a[1].encounters))
     .slice(0, 8);
@@ -8132,25 +8136,25 @@ export function runTargetingAnalysis(battles: number = 30): void {
   sorted.forEach(([enemyId, stat]) => {
     const winRate = (stat.wins / stat.encounters * 100).toFixed(0);
     const rating = parseInt(winRate) >= 80 ? '✅' : parseInt(winRate) >= 50 ? '⚠️' : '❌';
-    console.log(`  ${rating} ${enemyId.padEnd(12)}: ${winRate}% 승률 (평균 ${stat.avgTurns.toFixed(1)}턴)`);
+    logger.info(`  ${rating} ${enemyId.padEnd(12)}: ${winRate}% 승률 (평균 ${stat.avgTurns.toFixed(1)}턴)`);
   });
 
   // 우선 타겟 추천
   const easiest = sorted[0]?.[0] || '없음';
   const hardest = sorted[sorted.length - 1]?.[0] || '없음';
-  console.log(`\n  💡 쉬운 적: ${easiest}`);
-  console.log(`  💡 어려운 적: ${hardest}`);
+  logger.info(`\n  💡 쉬운 적: ${easiest}`);
+  logger.info(`  💡 어려운 적: ${hardest}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 전투 해석 분석 - 전투 진행 패턴 해석
  */
 export function runBattleInterpretation(battles: number = 20): void {
-  console.log('═'.repeat(50));
-  console.log('📖 전투 해석 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('📖 전투 해석 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
   const patterns = {
@@ -8190,31 +8194,31 @@ export function runBattleInterpretation(battles: number = 20): void {
 
   const totalWins = patterns.quickWins + patterns.normalWins + patterns.slowWins;
 
-  console.log('\n📊 전투 패턴 분석:\n');
-  console.log('  📈 속도 분류:');
-  console.log(`    빠른 승리 (≤5턴): ${patterns.quickWins}회 (${((patterns.quickWins / totalWins) * 100 || 0).toFixed(0)}%)`);
-  console.log(`    보통 승리 (6-12턴): ${patterns.normalWins}회 (${((patterns.normalWins / totalWins) * 100 || 0).toFixed(0)}%)`);
-  console.log(`    느린 승리 (≥13턴): ${patterns.slowWins}회 (${((patterns.slowWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+  logger.info('\n📊 전투 패턴 분석:\n');
+  logger.info('  📈 속도 분류:');
+  logger.info(`    빠른 승리 (≤5턴): ${patterns.quickWins}회 (${((patterns.quickWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+  logger.info(`    보통 승리 (6-12턴): ${patterns.normalWins}회 (${((patterns.normalWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+  logger.info(`    느린 승리 (≥13턴): ${patterns.slowWins}회 (${((patterns.slowWins / totalWins) * 100 || 0).toFixed(0)}%)`);
 
-  console.log('\n  💪 안정성 분류:');
-  console.log(`    압도적 승리 (HP≥80%): ${patterns.dominantWins}회`);
-  console.log(`    접전 승리 (HP≤20%): ${patterns.closeFights}회`);
+  logger.info('\n  💪 안정성 분류:');
+  logger.info(`    압도적 승리 (HP≥80%): ${patterns.dominantWins}회`);
+  logger.info(`    접전 승리 (HP≤20%): ${patterns.closeFights}회`);
 
   // 전투 스타일 해석
   const style = patterns.quickWins > patterns.slowWins ? '공격적' :
     patterns.dominantWins > patterns.closeFights ? '안정적' : '균형적';
-  console.log(`\n  💡 전투 스타일: ${style}`);
+  logger.info(`\n  💡 전투 스타일: ${style}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 /**
  * 내구력 패턴 분석 - 장기전 지속력 패턴
  */
 export function runEndurancePatterns(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🏃 내구력 패턴 분석');
-  console.log('═'.repeat(50));
+  logger.info('═'.repeat(50));
+  logger.info('🏃 내구력 패턴 분석');
+  logger.info('═'.repeat(50));
 
   const allEnemies = [...TIER_2_ENEMIES, ...TIER_3_ENEMIES]; // 더 어려운 적 대상
   const enduranceData = {
@@ -8259,11 +8263,11 @@ export function runEndurancePatterns(battles: number = 30): void {
     enduranceData.avgHpRetained = enduranceData.totalHpRetained / enduranceData.survivedLongBattles;
   }
 
-  console.log('\n📊 내구력 통계:\n');
-  console.log(`  장기전 발생: ${enduranceData.longBattles}/${battles}회`);
-  console.log(`  장기전 생존율: ${enduranceData.longBattles > 0 ? ((enduranceData.survivedLongBattles / enduranceData.longBattles) * 100).toFixed(0) : 0}%`);
-  console.log(`  생존시 평균 HP 유지율: ${(enduranceData.avgHpRetained * 100).toFixed(0)}%`);
-  console.log(`  장기전 최대 데미지: ${enduranceData.peakDamageOnLongBattles}`);
+  logger.info('\n📊 내구력 통계:\n');
+  logger.info(`  장기전 발생: ${enduranceData.longBattles}/${battles}회`);
+  logger.info(`  장기전 생존율: ${enduranceData.longBattles > 0 ? ((enduranceData.survivedLongBattles / enduranceData.longBattles) * 100).toFixed(0) : 0}%`);
+  logger.info(`  생존시 평균 HP 유지율: ${(enduranceData.avgHpRetained * 100).toFixed(0)}%`);
+  logger.info(`  장기전 최대 데미지: ${enduranceData.peakDamageOnLongBattles}`);
 
   // 내구력 등급
   const survivalRate = enduranceData.longBattles > 0 ?
@@ -8271,17 +8275,17 @@ export function runEndurancePatterns(battles: number = 30): void {
   const grade = survivalRate >= 0.7 ? 'S' :
     survivalRate >= 0.5 ? 'A' :
     survivalRate >= 0.3 ? 'B' : 'C';
-  console.log(`\n  💡 내구력 등급: ${grade}`);
+  logger.info(`\n  💡 내구력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 연승 분석
 export function runWinStreakAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('🔥 연승 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔥 연승 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const streakData = {
     maxWinStreak: 0,
@@ -8339,31 +8343,31 @@ export function runWinStreakAnalysis(battles: number = 50): void {
     streakData.maxLossStreak = Math.max(streakData.maxLossStreak, streakData.currentStreak);
   }
 
-  console.log('  📈 연승 통계:');
-  console.log(`    • 최대 연승: ${streakData.maxWinStreak}회`);
-  console.log(`    • 최대 연패: ${streakData.maxLossStreak}회`);
-  console.log(`    • 평균 연승: ${streakData.winStreaks.length > 0 ? (streakData.winStreaks.reduce((a, b) => a + b, 0) / streakData.winStreaks.length).toFixed(1) : 0}회`);
-  console.log(`    • 평균 연패: ${streakData.lossStreaks.length > 0 ? (streakData.lossStreaks.reduce((a, b) => a + b, 0) / streakData.lossStreaks.length).toFixed(1) : 0}회`);
+  logger.info('  📈 연승 통계:');
+  logger.info(`    • 최대 연승: ${streakData.maxWinStreak}회`);
+  logger.info(`    • 최대 연패: ${streakData.maxLossStreak}회`);
+  logger.info(`    • 평균 연승: ${streakData.winStreaks.length > 0 ? (streakData.winStreaks.reduce((a, b) => a + b, 0) / streakData.winStreaks.length).toFixed(1) : 0}회`);
+  logger.info(`    • 평균 연패: ${streakData.lossStreaks.length > 0 ? (streakData.lossStreaks.reduce((a, b) => a + b, 0) / streakData.lossStreaks.length).toFixed(1) : 0}회`);
 
-  console.log('\n  🏆 승패 분포:');
-  console.log(`    • 총 승리: ${streakData.totalWins}회 (${((streakData.totalWins / battles) * 100).toFixed(1)}%)`);
-  console.log(`    • 총 패배: ${streakData.totalLosses}회 (${((streakData.totalLosses / battles) * 100).toFixed(1)}%)`);
+  logger.info('\n  🏆 승패 분포:');
+  logger.info(`    • 총 승리: ${streakData.totalWins}회 (${((streakData.totalWins / battles) * 100).toFixed(1)}%)`);
+  logger.info(`    • 총 패배: ${streakData.totalLosses}회 (${((streakData.totalLosses / battles) * 100).toFixed(1)}%)`);
 
   const streakScore = (streakData.maxWinStreak * 2) - streakData.maxLossStreak;
   const grade = streakScore >= 10 ? 'S' :
     streakScore >= 5 ? 'A' :
     streakScore >= 0 ? 'B' : 'C';
-  console.log(`\n  💡 연승 등급: ${grade}`);
+  logger.info(`\n  💡 연승 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 덱 최적화 분석
 export function runDeckOptimization(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎴 덱 최적화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎴 덱 최적화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
 
   const optimizationData: Record<string, {
     wins: number;
@@ -8415,7 +8419,7 @@ export function runDeckOptimization(battles: number = 30): void {
     optimizationData[preset.name].avgTurns = totalTurns / battles;
   }
 
-  console.log('  📊 프리셋별 최적화 점수:');
+  logger.info('  📊 프리셋별 최적화 점수:');
   const rankings = Object.entries(optimizationData)
     .map(([name, data]) => ({
       name,
@@ -8426,24 +8430,24 @@ export function runDeckOptimization(battles: number = 30): void {
     .sort((a, b) => b.score - a.score);
 
   rankings.forEach((rank, idx) => {
-    console.log(`    ${idx + 1}. ${rank.name}: 점수 ${rank.score.toFixed(1)} (승률 ${(rank.winRate * 100).toFixed(1)}%)`);
+    logger.info(`    ${idx + 1}. ${rank.name}: 점수 ${rank.score.toFixed(1)} (승률 ${(rank.winRate * 100).toFixed(1)}%)`);
   });
 
-  console.log('\n  🎯 최적화 제안:');
+  logger.info('\n  🎯 최적화 제안:');
   const bestPreset = rankings[0];
   const worstPreset = rankings[rankings.length - 1];
-  console.log(`    • 최고 성능: ${bestPreset.name} (${(bestPreset.winRate * 100).toFixed(1)}%)`);
-  console.log(`    • 개선 필요: ${worstPreset.name} (${(worstPreset.winRate * 100).toFixed(1)}%)`);
+  logger.info(`    • 최고 성능: ${bestPreset.name} (${(bestPreset.winRate * 100).toFixed(1)}%)`);
+  logger.info(`    • 개선 필요: ${worstPreset.name} (${(worstPreset.winRate * 100).toFixed(1)}%)`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 적 패턴 예측 분석
 export function runEnemyPatternPrediction(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎯 적 패턴 예측 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎯 적 패턴 예측 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const patternData: Record<string, {
     attackPattern: number[];
@@ -8502,28 +8506,28 @@ export function runEnemyPatternPrediction(battles: number = 30): void {
     patternData[enemy].predictability = total > 0 ? (dominantAction / total) * 100 : 0;
   }
 
-  console.log('  🔮 적 패턴 예측:');
+  logger.info('  🔮 적 패턴 예측:');
   Object.entries(patternData).forEach(([name, data]) => {
-    console.log(`    • ${name}:`);
-    console.log(`      - 턴당 평균 피해: ${data.avgDamagePerTurn.toFixed(1)}`);
-    console.log(`      - 예측 가능성: ${data.predictability.toFixed(1)}%`);
+    logger.info(`    • ${name}:`);
+    logger.info(`      - 턴당 평균 피해: ${data.avgDamagePerTurn.toFixed(1)}`);
+    logger.info(`      - 예측 가능성: ${data.predictability.toFixed(1)}%`);
   });
 
   const avgPredictability = Object.values(patternData).reduce((sum, d) => sum + d.predictability, 0) / Object.keys(patternData).length;
   const grade = avgPredictability >= 70 ? 'S' :
     avgPredictability >= 50 ? 'A' :
     avgPredictability >= 30 ? 'B' : 'C';
-  console.log(`\n  💡 전체 예측 가능성 등급: ${grade}`);
+  logger.info(`\n  💡 전체 예측 가능성 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 카드 시너지 패턴 분석
 export function runCardSynergyPatterns(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🃏 카드 시너지 패턴 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🃏 카드 시너지 패턴 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const synergyPatterns: Record<string, {
     occurrences: number;
@@ -8577,38 +8581,38 @@ export function runCardSynergyPatterns(battles: number = 30): void {
     data.avgDamage = data.totalDamage / data.occurrences;
   });
 
-  console.log('  🔗 상위 시너지 패턴:');
+  logger.info('  🔗 상위 시너지 패턴:');
   const topPatterns = Object.entries(synergyPatterns)
     .filter(([_, data]) => data.occurrences >= 2)
     .sort((a, b) => b[1].winRate - a[1].winRate)
     .slice(0, 10);
 
   topPatterns.forEach(([pattern, data], idx) => {
-    console.log(`    ${idx + 1}. ${pattern}`);
-    console.log(`       발생: ${data.occurrences}회, 승률: ${(data.winRate * 100).toFixed(1)}%`);
+    logger.info(`    ${idx + 1}. ${pattern}`);
+    logger.info(`       발생: ${data.occurrences}회, 승률: ${(data.winRate * 100).toFixed(1)}%`);
   });
 
   if (topPatterns.length === 0) {
-    console.log('    (충분한 데이터 없음)');
+    logger.info('    (충분한 데이터 없음)');
   }
 
-  console.log('\n  📊 시너지 효율:');
+  logger.info('\n  📊 시너지 효율:');
   const avgWinRate = topPatterns.length > 0 ?
     topPatterns.reduce((sum, [_, d]) => sum + d.winRate, 0) / topPatterns.length : 0;
   const grade = avgWinRate >= 0.7 ? 'S' :
     avgWinRate >= 0.5 ? 'A' :
     avgWinRate >= 0.3 ? 'B' : 'C';
-  console.log(`  💡 시너지 등급: ${grade}`);
+  logger.info(`  💡 시너지 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 생존 분석
 export function runSurvivalAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('💚 생존 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('💚 생존 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const survivalData: Record<string, {
     totalBattles: number;
@@ -8650,15 +8654,15 @@ export function runSurvivalAnalysis(battles: number = 30): void {
       survivalData[preset.name].totalHealthRemaining / survivedCount : 0;
   }
 
-  console.log('  🛡️ 프리셋별 생존율:');
+  logger.info('  🛡️ 프리셋별 생존율:');
   const sortedPresets = Object.entries(survivalData)
     .sort((a, b) => (b[1].survived / b[1].totalBattles) - (a[1].survived / a[1].totalBattles));
 
   sortedPresets.forEach(([name, data]) => {
     const survivalRate = (data.survived / data.totalBattles) * 100;
-    console.log(`    • ${name}: ${survivalRate.toFixed(1)}% (평균 남은 체력: ${data.avgHealthRemaining.toFixed(1)})`);
+    logger.info(`    • ${name}: ${survivalRate.toFixed(1)}% (평균 남은 체력: ${data.avgHealthRemaining.toFixed(1)})`);
     if (data.closeCallCount > 0) {
-      console.log(`      ⚠️ 위기 생존: ${data.closeCallCount}회`);
+      logger.info(`      ⚠️ 위기 생존: ${data.closeCallCount}회`);
     }
   });
 
@@ -8667,17 +8671,17 @@ export function runSurvivalAnalysis(battles: number = 30): void {
   const grade = avgSurvivalRate >= 0.8 ? 'S' :
     avgSurvivalRate >= 0.6 ? 'A' :
     avgSurvivalRate >= 0.4 ? 'B' : 'C';
-  console.log(`\n  💡 생존 등급: ${grade}`);
+  logger.info(`\n  💡 생존 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 공격 패턴 분석
 export function runAttackPatternAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('⚔️ 공격 패턴 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⚔️ 공격 패턴 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const patternData = {
     singleAttacks: 0,
@@ -8718,31 +8722,31 @@ export function runAttackPatternAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  ⚡ 공격 패턴 분포:');
+  logger.info('  ⚡ 공격 패턴 분포:');
   const total = patternData.turnDamages.length || 1;
-  console.log(`    • 스파이크 공격 (50+): ${patternData.spikeDamage}회 (${((patternData.spikeDamage / total) * 100).toFixed(1)}%)`);
-  console.log(`    • 버스트 공격 (30-49): ${patternData.burstAttacks}회 (${((patternData.burstAttacks / total) * 100).toFixed(1)}%)`);
-  console.log(`    • 일반 공격 (<30): ${patternData.consistentDamage}회 (${((patternData.consistentDamage / total) * 100).toFixed(1)}%)`);
+  logger.info(`    • 스파이크 공격 (50+): ${patternData.spikeDamage}회 (${((patternData.spikeDamage / total) * 100).toFixed(1)}%)`);
+  logger.info(`    • 버스트 공격 (30-49): ${patternData.burstAttacks}회 (${((patternData.burstAttacks / total) * 100).toFixed(1)}%)`);
+  logger.info(`    • 일반 공격 (<30): ${patternData.consistentDamage}회 (${((patternData.consistentDamage / total) * 100).toFixed(1)}%)`);
 
   const avgDamage = patternData.turnDamages.length > 0 ?
     patternData.turnDamages.reduce((a, b) => a + b, 0) / patternData.turnDamages.length : 0;
-  console.log(`\n  📊 평균 공격 피해: ${avgDamage.toFixed(1)}`);
+  logger.info(`\n  📊 평균 공격 피해: ${avgDamage.toFixed(1)}`);
 
   const spikeRatio = patternData.spikeDamage / total;
   const grade = spikeRatio >= 0.3 ? 'S' :
     spikeRatio >= 0.2 ? 'A' :
     spikeRatio >= 0.1 ? 'B' : 'C';
-  console.log(`\n  💡 공격 등급: ${grade}`);
+  logger.info(`\n  💡 공격 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 방어 전략 분석
 export function runDefenseStrategyAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🛡️ 방어 전략 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🛡️ 방어 전략 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const defenseData = {
     totalDamageTaken: 0,
@@ -8785,30 +8789,30 @@ export function runDefenseStrategyAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  🛡️ 방어 통계:');
-  console.log(`    • 총 받은 피해: ${defenseData.totalDamageTaken}`);
-  console.log(`    • 총 회복량: ${defenseData.totalHealing}`);
-  console.log(`    • 방어 횟수: ${defenseData.shieldBlocks}`);
-  console.log(`    • 생존율: ${((defenseData.battlesSurvived / defenseData.totalBattles) * 100).toFixed(1)}%`);
+  logger.info('  🛡️ 방어 통계:');
+  logger.info(`    • 총 받은 피해: ${defenseData.totalDamageTaken}`);
+  logger.info(`    • 총 회복량: ${defenseData.totalHealing}`);
+  logger.info(`    • 방어 횟수: ${defenseData.shieldBlocks}`);
+  logger.info(`    • 생존율: ${((defenseData.battlesSurvived / defenseData.totalBattles) * 100).toFixed(1)}%`);
 
   const avgDamageTaken = defenseData.totalDamageTaken / defenseData.totalBattles;
-  console.log(`\n  📊 전투당 평균 피해: ${avgDamageTaken.toFixed(1)}`);
+  logger.info(`\n  📊 전투당 평균 피해: ${avgDamageTaken.toFixed(1)}`);
 
   const defenseScore = defenseData.battlesSurvived / defenseData.totalBattles;
   const grade = defenseScore >= 0.8 ? 'S' :
     defenseScore >= 0.6 ? 'A' :
     defenseScore >= 0.4 ? 'B' : 'C';
-  console.log(`\n  💡 방어 등급: ${grade}`);
+  logger.info(`\n  💡 방어 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 콤보 체인 분석
 export function runComboChainAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🔗 콤보 체인 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔗 콤보 체인 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const chainData: Record<string, {
     occurrences: number;
@@ -8859,18 +8863,18 @@ export function runComboChainAnalysis(battles: number = 30): void {
       data.lengths.reduce((a, b) => a + b, 0) / data.lengths.length : 0;
   });
 
-  console.log('  🔗 상위 콤보 체인:');
+  logger.info('  🔗 상위 콤보 체인:');
   const topChains = Object.entries(chainData)
     .sort((a, b) => b[1].occurrences - a[1].occurrences)
     .slice(0, 10);
 
   topChains.forEach(([chain, data], idx) => {
-    console.log(`    ${idx + 1}. ${chain}`);
-    console.log(`       발생: ${data.occurrences}회, 평균 길이: ${data.avgLength.toFixed(1)}`);
+    logger.info(`    ${idx + 1}. ${chain}`);
+    logger.info(`       발생: ${data.occurrences}회, 평균 길이: ${data.avgLength.toFixed(1)}`);
   });
 
   if (topChains.length === 0) {
-    console.log('    (충분한 데이터 없음)');
+    logger.info('    (충분한 데이터 없음)');
   }
 
   const avgChainLength = topChains.length > 0 ?
@@ -8878,17 +8882,17 @@ export function runComboChainAnalysis(battles: number = 30): void {
   const grade = avgChainLength >= 4 ? 'S' :
     avgChainLength >= 3 ? 'A' :
     avgChainLength >= 2 ? 'B' : 'C';
-  console.log(`\n  💡 콤보 체인 등급: ${grade}`);
+  logger.info(`\n  💡 콤보 체인 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 레벨 스케일링 분석
 export function runLevelScalingAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📈 레벨 스케일링 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
+  logger.info('═'.repeat(50));
+  logger.info('📈 레벨 스케일링 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
 
   const scalingData: Record<string, {
     tier: number;
@@ -8934,12 +8938,12 @@ export function runLevelScalingAnalysis(battles: number = 30): void {
     data.avgTurns = data.totalTurns / data.battles;
   }
 
-  console.log('  📊 티어별 스케일링:');
+  logger.info('  📊 티어별 스케일링:');
   Object.entries(scalingData).forEach(([name, data]) => {
-    console.log(`    ${name}:`);
-    console.log(`      승률: ${(data.winRate * 100).toFixed(1)}%`);
-    console.log(`      평균 피해: ${data.avgDamage.toFixed(1)}`);
-    console.log(`      평균 턴: ${data.avgTurns.toFixed(1)}`);
+    logger.info(`    ${name}:`);
+    logger.info(`      승률: ${(data.winRate * 100).toFixed(1)}%`);
+    logger.info(`      평균 피해: ${data.avgDamage.toFixed(1)}`);
+    logger.info(`      평균 턴: ${data.avgTurns.toFixed(1)}`);
   });
 
   // 스케일링 균형 점수
@@ -8949,17 +8953,17 @@ export function runLevelScalingAnalysis(battles: number = 30): void {
   const grade = balance >= 0.8 ? 'S' :
     balance >= 0.6 ? 'A' :
     balance >= 0.4 ? 'B' : 'C';
-  console.log(`\n  💡 스케일링 균형 등급: ${grade}`);
+  logger.info(`\n  💡 스케일링 균형 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 핫스트릭 분석 (연속 성공 패턴)
 export function runHotStreakAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('🔥 핫스트릭 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔥 핫스트릭 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const hotStreakData = {
     streaks: [] as number[],
@@ -9007,32 +9011,32 @@ export function runHotStreakAnalysis(battles: number = 50): void {
     hotStreakData.maxStreak = Math.max(hotStreakData.maxStreak, hotStreakData.currentStreak);
   }
 
-  console.log('  🔥 핫스트릭 통계:');
-  console.log(`    • 최대 연승: ${hotStreakData.maxStreak}회`);
-  console.log(`    • 핫 모먼트 (3연승+): ${hotStreakData.hotMoments}회`);
+  logger.info('  🔥 핫스트릭 통계:');
+  logger.info(`    • 최대 연승: ${hotStreakData.maxStreak}회`);
+  logger.info(`    • 핫 모먼트 (3연승+): ${hotStreakData.hotMoments}회`);
   const avgStreak = hotStreakData.streaks.length > 0 ?
     hotStreakData.streaks.reduce((a, b) => a + b, 0) / hotStreakData.streaks.length : 0;
-  console.log(`    • 평균 연승: ${avgStreak.toFixed(1)}회`);
+  logger.info(`    • 평균 연승: ${avgStreak.toFixed(1)}회`);
 
-  console.log('\n  📊 모멘텀 분석:');
+  logger.info('\n  📊 모멘텀 분석:');
   const momentum = hotStreakData.totalAfterWin > 0 ?
     hotStreakData.winAfterWin / hotStreakData.totalAfterWin : 0;
-  console.log(`    • 승리 후 승리 확률: ${(momentum * 100).toFixed(1)}%`);
+  logger.info(`    • 승리 후 승리 확률: ${(momentum * 100).toFixed(1)}%`);
 
   const grade = hotStreakData.maxStreak >= 7 ? 'S' :
     hotStreakData.maxStreak >= 5 ? 'A' :
     hotStreakData.maxStreak >= 3 ? 'B' : 'C';
-  console.log(`\n  💡 핫스트릭 등급: ${grade}`);
+  logger.info(`\n  💡 핫스트릭 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 콜드스트릭 분석 (연속 실패 패턴)
 export function runColdStreakAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('❄️ 콜드스트릭 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('❄️ 콜드스트릭 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const coldStreakData = {
     streaks: [] as number[],
@@ -9080,33 +9084,33 @@ export function runColdStreakAnalysis(battles: number = 50): void {
     coldStreakData.maxStreak = Math.max(coldStreakData.maxStreak, coldStreakData.currentStreak);
   }
 
-  console.log('  ❄️ 콜드스트릭 통계:');
-  console.log(`    • 최대 연패: ${coldStreakData.maxStreak}회`);
-  console.log(`    • 콜드 모먼트 (3연패+): ${coldStreakData.coldMoments}회`);
+  logger.info('  ❄️ 콜드스트릭 통계:');
+  logger.info(`    • 최대 연패: ${coldStreakData.maxStreak}회`);
+  logger.info(`    • 콜드 모먼트 (3연패+): ${coldStreakData.coldMoments}회`);
   const avgStreak = coldStreakData.streaks.length > 0 ?
     coldStreakData.streaks.reduce((a, b) => a + b, 0) / coldStreakData.streaks.length : 0;
-  console.log(`    • 평균 연패: ${avgStreak.toFixed(1)}회`);
+  logger.info(`    • 평균 연패: ${avgStreak.toFixed(1)}회`);
 
-  console.log('\n  📊 회복력 분석:');
+  logger.info('\n  📊 회복력 분석:');
   const resilience = coldStreakData.totalAfterLoss > 0 ?
     1 - (coldStreakData.lossAfterLoss / coldStreakData.totalAfterLoss) : 1;
-  console.log(`    • 패배 후 승리 확률: ${(resilience * 100).toFixed(1)}%`);
+  logger.info(`    • 패배 후 승리 확률: ${(resilience * 100).toFixed(1)}%`);
 
   // 낮을수록 좋음
   const grade = coldStreakData.maxStreak <= 2 ? 'S' :
     coldStreakData.maxStreak <= 4 ? 'A' :
     coldStreakData.maxStreak <= 6 ? 'B' : 'C';
-  console.log(`\n  💡 회복력 등급: ${grade}`);
+  logger.info(`\n  💡 회복력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 전투 효율 분석
 export function runBattleEfficiencyAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('⚡ 전투 효율 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⚡ 전투 효율 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const efficiencyData = {
     totalDamageDealt: 0,
@@ -9139,30 +9143,30 @@ export function runBattleEfficiencyAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  ⚡ 효율 통계:');
+  logger.info('  ⚡ 효율 통계:');
   const avgDPT = efficiencyData.totalDamageDealt / efficiencyData.totalTurns;
-  console.log(`    • 턴당 평균 피해: ${avgDPT.toFixed(1)}`);
-  console.log(`    • 퀵윈 (5턴 이내): ${efficiencyData.quickWins}회 (${((efficiencyData.quickWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
-  console.log(`    • 완벽 승리: ${efficiencyData.perfectWins}회 (${((efficiencyData.perfectWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
+  logger.info(`    • 턴당 평균 피해: ${avgDPT.toFixed(1)}`);
+  logger.info(`    • 퀵윈 (5턴 이내): ${efficiencyData.quickWins}회 (${((efficiencyData.quickWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
+  logger.info(`    • 완벽 승리: ${efficiencyData.perfectWins}회 (${((efficiencyData.perfectWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
 
   const avgTurns = efficiencyData.totalTurns / efficiencyData.totalBattles;
-  console.log(`\n  📊 평균 전투 시간: ${avgTurns.toFixed(1)} 턴`);
+  logger.info(`\n  📊 평균 전투 시간: ${avgTurns.toFixed(1)} 턴`);
 
   const efficiencyScore = (avgDPT / 10) + (efficiencyData.quickWins / efficiencyData.totalBattles);
   const grade = efficiencyScore >= 1.5 ? 'S' :
     efficiencyScore >= 1.0 ? 'A' :
     efficiencyScore >= 0.5 ? 'B' : 'C';
-  console.log(`\n  💡 전투 효율 등급: ${grade}`);
+  logger.info(`\n  💡 전투 효율 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 티어별 비교 분석
 export function runTierComparisonAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📊 티어별 비교 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
+  logger.info('═'.repeat(50));
+  logger.info('📊 티어별 비교 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
 
   const tierStats: Record<number, {
     winRate: number;
@@ -9198,34 +9202,34 @@ export function runTierComparisonAnalysis(battles: number = 30): void {
     tierStats[tier].avgTurns = tierStats[tier].totalTurns / tierStats[tier].total;
   }
 
-  console.log('  📈 티어별 통계:');
+  logger.info('  📈 티어별 통계:');
   for (let tier = 1; tier <= 3; tier++) {
     const stats = tierStats[tier];
-    console.log(`    Tier ${tier}:`);
-    console.log(`      승률: ${(stats.winRate * 100).toFixed(1)}%`);
-    console.log(`      평균 피해: ${stats.avgDamage.toFixed(1)}`);
-    console.log(`      평균 턴: ${stats.avgTurns.toFixed(1)}`);
+    logger.info(`    Tier ${tier}:`);
+    logger.info(`      승률: ${(stats.winRate * 100).toFixed(1)}%`);
+    logger.info(`      평균 피해: ${stats.avgDamage.toFixed(1)}`);
+    logger.info(`      평균 턴: ${stats.avgTurns.toFixed(1)}`);
   }
 
-  console.log('\n  🔄 티어간 비교:');
+  logger.info('\n  🔄 티어간 비교:');
   const diff12 = (tierStats[1].winRate - tierStats[2].winRate) * 100;
   const diff23 = (tierStats[2].winRate - tierStats[3].winRate) * 100;
-  console.log(`    • Tier 1 vs 2: ${diff12 > 0 ? '+' : ''}${diff12.toFixed(1)}%`);
-  console.log(`    • Tier 2 vs 3: ${diff23 > 0 ? '+' : ''}${diff23.toFixed(1)}%`);
+  logger.info(`    • Tier 1 vs 2: ${diff12 > 0 ? '+' : ''}${diff12.toFixed(1)}%`);
+  logger.info(`    • Tier 2 vs 3: ${diff23 > 0 ? '+' : ''}${diff23.toFixed(1)}%`);
 
   const balance = Math.abs(diff12 - diff23);
   const grade = balance <= 5 ? 'S' : balance <= 10 ? 'A' : balance <= 20 ? 'B' : 'C';
-  console.log(`\n  💡 밸런스 등급: ${grade}`);
+  logger.info(`\n  💡 밸런스 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 프리셋 효율 분석
 export function runPresetEfficiencyAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎯 프리셋 효율 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎯 프리셋 효율 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
 
   const presetStats: Record<string, {
     winRate: number;
@@ -9262,28 +9266,28 @@ export function runPresetEfficiencyAnalysis(battles: number = 30): void {
     stats.efficiency = (stats.winRate * 100) + (stats.avgDamage / stats.avgTurns);
   }
 
-  console.log('  🏆 프리셋 순위 (효율 점수):');
+  logger.info('  🏆 프리셋 순위 (효율 점수):');
   const ranked = Object.entries(presetStats)
     .sort((a, b) => b[1].efficiency - a[1].efficiency);
 
   ranked.forEach(([name, stats], idx) => {
-    console.log(`    ${idx + 1}. ${name}: ${stats.efficiency.toFixed(1)}점`);
-    console.log(`       (승률: ${(stats.winRate * 100).toFixed(1)}%, DPT: ${(stats.avgDamage / stats.avgTurns).toFixed(1)})`);
+    logger.info(`    ${idx + 1}. ${name}: ${stats.efficiency.toFixed(1)}점`);
+    logger.info(`       (승률: ${(stats.winRate * 100).toFixed(1)}%, DPT: ${(stats.avgDamage / stats.avgTurns).toFixed(1)})`);
   });
 
   const avgEfficiency = ranked.reduce((sum, [_, s]) => sum + s.efficiency, 0) / ranked.length;
   const grade = avgEfficiency >= 70 ? 'S' : avgEfficiency >= 55 ? 'A' : avgEfficiency >= 40 ? 'B' : 'C';
-  console.log(`\n  💡 전체 효율 등급: ${grade}`);
+  logger.info(`\n  💡 전체 효율 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 적 약점 심화 분석
 export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
-  console.log('═'.repeat(50));
-  console.log('🎯 적 약점 심화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회 (적당)\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎯 적 약점 심화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회 (적당)\n`);
 
   const weaknessData: Record<string, {
     weakPresets: string[];
@@ -9323,26 +9327,26 @@ export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
     }
   }
 
-  console.log('  🎯 적별 약점/강점:');
+  logger.info('  🎯 적별 약점/강점:');
   Object.entries(weaknessData).forEach(([name, data]) => {
-    console.log(`    • ${name}:`);
-    console.log(`      약점: ${data.weakPresets.length > 0 ? data.weakPresets.join(', ') : '없음'}`);
-    console.log(`      강점: ${data.strongPresets.length > 0 ? data.strongPresets.join(', ') : '없음'}`);
+    logger.info(`    • ${name}:`);
+    logger.info(`      약점: ${data.weakPresets.length > 0 ? data.weakPresets.join(', ') : '없음'}`);
+    logger.info(`      강점: ${data.strongPresets.length > 0 ? data.strongPresets.join(', ') : '없음'}`);
   });
 
   const avgWeaknesses = Object.values(weaknessData).reduce((sum, d) => sum + d.weakPresets.length, 0) / Object.keys(weaknessData).length;
   const grade = avgWeaknesses >= 3 ? 'S' : avgWeaknesses >= 2 ? 'A' : avgWeaknesses >= 1 ? 'B' : 'C';
-  console.log(`\n  💡 약점 분석 등급: ${grade}`);
+  logger.info(`\n  💡 약점 분석 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 플레이스타일 분석
 export function runPlaystyleAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🎮 플레이스타일 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎮 플레이스타일 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const styleData = {
     aggressive: 0,  // 공격 중심
@@ -9374,7 +9378,7 @@ export function runPlaystyleAnalysis(battles: number = 30): void {
     else styleData.balanced++;
   }
 
-  console.log('  🎮 플레이스타일 분포:');
+  logger.info('  🎮 플레이스타일 분포:');
   const styles = [
     ['공격적', styleData.aggressive],
     ['방어적', styleData.defensive],
@@ -9385,26 +9389,26 @@ export function runPlaystyleAnalysis(battles: number = 30): void {
 
   styles.forEach(([name, count]) => {
     const percent = (count / totalBattles) * 100;
-    console.log(`    • ${name}: ${count}회 (${percent.toFixed(1)}%)`);
+    logger.info(`    • ${name}: ${count}회 (${percent.toFixed(1)}%)`);
   });
 
   // 주요 스타일 결정
   const dominant = styles.reduce((a, b) => a[1] > b[1] ? a : b);
-  console.log(`\n  📊 주요 스타일: ${dominant[0]}`);
+  logger.info(`\n  📊 주요 스타일: ${dominant[0]}`);
 
   const diversity = styles.filter(([_, c]) => c > totalBattles * 0.1).length;
   const grade = diversity >= 4 ? 'S' : diversity >= 3 ? 'A' : diversity >= 2 ? 'B' : 'C';
-  console.log(`\n  💡 스타일 다양성 등급: ${grade}`);
+  logger.info(`\n  💡 스타일 다양성 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 모멘텀 분석 - 연속 성공/실패 패턴 분석
 export function runMomentumAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('⚡ 모멘텀 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⚡ 모멘텀 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const momentumData = {
     positiveStreaks: [] as number[],  // 연승 길이들
@@ -9458,26 +9462,26 @@ export function runMomentumAnalysis(battles: number = 50): void {
   const maxPositive = Math.max(...momentumData.positiveStreaks, 0);
   const maxNegative = Math.max(...momentumData.negativeStreaks, 0);
 
-  console.log('  ⚡ 모멘텀 통계:');
-  console.log(`    • 평균 연승: ${avgPositive.toFixed(2)}회`);
-  console.log(`    • 평균 연패: ${avgNegative.toFixed(2)}회`);
-  console.log(`    • 최대 연승: ${maxPositive}회`);
-  console.log(`    • 최대 연패: ${maxNegative}회`);
-  console.log(`    • 모멘텀 전환: ${momentumData.momentumShifts}회`);
+  logger.info('  ⚡ 모멘텀 통계:');
+  logger.info(`    • 평균 연승: ${avgPositive.toFixed(2)}회`);
+  logger.info(`    • 평균 연패: ${avgNegative.toFixed(2)}회`);
+  logger.info(`    • 최대 연승: ${maxPositive}회`);
+  logger.info(`    • 최대 연패: ${maxNegative}회`);
+  logger.info(`    • 모멘텀 전환: ${momentumData.momentumShifts}회`);
 
   const stability = battles / (momentumData.momentumShifts + 1);
   const grade = stability >= 5 ? 'S' : stability >= 3 ? 'A' : stability >= 2 ? 'B' : 'C';
-  console.log(`\n  💡 모멘텀 안정성 등급: ${grade}`);
+  logger.info(`\n  💡 모멘텀 안정성 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 압박 분석 - 적에게 주는 압력 분석
 export function runPressureAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('💪 압박 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('💪 압박 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const pressureData = {
     highPressure: 0,    // 강한 압박 (적 체력 30% 이하로 빠르게)
@@ -9513,25 +9517,25 @@ export function runPressureAnalysis(battles: number = 30): void {
 
   pressureData.avgTurnsToHalf = countsWithHalf > 0 ? totalTurnsToHalf / countsWithHalf : 0;
 
-  console.log('  💪 압박 수준 분포:');
-  console.log(`    • 강한 압박: ${pressureData.highPressure}회 (${(pressureData.highPressure / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 중간 압박: ${pressureData.mediumPressure}회 (${(pressureData.mediumPressure / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 낮은 압박: ${pressureData.lowPressure}회 (${(pressureData.lowPressure / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 적 체력 50% 도달 평균: ${pressureData.avgTurnsToHalf.toFixed(1)}턴`);
+  logger.info('  💪 압박 수준 분포:');
+  logger.info(`    • 강한 압박: ${pressureData.highPressure}회 (${(pressureData.highPressure / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 중간 압박: ${pressureData.mediumPressure}회 (${(pressureData.mediumPressure / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 낮은 압박: ${pressureData.lowPressure}회 (${(pressureData.lowPressure / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 적 체력 50% 도달 평균: ${pressureData.avgTurnsToHalf.toFixed(1)}턴`);
 
   const pressureRate = pressureData.highPressure / battles;
   const grade = pressureRate >= 0.6 ? 'S' : pressureRate >= 0.4 ? 'A' : pressureRate >= 0.2 ? 'B' : 'C';
-  console.log(`\n  💡 압박력 등급: ${grade}`);
+  logger.info(`\n  💡 압박력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 회피 분석 - 피해 회피 패턴 분석
 export function runEvasionAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🏃 회피 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🏃 회피 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const evasionData = {
     perfectEvasion: 0,  // 완벽 회피 (피해 0)
@@ -9561,26 +9565,26 @@ export function runEvasionAnalysis(battles: number = 30): void {
 
   evasionData.avgDamageTaken = totalDamageTaken / battles;
 
-  console.log('  🏃 회피 수준 분포:');
-  console.log(`    • 완벽 회피: ${evasionData.perfectEvasion}회 (${(evasionData.perfectEvasion / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 높은 회피: ${evasionData.highEvasion}회 (${(evasionData.highEvasion / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 일반 회피: ${evasionData.normalEvasion}회 (${(evasionData.normalEvasion / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 낮은 회피: ${evasionData.lowEvasion}회 (${(evasionData.lowEvasion / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 평균 피해: ${evasionData.avgDamageTaken.toFixed(1)}`);
+  logger.info('  🏃 회피 수준 분포:');
+  logger.info(`    • 완벽 회피: ${evasionData.perfectEvasion}회 (${(evasionData.perfectEvasion / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 높은 회피: ${evasionData.highEvasion}회 (${(evasionData.highEvasion / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 일반 회피: ${evasionData.normalEvasion}회 (${(evasionData.normalEvasion / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 낮은 회피: ${evasionData.lowEvasion}회 (${(evasionData.lowEvasion / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 평균 피해: ${evasionData.avgDamageTaken.toFixed(1)}`);
 
   const evasionRate = (evasionData.perfectEvasion + evasionData.highEvasion) / battles;
   const grade = evasionRate >= 0.6 ? 'S' : evasionRate >= 0.4 ? 'A' : evasionRate >= 0.2 ? 'B' : 'C';
-  console.log(`\n  💡 회피력 등급: ${grade}`);
+  logger.info(`\n  💡 회피력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 카드 드로우 분석 - 카드 사용 패턴 분석
 export function runCardDrawAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🃏 카드 드로우 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🃏 카드 드로우 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const drawData = {
     cardsPerTurn: [] as number[],
@@ -9614,33 +9618,33 @@ export function runCardDrawAnalysis(battles: number = 30): void {
 
   const avgCardsPerTurn = drawData.cardsPerTurn.reduce((a, b) => a + b, 0) / drawData.cardsPerTurn.length;
 
-  console.log('  🃏 카드 드로우 통계:');
-  console.log(`    • 총 카드 사용: ${drawData.totalCardsUsed}장`);
-  console.log(`    • 턴당 평균 사용: ${avgCardsPerTurn.toFixed(2)}장`);
-  console.log(`    • 고유 카드 종류: ${drawData.uniqueCards.size}종`);
+  logger.info('  🃏 카드 드로우 통계:');
+  logger.info(`    • 총 카드 사용: ${drawData.totalCardsUsed}장`);
+  logger.info(`    • 턴당 평균 사용: ${avgCardsPerTurn.toFixed(2)}장`);
+  logger.info(`    • 고유 카드 종류: ${drawData.uniqueCards.size}종`);
 
   // 가장 많이 사용된 카드
   const topCards = [...drawData.cardUsageMap.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  console.log('\n  📊 가장 많이 사용된 카드:');
+  logger.info('\n  📊 가장 많이 사용된 카드:');
   topCards.forEach(([name, count], idx) => {
-    console.log(`    ${idx + 1}. ${name}: ${count}회`);
+    logger.info(`    ${idx + 1}. ${name}: ${count}회`);
   });
 
   const efficiency = avgCardsPerTurn >= 2 ? 'S' : avgCardsPerTurn >= 1.5 ? 'A' : avgCardsPerTurn >= 1 ? 'B' : 'C';
-  console.log(`\n  💡 카드 효율 등급: ${efficiency}`);
+  logger.info(`\n  💡 카드 효율 등급: ${efficiency}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 페이즈 분석 - 전투 진행 단계별 분석
 export function runPhaseAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📊 페이즈 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('📊 페이즈 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const phaseData = {
     earlyWins: 0,    // 초반 승리 (5턴 이내)
@@ -9672,27 +9676,27 @@ export function runPhaseAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  📊 페이즈별 승패:');
-  console.log(`    • 초반(1-5턴): ${phaseData.earlyWins}승 / ${phaseData.earlyLosses}패`);
-  console.log(`    • 중반(6-10턴): ${phaseData.midWins}승 / ${phaseData.midLosses}패`);
-  console.log(`    • 후반(11+턴): ${phaseData.lateWins}승 / ${phaseData.lateLosses}패`);
+  logger.info('  📊 페이즈별 승패:');
+  logger.info(`    • 초반(1-5턴): ${phaseData.earlyWins}승 / ${phaseData.earlyLosses}패`);
+  logger.info(`    • 중반(6-10턴): ${phaseData.midWins}승 / ${phaseData.midLosses}패`);
+  logger.info(`    • 후반(11+턴): ${phaseData.lateWins}승 / ${phaseData.lateLosses}패`);
 
   const totalWins = phaseData.earlyWins + phaseData.midWins + phaseData.lateWins;
   const earlyRate = totalWins > 0 ? (phaseData.earlyWins / totalWins * 100).toFixed(1) : '0';
-  console.log(`\n  📈 초반 승리 비율: ${earlyRate}%`);
+  logger.info(`\n  📈 초반 승리 비율: ${earlyRate}%`);
 
   const grade = phaseData.earlyWins >= battles * 0.3 ? 'S' : phaseData.earlyWins >= battles * 0.2 ? 'A' : phaseData.earlyWins >= battles * 0.1 ? 'B' : 'C';
-  console.log(`\n  💡 초반 장악력 등급: ${grade}`);
+  logger.info(`\n  💡 초반 장악력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 크리티컬 분석 - 결정적 순간 분석
 export function runCriticalMomentAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('⚡ 크리티컬 모멘트 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⚡ 크리티컬 모멘트 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const criticalData = {
     clutchWins: 0,        // 막판 역전승 (체력 20% 이하에서 승리)
@@ -9725,27 +9729,27 @@ export function runCriticalMomentAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  ⚡ 크리티컬 순간:');
-  console.log(`    • 막판 역전승: ${criticalData.clutchWins}회`);
-  console.log(`    • 압도적 승리: ${criticalData.dominantWins}회`);
-  console.log(`    • 아쉬운 패배: ${criticalData.narrowLosses}회`);
-  console.log(`    • 총 결정적 순간: ${criticalData.totalCriticalMoments}회`);
+  logger.info('  ⚡ 크리티컬 순간:');
+  logger.info(`    • 막판 역전승: ${criticalData.clutchWins}회`);
+  logger.info(`    • 압도적 승리: ${criticalData.dominantWins}회`);
+  logger.info(`    • 아쉬운 패배: ${criticalData.narrowLosses}회`);
+  logger.info(`    • 총 결정적 순간: ${criticalData.totalCriticalMoments}회`);
 
   const clutchRate = battles > 0 ? (criticalData.clutchWins / battles * 100).toFixed(1) : '0';
-  console.log(`\n  📈 역전승 비율: ${clutchRate}%`);
+  logger.info(`\n  📈 역전승 비율: ${clutchRate}%`);
 
   const grade = criticalData.clutchWins >= 5 ? 'S' : criticalData.clutchWins >= 3 ? 'A' : criticalData.clutchWins >= 1 ? 'B' : 'C';
-  console.log(`\n  💡 클러치 능력 등급: ${grade}`);
+  logger.info(`\n  💡 클러치 능력 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 안정성 분석 - 결과 일관성 분석
 export function runStabilityAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('🔒 안정성 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔒 안정성 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const results: boolean[] = [];
   const healthResults: number[] = [];
@@ -9783,27 +9787,27 @@ export function runStabilityAnalysis(battles: number = 50): void {
     lastResult = result;
   }
 
-  console.log('  🔒 안정성 지표:');
-  console.log(`    • 승률: ${(winRate * 100).toFixed(1)}%`);
-  console.log(`    • 평균 체력: ${avgHealth.toFixed(1)}`);
-  console.log(`    • 체력 표준편차: ${stdDev.toFixed(2)}`);
-  console.log(`    • 최대 연속: ${maxStreak}회`);
+  logger.info('  🔒 안정성 지표:');
+  logger.info(`    • 승률: ${(winRate * 100).toFixed(1)}%`);
+  logger.info(`    • 평균 체력: ${avgHealth.toFixed(1)}`);
+  logger.info(`    • 체력 표준편차: ${stdDev.toFixed(2)}`);
+  logger.info(`    • 최대 연속: ${maxStreak}회`);
 
   const stabilityScore = 100 - stdDev;
-  console.log(`\n  📈 안정성 점수: ${stabilityScore.toFixed(1)}/100`);
+  logger.info(`\n  📈 안정성 점수: ${stabilityScore.toFixed(1)}/100`);
 
   const grade = stabilityScore >= 80 ? 'S' : stabilityScore >= 60 ? 'A' : stabilityScore >= 40 ? 'B' : 'C';
-  console.log(`\n  💡 안정성 등급: ${grade}`);
+  logger.info(`\n  💡 안정성 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 확률 분석 심화 - 승률 예측 및 분포 분석
 export function runProbabilityDeepAnalysis(battles: number = 100): void {
-  console.log('═'.repeat(50));
-  console.log('🎲 확률 심화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🎲 확률 심화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const presetStats: Record<string, { wins: number; total: number; healthSum: number }> = {};
 
@@ -9826,7 +9830,7 @@ export function runProbabilityDeepAnalysis(battles: number = 100): void {
     presetStats[preset.name].healthSum += result.playerHealth;
   }
 
-  console.log('  🎲 프리셋별 확률:');
+  logger.info('  🎲 프리셋별 확률:');
   const sortedPresets = Object.entries(presetStats)
     .map(([name, stats]) => ({
       name,
@@ -9838,7 +9842,7 @@ export function runProbabilityDeepAnalysis(battles: number = 100): void {
 
   sortedPresets.forEach(({ name, winRate, avgHealth, total }) => {
     const bar = '█'.repeat(Math.floor(winRate * 20)) + '░'.repeat(20 - Math.floor(winRate * 20));
-    console.log(`    ${name}: ${bar} ${(winRate * 100).toFixed(1)}% (n=${total})`);
+    logger.info(`    ${name}: ${bar} ${(winRate * 100).toFixed(1)}% (n=${total})`);
   });
 
   // 전체 승률
@@ -9846,22 +9850,22 @@ export function runProbabilityDeepAnalysis(battles: number = 100): void {
   const totalGames = Object.values(presetStats).reduce((sum, s) => sum + s.total, 0);
   const overallWinRate = totalWins / totalGames;
 
-  console.log(`\n  📈 전체 승률: ${(overallWinRate * 100).toFixed(1)}%`);
-  console.log(`  📊 베스트 프리셋: ${sortedPresets[0].name}`);
-  console.log(`  📉 워스트 프리셋: ${sortedPresets[sortedPresets.length - 1].name}`);
+  logger.info(`\n  📈 전체 승률: ${(overallWinRate * 100).toFixed(1)}%`);
+  logger.info(`  📊 베스트 프리셋: ${sortedPresets[0].name}`);
+  logger.info(`  📉 워스트 프리셋: ${sortedPresets[sortedPresets.length - 1].name}`);
 
   const grade = overallWinRate >= 0.7 ? 'S' : overallWinRate >= 0.5 ? 'A' : overallWinRate >= 0.3 ? 'B' : 'C';
-  console.log(`\n  💡 전체 확률 등급: ${grade}`);
+  logger.info(`\n  💡 전체 확률 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 상성 심화 분석 - 프리셋 vs 적 매치업 분석
 export function runAffinityDeepAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🔄 상성 심화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔄 상성 심화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const affinityData: Record<string, Record<string, { wins: number; total: number }>> = {};
 
@@ -9886,31 +9890,31 @@ export function runAffinityDeepAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  🔄 상성 매트릭스:');
+  logger.info('  🔄 상성 매트릭스:');
   Object.entries(affinityData).forEach(([preset, enemies]) => {
-    console.log(`\n    ${preset}:`);
+    logger.info(`\n    ${preset}:`);
     Object.entries(enemies)
       .sort((a, b) => (b[1].wins / b[1].total) - (a[1].wins / a[1].total))
       .slice(0, 3)
       .forEach(([enemy, stats]) => {
         const winRate = (stats.wins / stats.total * 100).toFixed(0);
         const icon = stats.wins / stats.total >= 0.7 ? '✅' : stats.wins / stats.total >= 0.3 ? '⚖️' : '❌';
-        console.log(`      ${icon} vs ${enemy}: ${winRate}%`);
+        logger.info(`      ${icon} vs ${enemy}: ${winRate}%`);
       });
   });
 
   const grade = Object.keys(affinityData).length >= 5 ? 'S' : 'A';
-  console.log(`\n  💡 상성 분석 등급: ${grade}`);
+  logger.info(`\n  💡 상성 분석 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 메타 심화 분석 - 현재 메타 상황 분석
 export function runMetaDeepAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('📈 메타 심화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('📈 메타 심화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const metaData = {
     topPresets: new Map<string, number>(),
@@ -9943,35 +9947,35 @@ export function runMetaDeepAnalysis(battles: number = 50): void {
 
   metaData.avgBattleLength = totalTurns / battles;
 
-  console.log('  📈 메타 현황:');
-  console.log(`    • 평균 전투 길이: ${metaData.avgBattleLength.toFixed(1)}턴`);
-  console.log(`    • 공격 메타 비율: ${(metaData.aggressiveMeta / battles * 100).toFixed(1)}%`);
-  console.log(`    • 방어 메타 비율: ${(metaData.defensiveMeta / battles * 100).toFixed(1)}%`);
+  logger.info('  📈 메타 현황:');
+  logger.info(`    • 평균 전투 길이: ${metaData.avgBattleLength.toFixed(1)}턴`);
+  logger.info(`    • 공격 메타 비율: ${(metaData.aggressiveMeta / battles * 100).toFixed(1)}%`);
+  logger.info(`    • 방어 메타 비율: ${(metaData.defensiveMeta / battles * 100).toFixed(1)}%`);
 
   const sortedPresets = [...metaData.topPresets.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  console.log('\n  🏆 탑 프리셋:');
+  logger.info('\n  🏆 탑 프리셋:');
   sortedPresets.forEach(([name, wins], idx) => {
-    console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+    logger.info(`    ${idx + 1}. ${name}: ${wins}승`);
   });
 
   const sortedEnemies = [...metaData.topEnemies.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  console.log('\n  👹 강적:');
+  logger.info('\n  👹 강적:');
   sortedEnemies.forEach(([name, wins], idx) => {
-    console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+    logger.info(`    ${idx + 1}. ${name}: ${wins}승`);
   });
 
   const metaType = metaData.aggressiveMeta > metaData.defensiveMeta ? '공격 메타' : '방어 메타';
-  console.log(`\n  📊 현재 메타: ${metaType}`);
+  logger.info(`\n  📊 현재 메타: ${metaType}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 밴픽 분석 - 최적 밴/픽 전략 분석
 export function runBanPickAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🚫 밴픽 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🚫 밴픽 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const banPickData = {
     mustBans: new Map<string, number>(),    // 밴 추천 적
@@ -9997,38 +10001,38 @@ export function runBanPickAnalysis(battles: number = 30): void {
     }
   }
 
-  console.log('  🚫 밴 추천 (강적):');
+  logger.info('  🚫 밴 추천 (강적):');
   [...banPickData.mustBans.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .forEach(([name, losses], idx) => {
-      console.log(`    ${idx + 1}. ${name}: ${losses}회 패배`);
+      logger.info(`    ${idx + 1}. ${name}: ${losses}회 패배`);
     });
 
-  console.log('\n  ✅ 픽 추천 (강력한 프리셋):');
+  logger.info('\n  ✅ 픽 추천 (강력한 프리셋):');
   [...banPickData.mustPicks.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .forEach(([name, wins], idx) => {
-      console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+      logger.info(`    ${idx + 1}. ${name}: ${wins}승`);
     });
 
-  console.log('\n  🔄 카운터픽:');
+  logger.info('\n  🔄 카운터픽:');
   [...banPickData.counterPicks.entries()]
     .slice(0, 5)
     .forEach(([enemy, preset]) => {
-      console.log(`    ${enemy} → ${preset}`);
+      logger.info(`    ${enemy} → ${preset}`);
     });
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 시간 분석 - 전투 시간 패턴 분석
 export function runTimePatternAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('⏱️ 시간 패턴 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⏱️ 시간 패턴 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const timeData = {
     turnDistribution: new Map<number, number>(),
@@ -10068,33 +10072,33 @@ export function runTimePatternAnalysis(battles: number = 50): void {
   timeData.avgWinTurns = winCount > 0 ? winTurns / winCount : 0;
   timeData.avgLossTurns = lossCount > 0 ? lossTurns / lossCount : 0;
 
-  console.log('  ⏱️ 시간 분포:');
-  console.log(`    • 빠른 전투 (1-5턴): ${timeData.quickBattles}회 (${(timeData.quickBattles / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 보통 전투 (6-10턴): ${timeData.normalBattles}회 (${(timeData.normalBattles / battles * 100).toFixed(1)}%)`);
-  console.log(`    • 장기전 (11+턴): ${timeData.longBattles}회 (${(timeData.longBattles / battles * 100).toFixed(1)}%)`);
+  logger.info('  ⏱️ 시간 분포:');
+  logger.info(`    • 빠른 전투 (1-5턴): ${timeData.quickBattles}회 (${(timeData.quickBattles / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 보통 전투 (6-10턴): ${timeData.normalBattles}회 (${(timeData.normalBattles / battles * 100).toFixed(1)}%)`);
+  logger.info(`    • 장기전 (11+턴): ${timeData.longBattles}회 (${(timeData.longBattles / battles * 100).toFixed(1)}%)`);
 
-  console.log('\n  📊 평균 턴:');
-  console.log(`    • 승리시 평균: ${timeData.avgWinTurns.toFixed(1)}턴`);
-  console.log(`    • 패배시 평균: ${timeData.avgLossTurns.toFixed(1)}턴`);
+  logger.info('\n  📊 평균 턴:');
+  logger.info(`    • 승리시 평균: ${timeData.avgWinTurns.toFixed(1)}턴`);
+  logger.info(`    • 패배시 평균: ${timeData.avgLossTurns.toFixed(1)}턴`);
 
   // 턴 분포 히스토그램
-  console.log('\n  📈 턴 분포:');
+  logger.info('\n  📈 턴 분포:');
   const maxTurn = Math.max(...timeData.turnDistribution.keys());
   for (let t = 1; t <= Math.min(maxTurn, 15); t++) {
     const count = timeData.turnDistribution.get(t) || 0;
     const bar = '█'.repeat(Math.min(count, 20));
-    console.log(`    ${t.toString().padStart(2)}턴: ${bar} ${count}`);
+    logger.info(`    ${t.toString().padStart(2)}턴: ${bar} ${count}`);
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 승률 예측 분석 - 예측 모델 기반 분석
 export function runWinPredictionAnalysis(battles: number = 50): void {
-  console.log('═'.repeat(50));
-  console.log('🔮 승률 예측 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🔮 승률 예측 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const predictionData = {
     correctPredictions: 0,
@@ -10125,23 +10129,23 @@ export function runWinPredictionAnalysis(battles: number = 50): void {
 
   const accuracy = predictionData.correctPredictions / predictionData.totalPredictions * 100;
 
-  console.log('  🔮 예측 결과:');
-  console.log(`    • 정확도: ${accuracy.toFixed(1)}%`);
-  console.log(`    • 정확 예측: ${predictionData.correctPredictions}회`);
-  console.log(`    • 오류 예측: ${predictionData.totalPredictions - predictionData.correctPredictions}회`);
+  logger.info('  🔮 예측 결과:');
+  logger.info(`    • 정확도: ${accuracy.toFixed(1)}%`);
+  logger.info(`    • 정확 예측: ${predictionData.correctPredictions}회`);
+  logger.info(`    • 오류 예측: ${predictionData.totalPredictions - predictionData.correctPredictions}회`);
 
   const grade = accuracy >= 70 ? 'S' : accuracy >= 60 ? 'A' : accuracy >= 50 ? 'B' : 'C';
-  console.log(`\n  💡 예측 정확도 등급: ${grade}`);
+  logger.info(`\n  💡 예측 정확도 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 포텐셜 분석 - 성장 가능성 분석
 export function runPotentialAnalysis(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('📈 포텐셜 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('📈 포텐셜 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const potentialData = {
     presetPotentials: new Map<string, { current: number; max: number; growth: number }>(),
@@ -10167,7 +10171,7 @@ export function runPotentialAnalysis(battles: number = 30): void {
     data.growth += result.winner === 'player' ? 1 : 0;
   }
 
-  console.log('  📈 프리셋별 포텐셜:');
+  logger.info('  📈 프리셋별 포텐셜:');
   [...potentialData.presetPotentials.entries()]
     .map(([name, data]) => ({
       name,
@@ -10177,26 +10181,26 @@ export function runPotentialAnalysis(battles: number = 30): void {
     .sort((a, b) => b.potential - a.potential)
     .forEach(({ name, potential, maxScore }) => {
       const bar = '█'.repeat(Math.floor(potential / 5));
-      console.log(`    ${name}: ${bar} ${potential.toFixed(0)}% (최고점: ${maxScore})`);
+      logger.info(`    ${name}: ${bar} ${potential.toFixed(0)}% (최고점: ${maxScore})`);
     });
 
   const avgPotential = [...potentialData.presetPotentials.values()]
     .reduce((sum, d) => sum + d.growth / d.current, 0) / potentialData.presetPotentials.size * 100;
 
-  console.log(`\n  📊 평균 포텐셜: ${avgPotential.toFixed(1)}%`);
+  logger.info(`\n  📊 평균 포텐셜: ${avgPotential.toFixed(1)}%`);
 
   const grade = avgPotential >= 70 ? 'S' : avgPotential >= 50 ? 'A' : avgPotential >= 30 ? 'B' : 'C';
-  console.log(`\n  💡 성장 가능성 등급: ${grade}`);
+  logger.info(`\n  💡 성장 가능성 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 효율 최적화 분석 - 자원 대비 성과 분석
 export function runEfficiencyOptimization(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('⚡ 효율 최적화 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('⚡ 효율 최적화 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const efficiencyData = {
     damagePerTurn: [] as number[],
@@ -10228,24 +10232,24 @@ export function runEfficiencyOptimization(battles: number = 30): void {
 
   efficiencyData.overallEfficiency = (avgDpt + avgHealthEff + avgTurnEff) / 3;
 
-  console.log('  ⚡ 효율 지표:');
-  console.log(`    • 턴당 피해: ${avgDpt.toFixed(2)}`);
-  console.log(`    • 체력 효율: ${avgHealthEff.toFixed(1)}%`);
-  console.log(`    • 속도 효율: ${avgTurnEff.toFixed(1)}%`);
-  console.log(`    • 종합 효율: ${efficiencyData.overallEfficiency.toFixed(1)}`);
+  logger.info('  ⚡ 효율 지표:');
+  logger.info(`    • 턴당 피해: ${avgDpt.toFixed(2)}`);
+  logger.info(`    • 체력 효율: ${avgHealthEff.toFixed(1)}%`);
+  logger.info(`    • 속도 효율: ${avgTurnEff.toFixed(1)}%`);
+  logger.info(`    • 종합 효율: ${efficiencyData.overallEfficiency.toFixed(1)}`);
 
   const grade = efficiencyData.overallEfficiency >= 50 ? 'S' : efficiencyData.overallEfficiency >= 35 ? 'A' : efficiencyData.overallEfficiency >= 20 ? 'B' : 'C';
-  console.log(`\n  💡 효율 최적화 등급: ${grade}`);
+  logger.info(`\n  💡 효율 최적화 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // 상황 인식 분석 - 전투 상황 파악 능력 분석
 export function runSituationAwareness(battles: number = 30): void {
-  console.log('═'.repeat(50));
-  console.log('🧠 상황 인식 분석');
-  console.log('═'.repeat(50));
-  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+  logger.info('═'.repeat(50));
+  logger.info('🧠 상황 인식 분석');
+  logger.info('═'.repeat(50));
+  logger.info(`\n📊 전투 횟수: ${battles}회\n`);
 
   const awarenessData = {
     adaptations: 0,           // 상황 적응 횟수
@@ -10281,21 +10285,21 @@ export function runSituationAwareness(battles: number = 30): void {
     }
   }
 
-  console.log('  🧠 상황 인식 통계:');
-  console.log(`    • 유리한 상황: ${awarenessData.situations.advantage}회`);
-  console.log(`    • 불리한 상황: ${awarenessData.situations.disadvantage}회`);
-  console.log(`    • 중립 상황: ${awarenessData.situations.neutral}회`);
-  console.log(`    • 상황 적응: ${awarenessData.adaptations}회`);
-  console.log(`    • 최적 결정: ${awarenessData.optimalDecisions}회`);
-  console.log(`    • 놓친 기회: ${awarenessData.missedOpportunities}회`);
+  logger.info('  🧠 상황 인식 통계:');
+  logger.info(`    • 유리한 상황: ${awarenessData.situations.advantage}회`);
+  logger.info(`    • 불리한 상황: ${awarenessData.situations.disadvantage}회`);
+  logger.info(`    • 중립 상황: ${awarenessData.situations.neutral}회`);
+  logger.info(`    • 상황 적응: ${awarenessData.adaptations}회`);
+  logger.info(`    • 최적 결정: ${awarenessData.optimalDecisions}회`);
+  logger.info(`    • 놓친 기회: ${awarenessData.missedOpportunities}회`);
 
   const awarenessScore = (awarenessData.optimalDecisions + awarenessData.adaptations) / battles * 100;
-  console.log(`\n  📊 상황 인식 점수: ${awarenessScore.toFixed(1)}/100`);
+  logger.info(`\n  📊 상황 인식 점수: ${awarenessScore.toFixed(1)}/100`);
 
   const grade = awarenessScore >= 70 ? 'S' : awarenessScore >= 50 ? 'A' : awarenessScore >= 30 ? 'B' : 'C';
-  console.log(`\n  💡 상황 인식 등급: ${grade}`);
+  logger.info(`\n  💡 상황 인식 등급: ${grade}`);
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  logger.info('\n' + '═'.repeat(50) + '\n');
 }
 
 // CLI에서 직접 실행 시

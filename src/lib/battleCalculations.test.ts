@@ -20,10 +20,6 @@ import {
   // 방어력 계산
   calculateBaseBlock,
   calculateGrowingDefenseBonus,
-  // 토큰 수정자
-  calculateAttackModifiers,
-  calculateDefenseModifiers,
-  calculateDamageTakenModifiers,
   // 다중 타격
   calculateMultiHitDamage,
   // 반격
@@ -224,84 +220,6 @@ describe('battleCalculations', () => {
 
     it('커스텀 성장률', () => {
       expect(calculateGrowingDefenseBonus(true, 10, 2)).toBe(20);
-    });
-  });
-
-  // ==================== 토큰 수정자 테스트 ====================
-
-  describe('calculateAttackModifiers', () => {
-    it('빈 토큰 상태', () => {
-      const result = calculateAttackModifiers({});
-      expect(result.damageBonus).toBe(0);
-      expect(result.attackMultiplier).toBe(1);
-      expect(result.bonusDamage).toBe(0);
-    });
-
-    it('offensive 토큰', () => {
-      const result = calculateAttackModifiers({ offensive: 5 });
-      expect(result.damageBonus).toBe(5);
-    });
-
-    it('strength 토큰', () => {
-      const result = calculateAttackModifiers({ strength: 3 });
-      expect(result.damageBonus).toBe(3);
-    });
-
-    it('weak 토큰', () => {
-      const result = calculateAttackModifiers({ weak: 2 });
-      expect(result.attackMultiplier).toBe(0.75);
-    });
-
-    it('fury 토큰', () => {
-      const result = calculateAttackModifiers({ fury: 1 });
-      expect(result.attackMultiplier).toBe(1.5);
-    });
-
-    it('weak + fury 조합', () => {
-      const result = calculateAttackModifiers({ weak: 1, fury: 1 });
-      // 0.75 × 1.5 = 1.125
-      expect(result.attackMultiplier).toBeCloseTo(1.125);
-    });
-  });
-
-  describe('calculateDefenseModifiers', () => {
-    it('빈 토큰 상태', () => {
-      const result = calculateDefenseModifiers({});
-      expect(result.blockBonus).toBe(0);
-      expect(result.blockMultiplier).toBe(1);
-    });
-
-    it('defensive 토큰', () => {
-      const result = calculateDefenseModifiers({ defensive: 5 });
-      expect(result.blockBonus).toBe(5);
-    });
-
-    it('dexterity 토큰', () => {
-      const result = calculateDefenseModifiers({ dexterity: 3 });
-      expect(result.blockBonus).toBe(3);
-    });
-
-    it('frail 토큰', () => {
-      const result = calculateDefenseModifiers({ frail: 2 });
-      expect(result.blockMultiplier).toBe(0.75);
-    });
-  });
-
-  describe('calculateDamageTakenModifiers', () => {
-    it('빈 토큰 상태', () => {
-      const result = calculateDamageTakenModifiers({});
-      expect(result.damageMultiplier).toBe(1);
-      expect(result.damageReduction).toBe(0);
-    });
-
-    it('vulnerable 토큰', () => {
-      const result = calculateDamageTakenModifiers({ vulnerable: 2 });
-      expect(result.damageMultiplier).toBe(1.5);
-    });
-
-    it('protected 토큰', () => {
-      const result = calculateDamageTakenModifiers({ protected: 5 });
-      expect(result.damageReduction).toBe(5);
     });
   });
 

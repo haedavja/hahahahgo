@@ -24,6 +24,7 @@ import type {
   BattleEvent,
   BattleResult,
   TokenState,
+  EffectValueRecord,
 } from './game-types';
 import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
 import {
@@ -49,6 +50,7 @@ import {
   enforceMinFinesse,
 } from './token-system';
 import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
+import { getItemSystem, ItemSystem, applyItemEffect } from './item-system';
 import {
   getAnomalySystem,
   activateGameAnomaly,
@@ -99,6 +101,15 @@ import {
   type BurstResult,
 } from './combo-ether-system';
 import {
+  createInitialGraceState,
+  updateGraceOnTurnStart,
+  gainGrace,
+  checkSoulShield,
+  processAutoPrayers,
+  applyPrayerEffects,
+  type PrayerExecutionResult,
+} from './grace-system';
+import {
   createEnemyAI,
   getPatternForEnemy,
   getPatternModifierByHp,
@@ -123,7 +134,9 @@ import {
   DEFAULT_CONFIG,
   type BattleEngineConfig,
   type TraitModifiers,
+  type SkillLevel,
 } from './battle-engine-types';
+import { SkillLevelAI, createSkillLevelAI } from '../ai/skill-level-ai';
 import {
   initializeEnemyUnits,
   selectTargetUnit,
@@ -170,6 +183,7 @@ export class TimelineBattleEngine {
   private traits: Record<string, { id: string; name: string; type: 'positive' | 'negative'; weight: number; description: string }>;
   private config: BattleEngineConfig;
   private relicSystem: RelicSystemV2;
+  private itemSystem: ItemSystem;
   private respondAI: RespondAI;
   private cardCreation: CardCreationSystem;
   private events: BattleEvent[] = [];
@@ -179,14 +193,89 @@ export class TimelineBattleEngine {
   private cardEnhancements: Record<string, number> = {};
   /** 보스 페이즈 변경 추적용 */
   private lastBossPhase: string | null = null;
+  /** 플레이어 스킬 레벨 AI */
+  private skillLevelAI: SkillLevelAI;
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.cards = syncAllCards();
     this.traits = syncAllTraits();
     this.relicSystem = getRelicSystemV2();
+    this.itemSystem = getItemSystem();
     this.respondAI = new RespondAI(this.cards);
     this.cardCreation = new CardCreationSystem(this.cards);
+    this.skillLevelAI = createSkillLevelAI(this.config.skillLevel);
+  }
+
+  /**
+   * 스킬 레벨 설정 변경
+   */
+  setSkillLevel(level: SkillLevel): void {
+    this.config.skillLevel = level;
+    this.skillLevelAI = createSkillLevelAI(level);
+  }
+
+  /**
+   * 현재 스킬 레벨 AI 통계 가져오기
+   */
+  getSkillLevelStats(): { optimalPlays: number; suboptimalPlays: number; mistakesMade: number } {
+    return this.skillLevelAI.getStats();
+  }
+
+  // ==================== 토큰 추적 헬퍼 ====================
+
+  /**
+   * 효과값 기록 헬퍼
+   */
+  private recordEffectValue(
+    effectsMap: Record<string, EffectValueRecord> | undefined,
+    id: string,
+    effect: { damage?: number; block?: number; heal?: number; ether?: number; other?: Record<string, number> }
+  ): void {
+    if (!effectsMap) return;
+
+    if (!effectsMap[id]) {
+      effectsMap[id] = {
+        count: 0,
+        totalDamage: 0,
+        totalBlock: 0,
+        totalHealing: 0,
+        totalEther: 0,
+        otherEffects: {},
+      };
+    }
+
+    const record = effectsMap[id];
+    record.count++;
+    record.totalDamage += effect.damage || 0;
+    record.totalBlock += effect.block || 0;
+    record.totalHealing += effect.heal || 0;
+    record.totalEther += effect.ether || 0;
+
+    if (effect.other) {
+      for (const [key, value] of Object.entries(effect.other)) {
+        record.otherEffects[key] = (record.otherEffects[key] || 0) + value;
+      }
+    }
+  }
+
+  /**
+   * 토큰 추가 및 통계 추적
+   * @param state 전투 상태 (tokenUsage 업데이트용)
+   * @param entity 토큰을 받을 엔티티 (player 또는 enemy)
+   * @param tokenId 토큰 ID
+   * @param stacks 스택 수
+   */
+  private addTokenTracked(
+    state: { tokenUsage?: Record<string, number> },
+    entity: { tokens: TokenState },
+    tokenId: string,
+    stacks: number = 1
+  ): void {
+    entity.tokens = addToken(entity.tokens, tokenId, stacks);
+    if (state.tokenUsage) {
+      state.tokenUsage[tokenId] = (state.tokenUsage[tokenId] || 0) + stacks;
+    }
   }
 
   // ==================== 카드 강화 시스템 ====================
@@ -227,13 +316,17 @@ export class TimelineBattleEngine {
    * @param enemy 적 상태
    * @param anomalyId 이변 ID 또는 다중 이변 설정 (보스 전투용)
    * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
+   * @param playerItems 플레이어 아이템 (선택사항)
+   * @param deckConfig 덱 구성 (주특기/부특기 구분, 선택사항)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
     anomalyId?: string | { id: string; level?: number }[],
-    cardEnhancements?: Record<string, number>
+    cardEnhancements?: Record<string, number>,
+    playerItems?: string[],
+    deckConfig?: { mainSpecials?: string[]; subSpecials?: string[] }
   ): BattleResult {
     this.events = [];
 
@@ -247,13 +340,18 @@ export class TimelineBattleEngine {
     // 강화된 카드 캐시 생성
     this.buildEnhancedCardCache();
 
-    // 플레이어 초기화
-    const player = this.initializePlayer(playerDeck, playerRelics);
+    // 플레이어 초기화 (주특기/부특기 구분 지원)
+    const player = this.initializePlayer(playerDeck, playerRelics, playerItems, deckConfig);
 
     // 상징 초기화
     if (this.config.enableRelics) {
       this.relicSystem.initializeRelics(playerRelics);
       this.applyPassiveRelics(player);
+    }
+
+    // 아이템 시스템 초기화
+    if (this.config.enableItems) {
+      this.itemSystem.resetBattleState();
     }
 
     // 이변 초기화 (기존 시뮬레이터 이변)
@@ -290,6 +388,12 @@ export class TimelineBattleEngine {
     }
 
     // 전투 상태 초기화 (적 상태 필드 보장)
+    // 적 초기 에테르: 보스는 200, 일반 적은 100
+    const enemyInitialEther = enemy.isBoss ? 200 : 100;
+    // 보스는 모든 기원 사용 가능, 일반 적은 기본 3개
+    const enemyPrayers = enemy.isBoss
+      ? ['immunity', 'blessing', 'healing', 'offense', 'veil'] as const
+      : ['immunity', 'healing', 'veil'] as const;
     const state: GameBattleState = {
       player,
       enemy: {
@@ -298,6 +402,9 @@ export class TimelineBattleEngine {
         block: enemy.block || 0,
         maxHp: enemy.maxHp || enemy.hp,
         maxSpeed: enemy.maxSpeed || DEFAULT_MAX_SPEED,
+        ether: enemy.ether ?? enemyInitialEther,
+        etherPts: enemy.etherPts ?? enemyInitialEther,
+        graceState: enemy.graceState ?? createInitialGraceState([...enemyPrayers]),
       },
       turn: 0,
       phase: 'select',
@@ -308,6 +415,9 @@ export class TimelineBattleEngine {
       enemyDamageDealt: 0,
       cardUsage: {},
       tokenUsage: {},
+      tokenEffects: {},
+      itemEffects: {},
+      relicEffects: {},
       comboUsageCount: {},
     };
 
@@ -346,8 +456,13 @@ export class TimelineBattleEngine {
     // 초기 핸드 드로우
     this.drawCards(state.player, DEFAULT_HAND_SIZE, state);
 
-    // 전투 루프
-    while (state.turn < this.config.maxTurns && state.player.hp > 0 && state.enemy.hp > 0) {
+    // 전투 루프: HP 0 이하 또는 적 에테르 0 이하 시 종료 (영혼파괴)
+    while (
+      state.turn < this.config.maxTurns &&
+      state.player.hp > 0 &&
+      state.enemy.hp > 0 &&
+      (state.enemy.ether ?? 100) > 0
+    ) {
       state.turn++;
       this.executeTurn(state);
     }
@@ -382,8 +497,8 @@ export class TimelineBattleEngine {
     if (this.config.enableAnomalies) {
       const valueDownTokens = getValueDownTokens();
       if (valueDownTokens > 0) {
-        state.player.tokens = addToken(state.player.tokens, 'dull', valueDownTokens);
-        state.player.tokens = addToken(state.player.tokens, 'shaken', valueDownTokens);
+        this.addTokenTracked(state, state.player, 'dull', valueDownTokens);
+        this.addTokenTracked(state, state.player, 'shaken', valueDownTokens);
         state.battleLog.push(`  ⚠️ 이변: 공격력/방어력 감소 토큰 ${valueDownTokens}개`);
       }
 
@@ -410,6 +525,11 @@ export class TimelineBattleEngine {
       }
     }
 
+    // 은총 상태 턴 시작 업데이트 (가호 턴 감소, 사용 기록 초기화)
+    if (state.enemy.graceState) {
+      state.enemy.graceState = updateGraceOnTurnStart(state.enemy.graceState);
+    }
+
     // 50% HP 소환 패시브 체크
     const summonResult = checkAndProcessSummonPassive(state);
     if (summonResult.triggered) {
@@ -423,6 +543,10 @@ export class TimelineBattleEngine {
     if (burnResult.damage > 0) {
       state.player.hp -= burnResult.damage;
       state.battleLog.push(`🔥 화상 피해: ${burnResult.damage}`);
+      // 화상 피해량 추적 (부정적 토큰이므로 피해를 기록)
+      if (state.tokenEffects) {
+        this.recordEffectValue(state.tokenEffects, 'burn', { damage: burnResult.damage });
+      }
     }
 
     if (state.player.hp <= 0 || state.enemy.hp <= 0) return;
@@ -486,23 +610,46 @@ export class TimelineBattleEngine {
 
         // 에테르 획득
         if (etherResult.etherResult.finalGain > 0) {
-          state.player.ether += etherResult.etherResult.finalGain;
-          state.battleLog.push(`  ⚡ 에테르 +${etherResult.etherResult.finalGain} (${etherResult.etherResult.comboName})`);
+          const playerEtherGain = etherResult.etherResult.finalGain;
+          state.player.ether += playerEtherGain;
+          state.battleLog.push(`  ⚡ 에테르 +${playerEtherGain} (${etherResult.etherResult.comboName})`);
 
-          // 버스트 발동 시
-          if (etherResult.burstResult.triggered) {
-            state.battleLog.push(`  ${etherResult.burstResult.message}`);
+          // 에테르 전이: 플레이어가 콤보로 에테르를 획득하면 적 에테르 감소
+          // 은총 보호막/은총이 영혼 피해를 흡수할 수 있음
+          const currentEnemyEther = state.enemy.ether ?? 0;
+          let soulDamage = Math.min(playerEtherGain, currentEnemyEther);
+          let shieldBlocked = 0;
 
-            // 버스트 보너스 피해 적용
-            if (etherResult.burstResult.bonusDamage > 0) {
-              state.enemy.hp -= etherResult.burstResult.bonusDamage;
-              state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
-              state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
+          // 은총 보호막 체크
+          if (state.enemy.graceState && soulDamage > 0) {
+            const [remainingDamage, newGraceState] = checkSoulShield(state.enemy.graceState, soulDamage);
+            shieldBlocked = soulDamage - remainingDamage;
+            soulDamage = remainingDamage;
+            state.enemy.graceState = newGraceState;
+
+            if (shieldBlocked > 0) {
+              state.battleLog.push(`  🛡️ 적 보호막: 영혼 ${shieldBlocked} 피해 흡수`);
             }
-
-            // 에테르 리셋 (버스트 후 남은 양)
-            state.player.ether = 0;
           }
+
+          if (soulDamage > 0) {
+            state.enemy.ether = Math.max(0, currentEnemyEther - soulDamage);
+            state.enemy.etherPts = state.enemy.ether;
+            state.battleLog.push(`  💫 에테르 전이: 적 영혼 -${soulDamage} (잔여: ${state.enemy.ether})`);
+          }
+
+          // 콤보 상징 효과 (에테르 결정, 포커칩, 목장갑, 총알 등)
+          if (this.config.enableRelics) {
+            const comboEffects = this.relicSystem.processCombo(
+              state.player,
+              etherResult.etherResult.comboName,
+              playerEtherGain,
+              etherResult.etherResult.comboRank || 0
+            );
+            this.applyRelicEffects(state, comboEffects);
+          }
+
+          // 버스트 시스템 임시 비활성화 (TODO: 나중에 다시 활성화)
         }
 
         // 콤보 사용 횟수 업데이트 (디플레이션용)
@@ -510,6 +657,43 @@ export class TimelineBattleEngine {
       }
     } else if (etherBlockedByAnomaly) {
       state.battleLog.push(`  ❌ 이변: 에테르 획득 불가`);
+    }
+
+    // 적 에테르 처리: 적이 실행한 카드 기반으로 은총 획득
+    if (this.config.enableCombos && state.enemy.graceState) {
+      const enemyPlayedCards = state.timeline
+        .filter(tc => tc.owner === 'enemy' && tc.executed)
+        .map(tc => this.getCard(tc.cardId))
+        .filter((c): c is GameCard => c !== undefined);
+
+      if (enemyPlayedCards.length > 0) {
+        // 적 콤보 감지 (게임과 동일한 로직)
+        const enemyCombo = detectPokerCombo(enemyPlayedCards);
+        if (enemyCombo && enemyCombo.baseEther > 0) {
+          // 적은 에테르를 은총으로 전환 (영혼 변화 없음)
+          const graceGain = Math.floor(enemyCombo.baseEther * enemyCombo.multiplier);
+          state.enemy.graceState = gainGrace(state.enemy.graceState, graceGain);
+          if (this.config.verbose) {
+            state.battleLog.push(`  ✨ 적 은총 +${graceGain} (${enemyCombo.name})`);
+          }
+        }
+      }
+
+      // 기원 발동 AI (턴 종료 시)
+      const prayerResults = processAutoPrayers({
+        graceState: state.enemy.graceState,
+        enemyHp: state.enemy.hp,
+        enemyMaxHp: state.enemy.maxHp || state.enemy.hp,
+        enemyEtherPts: state.enemy.ether ?? 100,
+        playerEtherPts: state.player.ether,
+        turnNumber: state.turn,
+      });
+
+      for (const result of prayerResults) {
+        state.enemy.graceState = result.graceState;
+        state.enemy = applyPrayerEffects(state.enemy, result);
+        state.battleLog.push(`  🙏 ${result.log}`);
+      }
     }
 
     // 타임라인 반복 저장 (르 송쥬 뒤 비에야르)
@@ -552,6 +736,11 @@ export class TimelineBattleEngine {
   // ==================== 대응 단계 ====================
 
   private executeRespondPhase(state: GameBattleState): void {
+    // 아이템 사용 (대응단계에서 전투용 아이템 사용)
+    if (this.config.enableItems && state.player.items && state.player.items.length > 0) {
+      this.processItemUsage(state, 'respond');
+    }
+
     // 타임라인 분석
     const analysis = this.respondAI.analyzeTimeline(state);
 
@@ -575,7 +764,18 @@ export class TimelineBattleEngine {
       const decision = this.respondAI.decideResponse(state, reactionCards);
 
       if (decision.shouldRespond) {
-        this.applyPlayerResponse(state, decision);
+        // 스킬 레벨 AI로 대응 결정 수정 (optimal이 아닌 경우)
+        let actuallyRespond = decision.shouldRespond;
+        if (this.config.skillLevel !== 'optimal') {
+          actuallyRespond = this.skillLevelAI.decideRespond(state, decision.shouldRespond);
+          if (!actuallyRespond && this.config.verbose) {
+            state.battleLog.push(`  ⚠️ 플레이어: 대응 타이밍 놓침`);
+          }
+        }
+
+        if (actuallyRespond) {
+          this.applyPlayerResponse(state, decision);
+        }
       }
     }
 
@@ -587,6 +787,39 @@ export class TimelineBattleEngine {
 
     // 교차 재계산
     this.checkCrossings(state);
+  }
+
+  /**
+   * 아이템 사용 처리
+   */
+  private processItemUsage(state: GameBattleState, phase: string): void {
+    if (!state.player.items || state.player.items.length === 0) return;
+
+    // AI가 사용할 아이템 선택
+    const itemToUse = this.itemSystem.selectItemToUse(
+      state.player.items,
+      state.player,
+      state.enemy,
+      phase
+    );
+
+    if (itemToUse) {
+      const result = this.itemSystem.useItem(itemToUse, state.player, state.enemy, state);
+      if (result) {
+        // 아이템 효과 적용
+        applyItemEffect(result, state.player, state.enemy, state);
+
+        // 아이템 인벤토리에서 제거
+        const itemIndex = state.player.items.indexOf(itemToUse);
+        if (itemIndex >= 0) {
+          state.player.items.splice(itemIndex, 1);
+        }
+
+        // 로그
+        const item = this.itemSystem.getItem(itemToUse);
+        state.battleLog.push(`  📦 ${item?.icon || '🎁'} ${result.itemName} 사용: ${result.effects.message}`);
+      }
+    }
   }
 
   private applyPlayerResponse(state: GameBattleState, decision: ResponseDecision): void {
@@ -938,6 +1171,28 @@ export class TimelineBattleEngine {
         .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
       if (cheapest) {
         selected.push(cheapest);
+      }
+    }
+
+    // 스킬 레벨 AI 적용 (optimal이 아닌 경우 실수 가능)
+    if (this.config.skillLevel !== 'optimal' && selected.length > 0) {
+      const optimalCardIds = selected.map(c => c.id);
+      const decision = this.skillLevelAI.selectCards(state, optimalCardIds);
+
+      if (!decision.wasOptimal) {
+        // 실수가 발생한 경우 로그
+        if (this.config.verbose && decision.reasoning.length > 0) {
+          state.battleLog.push(`  ⚠️ 플레이어 실수: ${decision.reasoning.join(', ')}`);
+        }
+
+        // 스킬 레벨에 맞게 선택된 카드로 교체
+        const newSelected = decision.selectedCards
+          .map(id => handCards.find(c => c.id === id))
+          .filter((c): c is GameCard => c !== undefined);
+
+        if (newSelected.length > 0) {
+          return newSelected;
+        }
       }
     }
 
@@ -1483,14 +1738,14 @@ export class TimelineBattleEngine {
 
       // 배틀왈츠 Lv3: 검격 방어시 수세 획득
       if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing') {
-        state.player.tokens = addToken(state.player.tokens, 'guard', 1);
+        this.addTokenTracked(state, state.player, 'guard', 1);
         state.battleLog.push(`  🛡️ 배틀왈츠: 수세 +1`);
       }
     }
 
     // 배틀왈츠 Lv3: 검격 공격시 흐릿함 획득
     if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing' && card.damage && card.damage > 0) {
-      state.player.tokens = addToken(state.player.tokens, 'blur', 1);
+      this.addTokenTracked(state, state.player, 'blur', 1);
       state.battleLog.push(`  ✨ 배틀왈츠: 흐릿함 +1`);
     }
 
@@ -1517,13 +1772,13 @@ export class TimelineBattleEngine {
     if (card.appliedTokens) {
       for (const token of card.appliedTokens) {
         if (token.target === 'player') {
-          state.player.tokens = addToken(state.player.tokens, token.id, token.stacks || 1);
+          this.addTokenTracked(state, state.player, token.id, token.stacks || 1);
           state.battleLog.push(`  플레이어: ${token.id} +${token.stacks || 1}`);
         } else {
           // 면역 체크
           const immunityCheck = checkImmunity(state.enemy.tokens, token.id);
           if (!immunityCheck.blocked) {
-            state.enemy.tokens = addToken(state.enemy.tokens, token.id, token.stacks || 1);
+            this.addTokenTracked(state, state.enemy, token.id, token.stacks || 1);
             state.battleLog.push(`  적: ${token.id} +${token.stacks || 1}`);
           } else {
             state.enemy.tokens = immunityCheck.newTokens;
@@ -1588,12 +1843,12 @@ export class TimelineBattleEngine {
         const appliesTo = token.target === 'self' ? 'enemy' : token.target;
 
         if (appliesTo === 'enemy') {
-          state.enemy.tokens = addToken(state.enemy.tokens, token.id, token.stacks || 1);
+          this.addTokenTracked(state, state.enemy, token.id, token.stacks || 1);
         } else {
           // 면역 체크
           const immunityCheck = checkImmunity(state.player.tokens, token.id);
           if (!immunityCheck.blocked) {
-            state.player.tokens = addToken(state.player.tokens, token.id, token.stacks || 1);
+            this.addTokenTracked(state, state.player, token.id, token.stacks || 1);
           } else {
             state.player.tokens = immunityCheck.newTokens;
           }
@@ -1665,9 +1920,15 @@ export class TimelineBattleEngine {
         damage = Math.floor(damage * CRIT_MULTIPLIER);
       } else if (this.config.enableCrits) {
         const critChance = BASE_CRIT_CHANCE + (attackMods.critBoost / 100);
+        const damageBeforeCrit = damage;
         isCrit = Math.random() < critChance;
         if (isCrit) {
           damage = Math.floor(damage * CRIT_MULTIPLIER);
+          // crit_boost 토큰 효과 추적 (치명타 발생 시 보너스 피해)
+          if (state.tokenEffects && attackMods.critBoost > 0 && hasToken(attackerState.tokens, 'crit_boost')) {
+            const critBonusDamage = damage - damageBeforeCrit;
+            this.recordEffectValue(state.tokenEffects, 'crit_boost', { damage: critBonusDamage });
+          }
         }
       }
 
@@ -1688,7 +1949,7 @@ export class TimelineBattleEngine {
         }
 
         if (finesseGain > 0) {
-          state.player.tokens = addToken(state.player.tokens, 'finesse', finesseGain);
+          this.addTokenTracked(state, state.player, 'finesse', finesseGain);
           state.battleLog.push(`  ✨ 기교 +${finesseGain}`);
         }
 
@@ -1712,6 +1973,15 @@ export class TimelineBattleEngine {
       // 회피 체크
       if (defenseMods.dodgeChance > 0 && Math.random() < defenseMods.dodgeChance) {
         state.battleLog.push(`  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name} → 회피!`);
+        // 회피로 피한 피해량 추적
+        if (state.tokenEffects) {
+          if (hasToken(defenderState.tokens, 'blur')) {
+            this.recordEffectValue(state.tokenEffects, 'blur', { damage: damage });
+          }
+          if (hasToken(defenderState.tokens, 'evasion')) {
+            this.recordEffectValue(state.tokenEffects, 'evasion', { damage: damage });
+          }
+        }
         if (attacker === 'player') {
           state.enemy.tokens = consumeDamageTakenTokens(state.enemy.tokens);
         } else {
@@ -1721,7 +1991,22 @@ export class TimelineBattleEngine {
       }
 
       // 피해 증폭 (허약 등)
+      const damageBeforeVuln = damage;
       damage = Math.floor(damage * damageTakenMods.damageMultiplier);
+      // vulnerable/weak 토큰 효과 추적 (받는 피해 증가)
+      if (state.tokenEffects && damageTakenMods.damageMultiplier > 1) {
+        const vulnBonusDamage = damage - damageBeforeVuln;
+        if (hasToken(defenderState.tokens, 'vulnerablePlus')) {
+          this.recordEffectValue(state.tokenEffects, 'vulnerablePlus', { damage: vulnBonusDamage });
+        } else if (hasToken(defenderState.tokens, 'vulnerable')) {
+          this.recordEffectValue(state.tokenEffects, 'vulnerable', { damage: vulnBonusDamage });
+        }
+        if (hasToken(defenderState.tokens, 'weakPlus')) {
+          this.recordEffectValue(state.tokenEffects, 'weakPlus', { damage: vulnBonusDamage });
+        } else if (hasToken(defenderState.tokens, 'weak')) {
+          this.recordEffectValue(state.tokenEffects, 'weak', { damage: vulnBonusDamage });
+        }
+      }
 
       // 이변: 취약 (받는 피해 증가)
       if (this.config.enableAnomalies && attacker === 'enemy') {
@@ -1822,7 +2107,22 @@ export class TimelineBattleEngine {
 
       // 흡혈 처리
       if (attackMods.lifesteal > 0 && actualDamage > 0) {
-        const healAmount = Math.floor(actualDamage * attackMods.lifesteal);
+        let healAmount = Math.floor(actualDamage * attackMods.lifesteal);
+
+        // 마고의 피: 회복량 50% 증가
+        if (this.config.enableRelics && attacker === 'player') {
+          const healEffects = this.relicSystem.processHeal(attackerState as PlayerState, healAmount);
+          for (const effect of healEffects) {
+            if (effect.effects.heal) {
+              healAmount += effect.effects.heal;
+              state.battleLog.push(`  🎁 ${effect.relicName}: 추가 회복 +${effect.effects.heal}`);
+              if (state.relicEffects) {
+                this.recordEffectValue(state.relicEffects, effect.relicId, { healing: effect.effects.heal });
+              }
+            }
+          }
+        }
+
         attackerState.hp = Math.min(attackerState.maxHp, attackerState.hp + healAmount);
         state.battleLog.push(`  💚 흡수: ${healAmount} 회복`);
       }
@@ -1833,6 +2133,34 @@ export class TimelineBattleEngine {
       state.battleLog.push(
         `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${totalHits > 1 ? ` (${hit + 1}/${totalHits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
       );
+
+      // 토큰 효과 추적 (첫 타격에서만 기록)
+      if (hit === 0 && state.tokenEffects) {
+        // 공격 토큰 효과 기록
+        const baseDamage = card.damage || 0;
+        const bonusDamage = actualDamage - baseDamage;
+        if (bonusDamage > 0) {
+          // 힘 토큰
+          if (attackMods.damageBonus > 0) {
+            this.recordEffectValue(state.tokenEffects, 'strength', { damage: attackMods.damageBonus });
+          }
+          // 공세/공격 토큰 (배율 기반 보너스)
+          const multBonus = baseDamage * (attackMods.attackMultiplier - 1);
+          if (multBonus > 0) {
+            if (hasToken(attackerState.tokens, 'offensePlus')) {
+              this.recordEffectValue(state.tokenEffects, 'offensePlus', { damage: multBonus });
+            } else if (hasToken(attackerState.tokens, 'offense')) {
+              this.recordEffectValue(state.tokenEffects, 'offense', { damage: multBonus });
+            }
+            if (hasToken(attackerState.tokens, 'attackPlus')) {
+              this.recordEffectValue(state.tokenEffects, 'attackPlus', { damage: multBonus });
+            } else if (hasToken(attackerState.tokens, 'attack')) {
+              this.recordEffectValue(state.tokenEffects, 'attack', { damage: multBonus });
+            }
+          }
+        }
+        // 회피 토큰은 실제 회피 성공 시에만 추적 (위 회피 체크 블록에서 처리)
+      }
 
       // 토큰 소모
       // 공격 토큰은 첫 타격에만 소모 (멀티히트 시 한 번만)
@@ -1858,6 +2186,10 @@ export class TimelineBattleEngine {
           attackerState.hp -= counterResult.damage;
           defenderState.tokens = counterResult.newDefenderTokens;
           state.battleLog.push(`  ⚔️ 반격: ${counterResult.damage} 피해`);
+          // 반격 피해량 추적
+          if (state.tokenEffects) {
+            this.recordEffectValue(state.tokenEffects, 'counter', { damage: counterResult.damage });
+          }
         }
       }
 
@@ -1868,6 +2200,10 @@ export class TimelineBattleEngine {
           attackerState.hp -= counterShotResult.damage;
           defenderState.tokens = counterShotResult.newDefenderTokens;
           state.battleLog.push(`  🔫 대응사격: ${counterShotResult.damage} 피해`);
+          // 대응사격 피해량 추적
+          if (state.tokenEffects) {
+            this.recordEffectValue(state.tokenEffects, 'counterShot', { damage: counterShotResult.damage });
+          }
 
           // 룰렛 체크 (건카타 Lv2: 탄걸림 확률 감소)
           const reduceJam = attacker === 'enemy' && !!state.growthBonuses?.logosEffects?.reduceJamChance;
@@ -1944,6 +2280,49 @@ export class TimelineBattleEngine {
 
     // 방어력 적용
     actorState.block += block;
+
+    // 토큰 효과 추적
+    if (state.tokenEffects) {
+      const baseBlock = card.block || 0;
+      const bonusBlock = block - baseBlock;
+      if (bonusBlock > 0) {
+        // 힘 토큰 (방어에도 보너스)
+        const strengthBonus = getTokenStacks(actorState.tokens, 'strength');
+        if (strengthBonus > 0) {
+          this.recordEffectValue(state.tokenEffects, 'strength', { block: strengthBonus });
+        }
+        // 수세/방어 토큰 (배율 기반 보너스)
+        const multBonus = baseBlock * (defenseMods.defenseMultiplier - 1);
+        if (multBonus > 0) {
+          if (hasToken(actorState.tokens, 'guardPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'guardPlus', { block: multBonus });
+          } else if (hasToken(actorState.tokens, 'guard')) {
+            this.recordEffectValue(state.tokenEffects, 'guard', { block: multBonus });
+          }
+          if (hasToken(actorState.tokens, 'defensePlus')) {
+            this.recordEffectValue(state.tokenEffects, 'defensePlus', { block: multBonus });
+          } else if (hasToken(actorState.tokens, 'defense')) {
+            this.recordEffectValue(state.tokenEffects, 'defense', { block: multBonus });
+          }
+        }
+      }
+      // shaken/exposed 토큰 효과 추적 (방어력 감소)
+      if (defenseMods.defenseMultiplier < 1) {
+        const lostBlock = Math.floor(baseBlock * (1 - defenseMods.defenseMultiplier));
+        if (lostBlock > 0) {
+          if (hasToken(actorState.tokens, 'shakenPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'shakenPlus', { block: -lostBlock });
+          } else if (hasToken(actorState.tokens, 'shaken')) {
+            this.recordEffectValue(state.tokenEffects, 'shaken', { block: -lostBlock });
+          }
+          if (hasToken(actorState.tokens, 'exposedPlus')) {
+            this.recordEffectValue(state.tokenEffects, 'exposedPlus', { block: -lostBlock });
+          } else if (hasToken(actorState.tokens, 'exposed')) {
+            this.recordEffectValue(state.tokenEffects, 'exposed', { block: -lostBlock });
+          }
+        }
+      }
+    }
 
     // 토큰 소모
     if (actor === 'player') {
@@ -2309,8 +2688,31 @@ export class TimelineBattleEngine {
 
   // ==================== 유틸리티 ====================
 
-  private initializePlayer(deck: string[], relics: string[]): PlayerState {
+  private initializePlayer(
+    deck: string[],
+    relics: string[],
+    items?: string[],
+    deckConfig?: { mainSpecials?: string[]; subSpecials?: string[] }
+  ): PlayerState {
     const passives = this.relicSystem.getPassiveEffects();
+
+    // 주특기/부특기 분리
+    const mainSpecials = deckConfig?.mainSpecials || [];
+    const subSpecials = deckConfig?.subSpecials || [];
+    const mainSet = new Set(mainSpecials);
+    const subSet = new Set(subSpecials);
+
+    // 덱 구성: 부특기 우선, 그 다음 일반 카드 (주특기 제외)
+    // 게임과 동일하게: 주특기는 매 턴 무덤에서 자동 복귀하므로 덱에서 제외
+    const ownedCards = deck.filter(id => !mainSet.has(id));
+    const subSpecialsInDeck = ownedCards.filter(id => subSet.has(id));
+    const normalCards = ownedCards.filter(id => !subSet.has(id));
+
+    // 일반 카드만 셔플
+    this.shuffle(normalCards);
+
+    // 덱 = 부특기 + 셔플된 일반 카드
+    const finalDeck = [...subSpecialsInDeck, ...normalCards];
 
     return {
       hp: 100 + passives.maxHp,
@@ -2325,9 +2727,12 @@ export class TimelineBattleEngine {
       ether: 0,
       gold: 100, // 시뮬레이션 기본 골드
       hand: [],
-      deck: [...deck],
+      deck: finalDeck,
       discard: [],
+      mainSpecials: [...mainSpecials],  // 주특기 목록 저장
+      subSpecials: [...subSpecials],    // 부특기 목록 저장
       relics: [...relics],
+      items: items ? [...items] : [],
       insight: 0,
     };
   }
@@ -2343,25 +2748,83 @@ export class TimelineBattleEngine {
     }
   }
 
-  private applyRelicEffects(state: GameBattleState, effects: { effects: Record<string, unknown>; relicName: string }[]): void {
+  private applyRelicEffects(state: GameBattleState, effects: { effects: Record<string, unknown>; relicName: string; relicId?: string }[]): void {
     for (const effect of effects) {
       const e = effect.effects as Record<string, number | undefined>;
+      const relicKey = effect.relicId || effect.relicName;
 
       if (e.heal && typeof e.heal === 'number') {
         state.player.hp = Math.min(state.player.maxHp, state.player.hp + e.heal);
         state.battleLog.push(`  🎁 ${effect.relicName}: ${e.heal} 회복`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { healing: e.heal });
+        }
       }
       if (e.damage && typeof e.damage === 'number') {
         state.player.hp -= e.damage;
         state.battleLog.push(`  💔 ${effect.relicName}: ${e.damage} 피해`);
+        // 상징 효과 추적 (자해 피해는 음수로 기록)
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { damage: -e.damage });
+        }
       }
       if (e.block && typeof e.block === 'number') {
         state.player.block += e.block;
         state.battleLog.push(`  🛡️ ${effect.relicName}: ${e.block} 방어`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { block: e.block });
+        }
       }
       if (e.strength && typeof e.strength === 'number') {
-        state.player.tokens = addToken(state.player.tokens, 'strength', e.strength);
+        this.addTokenTracked(state, state.player, 'strength', e.strength);
         state.battleLog.push(`  💪 ${effect.relicName}: 힘 +${e.strength}`);
+        // 상징 효과 추적 (힘은 기타 효과로 기록)
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { strength: e.strength } });
+        }
+      }
+      if (e.agility && typeof e.agility === 'number') {
+        this.addTokenTracked(state, state.player, 'agility', e.agility);
+        state.battleLog.push(`  🏃 ${effect.relicName}: 민첩 +${e.agility}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { agility: e.agility } });
+        }
+      }
+      if (e.energy && typeof e.energy === 'number') {
+        state.player.energy += e.energy;
+        state.battleLog.push(`  ⚡ ${effect.relicName}: 에너지 +${e.energy}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { energy: e.energy } });
+        }
+      }
+      if (e.maxHp && typeof e.maxHp === 'number') {
+        state.player.maxHp += e.maxHp;
+        state.player.hp += e.maxHp;
+        state.battleLog.push(`  ❤️ ${effect.relicName}: 최대체력 +${e.maxHp}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { healing: e.maxHp, other: { maxHp: e.maxHp } });
+        }
+      }
+      if (e.draw && typeof e.draw === 'number') {
+        this.drawCards(state.player, e.draw, state);
+        state.battleLog.push(`  🃏 ${effect.relicName}: 카드 ${e.draw}장 드로우`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { other: { draw: e.draw } });
+        }
+      }
+      if (e.etherBonus && typeof e.etherBonus === 'number') {
+        state.player.ether = (state.player.ether || 0) + e.etherBonus;
+        state.battleLog.push(`  💎 ${effect.relicName}: 에테르 +${e.etherBonus}`);
+        // 상징 효과 추적
+        if (state.relicEffects) {
+          this.recordEffectValue(state.relicEffects, relicKey, { ether: e.etherBonus });
+        }
       }
     }
   }
@@ -2398,16 +2861,41 @@ export class TimelineBattleEngine {
       player.repeatCards = [];
     }
 
+    // 주특기 자동 복귀: 무덤에 있는 주특기를 손패로 이동 (게임과 동일)
+    const mainSpecialSet = new Set(player.mainSpecials || []);
+    const vanishedSet = new Set(state?.vanishedCards || []);
+    const mainSpecialsFromDiscard = player.discard.filter(
+      id => mainSpecialSet.has(id) && !vanishedSet.has(id)
+    );
+    if (mainSpecialsFromDiscard.length > 0) {
+      for (const cardId of mainSpecialsFromDiscard) {
+        if (!player.hand.includes(cardId)) {
+          player.hand.push(cardId);
+        }
+      }
+      // 무덤에서 주특기 제거
+      player.discard = player.discard.filter(id => !mainSpecialSet.has(id));
+    }
+
     // 탈주 카드 필터링
     const escapeCards = new Set(player.escapeCards || []);
 
+    // 부특기 Set 생성 (리셔플 시 우선 처리용)
+    const subSpecialSet = new Set(player.subSpecials || []);
+
     for (let i = 0; i < effectiveCount; i++) {
       if (player.deck.length === 0) {
-        // 버린 더미 셔플 (소멸된 카드 제외)
+        // 버린 더미 셔플 (소멸된 카드 제외, 부특기 우선)
         const vanished = new Set(state?.vanishedCards || []);
-        player.deck = player.discard.filter(id => !vanished.has(id));
+        const validDiscard = player.discard.filter(id => !vanished.has(id));
+
+        // 게임과 동일: 부특기는 먼저, 일반 카드는 셔플
+        const subSpecialsFromDiscard = validDiscard.filter(id => subSpecialSet.has(id));
+        const normalCardsFromDiscard = validDiscard.filter(id => !subSpecialSet.has(id));
+        this.shuffle(normalCardsFromDiscard);
+
+        player.deck = [...subSpecialsFromDiscard, ...normalCardsFromDiscard];
         player.discard = [];
-        this.shuffle(player.deck);
       }
 
       if (player.deck.length > 0) {
@@ -2452,8 +2940,16 @@ export class TimelineBattleEngine {
 
   private finalizeBattle(state: GameBattleState): BattleResult {
     let winner: 'player' | 'enemy' | 'draw';
+    const enemyEther = state.enemy.ether ?? 100;
 
-    if (state.enemy.hp <= 0 && state.player.hp > 0) {
+    // 영혼파괴 승리: 적 에테르가 0 이하
+    const isEtherVictory = enemyEther <= 0 && state.player.hp > 0;
+
+    if (isEtherVictory) {
+      // 영혼파괴 승리 (적 에테르 0)
+      winner = 'player';
+      state.battleLog.push(`  💜 영혼파괴! 적의 영혼이 소멸했습니다.`);
+    } else if (state.enemy.hp <= 0 && state.player.hp > 0) {
       winner = 'player';
     } else if (state.player.hp <= 0 && state.enemy.hp > 0) {
       winner = 'enemy';
@@ -2463,7 +2959,7 @@ export class TimelineBattleEngine {
       winner = state.player.hp > state.enemy.hp ? 'player' : 'enemy';
     }
 
-    this.emitEvent('battle_end', state.turn, { winner, playerHp: state.player.hp, enemyHp: state.enemy.hp });
+    this.emitEvent('battle_end', state.turn, { winner, playerHp: state.player.hp, enemyHp: state.enemy.hp, enemyEther });
 
     // 골드 변화량 계산 (초기 골드 100 기준)
     const initialGold = 100;
@@ -2483,7 +2979,11 @@ export class TimelineBattleEngine {
       cardUsage: state.cardUsage || {},
       comboStats: state.comboUsageCount || {},
       tokenStats: state.tokenUsage || {},
+      tokenEffectStats: state.tokenEffects || {},
+      itemEffectStats: state.itemEffects || {},
+      relicEffectStats: state.relicEffects || {},
       timeline: state.timeline,
+      isEtherVictory,
     };
   }
 }

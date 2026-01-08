@@ -33,6 +33,8 @@ vi.mock('../data/newEvents', () => ({
     event_003: { id: 'event_003', name: '테스트 이벤트 3' },
   },
   EVENT_KEYS: ['event_001', 'event_002', 'event_003'],
+  STAT_REQUIRING_EVENTS: [],  // 테스트에서는 스탯 요구 이벤트 없음
+  STAT_EVENT_MIN_LAYER: 5,
 }));
 
 // Mock metaProgress
@@ -78,7 +80,7 @@ describe('gameStoreHelpers', () => {
       const rewards = {
         gold: 100,
         someOtherKey: 'value',
-      } as unknown as EventRewards;
+      } as EventRewards;
 
       const delta = extractResourceDelta(rewards);
       expect(delta.gold).toBe(100);
@@ -131,8 +133,8 @@ describe('gameStoreHelpers', () => {
     });
 
     it('null/undefined는 0을 반환한다', () => {
-      expect(resolveAmount(null as unknown as number)).toBe(0);
-      expect(resolveAmount(undefined as unknown as number)).toBe(0);
+      expect(resolveAmount(null as number)).toBe(0);
+      expect(resolveAmount(undefined as number)).toBe(0);
     });
   });
 

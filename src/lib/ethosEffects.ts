@@ -223,9 +223,18 @@ export function getSymbolDamageBonus(growth: GrowthState, symbolCount: number): 
 
 /**
  * 현재 성장 상태 가져오기 (전투 중 사용)
+ * (React 환경에서 사용 - useGameStore 의존)
  */
 export function getGrowthState(): GrowthState {
   return useGameStore.getState().growth || initialGrowthState;
+}
+
+/**
+ * 성장 상태 초기값 반환 (순수 함수)
+ * (Godot 포팅용 - 외부 의존성 없음)
+ */
+export function getInitialGrowthState(): GrowthState {
+  return initialGrowthState;
 }
 
 /**

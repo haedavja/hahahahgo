@@ -2,12 +2,15 @@
  * CardRewardModal.tsx
  *
  * 전투 승리 후 3장 중 1장을 선택해 덱에 추가하는 모달
- * 최적화: React.memo
+ * 최적화: React.memo, useMemo, useCallback
  */
 
-import { FC, memo } from 'react';
+import { FC, memo, useMemo, useCallback, useEffect } from 'react';
 import { Sword, Shield } from './BattleIcons';
 import type { RewardCard as Card } from '../../../types';
+
+/** 카드 타입에 따른 아이콘 반환 */
+const getCardIcon = (card: Card) => card.icon || (card.type === 'attack' ? Sword : Shield);
 
 interface CardRewardModalProps {
   rewardCards: Card[] | null;
@@ -20,28 +23,57 @@ export const CardRewardModal: FC<CardRewardModalProps> = memo(({
   onSelect,
   onSkip
 }) => {
+  // Escape 키로 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onSkip();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onSkip]);
+
+  // 카드 아이콘 메모이제이션
+  const cardIcons = useMemo(() => {
+    if (!rewardCards) return [];
+    return rewardCards.map(getCardIcon);
+  }, [rewardCards]);
+
+  // 클릭 핸들러 메모이제이션
+  const handleCardClick = useCallback((card: Card, idx: number) => {
+    onSelect(card, idx);
+  }, [onSelect]);
+
   if (!rewardCards || rewardCards.length === 0) return null;
 
   return (
-    <div className="reward-modal-overlay">
+    <div
+      className="reward-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reward-modal-title"
+    >
       <div className="reward-modal">
         <div className="reward-modal-header">
-          <h2>🎁 카드 보상</h2>
+          <h2 id="reward-modal-title">🎁 카드 보상</h2>
           <p>아래 3장 중 1장을 선택하여 덱에 추가하세요.</p>
         </div>
 
-        <div className="reward-card-options">
+        <div className="reward-card-options" role="listbox" aria-label="카드 선택">
           {rewardCards.map((card, idx) => {
-            const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
+            const Icon = cardIcons[idx];
             const isAttack = card.type === 'attack';
 
             return (
               <div
                 key={`reward-option-${idx}`}
                 className={`reward-card-option ${isAttack ? 'attack' : 'defense'}`}
-                onClick={() => onSelect(card, idx)}
+                onClick={() => handleCardClick(card, idx)}
+                role="option"
+                aria-label={`${card.name} - ${isAttack ? '공격' : '방어'} 카드`}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleCardClick(card, idx)}
               >
-                <div className="reward-card-cost">{card.actionCost}</div>
+                <div className="reward-card-cost" aria-label={`행동력 ${card.actionCost}`}>{card.actionCost}</div>
                 <div className="reward-card-name">{card.name}</div>
                 <div className="reward-card-icon">
                   <Icon size={48} className="text-white" />
@@ -61,7 +93,11 @@ export const CardRewardModal: FC<CardRewardModalProps> = memo(({
         </div>
 
         <div className="reward-skip-section">
-          <button className="reward-skip-btn" onClick={onSkip}>
+          <button
+            className="reward-skip-btn"
+            onClick={onSkip}
+            aria-label="카드 보상 건너뛰기"
+          >
             건너뛰기
           </button>
         </div>

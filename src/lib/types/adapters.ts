@@ -222,20 +222,6 @@ export function applyTokenStacks(
   };
 }
 
-/**
- * 토큰이 있는지 확인
- */
-export function hasToken(tokens: TokenState, tokenId: string): boolean {
-  return (tokens[tokenId] ?? 0) > 0;
-}
-
-/**
- * 토큰 스택 가져오기
- */
-export function getTokenStacks(tokens: TokenState, tokenId: string): number {
-  return tokens[tokenId] ?? 0;
-}
-
 // ==================== 밸리데이션 ====================
 
 /**

@@ -304,7 +304,7 @@ export const BattleScreen: FC = memo(function BattleScreen() {
   }, [handleDevToolsKeyDown]);
 
   const handleBattleResult = useCallback(
-    ({ result, playerEther: resultEther, deltaEther, playerHp, playerMaxHp }: BattleResult): void => {
+    ({ result, playerEther: resultEther, deltaEther, playerHp, playerMaxHp, isEtherVictory }: BattleResult): void => {
       const finalResult = result === "victory" ? "victory" : "defeat";
 
       if (typeof deltaEther === "number" && deltaEther !== 0) {
@@ -319,7 +319,8 @@ export const BattleScreen: FC = memo(function BattleScreen() {
       resolveBattle({
         result: finalResult,
         playerHp: playerHp,
-        playerMaxHp: playerMaxHp
+        playerMaxHp: playerMaxHp,
+        isEtherVictory
       });
     },
     [applyEtherDelta, resolveBattle],

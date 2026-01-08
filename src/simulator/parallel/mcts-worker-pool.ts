@@ -103,11 +103,22 @@ export class MCTSWorkerPool {
 
       function simulate(state, maxDepth) {
         let depth = 0;
-        let currentState = JSON.parse(JSON.stringify(state));
+        let currentState;
+
+        try {
+          currentState = JSON.parse(JSON.stringify(state));
+        } catch (e) {
+          return 0; // 파싱 실패 시 패배로 처리
+        }
+
+        // null/undefined 체크
+        if (!currentState?.player?.hp || !currentState?.enemy?.hp) {
+          return 0;
+        }
 
         while (depth < maxDepth && currentState.player.hp > 0 && currentState.enemy.hp > 0) {
           // 간단한 랜덤 시뮬레이션
-          if (currentState.player.hand.length > 0) {
+          if (currentState.player.hand && currentState.player.hand.length > 0) {
             const randomCard = currentState.player.hand[Math.floor(Math.random() * currentState.player.hand.length)];
             // 간단한 데미지 적용
             currentState.enemy.hp -= 5;
@@ -120,6 +131,9 @@ export class MCTSWorkerPool {
       }
 
       function mcts(state, iterations) {
+        // null/undefined 체크
+        if (!state?.player) return { action: null, value: 0 };
+
         const actions = state.player.hand || [];
         if (actions.length === 0) return { action: null, value: 0 };
 

@@ -15,21 +15,18 @@
 
 import { describe, it, expect } from 'vitest';
 import { processCardPlaySpecials } from './cardPlaySpecials';
+import {
+  createCardPlayEntity,
+  createCardPlayCard,
+  createCardPlayBattleContext,
+} from '../../../test/factories';
 
 describe('cardPlaySpecials', () => {
   describe('processCardPlaySpecials', () => {
-    const createEntity = (overrides = {}) => ({
-      hp: 100,
-      maxHp: 100,
-      block: 0,
-      tokens: { usage: [], turn: [], permanent: [] },
-      ...overrides
-    });
-
     it('기본 결과 구조를 반환해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Attack', damage: 10 } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Attack', damage: 10 }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -43,8 +40,8 @@ describe('cardPlaySpecials', () => {
 
     it('special이 없으면 빈 배열을 반환해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Normal', damage: 10 } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Normal', damage: 10 }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -56,12 +53,12 @@ describe('cardPlaySpecials', () => {
 
     it('autoReload는 손패에 장전 카드가 있으면 loaded 토큰을 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'AutoReload', special: 'autoReload' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'AutoReload', special: 'autoReload' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          hand: [{ id: 'reload' }] as any
-        }
+        battleContext: createCardPlayBattleContext({
+          hand: [{ id: 'reload' }]
+        })
       });
 
       expect(result.tokensToAdd!!.some(t => t.id === 'loaded')).toBe(true);
@@ -69,12 +66,12 @@ describe('cardPlaySpecials', () => {
 
     it('autoReload는 손패에 장전 카드가 없으면 효과가 없어야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'AutoReload', special: 'autoReload' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'AutoReload', special: 'autoReload' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          hand: [{ id: 'attack' }] as any
-        }
+        battleContext: createCardPlayBattleContext({
+          hand: [{ id: 'attack' }]
+        })
       });
 
       expect(result.tokensToAdd!!.some(t => t.id === 'loaded')).toBe(false);
@@ -82,8 +79,8 @@ describe('cardPlaySpecials', () => {
 
     it('mentalFocus는 focus 토큰을 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Focus', special: 'mentalFocus' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Focus', special: 'mentalFocus' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -92,8 +89,8 @@ describe('cardPlaySpecials', () => {
 
     it('recallCard는 nextTurnEffects에 recallCard를 설정해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Recall', special: 'recallCard' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Recall', special: 'recallCard' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -102,10 +99,10 @@ describe('cardPlaySpecials', () => {
 
     it('emergencyDraw는 손패가 6장 이하일 때 효과가 발동해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Emergency', special: 'emergencyDraw' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Emergency', special: 'emergencyDraw' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: { handSize: 5 }
+        battleContext: createCardPlayBattleContext({ handSize: 5 })
       });
 
       expect(result.nextTurnEffects!.emergencyDraw).toBe(3);
@@ -113,10 +110,10 @@ describe('cardPlaySpecials', () => {
 
     it('emergencyDraw는 손패가 6장 초과하면 효과가 없어야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Emergency', special: 'emergencyDraw' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Emergency', special: 'emergencyDraw' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: { handSize: 8 }
+        battleContext: createCardPlayBattleContext({ handSize: 8 })
       });
 
       expect(result.nextTurnEffects?.emergencyDraw).toBeUndefined();
@@ -124,8 +121,8 @@ describe('cardPlaySpecials', () => {
 
     it('sharpenBlade는 fencingDamageBonus를 설정해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Sharpen', special: 'sharpenBlade' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Sharpen', special: 'sharpenBlade' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -134,22 +131,22 @@ describe('cardPlaySpecials', () => {
 
     it('evasiveShot은 shoot 보너스 카드를 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { id: 'evasive_shot', name: 'Evasive', special: 'evasiveShot' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ id: 'evasive_shot', name: 'Evasive', special: 'evasiveShot' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any
-        }
+        battleContext: createCardPlayBattleContext({
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }]
+        })
       });
 
       expect(result.bonusCards!.length).toBeGreaterThan(0);
-      expect((result.bonusCards![0] as any).createdBy).toBe('evasive_shot');
+      expect((result.bonusCards![0] as { createdBy?: string }).createdBy).toBe('evasive_shot');
     });
 
     it('manipulation은 탄걸림이 있으면 해제하고 장전해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Manip', special: 'manipulation' } as any,
-        attacker: createEntity({
+        card: createCardPlayCard({ name: 'Manip', special: 'manipulation' }),
+        attacker: createCardPlayEntity({
           tokens: {
             usage: [],
             turn: [],
@@ -157,7 +154,7 @@ describe('cardPlaySpecials', () => {
           }
         }),
         attackerName: 'player',
-        battleContext: { allCards: [] as any }
+        battleContext: createCardPlayBattleContext({ allCards: [] })
       });
 
       expect(result.tokensToRemove!.some(t => t.id === 'gun_jam')).toBe(true);
@@ -166,12 +163,12 @@ describe('cardPlaySpecials', () => {
 
     it('manipulation은 탄걸림이 없으면 사격 카드를 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Manip', special: 'manipulation' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Manip', special: 'manipulation' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any
-        }
+        battleContext: createCardPlayBattleContext({
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }]
+        })
       });
 
       expect(result.bonusCards!.length).toBeGreaterThan(0);
@@ -179,17 +176,17 @@ describe('cardPlaySpecials', () => {
 
     it('spreadShot은 적 유닛 수만큼 사격을 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Spread', special: 'spreadShot' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Spread', special: 'spreadShot' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any,
+        battleContext: createCardPlayBattleContext({
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }],
           enemyUnits: [
             { hp: 50, unitId: 0 },
             { hp: 50, unitId: 1 },
             { hp: 50, unitId: 2 }
-          ] as any
-        }
+          ]
+        })
       });
 
       expect(result.bonusCards!).toHaveLength(3);
@@ -197,12 +194,12 @@ describe('cardPlaySpecials', () => {
 
     it('executionSquad는 장전, 탄걸림 면역 토큰을 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'Execution', special: 'executionSquad' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'Execution', special: 'executionSquad' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any
-        }
+        battleContext: createCardPlayBattleContext({
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }]
+        })
       });
 
       expect(result.tokensToAdd!.some(t => t.id === 'loaded')).toBe(true);
@@ -212,8 +209,8 @@ describe('cardPlaySpecials', () => {
 
     it('aoeAttack은 nextTurnEffects에 isAoeAttack을 설정해야 함', () => {
       const result = processCardPlaySpecials({
-        card: { name: 'AoE', special: 'aoeAttack' } as any,
-        attacker: createEntity(),
+        card: createCardPlayCard({ name: 'AoE', special: 'aoeAttack' }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -222,22 +219,22 @@ describe('cardPlaySpecials', () => {
 
     it('cross 특성과 gun_attack 보너스는 사격 카드를 추가해야 함', () => {
       const result = processCardPlaySpecials({
-        card: {
+        card: createCardPlayCard({
           name: 'Cross',
           traits: ['cross'],
           crossBonus: { type: 'gun_attack', count: 2 }
-        } as any,
-        attacker: createEntity(),
+        }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
+        battleContext: createCardPlayBattleContext({
           queue: [
-            { actor: 'player', sp: 5 } as any,
+            { actor: 'player', sp: 5 },
             { actor: 'enemy', sp: 5 }
           ],
           currentSp: 5,
           currentQIndex: 0,
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any
-        }
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }]
+        })
       });
 
       expect(result.bonusCards!).toHaveLength(2);
@@ -245,22 +242,22 @@ describe('cardPlaySpecials', () => {
 
     it('cross 특성이지만 겹치지 않으면 효과가 없어야 함', () => {
       const result = processCardPlaySpecials({
-        card: {
+        card: createCardPlayCard({
           name: 'Cross',
           traits: ['cross'],
           crossBonus: { type: 'gun_attack', count: 2 }
-        } as any,
-        attacker: createEntity(),
+        }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player',
-        battleContext: {
+        battleContext: createCardPlayBattleContext({
           queue: [
-            { actor: 'player', sp: 5 } as any,
+            { actor: 'player', sp: 5 },
             { actor: 'enemy', sp: 15 } // 겹치지 않음
           ],
           currentSp: 5,
           currentQIndex: 0,
-          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }] as any
-        }
+          allCards: [{ id: 'shoot', damage: 15, name: 'Shoot' }]
+        })
       });
 
       expect(result.bonusCards!).toHaveLength(0);
@@ -269,13 +266,13 @@ describe('cardPlaySpecials', () => {
     // appliedTokens 테스트
     it('appliedTokens로 자신에게 토큰을 부여해야 함', () => {
       const result = processCardPlaySpecials({
-        card: {
+        card: createCardPlayCard({
           name: 'BuffCard',
           appliedTokens: [
             { id: 'offense', stacks: 2, target: 'player' }
           ]
-        } as any,
-        attacker: createEntity(),
+        }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -287,14 +284,14 @@ describe('cardPlaySpecials', () => {
 
     it('appliedTokens로 적에게 토큰을 부여해야 함 (targetEnemy=true)', () => {
       const result = processCardPlaySpecials({
-        card: {
+        card: createCardPlayCard({
           name: 'DebuffCard',
           appliedTokens: [
             { id: 'dull', stacks: 1, target: 'enemy' },
             { id: 'shaken', stacks: 3, target: 'enemy' }
           ]
-        } as any,
-        attacker: createEntity(),
+        }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 
@@ -314,7 +311,7 @@ describe('cardPlaySpecials', () => {
     it('최루-연막탄 appliedTokens가 올바르게 처리되어야 함', () => {
       // 최루-연막탄 카드 정의: blurPlus(자신), dull(적 3스택), shaken(적 3스택)
       const result = processCardPlaySpecials({
-        card: {
+        card: createCardPlayCard({
           id: 'tear_smoke_grenade',
           name: '최루-연막탄',
           type: 'general',
@@ -323,8 +320,8 @@ describe('cardPlaySpecials', () => {
             { id: 'dull', stacks: 3, target: 'enemy' },
             { id: 'shaken', stacks: 3, target: 'enemy' }
           ]
-        } as any,
-        attacker: createEntity(),
+        }),
+        attacker: createCardPlayEntity(),
         attackerName: 'player'
       });
 

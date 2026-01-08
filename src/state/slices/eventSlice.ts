@@ -11,6 +11,7 @@ import type { ActiveEvent } from '../../types';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { CARDS } from '../../components/battle/battleData';
 import { canAfford, payCost, grantRewards, resolveAmount, extractResourceDelta } from '../gameStoreHelpers';
+import { recordEventChoice, recordEventOccurrence } from '../../simulator/bridge/stats-bridge';
 
 export type EventActionsSlice = EventSliceActions;
 
@@ -110,6 +111,19 @@ export const createEventActions: SliceCreator = (set) => ({
         ? choice.nextEvent
         : state.pendingNextEvent;
 
+      // 통계 기록: 이벤트 선택
+      if (eventId) {
+        const hpChange = newPlayerHp - state.playerHp;
+        const goldChange = (resources.gold ?? 0) - (state.resources.gold ?? 0);
+        const cardsGained = newOwnedCards.filter(c => !(state.characterBuild?.ownedCards || []).includes(c));
+        recordEventChoice(eventId, choiceId, {
+          success: true,
+          hpChange,
+          goldChange,
+          cardsGained,
+        });
+      }
+
       return {
         ...state,
         resources: resources as GameStore['resources'],
@@ -126,6 +140,11 @@ export const createEventActions: SliceCreator = (set) => ({
             cost: choice.cost || {},
             rewards,
             resultDescription: choice.resultDescription || null,
+            // 전투 트리거 정보 추가
+            combatTrigger: choice.combatTrigger || false,
+            combatRewards: choice.combatRewards,
+            combatModifier: choice.combatModifier,
+            combatId: choice.combatId,
           },
         },
       } as Partial<GameStore>;
@@ -163,7 +182,15 @@ export const createEventActions: SliceCreator = (set) => ({
     set((state) => (state.activeEvent ? { ...state, activeEvent: null } : state)),
 
   setActiveEvent: (event: ActiveEvent | null) =>
-    set((state) => ({ ...state, activeEvent: event })),
+    set((state) => {
+      // 이벤트가 새로 시작될 때만 통계 기록
+      if (event && !state.activeEvent) {
+        const eventId = event.definition?.id || event.eventId || 'unknown';
+        const eventName = event.definition?.name || '알 수 없는 이벤트';
+        recordEventOccurrence(eventId, eventName);
+      }
+      return { ...state, activeEvent: event };
+    }),
 });
 
 // 하위 호환성

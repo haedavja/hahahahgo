@@ -33,36 +33,124 @@ export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
 /** 서비스 ID */
 export type ServiceId = 'healSmall' | 'healFull' | 'removeCard' | 'upgradeCard' | 'reroll';
 
-// 상징 등급별 가격
+// 상징 등급별 가격 (20% 인하)
 export const RELIC_PRICES: Record<string, number> = {
-  [RELIC_RARITIES.COMMON]: 60,
-  [RELIC_RARITIES.RARE]: 120,
-  [RELIC_RARITIES.SPECIAL]: 200,
-  [RELIC_RARITIES.LEGENDARY]: 350,
+  [RELIC_RARITIES.COMMON]: 50,   // 60 → 50
+  [RELIC_RARITIES.RARE]: 100,    // 120 → 100
+  [RELIC_RARITIES.SPECIAL]: 160, // 200 → 160
+  [RELIC_RARITIES.LEGENDARY]: 280, // 350 → 280
 };
 
-// 아이템 티어별 가격
+// 아이템 티어별 가격 (20% 인하)
 export const ITEM_PRICES: Record<ItemTier, number> = {
-  1: 25,  // 소형 아이템
-  2: 50,  // 대형 아이템
+  1: 20,  // 25 → 20 (소형 아이템)
+  2: 40,  // 50 → 40 (대형 아이템)
 };
 
-// 카드 등급별 가격
+// 카드 등급별 가격 (10-15% 인하)
 export const CARD_PRICES: Record<CardRarity, number> = {
-  common: 15,
-  rare: 30,
-  special: 50,
-  legendary: 80,
+  common: 12,     // 15 → 12
+  rare: 25,       // 30 → 25
+  special: 45,    // 50 → 45
+  legendary: 70,  // 80 → 70
 };
 
-// 서비스 가격
+// 서비스 가격 (20-25% 인하)
 export const SERVICE_PRICES: Record<ServiceId, number> = {
-  healSmall: 30,      // 체력 25% 회복
-  healFull: 80,       // 체력 전체 회복
-  removeCard: 50,     // 카드 제거
-  upgradeCard: 75,    // 카드 업그레이드 (미구현 시 비활성화)
-  reroll: 15,         // 상점 새로고침
+  healSmall: 22,      // 30 → 22 (체력 25% 회복)
+  healFull: 60,       // 80 → 60 (체력 전체 회복)
+  removeCard: 40,     // 50 → 40 (카드 제거)
+  upgradeCard: 55,    // 75 → 55 (카드 업그레이드)
+  reroll: 10,         // 15 → 10 (상점 새로고침)
 };
+
+// ==================== 할인 시스템 ====================
+
+/** 단골 할인 레벨 */
+export interface LoyaltyDiscount {
+  visits: number;      // 방문 횟수 기준
+  discountRate: number; // 할인율 (0.0 ~ 1.0)
+  name: string;         // 할인 레벨 이름
+}
+
+/** 단골 할인 테이블 */
+export const LOYALTY_DISCOUNTS: LoyaltyDiscount[] = [
+  { visits: 0, discountRate: 0, name: '첫 방문' },
+  { visits: 2, discountRate: 0.05, name: '단골 (5% 할인)' },
+  { visits: 4, discountRate: 0.10, name: '친한 단골 (10% 할인)' },
+  { visits: 6, discountRate: 0.15, name: 'VIP (15% 할인)' },
+  { visits: 10, discountRate: 0.20, name: '명예 고객 (20% 할인)' },
+];
+
+/** 대량 구매 할인 */
+export interface BulkDiscount {
+  itemCount: number;   // 구매 아이템 수 기준
+  discountRate: number; // 추가 할인율
+  bonusGold?: number;   // 보너스 골드
+}
+
+/** 대량 구매 할인 테이블 */
+export const BULK_DISCOUNTS: BulkDiscount[] = [
+  { itemCount: 3, discountRate: 0.05, bonusGold: 5 },   // 3개 이상 구매: 5% 할인 + 5골드
+  { itemCount: 5, discountRate: 0.10, bonusGold: 15 },  // 5개 이상 구매: 10% 할인 + 15골드
+  { itemCount: 7, discountRate: 0.15, bonusGold: 30 },  // 7개 이상 구매: 15% 할인 + 30골드
+];
+
+/**
+ * 단골 할인율 계산
+ * @param shopVisits - 상점 방문 횟수
+ * @returns 할인 정보
+ */
+export function getLoyaltyDiscount(shopVisits: number): LoyaltyDiscount {
+  let discount = LOYALTY_DISCOUNTS[0];
+  for (const level of LOYALTY_DISCOUNTS) {
+    if (shopVisits >= level.visits) {
+      discount = level;
+    }
+  }
+  return discount;
+}
+
+/**
+ * 대량 구매 할인 계산
+ * @param itemCount - 구매 아이템 수
+ * @returns 할인 정보 또는 null
+ */
+export function getBulkDiscount(itemCount: number): BulkDiscount | null {
+  let discount: BulkDiscount | null = null;
+  for (const level of BULK_DISCOUNTS) {
+    if (itemCount >= level.itemCount) {
+      discount = level;
+    }
+  }
+  return discount;
+}
+
+/**
+ * 최종 가격 계산 (할인 적용)
+ * @param basePrice - 기본 가격
+ * @param shopVisits - 상점 방문 횟수
+ * @param purchaseCount - 현재 구매 개수
+ * @returns 할인 적용된 가격
+ */
+export function calculateDiscountedPrice(
+  basePrice: number,
+  shopVisits: number = 0,
+  purchaseCount: number = 0
+): number {
+  const loyalty = getLoyaltyDiscount(shopVisits);
+  const bulk = getBulkDiscount(purchaseCount);
+
+  let totalDiscount = loyalty.discountRate;
+  if (bulk) {
+    totalDiscount += bulk.discountRate;
+  }
+
+  // 최대 할인 30% 제한
+  totalDiscount = Math.min(totalDiscount, 0.30);
+
+  return Math.round(basePrice * (1 - totalDiscount));
+}
 
 // 전리품 매입 가격 (판매가) - 아이템 원가의 60%
 export const SELL_PRICE_MULTIPLIER = 0.6;

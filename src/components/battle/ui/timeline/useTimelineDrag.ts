@@ -63,6 +63,16 @@ export function useTimelineDrag({
   const [draggingType, setDraggingType] = useState<DragType>(null);
   const playerLaneRef = useRef<HTMLDivElement>(null);
 
+  // O(n) find → O(1) Map 조회로 최적화 (드래그 중 고빈도 호출)
+  const leisureRangeMap = useMemo(() =>
+    new Map(leisureCardRanges.map(r => [r.cardUid, r])),
+    [leisureCardRanges]
+  );
+  const strainRangeMap = useMemo(() =>
+    new Map(strainCardRanges.map(r => [r.cardUid, r])),
+    [strainCardRanges]
+  );
+
   // 통합 마우스 이동 핸들러
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
     if (!draggingCardUid || !playerLaneRef.current) return;
@@ -74,7 +84,7 @@ export function useTimelineDrag({
 
     // 여유 특성 드래그 처리
     if (draggingType === 'leisure' && onLeisurePositionChange) {
-      const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
+      const range = leisureRangeMap.get(draggingCardUid);
       if (!range) return;
 
       // 카드 속도 기반 범위: [원래 속도] ~ [원래 속도 × 2]
@@ -89,7 +99,7 @@ export function useTimelineDrag({
 
     // 무리 특성 드래그 처리
     if (draggingType === 'strain' && onStrainOffsetChange) {
-      const range = strainCardRanges.find(r => r.cardUid === draggingCardUid);
+      const range = strainRangeMap.get(draggingCardUid);
       if (!range) return;
 
       const newOffset = Math.max(0, Math.min(STRAIN_MAX_OFFSET, range.baseSp - sp));
@@ -101,8 +111,8 @@ export function useTimelineDrag({
     draggingCardUid,
     draggingType,
     playerMax,
-    leisureCardRanges,
-    strainCardRanges,
+    leisureRangeMap,
+    strainRangeMap,
     onLeisurePositionChange,
     onStrainOffsetChange
   ]);

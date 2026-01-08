@@ -97,9 +97,14 @@ export function loadCards(forceReload = false): Record<string, CardData> {
     return {};
   }
 
-  const data: CardsJson = JSON.parse(readFileSync(filePath, 'utf-8'));
-  cachedCards = data.cards;
-  return cachedCards;
+  try {
+    const data: CardsJson = JSON.parse(readFileSync(filePath, 'utf-8'));
+    cachedCards = data.cards;
+    return cachedCards;
+  } catch (error) {
+    log.error('Failed to parse cards.json:', error);
+    return {};
+  }
 }
 
 export function loadEnemies(forceReload = false): Record<string, EnemyData> {
@@ -111,10 +116,15 @@ export function loadEnemies(forceReload = false): Record<string, EnemyData> {
     return {};
   }
 
-  const data: EnemiesJson = JSON.parse(readFileSync(filePath, 'utf-8'));
-  cachedEnemies = data.enemies;
-  cachedTiers = data.tiers;
-  return cachedEnemies;
+  try {
+    const data: EnemiesJson = JSON.parse(readFileSync(filePath, 'utf-8'));
+    cachedEnemies = data.enemies;
+    cachedTiers = data.tiers;
+    return cachedEnemies;
+  } catch (error) {
+    log.error('Failed to parse enemies.json:', error);
+    return {};
+  }
 }
 
 export function loadPresets(forceReload = false): Record<string, PresetData> {
@@ -126,9 +136,14 @@ export function loadPresets(forceReload = false): Record<string, PresetData> {
     return {};
   }
 
-  const data: PresetsJson = JSON.parse(readFileSync(filePath, 'utf-8'));
-  cachedPresets = data.presets;
-  return cachedPresets;
+  try {
+    const data: PresetsJson = JSON.parse(readFileSync(filePath, 'utf-8'));
+    cachedPresets = data.presets;
+    return cachedPresets;
+  } catch (error) {
+    log.error('Failed to parse presets.json:', error);
+    return {};
+  }
 }
 
 export function loadTiers(forceReload = false): Record<string, string[]> {

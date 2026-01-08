@@ -56,9 +56,9 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
   let totalBlockDestroyed: number = Number(firstHitResult.blockDestroyed) || 0;
   let totalTimelineAdvance = firstHitResult.timelineAdvance || 0;
 
-  // 다중 타격 시 개별 데미지 로그 필터링
-  const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
-  const filteredEvents = (firstHitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes.includes(ev.type));
+  // 다중 타격 시 개별 데미지 로그 필터링 (Set으로 O(1) 조회)
+  const skipEventTypes = hits > 1 ? new Set(['hit', 'blocked', 'pierce']) : null;
+  const filteredEvents = (firstHitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes?.has(ev.type));
   const allEvents = [...filteredEvents];
   const allLogs: string[] = [];
 
@@ -117,7 +117,7 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
     totalBlockDestroyed += Number(hitResult.blockDestroyed) || 0;
     totalTimelineAdvance += hitResult.timelineAdvance || 0;
 
-    const filteredHitEvents = (hitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes.includes(ev.type));
+    const filteredHitEvents = (hitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes?.has(ev.type));
     allEvents.push(...filteredHitEvents);
 
     if (onHitCallback) {

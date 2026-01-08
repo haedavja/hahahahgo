@@ -3,17 +3,11 @@
  * @description 다중 유닛 데미지 분배 처리 유틸리티
  */
 
-import type { Card } from '../../../types/core';
+import type { Card, EnemyUnitState } from '../../../types/core';
 import { hasSpecial } from './cardSpecialEffects';
 
-export interface EnemyUnit {
-  unitId: number;
-  name: string;
-  hp: number;
-  maxHp?: number;
-  block?: number;
-  [key: string]: unknown;
-}
+// EnemyUnitState 재사용
+export type EnemyUnit = EnemyUnitState;
 
 export interface DamageDistributionResult {
   updatedUnits: EnemyUnit[];
@@ -30,31 +24,33 @@ interface DistributeDamageParams {
 
 /**
  * 범위 피해 분배 (모든 생존 유닛에 동일 피해)
+ * 최적화: O(n²) map 루프 → O(n) 인덱스 기반 업데이트
  */
 function distributeAoeDamage(
   enemyUnits: EnemyUnit[],
   damageDealt: number
 ): DamageDistributionResult {
-  let updatedUnits = [...enemyUnits];
+  const updatedUnits = [...enemyUnits];
   const logs: string[] = [];
   const damageLogParts: string[] = [];
 
   if (damageDealt > 0) {
-    const aliveUnits = updatedUnits.filter(u => u.hp > 0);
+    // O(1) 조회를 위한 unitId → index 맵 생성
+    const unitIndexMap = new Map<number, number>();
+    updatedUnits.forEach((u, i) => unitIndexMap.set(u.unitId, i));
 
-    for (const targetUnit of aliveUnits) {
+    for (let i = 0; i < updatedUnits.length; i++) {
+      const targetUnit = updatedUnits[i];
+      if (targetUnit.hp <= 0) continue;
+
       const unitBlock = targetUnit.block || 0;
       const blockedDamage = Math.min(unitBlock, damageDealt);
       const actualDamage = damageDealt - blockedDamage;
       const newBlock = unitBlock - blockedDamage;
       const newHp = Math.max(0, targetUnit.hp - actualDamage);
 
-      updatedUnits = updatedUnits.map(u => {
-        if (u.unitId === targetUnit.unitId) {
-          return { ...u, hp: newHp, block: newBlock };
-        }
-        return u;
-      });
+      // O(1) 직접 업데이트 (기존 .map() O(n) 대체)
+      updatedUnits[i] = { ...targetUnit, hp: newHp, block: newBlock };
 
       if (blockedDamage > 0) {
         damageLogParts.push(`${targetUnit.name}: ${actualDamage} (방어 ${blockedDamage})`);
@@ -75,19 +71,27 @@ function distributeAoeDamage(
 
 /**
  * 다중 타겟 피해 분배 (선택된 유닛들에 카드 피해 적용)
+ * 최적화: O(n²) find+map → O(n) Map 기반 인덱스 조회
  */
 function distributeMultiTargetDamage(
   enemyUnits: EnemyUnit[],
   targetUnitIds: number[],
   baseDamage: number
 ): DamageDistributionResult {
-  let updatedUnits = [...enemyUnits];
+  const updatedUnits = [...enemyUnits];
   const logs: string[] = [];
   const damageLogParts: string[] = [];
 
+  // O(1) 조회를 위한 unitId → index 맵 생성
+  const unitIndexMap = new Map<number, number>();
+  updatedUnits.forEach((u, i) => unitIndexMap.set(u.unitId, i));
+
   for (const unitId of targetUnitIds) {
-    const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
-    if (!targetUnit) continue;
+    const idx = unitIndexMap.get(unitId);
+    if (idx === undefined) continue;
+
+    const targetUnit = updatedUnits[idx];
+    if (targetUnit.hp <= 0) continue;
 
     const unitBlock = targetUnit.block || 0;
     const blockedDamage = Math.min(unitBlock, baseDamage);
@@ -95,12 +99,8 @@ function distributeMultiTargetDamage(
     const newBlock = unitBlock - blockedDamage;
     const newHp = Math.max(0, targetUnit.hp - actualDamage);
 
-    updatedUnits = updatedUnits.map(u => {
-      if (u.unitId === unitId) {
-        return { ...u, hp: newHp, block: newBlock };
-      }
-      return u;
-    });
+    // O(1) 직접 업데이트 (기존 .map() O(n) 대체)
+    updatedUnits[idx] = { ...targetUnit, hp: newHp, block: newBlock };
 
     if (blockedDamage > 0) {
       damageLogParts.push(`${targetUnit.name}: 공격력 ${baseDamage} - 방어력 ${blockedDamage} = ${actualDamage}`);
@@ -120,31 +120,33 @@ function distributeMultiTargetDamage(
 
 /**
  * 단일 타겟 피해 분배 (지정된 유닛에만 피해)
+ * 최적화: O(n) find+map → O(1) Map 기반 인덱스 조회
  */
 function distributeSingleTargetDamage(
   enemyUnits: EnemyUnit[],
   cardTargetUnitId: number,
   damageDealt: number
 ): DamageDistributionResult {
-  let updatedUnits = [...enemyUnits];
+  const updatedUnits = [...enemyUnits];
   const logs: string[] = [];
 
   if (damageDealt > 0) {
-    const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-    let targetUnit = aliveUnits.find(u => u.unitId === cardTargetUnitId);
-    if (!targetUnit && aliveUnits.length > 0) {
-      targetUnit = aliveUnits[0];
+    // O(1) 조회를 위한 unitId → index 맵 생성
+    const unitIndexMap = new Map<number, number>();
+    updatedUnits.forEach((u, i) => unitIndexMap.set(u.unitId, i));
+
+    // 타겟 유닛 찾기: 지정된 유닛 또는 첫 번째 생존 유닛
+    let targetIdx = unitIndexMap.get(cardTargetUnitId);
+    if (targetIdx === undefined || updatedUnits[targetIdx].hp <= 0) {
+      // 첫 번째 생존 유닛 찾기
+      targetIdx = updatedUnits.findIndex(u => u.hp > 0);
     }
 
-    if (targetUnit) {
+    if (targetIdx !== -1 && targetIdx !== undefined) {
+      const targetUnit = updatedUnits[targetIdx];
       const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
-
-      updatedUnits = enemyUnits.map(u => {
-        if (u.unitId === targetUnit!.unitId) {
-          return { ...u, hp: newUnitHp };
-        }
-        return u;
-      });
+      // O(1) 직접 업데이트 (기존 .map() O(n) 대체)
+      updatedUnits[targetIdx] = { ...targetUnit, hp: newUnitHp };
     }
   }
 

@@ -24,7 +24,6 @@ import type {
   PostCombatOptions,
 } from '../../../types/combat';
 import type { Card, Relic } from '../../../types/core';
-import type { EtherCard } from '../../../types/systems';
 
 /**
  * runAll 핵심 로직 파라미터
@@ -264,10 +263,10 @@ export function runAllCore(params: RunAllCoreParams) {
     }
 
     if (a.actor === 'player' && a.card) {
-      const gain = Math.floor(getCardEtherGain(a.card as unknown as EtherCard) * passiveRelicEffects.etherMultiplier);
+      const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
       actions.setTurnEtherAccumulated(turnEtherAccumulated + gain);
     } else if (a.actor === 'enemy' && a.card) {
-      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card as unknown as EtherCard));
+      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card));
     }
 
     if (P.hp <= 0) {

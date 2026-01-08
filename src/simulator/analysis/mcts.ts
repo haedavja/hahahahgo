@@ -7,6 +7,8 @@ import type { MCTSNode, GameState, TimelineCard } from '../core/types';
 import { loadCards, loadEnemies, type CardData, type EnemyData } from '../data/loader';
 import { createError, safeSync, type SimulatorError } from '../core/error-handling';
 import { getLogger } from '../core/logger';
+import { cloneGameState, computeStateHash } from './base-analyzer';
+import { LRUCache } from '../core/lru-cache';
 
 const log = getLogger('MCTS');
 
@@ -21,6 +23,16 @@ export interface MCTSOptions {
   parallelSimulations: number; // 병렬 시뮬레이션 수 (기본 1)
   earlyTermination: boolean;   // 확실한 승리 시 조기 종료
   pruning: boolean;            // 불리한 가지 가지치기
+  useRAVE: boolean;            // RAVE (Rapid Action Value Estimation) 사용
+  raveK: number;               // RAVE 가중치 상수 (기본 500)
+  progressiveWidening: boolean; // 프로그레시브 와이드닝 사용
+  wideningAlpha: number;       // 와이드닝 계수 (기본 0.5)
+}
+
+// RAVE 통계 타입
+interface RAVEStats {
+  visits: number;
+  value: number;
 }
 
 // ==================== MCTS 노드 ====================
@@ -33,6 +45,10 @@ class TreeNode implements MCTSNode {
   visits: number;
   value: number;
   untriedActions: string[];
+  // RAVE 통계
+  raveStats: Map<string, RAVEStats>;
+  // 시뮬레이션에서 사용된 액션 기록 (RAVE용)
+  simulationActions: string[];
 
   constructor(state: GameState, parent: TreeNode | null = null, action: string | null = null) {
     this.state = state;
@@ -42,6 +58,8 @@ class TreeNode implements MCTSNode {
     this.visits = 0;
     this.value = 0;
     this.untriedActions = this.getAvailableActions(state);
+    this.raveStats = new Map();
+    this.simulationActions = [];
   }
 
   private getAvailableActions(state: GameState): string[] {
@@ -73,6 +91,38 @@ class TreeNode implements MCTSNode {
 
     return exploitation + exploration;
   }
+
+  /**
+   * RAVE-UCB1 계산 (MC-RAVE / AMAF)
+   * β(n) = sqrt(k / (3n + k)) 를 사용해 RAVE와 UCB1 값을 블렌딩
+   */
+  getRAVEUCB1(explorationConstant: number, raveK: number): number {
+    if (this.visits === 0) return Infinity;
+    if (!this.parent || !this.action) return this.getUCB1(explorationConstant);
+
+    const ucb1 = this.getUCB1(explorationConstant);
+
+    // 부모 노드의 RAVE 통계 확인
+    const parentRave = this.parent.raveStats.get(this.action);
+    if (!parentRave || parentRave.visits === 0) return ucb1;
+
+    // β 계산: visits가 많아질수록 RAVE 가중치 감소
+    const beta = Math.sqrt(raveK / (3 * this.visits + raveK));
+    const raveValue = parentRave.value / parentRave.visits;
+
+    // UCB1과 RAVE 값 블렌딩
+    return (1 - beta) * ucb1 + beta * raveValue;
+  }
+
+  /**
+   * RAVE 통계 업데이트
+   */
+  updateRAVE(action: string, reward: number): void {
+    const stats = this.raveStats.get(action) || { visits: 0, value: 0 };
+    stats.visits++;
+    stats.value += reward;
+    this.raveStats.set(action, stats);
+  }
 }
 
 // ==================== MCTS 엔진 ====================
@@ -82,7 +132,7 @@ export class MCTSEngine {
   private cards: Record<string, CardData>;
   private enemies: Record<string, EnemyData>;
   private stats: MCTSStats;
-  private transpositionTable: Map<string, { visits: number; value: number }>;
+  private transpositionTable: LRUCache<string, { visits: number; value: number }>;
   private stateHashCache: WeakMap<GameState, string>;
 
   constructor(options: Partial<MCTSOptions> = {}) {
@@ -95,91 +145,59 @@ export class MCTSEngine {
       parallelSimulations: options.parallelSimulations ?? 1,
       earlyTermination: options.earlyTermination ?? true,
       pruning: options.pruning ?? true,
+      useRAVE: options.useRAVE ?? true,
+      raveK: options.raveK ?? 500,
+      progressiveWidening: options.progressiveWidening ?? false,
+      wideningAlpha: options.wideningAlpha ?? 0.5,
     };
 
     log.debug('MCTS Engine initialized', {
       maxIterations: this.options.maxIterations,
       maxTurns: this.options.maxTurns,
       timeLimit: this.options.timeLimit,
+      useRAVE: this.options.useRAVE,
     });
 
     this.cards = safeSync(() => loadCards(), {}, 'DATA_CARD_NOT_FOUND');
     this.enemies = safeSync(() => loadEnemies(), {}, 'DATA_ENEMY_NOT_FOUND');
     this.stats = { iterations: 0, avgDepth: 0, bestValue: 0 };
-    this.transpositionTable = new Map();
+    // LRU 캐시로 교체: 10000개 항목으로 제한, 자동 eviction
+    this.transpositionTable = new LRUCache({ maxSize: 10000 });
     this.stateHashCache = new WeakMap();
   }
 
   /**
    * 상태 해시 계산 (트랜스포지션 테이블용)
+   * @see computeStateHash from base-analyzer.ts
    */
   private getStateHash(state: GameState): string {
     const cached = this.stateHashCache.get(state);
     if (cached) return cached;
 
-    const hash = [
-      state.player.hp,
-      state.player.block,
-      state.player.energy,
-      state.enemy.hp,
-      state.enemy.block,
-      state.turn,
-      state.player.hand.sort().join(','),
-    ].join('|');
-
+    const hash = computeStateHash(state);
     this.stateHashCache.set(state, hash);
     return hash;
   }
 
   /**
    * 빠른 상태 복제 (JSON보다 효율적)
+   * @see cloneGameState from base-analyzer.ts
    */
   private cloneState(state: GameState): GameState {
-    return {
-      player: {
-        hp: state.player.hp,
-        maxHp: state.player.maxHp,
-        block: state.player.block,
-        energy: state.player.energy,
-        maxEnergy: state.player.maxEnergy,
-        strength: state.player.strength,
-        dexterity: state.player.dexterity,
-        etherPts: state.player.etherPts,
-        hand: [...state.player.hand],
-        deck: [...state.player.deck],
-        discard: [...state.player.discard],
-        exhaust: state.player.exhaust ? [...state.player.exhaust] : [],
-        tokens: { ...state.player.tokens },
-        relics: state.player.relics ? [...state.player.relics] : [],
-      },
-      enemy: {
-        id: state.enemy.id,
-        name: state.enemy.name,
-        hp: state.enemy.hp,
-        maxHp: state.enemy.maxHp,
-        block: state.enemy.block,
-        strength: state.enemy.strength,
-        etherPts: state.enemy.etherPts,
-        deck: state.enemy.deck ? [...state.enemy.deck] : [],
-        cardsPerTurn: state.enemy.cardsPerTurn,
-        tokens: { ...state.enemy.tokens },
-      },
-      turn: state.turn,
-      phase: state.phase,
-      timeline: state.timeline ? [...state.timeline] : [],
-    };
+    return cloneGameState(state);
   }
 
   /**
-   * 트랜스포지션 테이블 조회
+   * 트랜스포지션 테이블 조회 (LRU 캐시가 자동으로 LRU 순서 갱신)
    */
   private lookupTransposition(state: GameState): { visits: number; value: number } | null {
     const hash = this.getStateHash(state);
-    return this.transpositionTable.get(hash) || null;
+    return this.transpositionTable.get(hash) ?? null;
   }
 
   /**
    * 트랜스포지션 테이블 업데이트
+   * LRU 캐시가 자동으로 eviction 처리하므로 수동 관리 불필요
    */
   private updateTransposition(state: GameState, visits: number, value: number): void {
     const hash = this.getStateHash(state);
@@ -187,15 +205,6 @@ export class MCTSEngine {
 
     if (!existing || visits > existing.visits) {
       this.transpositionTable.set(hash, { visits, value });
-    }
-
-    // 메모리 관리: 테이블 크기 제한
-    if (this.transpositionTable.size > 10000) {
-      const entries = Array.from(this.transpositionTable.entries());
-      entries.sort((a, b) => a[1].visits - b[1].visits);
-      for (let i = 0; i < 5000; i++) {
-        this.transpositionTable.delete(entries[i][0]);
-      }
     }
   }
 
@@ -205,6 +214,13 @@ export class MCTSEngine {
   clearCache(): void {
     this.transpositionTable.clear();
     this.stateHashCache = new WeakMap();
+  }
+
+  /**
+   * 캐시 통계 반환
+   */
+  getCacheStats() {
+    return this.transpositionTable.getStats();
   }
 
   // ==================== 메인 탐색 ====================
@@ -254,10 +270,10 @@ export class MCTSEngine {
       }
 
       // Simulation
-      const reward = this.simulate(node);
+      const { reward, actions: simulationActions } = this.simulate(node);
 
-      // Backpropagation
-      this.backpropagate(node, reward);
+      // Backpropagation (with RAVE actions)
+      this.backpropagate(node, reward, simulationActions);
 
       iterations++;
       totalDepth += depth;
@@ -298,6 +314,7 @@ export class MCTSEngine {
 
   private selectChild(node: TreeNode, pruning: boolean = false): TreeNode {
     let children = node.children;
+    const { useRAVE, raveK, explorationConstant } = this.options;
 
     // 가지치기: 확실히 나쁜 노드 제외
     if (pruning && children.length > 3) {
@@ -309,8 +326,17 @@ export class MCTSEngine {
       if (children.length === 0) children = node.children;  // 모두 가지치기되면 원복
     }
 
+    // RAVE 사용 여부에 따라 선택 전략 결정
+    if (useRAVE) {
+      return children.reduce((best, child) =>
+        child.getRAVEUCB1(explorationConstant, raveK) > best.getRAVEUCB1(explorationConstant, raveK)
+          ? child
+          : best
+      );
+    }
+
     return children.reduce((best, child) =>
-      child.getUCB1(this.options.explorationConstant) > best.getUCB1(this.options.explorationConstant)
+      child.getUCB1(explorationConstant) > best.getUCB1(explorationConstant)
         ? child
         : best
     );
@@ -324,28 +350,40 @@ export class MCTSEngine {
     return child;
   }
 
-  private simulate(node: TreeNode): number {
+  private simulate(node: TreeNode): { reward: number; actions: string[] } {
     let state = this.cloneState(node.state);
     let depth = 0;
     const { maxSimulationDepth, maxTurns } = this.options;
+    const simulationActions: string[] = [];
 
     while (!this.isTerminal(state, maxTurns) && depth < maxSimulationDepth) {
       const action = this.getRandomAction(state);
       if (!action) break;
 
+      simulationActions.push(action);
       state = this.applyAction(state, action);
       state = this.simulateEnemyTurn(state);
       state.turn++;
       depth++;
     }
 
-    return this.evaluate(state);
+    return { reward: this.evaluate(state), actions: simulationActions };
   }
 
-  private backpropagate(node: TreeNode | null, reward: number): void {
+  private backpropagate(node: TreeNode | null, reward: number, simulationActions?: string[]): void {
+    const { useRAVE } = this.options;
+
     while (node) {
       node.visits++;
       node.value += reward;
+
+      // RAVE 업데이트: 시뮬레이션에서 사용된 모든 액션에 대해
+      if (useRAVE && simulationActions) {
+        for (const action of simulationActions) {
+          node.updateRAVE(action, reward);
+        }
+      }
+
       node = node.parent;
     }
   }
@@ -482,11 +520,50 @@ export class MCTSEngine {
     if (state.player.hp <= 0) return -1;
     if (state.enemy.hp <= 0) return 1;
 
-    // 체력 비율 기반 점수
-    const playerHpRatio = state.player.hp / state.player.maxHp;
-    const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
+    // === 다차원 평가 ===
+    const playerMaxHp = state.player.maxHp || 1;
+    const enemyMaxHp = state.enemy.maxHp || 1;
 
-    return (playerHpRatio - enemyHpRatio) * 0.5;
+    // 1. 체력 비율 기반 점수 (가중치 0.4)
+    const playerHpRatio = state.player.hp / playerMaxHp;
+    const enemyHpRatio = state.enemy.hp / enemyMaxHp;
+    const hpScore = (playerHpRatio - enemyHpRatio) * 0.4;
+
+    // 2. 리소스 어드밴티지 (가중치 0.2)
+    const playerHandSize = state.player.hand.length;
+    const playerDeckSize = state.player.deck.length;
+    const resourceScore = Math.min(0.2, (playerHandSize + playerDeckSize * 0.5) / 20);
+
+    // 3. 보드 컨트롤 - 방어력 및 힘 (가중치 0.15)
+    const strengthDiff = (state.player.strength || 0) - (state.enemy.strength || 0);
+    const blockAdvantage = (state.player.block || 0) - (state.enemy.block || 0);
+    const boardScore = Math.max(-0.15, Math.min(0.15,
+      (strengthDiff * 0.05 + blockAdvantage * 0.01)
+    ));
+
+    // 4. 상태 이상 어드밴티지 (가중치 0.15)
+    let statusScore = 0;
+    const playerTokens = state.player.tokens || {};
+    const enemyTokens = state.enemy.tokens || {};
+
+    // 유리한 적 디버프
+    if (enemyTokens['vulnerable']) statusScore += 0.05;
+    if (enemyTokens['weak']) statusScore += 0.05;
+    if (enemyTokens['poison']) statusScore += 0.03;
+
+    // 불리한 플레이어 디버프
+    if (playerTokens['vulnerable']) statusScore -= 0.05;
+    if (playerTokens['weak']) statusScore -= 0.05;
+    if (playerTokens['poison']) statusScore -= 0.03;
+
+    statusScore = Math.max(-0.15, Math.min(0.15, statusScore));
+
+    // 5. 턴 진행도 페널티 (너무 오래 걸리면 불리)
+    const turnPenalty = Math.min(0.1, state.turn * 0.003);
+
+    // 최종 점수 계산 (-1 ~ 1 범위로 클램프)
+    const totalScore = hpScore + resourceScore + boardScore + statusScore - turnPenalty;
+    return Math.max(-1, Math.min(1, totalScore));
   }
 
   // ==================== 유틸리티 ====================
@@ -582,43 +659,21 @@ export class MCTSPlayer {
       parallelSimulations: options.parallelSimulations ?? 1,
       earlyTermination: options.earlyTermination ?? true,
       pruning: options.pruning ?? true,
+      useRAVE: options.useRAVE ?? true,
+      raveK: options.raveK ?? 500,
+      progressiveWidening: options.progressiveWidening ?? false,
+      wideningAlpha: options.wideningAlpha ?? 0.5,
     };
     this.engine = new MCTSEngine(this.options);
-    log.info('MCTSPlayer initialized', { maxTurns: this.options.maxTurns });
+    log.info('MCTSPlayer initialized', { maxTurns: this.options.maxTurns, useRAVE: this.options.useRAVE });
   }
 
+  /**
+   * 상태 복제 (공통 유틸리티 사용)
+   * @see cloneGameState from base-analyzer.ts
+   */
   private cloneState(state: GameState): GameState {
-    return {
-      player: {
-        hp: state.player.hp,
-        maxHp: state.player.maxHp,
-        block: state.player.block,
-        energy: state.player.energy,
-        maxEnergy: state.player.maxEnergy,
-        strength: state.player.strength,
-        etherPts: state.player.etherPts,
-        hand: [...state.player.hand],
-        deck: [...state.player.deck],
-        discard: [...state.player.discard],
-        tokens: { ...state.player.tokens },
-        relics: state.player.relics ? [...state.player.relics] : [],
-      },
-      enemy: {
-        id: state.enemy.id,
-        name: state.enemy.name,
-        hp: state.enemy.hp,
-        maxHp: state.enemy.maxHp,
-        block: state.enemy.block,
-        strength: state.enemy.strength,
-        etherPts: state.enemy.etherPts,
-        deck: state.enemy.deck ? [...state.enemy.deck] : [],
-        cardsPerTurn: state.enemy.cardsPerTurn,
-        tokens: { ...state.enemy.tokens },
-      },
-      turn: state.turn,
-      phase: state.phase,
-      timeline: state.timeline ? [...state.timeline] : [],
-    };
+    return cloneGameState(state);
   }
 
   async playGame(

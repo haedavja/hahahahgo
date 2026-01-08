@@ -1,0 +1,29 @@
+#!/bin/sh
+
+echo "🔍 Pre-push checks..."
+
+# 테스트 실행
+echo "📋 Running tests..."
+npm test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Push aborted."
+  exit 1
+fi
+
+# 빌드 검증
+echo "🏗️ Verifying build..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Push aborted."
+  exit 1
+fi
+
+# 번들 크기 검사
+echo "📦 Checking bundle size..."
+npm run check:bundle
+if [ $? -ne 0 ]; then
+  echo "❌ Bundle size budget exceeded. Push aborted."
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed!"

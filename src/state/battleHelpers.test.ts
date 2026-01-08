@@ -19,6 +19,15 @@ import {
   drawCharacterBuildHand,
   BATTLE_CARDS,
 } from './battleHelpers';
+import {
+  createPlayerHandCard,
+  createEnemyHandCard,
+  createMapNode,
+  createGameStateForTravel,
+  type TestMapNode,
+  type TestGameState,
+  type TestEnemyData,
+} from '../test/factories';
 
 describe('createBattleEnemyData', () => {
   describe('정상 데이터 변환', () => {
@@ -124,16 +133,16 @@ describe('createBattleEnemyData', () => {
       const invalid = {
         id: 'test',
         deck: 'not-an-array', // 잘못된 타입
-      };
+      } as unknown as TestEnemyData;
 
-      const result = createBattleEnemyData(invalid as any);
+      const result = createBattleEnemyData(invalid);
 
       expect(Array.isArray(result.deck)).toBe(true);
       expect(result.deck).toEqual([]);
     });
 
     it('deck이 null인 경우 빈 배열로 변환해야 함', () => {
-      const result = createBattleEnemyData({ deck: null } as any);
+      const result = createBattleEnemyData({ deck: null } as TestEnemyData);
 
       expect(result.deck).toEqual([]);
     });
@@ -292,8 +301,8 @@ describe('createReducerEnemyState', () => {
 
 describe('computeBattlePlan', () => {
   it('유효한 전투 계획을 반환해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -304,8 +313,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('preview에 timeline이 포함되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -315,8 +324,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('플레이어 HP가 주어지면 적용되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, 50, 100);
 
@@ -324,8 +333,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('다수 적 전투 시 enemyCount가 증가해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, null, null, 3);
 
@@ -390,45 +399,45 @@ describe('createBattlePayload', () => {
 
   describe('null/invalid 노드 처리', () => {
     it('null 노드는 null을 반환해야 함', () => {
-      const result = createBattlePayload(null as any, null);
+      const result = createBattlePayload(null as unknown as TestMapNode, null);
       expect(result).toBeNull();
     });
 
     it('start 노드는 null을 반환해야 함', () => {
-      const startNode = {
+      const startNode = createMapNode({
         id: 'start',
         type: 'battle',
         isStart: true,
         selectable: true,
         cleared: false,
-      };
-      const result = createBattlePayload(startNode as any, null);
+      });
+      const result = createBattlePayload(startNode, null);
       expect(result).toBeNull();
     });
 
     it('non-battle 노드는 null을 반환해야 함', () => {
-      const eventNode = {
+      const eventNode = createMapNode({
         id: 'event1',
         type: 'event',
         selectable: true,
         cleared: false,
-      };
-      const result = createBattlePayload(eventNode as any, null);
+      });
+      const result = createBattlePayload(eventNode, null);
       expect(result).toBeNull();
     });
   });
 
   describe('정상 battle 노드', () => {
     it('battle 노드에서 유효한 페이로드를 생성해야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.nodeId).toBe('battle1');
@@ -441,15 +450,15 @@ describe('createBattlePayload', () => {
     });
 
     it('elite 노드에서 유효한 페이로드를 생성해야 함', () => {
-      const eliteNode = {
+      const eliteNode = createMapNode({
         id: 'elite1',
         type: 'elite',
         layer: 3,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(eliteNode as any, null);
+      const result = createBattlePayload(eliteNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.kind).toBe('elite');
@@ -457,15 +466,15 @@ describe('createBattlePayload', () => {
     });
 
     it('boss 노드에서 유효한 페이로드를 생성해야 함', () => {
-      const bossNode = {
+      const bossNode = createMapNode({
         id: 'boss1',
         type: 'boss',
         layer: 5,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(bossNode as any, null);
+      const result = createBattlePayload(bossNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.kind).toBe('boss');
@@ -473,15 +482,15 @@ describe('createBattlePayload', () => {
     });
 
     it('dungeon 노드에서 유효한 페이로드를 생성해야 함', () => {
-      const dungeonNode = {
+      const dungeonNode = createMapNode({
         id: 'dungeon1',
         type: 'dungeon',
         layer: 2,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(dungeonNode as any, null);
+      const result = createBattlePayload(dungeonNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.kind).toBe('dungeon');
@@ -491,13 +500,13 @@ describe('createBattlePayload', () => {
 
   describe('캐릭터 빌드 처리', () => {
     it('캐릭터 빌드가 있으면 주특기/보조특기 카드를 사용해야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
       const characterBuild = {
         mainSpecials: ['marche', 'parade'],
@@ -505,7 +514,7 @@ describe('createBattlePayload', () => {
         ownedCards: ['dodge'],
       };
 
-      const result = createBattlePayload(battleNode as any, characterBuild as any);
+      const result = createBattlePayload(battleNode, characterBuild);
 
       expect(result).not.toBeNull();
       expect(result?.hasCharacterBuild).toBe(true);
@@ -513,13 +522,13 @@ describe('createBattlePayload', () => {
     });
 
     it('빈 캐릭터 빌드는 hasCharacterBuild가 false여야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
       const emptyBuild = {
         mainSpecials: [],
@@ -527,7 +536,7 @@ describe('createBattlePayload', () => {
         ownedCards: [],
       };
 
-      const result = createBattlePayload(battleNode as any, emptyBuild as any);
+      const result = createBattlePayload(battleNode, emptyBuild);
 
       expect(result).not.toBeNull();
       expect(result?.hasCharacterBuild).toBe(false);
@@ -536,15 +545,15 @@ describe('createBattlePayload', () => {
 
   describe('플레이어 HP 처리', () => {
     it('플레이어 HP가 주어지면 시뮬레이션에 적용되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null, 50, 100);
+      const result = createBattlePayload(battleNode, null, 50, 100);
 
       expect(result).not.toBeNull();
       expect(result?.simulation).toBeDefined();
@@ -562,30 +571,30 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('노드 layer 처리', () => {
     it('layer가 숫자가 아니면 기본값 1을 사용해야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: undefined,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.nodeId).toBe('battle1');
     });
 
     it('layer가 문자열이면 기본값을 사용해야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
-        layer: 'invalid' as any,
+        layer: 'invalid' as unknown as number,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
     });
@@ -593,15 +602,15 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('적 그룹 처리', () => {
     it('적 덱이 빈 경우 기본 덱을 사용해야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.enemyLibrary.length).toBeGreaterThan(0);
@@ -610,16 +619,16 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('displayLabel 처리', () => {
     it('displayLabel이 있으면 label에 반영되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         displayLabel: '특별 전투',
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       // displayLabel이 label에 사용될 수 있음 (또는 그룹 이름)
@@ -629,30 +638,30 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('보상 처리', () => {
     it('battle 노드의 보상이 설정되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.rewards).toBeDefined();
     });
 
     it('elite 노드의 보상이 설정되어야 함', () => {
-      const eliteNode = {
+      const eliteNode = createMapNode({
         id: 'elite1',
         type: 'elite',
         layer: 3,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(eliteNode as any, null);
+      const result = createBattlePayload(eliteNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.rewards).toBeDefined();
@@ -661,15 +670,15 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('mixedEnemies 생성', () => {
     it('적 데이터가 mixedEnemies에 올바르게 변환되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(Array.isArray(result?.mixedEnemies)).toBe(true);
@@ -683,15 +692,15 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('totalEnemyHp 계산', () => {
     it('적 총 HP가 계산되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(typeof result?.totalEnemyHp).toBe('number');
@@ -701,30 +710,30 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('선택된 카드 초기화', () => {
     it('selectedCardIds가 빈 배열로 초기화되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.selectedCardIds).toEqual([]);
     });
 
     it('maxSelection이 설정되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(typeof result?.maxSelection).toBe('number');
@@ -733,15 +742,15 @@ describe('createBattlePayload 추가 테스트', () => {
 
   describe('discardPile 초기화', () => {
     it('버린 카드 더미가 빈 배열로 초기화되어야 함', () => {
-      const battleNode = {
+      const battleNode = createMapNode({
         id: 'battle1',
         type: 'battle',
         layer: 1,
         selectable: true,
         cleared: false,
-      };
+      });
 
-      const result = createBattlePayload(battleNode as any, null);
+      const result = createBattlePayload(battleNode, null);
 
       expect(result).not.toBeNull();
       expect(result?.playerDiscardPile).toEqual([]);
@@ -760,43 +769,43 @@ describe('travelToNode', () => {
 
   describe('invalid 입력', () => {
     it('존재하지 않는 노드 ID는 null을 반환해야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'node1', type: 'battle', selectable: true, cleared: false, connections: [] },
+            createMapNode({ id: 'node1', type: 'battle', selectable: true, cleared: false, connections: [] }),
           ],
         },
-      };
+      });
 
-      const result = travelToNode(state as any, 'nonexistent');
+      const result = travelToNode(state as TestGameState, 'nonexistent');
 
       expect(result).toBeNull();
     });
 
     it('선택 불가능한 노드는 null을 반환해야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'node1', type: 'battle', selectable: false, cleared: false, connections: [] },
+            createMapNode({ id: 'node1', type: 'battle', selectable: false, cleared: false, connections: [] }),
           ],
         },
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).toBeNull();
     });
 
     it('이미 클리어된 노드는 null을 반환해야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'node1', type: 'battle', selectable: true, cleared: true, connections: [] },
+            createMapNode({ id: 'node1', type: 'battle', selectable: true, cleared: true, connections: [] }),
           ],
         },
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).toBeNull();
     });
@@ -804,20 +813,20 @@ describe('travelToNode', () => {
 
   describe('정상 이동', () => {
     it('유효한 노드로 이동 시 결과를 반환해야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
-            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] },
-            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] }),
+            createMapNode({ id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] }),
+            createMapNode({ id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).not.toBeNull();
       expect(result?.target.id).toBe('node1');
@@ -826,21 +835,21 @@ describe('travelToNode', () => {
     });
 
     it('연결된 노드가 selectable로 변경되어야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
-            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2', 'node3'] },
-            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
-            { id: 'node3', type: 'event', layer: 2, selectable: false, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] }),
+            createMapNode({ id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2', 'node3'] }),
+            createMapNode({ id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] }),
+            createMapNode({ id: 'node3', type: 'event', layer: 2, selectable: false, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).not.toBeNull();
       const node2 = result?.map.nodes.find(n => n.id === 'node2');
@@ -850,21 +859,21 @@ describe('travelToNode', () => {
     });
 
     it('다른 노드들은 selectable이 false로 변경되어야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1', 'node2'] },
-            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] },
-            { id: 'node2', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] },
-            { id: 'node3', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1', 'node2'] }),
+            createMapNode({ id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] }),
+            createMapNode({ id: 'node2', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] }),
+            createMapNode({ id: 'node3', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).not.toBeNull();
       const node2 = result?.map.nodes.find(n => n.id === 'node2');
@@ -874,32 +883,37 @@ describe('travelToNode', () => {
 
   describe('이벤트 노드 이동', () => {
     it('event 노드로 이동 시 event 페이로드가 생성되어야 함', () => {
-      const state = {
+      // Math.random을 0.5로 고정하여 event 타입 유지 (>= 0.25면 event 유지)
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] },
-            { id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] }),
+            createMapNode({ id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 50,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'event1');
+      const result = travelToNode(state as TestGameState, 'event1');
 
       expect(result).not.toBeNull();
       expect(result?.target.type).toBe('event');
+
+      vi.restoreAllMocks();
     });
   });
 
   describe('캐릭터 빌드 상태', () => {
     it('characterBuild가 있으면 battle에 전달되어야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['battle1'] },
-            { id: 'battle1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['battle1'] }),
+            createMapNode({ id: 'battle1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] }),
           ],
         },
         characterBuild: {
@@ -912,9 +926,9 @@ describe('travelToNode', () => {
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'battle1');
+      const result = travelToNode(state as TestGameState, 'battle1');
 
       expect(result).not.toBeNull();
       expect(result?.battle).not.toBeNull();
@@ -923,19 +937,19 @@ describe('travelToNode', () => {
 
   describe('연결이 빈 배열인 노드', () => {
     it('connections가 빈 배열인 노드도 처리되어야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
-            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] }),
+            createMapNode({ id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).not.toBeNull();
       expect(result?.target.cleared).toBe(true);
@@ -944,19 +958,19 @@ describe('travelToNode', () => {
 
   describe('pendingNextEvent 처리', () => {
     it('pendingNextEvent가 있으면 usedPendingEvent가 설정되어야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] },
-            { id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] }),
+            createMapNode({ id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] }),
           ],
         },
         mapRisk: 50,
         completedEvents: [],
         pendingNextEvent: 'special_event',
-      };
+      });
 
-      const result = travelToNode(state as any, 'event1');
+      const result = travelToNode(state as TestGameState, 'event1');
 
       expect(result).not.toBeNull();
       // usedPendingEvent는 createEventPayload 함수에서 결정됨
@@ -966,20 +980,20 @@ describe('travelToNode', () => {
 
   describe('이미 클리어된 연결 노드', () => {
     it('클리어된 연결 노드는 selectable이 변경되지 않아야 함', () => {
-      const state = {
+      const state = createGameStateForTravel({
         map: {
           nodes: [
-            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
-            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] },
-            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: true, connections: [] },
+            createMapNode({ id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] }),
+            createMapNode({ id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] }),
+            createMapNode({ id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: true, connections: [] }),
           ],
         },
         mapRisk: 0,
         completedEvents: [],
         pendingNextEvent: null,
-      };
+      });
 
-      const result = travelToNode(state as any, 'node1');
+      const result = travelToNode(state as TestGameState, 'node1');
 
       expect(result).not.toBeNull();
       const node2 = result?.map.nodes.find(n => n.id === 'node2');
@@ -1015,7 +1029,7 @@ describe('createReducerEnemyState 추가 테스트', () => {
   });
 
   it('빈 units 배열은 단일 유닛으로 생성해야 함', () => {
-    const result = createReducerEnemyState({ id: 'test', units: [] as any });
+    const result = createReducerEnemyState({ id: 'test', units: [] as unknown as undefined });
 
     expect(result.units).toHaveLength(1);
   });
@@ -1025,10 +1039,10 @@ describe('createReducerEnemyState 추가 테스트', () => {
       id: 'custom',
       name: '커스텀 적',
       customField: 'value',
-    } as any);
+    } as TestEnemyData & { customField: string });
 
     expect(result.id).toBe('custom');
-    expect((result as any).customField).toBe('value');
+    expect((result as typeof result & { customField: string }).customField).toBe('value');
   });
 });
 
@@ -1042,8 +1056,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('elite 전투 타입에서도 작동해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('elite', playerCards, enemyCards);
 
@@ -1051,8 +1065,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('boss 전투 타입에서도 작동해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('boss', playerCards, enemyCards);
 
@@ -1060,8 +1074,8 @@ describe('computeBattlePlan 추가 테스트', () => {
   });
 
   it('존재하지 않는 전투 타입은 default를 사용해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+    const playerCards = [createPlayerHandCard({ id: 'card1' })];
+    const enemyCards = [createEnemyHandCard({ id: 'card2' })];
 
     const result = computeBattlePlan('unknown_type', playerCards, enemyCards);
 

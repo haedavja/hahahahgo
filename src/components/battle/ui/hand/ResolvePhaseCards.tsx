@@ -3,7 +3,7 @@
  * @description 진행 단계 카드 표시
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import type { FC, MouseEvent } from 'react';
 import { TraitBadgeList } from '../TraitBadge';
 import { CardStatsSidebar } from '../CardStatsSidebar';
@@ -11,7 +11,10 @@ import { Sword, Shield } from '../BattleIcons';
 import {
   ORDER_BADGE_STYLE,
   TARGET_BADGE_OTHER,
-  CARD_WRAPPER_BASE,
+  CARD_WRAPPER_NORMAL_FIRST,
+  CARD_WRAPPER_NORMAL,
+  CARD_WRAPPER_DIMMED_FIRST,
+  CARD_WRAPPER_DIMMED,
   CARD_HEADER_STYLE,
   CARD_HEADER_INNER,
   CARD_COLORS,
@@ -55,16 +58,32 @@ export const ResolvePhaseCards: FC<ResolvePhaseCardsProps> = memo(function Resol
   getTargetUnit,
   isSimplified,
 }) {
+  // O(n²) → O(1) 최적화: 배열 includes를 Set 조회로 변경
+  const usedSet = useMemo(() => new Set(usedCardIndices), [usedCardIndices]);
+  const disappearingSet = useMemo(() => new Set(disappearingCards), [disappearingCards]);
+  const hiddenSet = useMemo(() => new Set(hiddenCards), [hiddenCards]);
+  const disabledSet = useMemo(() => new Set(disabledCardIndices), [disabledCardIndices]);
+
+  // playerActions와 globalIndex를 사전 계산
+  const playerActionsWithIndex = useMemo(() => {
+    const result: Array<{ action: typeof queue[0]; globalIndex: number }> = [];
+    for (let i = 0; i < queue.length; i++) {
+      if (queue[i].actor === 'player') {
+        result.push({ action: queue[i], globalIndex: i });
+      }
+    }
+    return result;
+  }, [queue]);
+
   return (
     <div className="hand-cards" style={{ justifyContent: 'center' }}>
-      {queue.filter((a) => a.actor === 'player').map((a, i) => {
+      {playerActionsWithIndex.map(({ action: a, globalIndex }, i) => {
         const card = a.card;
         const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
-        const globalIndex = queue.findIndex((q) => q === a);
-        const isUsed = usedCardIndices.includes(globalIndex);
-        const isDisappearing = disappearingCards.includes(globalIndex);
-        const isHidden = hiddenCards.includes(globalIndex);
-        const isDisabled = disabledCardIndices.includes(globalIndex);
+        const isUsed = usedSet.has(globalIndex);
+        const isDisappearing = disappearingSet.has(globalIndex);
+        const isHidden = hiddenSet.has(globalIndex);
+        const isDisabled = disabledSet.has(globalIndex);
         const { costColor } = getCardColors(card.__isMainSpecial, card.__isSubSpecial);
         const targetUnit = card.__targetUnitId != null ? getTargetUnit(card.__targetUnitId) : null;
         const isDimmed = isHidden || isDisabled;
@@ -77,13 +96,11 @@ export const ResolvePhaseCards: FC<ResolvePhaseCardsProps> = memo(function Resol
               showCardTraitTooltip(card, cardEl);
             }}
             onMouseLeave={hideCardTraitTooltip}
-            style={{
-              ...CARD_WRAPPER_BASE,
-              marginLeft: i === 0 ? '0' : '8px',
-              opacity: isDimmed ? 0.4 : 1,
-              filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none',
-              transition: 'opacity 0.3s ease, filter 0.3s ease'
-            }}
+            style={
+              isDimmed
+                ? (i === 0 ? CARD_WRAPPER_DIMMED_FIRST : CARD_WRAPPER_DIMMED)
+                : (i === 0 ? CARD_WRAPPER_NORMAL_FIRST : CARD_WRAPPER_NORMAL)
+            }
           >
             <div style={ORDER_BADGE_STYLE}>
               {i + 1}

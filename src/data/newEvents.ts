@@ -291,7 +291,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "request": {
         description: "\"날 안식에 들게 해주면 금을 주겠다…..\"",
         choices: [
-          { id: "pray", label: "기도해준다", cost: { grace: 1 }, nextStage: "peace" },
+          { id: "pray", label: "기도해준다", cost: { grace: 1 }, nextStage: "peace", rewards: { memory: 80 } },
           { id: "loot", label: "유품만 챙긴다", resultDescription: "시체 곁에 있던 금화를 슬쩍 챙깁니다. 시체는 한숨을 쉽니다.", rewards: { gold: 40 } },
           { id: "destroy", label: "시체를 박살낸다", resultDescription: "우드득! 시체를 부수자 금화가 쏟아집니다. 하지만 저주받은 기운이 스며듭니다.", rewards: { gold: 80 }, penalties: { card: "curse" } }
         ]
@@ -534,7 +534,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "reflection": {
         description: "수면에 자신의 모습이 비칩니다. 무언가 다른 자신이 보입니다.",
         choices: [
-          { id: "dive", label: "뛰어든다", resultDescription: "철벅! 물속으로 뛰어듭니다. 다른 자신과 하나가 됩니다. 새로운 개성이 깨어납니다.", rewards: { trait: "random" } },
+          { id: "dive", label: "뛰어든다", resultDescription: "철벅! 물속으로 뛰어듭니다. 다른 자신과 하나가 됩니다. 새로운 개성이 깨어나며 잊힌 기억이 떠오릅니다.", rewards: { trait: "random", memory: 100 } },
           { id: "leave", label: "물러난다", resultDescription: "아직 준비가 되지 않았습니다. 조용히 물러납니다." }
         ]
       }
@@ -617,7 +617,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
         description: "영혼이 당신을 바라봅니다. 무언가를 원하는 것 같습니다.",
         choices: [
           { id: "absorb", label: "영혼을 흡수한다", resultDescription: "영혼을 향해 손을 뻗습니다...", probability: 0.5, successRewards: { grace: 2 }, failurePenalties: { card: "curse" } },
-          { id: "comfort", label: "영혼을 위로한다", resultDescription: "\"편히 가세요.\" 영혼이 미소 짓더니 감사의 빛을 남기고 사라집니다.", rewards: { insight: 1, grace: 1 } },
+          { id: "comfort", label: "영혼을 위로한다", resultDescription: "\"편히 가세요.\" 영혼이 미소 짓더니 감사의 빛과 함께 기억의 조각을 남기고 사라집니다.", rewards: { insight: 1, grace: 1, memory: 90 } },
           { id: "leave", label: "그냥 둔다", resultDescription: "영혼의 승화를 묵묵히 지켜봅니다. 영혼이 하늘로 올라갑니다." }
         ]
       }
@@ -913,7 +913,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "demand": {
         description: "제물이 될 것을 요구합니다. 거절하면 전투가 벌어질 것 같습니다.",
         choices: [
-          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통스럽지만 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
+          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통과 함께 깊은 기억이 각성되며 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare", memory: 220 } },
           { id: "fight", label: "거절하고 전투", resultDescription: "\"불경한 자!\" 광신도들이 달려듭니다!", combatTrigger: true, combatRewards: { relic: "1" } },
           { id: "flee", label: "도망친다", resultDescription: "서둘러 도망칩니다! 하지만 추격당할 위험이 높아졌습니다.", penalties: { mapRisk: 10 } }
         ]
@@ -934,7 +934,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "close": {
         description: "조각상의 눈물이 은총화처럼 빛납니다.",
         choices: [
-          { id: "pray", label: "닦아주고 기도한다", resultDescription: "눈물을 닦아주자 조각상에서 따뜻한 빛이 뿜어져 나옵니다. 은총을 받았습니다.", rewards: { grace: 2 } },
+          { id: "pray", label: "닦아주고 기도한다", resultDescription: "눈물을 닦아주자 조각상에서 따뜻한 빛이 뿜어져 나옵니다. 은총과 함께 슬픈 기억이 전해집니다.", rewards: { grace: 2, memory: 75 } },
           { id: "take", label: "가져간다", resultDescription: "조각상을 뜯어냅니다. 갑자기 주변이 차가워집니다...", rewards: { loot: 1 }, penalties: { insight: 1 } }
         ]
       }
@@ -1000,6 +1000,184 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
         ]
       }
     }
+  },
+
+  // ==================== 고위험/고보상 이벤트 ====================
+  // Dead Cells/Slay the Spire 참고: 큰 리스크와 큰 보상
+
+  "cursed-altar": {
+    id: "cursed-altar",
+    title: "저주받은 제단",
+    description: "🩸 검붉은 피가 흐르는 제단입니다. 강력한 힘이 느껴지지만, 대가가 클 것 같습니다.",
+    difficulty: 'hard',
+    minFloor: 4,
+    choices: [
+      { id: "approach", label: "⚠️ 다가간다", nextStage: "offer" },
+      { id: "leave", label: "떠난다", resultDescription: "위험한 곳에서 물러납니다. 현명한 선택입니다." }
+    ],
+    stages: {
+      "offer": {
+        description: "제단이 속삭입니다. \"피를 바쳐라... 힘을 주리라...\"",
+        choices: [
+          { id: "blood-pact", label: "⚠️ 최대 HP 25% 희생", resultDescription: "피가 제단에 스며들고, 엄청난 힘이 몸에 깃듭니다!", penalties: { maxHpPercent: 25 }, rewards: { relic: "bloodPactSeal" } },
+          { id: "card-sacrifice", label: "⚠️ 덱에서 카드 3장 소멸", resultDescription: "카드들이 불타오르며 제단에 흡수됩니다. 대가로 강력한 상징을 얻습니다.", penalties: { removeCards: 3 }, rewards: { relic: "soulForge" } },
+          { id: "all-in", label: "⚠️ HP 50% + 카드 2장 희생", resultDescription: "모든 것을 바쳤습니다. 제단이 두 개의 상징을 내놓습니다!", penalties: { maxHpPercent: 50, removeCards: 2 }, rewards: { relic: "bloodPactSeal", relic2: "soulForge" } },
+          { id: "flee", label: "도망친다", resultDescription: "제단의 유혹을 뿌리치고 도망칩니다." }
+        ]
+      }
+    }
+  },
+
+  "demon-gambler": {
+    id: "demon-gambler",
+    title: "악마의 도박사",
+    description: "🎰 붉은 눈의 도박사가 나타납니다. \"모 아니면 도... 한 판 어때?\"",
+    difficulty: 'hard',
+    minFloor: 5,
+    choices: [
+      { id: "listen", label: "조건을 듣는다", nextStage: "deal" },
+      { id: "refuse", label: "거절한다", resultDescription: "\"겁쟁이...\" 도박사가 연기처럼 사라집니다." }
+    ],
+    stages: {
+      "deal": {
+        description: "\"간단해. 동전을 던져서 앞면이 나오면 네 덱의 모든 카드를 승급시켜주지. 뒷면이면... 절반을 가져가마.\"",
+        choices: [
+          { id: "accept", label: "⚠️ 도박한다 (50% 확률)", resultDescription: "동전이 공중에서 빙글빙글 돕니다...", probability: 0.5, successRewards: { upgradeAllCards: true }, failurePenalties: { removeHalfDeck: true } },
+          { id: "counter", label: "역제안한다", statRequirement: { insight: 3 }, nextStage: "counter-deal" },
+          { id: "decline", label: "관뒀어", resultDescription: "\"현명하군... 아니면 어리석거나.\" 도박사가 사라집니다." }
+        ]
+      },
+      "counter-deal": {
+        description: "\"호오? 배짱이 있군. 좋아, 그럼 이건 어때? 네 HP 30%를 걸면 확률을 70%로 올려주지.\"",
+        choices: [
+          { id: "accept-counter", label: "⚠️ 수락 (70% 성공)", resultDescription: "피를 걸고 도박합니다...", cost: { hpPercent: 30 }, probability: 0.7, successRewards: { upgradeAllCards: true }, failurePenalties: { removeHalfDeck: true } },
+          { id: "decline", label: "역시 관둔다", resultDescription: "위험은 피하는 게 상책입니다." }
+        ]
+      }
+    }
+  },
+
+  "forbidden-library": {
+    id: "forbidden-library",
+    title: "금서고",
+    description: "📚 봉인된 도서관입니다. 금지된 지식이 잠들어 있습니다.",
+    difficulty: 'hard',
+    minFloor: 6,
+    choices: [
+      { id: "enter", label: "들어간다", nextStage: "books" },
+      { id: "leave", label: "지나친다", resultDescription: "봉인된 지식은 그대로 두는 게 좋습니다." }
+    ],
+    stages: {
+      "books": {
+        description: "세 권의 책이 빛나고 있습니다. 각각 다른 금지된 지식이 담겨 있습니다.",
+        choices: [
+          { id: "book-power", label: "⚠️ 힘의 서 (HP 40% 소모)", resultDescription: "페이지를 넘기자 엄청난 힘이 몸에 깃듭니다. 하지만 대가로 생명력이 깎여나갑니다.", penalties: { hpPercent: 40 }, rewards: { strength: 5, relic: "forbiddenPower" } },
+          { id: "book-wisdom", label: "⚠️ 지혜의 서 (카드 4장 소멸)", resultDescription: "책을 읽으면 읽을수록 기억이 희미해집니다. 하지만 대신 깊은 통찰을 얻습니다.", penalties: { removeCards: 4 }, rewards: { insight: 5, relic: "forbiddenWisdom" } },
+          { id: "book-death", label: "⚠️ 죽음의 서 (HP 1로 고정)", resultDescription: "책을 펼치자 죽음의 기운이 밀려옵니다. 죽음 직전까지 몰리지만, 그 대가로...", penalties: { setHp: 1 }, rewards: { relic: "deathsEmbrace", relic2: "forbiddenPower" } },
+          { id: "leave", label: "책을 덮는다", resultDescription: "금지된 지식은 건드리지 않는 게 좋겠습니다." }
+        ]
+      }
+    }
+  },
+
+  "soul-merchant": {
+    id: "soul-merchant",
+    title: "영혼 상인",
+    description: "👤 그림자 속에서 목소리가 들립니다. \"영혼 조각... 비싸게 사들이지...\"",
+    difficulty: 'hard',
+    minFloor: 5,
+    choices: [
+      { id: "listen", label: "이야기를 듣는다", nextStage: "offer" },
+      { id: "attack", label: "공격한다", combatTrigger: true, combatId: "shadow-merchant", combatRewards: { gold: 100 } },
+      { id: "flee", label: "도망친다", resultDescription: "불길한 기운을 피해 달아납니다." }
+    ],
+    stages: {
+      "offer": {
+        description: "\"최대 HP를 팔아라... 영원히... 대신 원하는 것을 주지...\"",
+        choices: [
+          { id: "sell-10", label: "⚠️ 최대 HP 10 판매", resultDescription: "영혼 조각이 빠져나갑니다. 상인이 대가를 지불합니다.", penalties: { maxHp: 10 }, rewards: { gold: 150, relic: "random" } },
+          { id: "sell-25", label: "⚠️ 최대 HP 25 판매", resultDescription: "상당한 영혼을 팔았습니다. 상인이 만족스러워합니다.", penalties: { maxHp: 25 }, rewards: { gold: 300, relic: "soulFragment" } },
+          { id: "sell-50", label: "⚠️ 최대 HP 50 판매 (위험!)", resultDescription: "절반의 영혼을 팔았습니다. 상인이 환호합니다. \"훌륭한 거래야!\"", penalties: { maxHp: 50 }, rewards: { gold: 500, relic: "soulFragment", relic2: "voidHeart" } },
+          { id: "decline", label: "거절한다", resultDescription: "\"아쉽군... 다음에 또 보자...\" 상인이 그림자 속으로 사라집니다." }
+        ]
+      }
+    }
+  },
+
+  "time-paradox": {
+    id: "time-paradox",
+    title: "시간의 균열",
+    description: "⏳ 시공간이 뒤틀린 곳입니다. 과거의 자신과 마주칩니다.",
+    difficulty: 'hard',
+    minFloor: 7,
+    choices: [
+      { id: "approach", label: "다가간다", nextStage: "past-self" },
+      { id: "avoid", label: "피한다", resultDescription: "시간의 장난에 휘말리지 않는 게 좋겠습니다." }
+    ],
+    stages: {
+      "past-self": {
+        description: "과거의 자신이 말합니다. \"여기서 뭘 선택하느냐에 따라 네 운명이 바뀔 거야.\"",
+        choices: [
+          { id: "merge", label: "⚠️ 과거와 합체 (덱 초기화)", resultDescription: "과거와 하나가 됩니다. 모든 것이 처음으로 돌아가지만, 강력한 힘을 얻습니다.", penalties: { resetDeck: true }, rewards: { relic: "timeloop", fullHeal: true, insight: 3 } },
+          { id: "fight", label: "⚠️ 과거를 처치 (50% HP 손실)", resultDescription: "과거의 자신과 싸웁니다. 승리하지만 큰 상처를 입습니다.", penalties: { hpPercent: 50 }, rewards: { upgradeAllCards: true, relic: "paradoxShard" } },
+          { id: "trade", label: "거래한다", statRequirement: { insight: 3 }, nextStage: "time-trade" },
+          { id: "leave", label: "떠난다", resultDescription: "과거는 과거일 뿐. 앞으로 나아갑니다." }
+        ]
+      },
+      "time-trade": {
+        description: "\"통찰력이 있군. 좋아, 카드 2장과 상징 하나를 교환하자.\"",
+        choices: [
+          { id: "accept", label: "교환한다", resultDescription: "과거의 자신과 카드를 교환합니다. 새로운 가능성이 열립니다.", penalties: { removeCards: 2 }, rewards: { relic: "paradoxShard", card: "rare", card2: "rare" } },
+          { id: "decline", label: "됐어", resultDescription: "과거의 자신이 고개를 끄덕이며 사라집니다." }
+        ]
+      }
+    }
+  },
+
+  "abyss-gate": {
+    id: "abyss-gate",
+    title: "심연의 문",
+    description: "🌀 거대한 검은 문이 있습니다. 문 너머에서 강력한 힘이 느껴집니다.",
+    difficulty: 'hard',
+    minFloor: 8,
+    choices: [
+      { id: "open", label: "⚠️ 문을 연다", nextStage: "abyss" },
+      { id: "leave", label: "돌아간다", resultDescription: "심연은 건드리지 않는 게 좋겠습니다." }
+    ],
+    stages: {
+      "abyss": {
+        description: "문 너머는 끝없는 어둠입니다. 심연이 속삭입니다. \"들어와... 모든 것을 줄게...\"",
+        choices: [
+          { id: "dive", label: "⚠️ 뛰어든다 (HP 70% 손실)", resultDescription: "심연에 뛰어듭니다! 죽음 직전까지 몰리지만, 심연의 축복을 받습니다.", penalties: { hpPercent: 70 }, rewards: { relic: "abyssalCore", relic2: "voidHeart", strength: 3 } },
+          { id: "reach", label: "⚠️ 손만 넣는다 (HP 30% 손실)", resultDescription: "조심스럽게 손을 넣습니다. 무언가가 손에 쥐어집니다.", penalties: { hpPercent: 30 }, rewards: { relic: "abyssalCore" } },
+          { id: "sacrifice-card", label: "⚠️ 카드 5장을 바친다", resultDescription: "카드들이 심연에 빨려들어갑니다. 대신 심연의 힘을 얻습니다.", penalties: { removeCards: 5 }, rewards: { relic: "abyssalCore", relic2: "forbiddenWisdom" } },
+          { id: "close", label: "문을 닫는다", resultDescription: "아직 준비가 안 됐습니다. 문을 닫고 돌아섭니다." }
+        ]
+      }
+    }
+  },
+
+  "phoenix-trial": {
+    id: "phoenix-trial",
+    title: "불사조의 시련",
+    description: "🔥 불꽃에 휩싸인 제단입니다. \"죽음을 겪어야 부활할 수 있다...\"",
+    difficulty: 'hard',
+    minFloor: 9,
+    choices: [
+      { id: "accept", label: "⚠️ 시련을 받아들인다", nextStage: "trial" },
+      { id: "refuse", label: "거절한다", resultDescription: "불사조의 시련은 언제든 돌아올 수 있습니다." }
+    ],
+    stages: {
+      "trial": {
+        description: "불꽃이 당신을 감쌉니다. 선택하세요: 무엇을 불태울 것인가?",
+        choices: [
+          { id: "burn-body", label: "⚠️ 육체를 불태운다 (HP 1)", resultDescription: "불꽃이 육체를 태웁니다. 죽음 직전에서... 부활합니다!", penalties: { setHp: 1 }, rewards: { relic: "phoenixFeather", maxHp: 30 } },
+          { id: "burn-deck", label: "⚠️ 덱을 불태운다 (절반 소멸)", resultDescription: "카드들이 재가 됩니다. 하지만 재 속에서 새로운 카드가 탄생합니다.", penalties: { removeHalfDeck: true }, rewards: { relic: "phoenixFeather", card: "legendary", card2: "legendary" } },
+          { id: "burn-all", label: "⚠️ 모든 것을 불태운다", resultDescription: "완전한 소멸... 그리고 완전한 부활.", penalties: { setHp: 1, removeHalfDeck: true }, rewards: { relic: "phoenixFeather", relic2: "phoenixAsh", maxHp: 50, upgradeAllCards: true } },
+          { id: "extinguish", label: "불을 끈다", resultDescription: "시련을 거부합니다. 불꽃이 꺼집니다." }
+        ]
+      }
+    }
   }
 };
 
@@ -1007,6 +1185,33 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
 export const EVENT_KEYS = Object.keys(NEW_EVENT_LIBRARY).filter(
   key => NEW_EVENT_LIBRARY[key].isInitial !== false
 );
+
+/**
+ * 이벤트가 스탯 요구 선택지를 가지고 있는지 확인
+ * (후반 노드에서만 등장해야 하는 이벤트)
+ */
+export function hasStatRequirement(eventKey: string): boolean {
+  const event = NEW_EVENT_LIBRARY[eventKey];
+  if (!event) return false;
+
+  // 최상위 choices 확인
+  if (event.choices?.some(c => c.statRequirement)) return true;
+
+  // stages 내 choices 확인
+  if (event.stages) {
+    for (const stage of Object.values(event.stages)) {
+      if (stage.choices?.some(c => c.statRequirement)) return true;
+    }
+  }
+
+  return false;
+}
+
+// 스탯 요구 이벤트 최소 레이어 (후반부)
+export const STAT_EVENT_MIN_LAYER = 5;
+
+// 스탯 요구 이벤트 키 목록 (캐시)
+export const STAT_REQUIRING_EVENTS = EVENT_KEYS.filter(hasStatRequirement);
 
 // 특수 상징 정보
 export const SPECIAL_RELICS = {

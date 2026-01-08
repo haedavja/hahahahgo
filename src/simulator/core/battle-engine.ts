@@ -28,6 +28,9 @@ import {
   BASE_CRIT_CHANCE,
   CRIT_MULTIPLIER,
 } from '../../lib/battleCalculations';
+import * as DamageCore from '../../core/combat/damage-core';
+import * as EffectCore from '../../core/combat/effect-core';
+import { UNIFIED_CORE_FLAGS } from '../../core/combat/types';
 
 // ==================== 상수 (설정 가능) ====================
 
@@ -221,6 +224,10 @@ export interface DamageContext {
   card: CardDefinition;
   comboMultiplier?: number;
   isCritical?: boolean;
+  /** 교차 특성 배율 */
+  crossMultiplier?: number;
+  /** 방어 무시 */
+  ignoreBlock?: boolean;
 }
 
 export function calculateDamage(ctx: DamageContext): {
@@ -229,7 +236,47 @@ export function calculateDamage(ctx: DamageContext): {
   blocked: number;
   isCritical: boolean;
   lifesteal: number;
+  isDodged: boolean;
 } {
+  // 코어 사용 시 damage-core 함수 활용
+  if (UNIFIED_CORE_FLAGS.useDamageCore) {
+    const strengthBonus = getTokenStacks(ctx.attacker.tokens, 'strength');
+    const comboMult = ctx.comboMultiplier || 1;
+    const crossMult = ctx.crossMultiplier || 1;
+
+    const result = DamageCore.calculateDamage({
+      baseDamage: ctx.baseDamage,
+      attackerTokens: ctx.attacker.tokens,
+      defenderTokens: ctx.defender.tokens,
+      defenderBlock: ctx.defender.block,
+      defenderHp: ctx.defender.hp,
+      defenderMaxHp: ctx.defender.maxHp,
+      damageBonus: strengthBonus,
+      damageMultiplier: comboMult * crossMult,
+      guaranteedCrit: ctx.isCritical,
+      ignoreBlock: ctx.ignoreBlock,
+    });
+
+    // 흡수 계산
+    let lifesteal = 0;
+    if (hasToken(ctx.attacker.tokens, 'absorb')) {
+      lifesteal = Math.floor(result.finalDamage * 0.5);
+    }
+    if (ctx.card.effects?.lifesteal) {
+      lifesteal += Math.floor(result.finalDamage * ctx.card.effects.lifesteal);
+    }
+
+    return {
+      finalDamage: result.finalDamage + result.blockedDamage,
+      actualDamage: result.finalDamage,
+      blocked: result.blockedDamage,
+      isCritical: result.isCritical,
+      lifesteal,
+      isDodged: result.isDodged,
+    };
+  }
+
+  // 레거시 로직 (useDamageCore = false 시)
   let damage = ctx.baseDamage;
 
   // 힘 보너스
@@ -255,6 +302,11 @@ export function calculateDamage(ctx: DamageContext): {
     damage = Math.floor(damage * ctx.comboMultiplier);
   }
 
+  // 교차 배율
+  if (ctx.crossMultiplier && ctx.crossMultiplier > 1) {
+    damage = Math.floor(damage * ctx.crossMultiplier);
+  }
+
   // 치명타 계산
   let isCritical = ctx.isCritical || false;
   if (!isCritical) {
@@ -269,8 +321,12 @@ export function calculateDamage(ctx: DamageContext): {
   const finalDamage = damage;
 
   // 방어력 적용
-  const blocked = Math.min(ctx.defender.block, damage);
-  const actualDamage = Math.max(0, damage - ctx.defender.block);
+  let blocked = 0;
+  let actualDamage = damage;
+  if (!ctx.ignoreBlock && ctx.defender.block > 0) {
+    blocked = Math.min(ctx.defender.block, damage);
+    actualDamage = Math.max(0, damage - ctx.defender.block);
+  }
 
   // 흡수 (피해의 50% 회복)
   let lifesteal = 0;
@@ -281,23 +337,90 @@ export function calculateDamage(ctx: DamageContext): {
     lifesteal += Math.floor(actualDamage * ctx.card.effects.lifesteal);
   }
 
-  return { finalDamage, actualDamage, blocked, isCritical, lifesteal };
+  return { finalDamage, actualDamage, blocked, isCritical, lifesteal, isDodged: false };
 }
 
 // ==================== 방어력 계산 ====================
 
+export interface BlockContext {
+  baseBlock: number;
+  defender: SimPlayerState | SimEnemyState;
+  card?: CardDefinition;
+  /** 교차 특성 배율 */
+  crossMultiplier?: number;
+  /** 타임라인 위치 (성장방어용) */
+  timelinePosition?: number;
+  /** 최대 체력 방어 (홀로그램) */
+  useMaxHpAsBlock?: boolean;
+}
+
 export function calculateBlock(
-  baseBlock: number,
-  defender: SimPlayerState | SimEnemyState
+  baseBlockOrContext: number | BlockContext,
+  defender?: SimPlayerState | SimEnemyState
 ): number {
+  // 호환성: 기존 호출 방식 지원
+  let baseBlock: number;
+  let defenderEntity: SimPlayerState | SimEnemyState;
+  let crossMult = 1;
+  let timelinePos = 0;
+  let useMaxHp = false;
+  let card: CardDefinition | undefined;
+
+  if (typeof baseBlockOrContext === 'number') {
+    baseBlock = baseBlockOrContext;
+    defenderEntity = defender!;
+  } else {
+    baseBlock = baseBlockOrContext.baseBlock;
+    defenderEntity = baseBlockOrContext.defender;
+    crossMult = baseBlockOrContext.crossMultiplier || 1;
+    timelinePos = baseBlockOrContext.timelinePosition || 0;
+    useMaxHp = baseBlockOrContext.useMaxHpAsBlock || false;
+    card = baseBlockOrContext.card;
+  }
+
+  // 홀로그램: 최대 체력을 방어력으로
+  if (useMaxHp || (card?.traits?.includes('hologram'))) {
+    baseBlock = defenderEntity.maxHp;
+  }
+
+  // 코어 사용 시
+  if (UNIFIED_CORE_FLAGS.useDamageCore) {
+    const coreBlock = DamageCore.calculateBlock(
+      baseBlock,
+      defenderEntity.tokens,
+      getTokenStacks(defenderEntity.tokens, 'dexterity')
+    );
+
+    // 교차 배율 적용
+    let finalBlock = Math.floor(coreBlock * crossMult);
+
+    // 성장방어: 타임라인 위치에 따른 보너스
+    if (card?.traits?.includes('growingDefense') && timelinePos > 0) {
+      const growthBonus = Math.floor(timelinePos / 5) * 2; // 타임라인 5칸당 +2 방어력
+      finalBlock += growthBonus;
+    }
+
+    return finalBlock;
+  }
+
+  // 레거시 로직
   let block = baseBlock;
 
   // 민첩 보너스
-  block += getTokenStacks(defender.tokens, 'dexterity');
+  block += getTokenStacks(defenderEntity.tokens, 'dexterity');
 
   // 방어 토큰 (50% 추가)
-  if (hasToken(defender.tokens, 'defensive')) {
+  if (hasToken(defenderEntity.tokens, 'defensive')) {
     block = Math.floor(block * 1.5);
+  }
+
+  // 교차 배율 적용
+  block = Math.floor(block * crossMult);
+
+  // 성장방어: 타임라인 위치에 따른 보너스
+  if (card?.traits?.includes('growingDefense') && timelinePos > 0) {
+    const growthBonus = Math.floor(timelinePos / 5) * 2;
+    block += growthBonus;
   }
 
   return block;
@@ -320,6 +443,7 @@ export class BattleEngine {
   private relicSystem: RelicSystemV2;
   private anomalySystem: AnomalySystem;
   private log = getLogger('BattleEngine');
+  private currentBattleTokenStats: Record<string, number> = {};
 
   constructor(
     cardData: Record<string, CardDefinition>,
@@ -341,10 +465,21 @@ export class BattleEngine {
     this.anomalySystem = getAnomalySystem();
   }
 
+  /** 토큰 적용 및 통계 추적 헬퍼 */
+  private addTokenTracked(
+    entity: SimPlayerState | SimEnemyState,
+    tokenId: string,
+    stacks: number = 1
+  ): void {
+    entity.tokens = addToken(entity.tokens, tokenId, stacks);
+    this.currentBattleTokenStats[tokenId] = (this.currentBattleTokenStats[tokenId] || 0) + stacks;
+  }
+
   // ==================== 메인 전투 ====================
 
   runBattle(player: SimPlayerState, enemy: SimEnemyState, maxTurns: number = 30, anomalyId?: string): BattleResult {
     this.replayLog = [];
+    this.currentBattleTokenStats = {}; // 토큰 추적 초기화
     const battleLog: string[] = [];
     const cardUsage: Record<string, number> = {};
     const comboStats: Record<string, number> = {};
@@ -363,10 +498,10 @@ export class BattleEngine {
         this.log.debug('Relic passive energy bonus', { bonus: passiveEffects.maxEnergy });
       }
       if (passiveEffects.strength > 0) {
-        player.tokens = addToken(player.tokens, 'strength', passiveEffects.strength);
+        this.addTokenTracked(player, 'strength', passiveEffects.strength);
       }
       if (passiveEffects.agility > 0) {
-        player.tokens = addToken(player.tokens, 'dexterity', passiveEffects.agility);
+        this.addTokenTracked(player, 'dexterity', passiveEffects.agility);
       }
       if (passiveEffects.maxHp > 0) {
         player.maxHp += passiveEffects.maxHp;
@@ -554,9 +689,14 @@ export class BattleEngine {
       enemyDamageDealt,
       playerFinalHp: Math.max(0, player.hp),
       enemyFinalHp: Math.max(0, enemy.hp),
+      etherGained: 0,
+      goldChange: 0,
       battleLog,
+      events: this.replayLog,
       cardUsage,
       comboStats,
+      tokenStats: { ...this.currentBattleTokenStats }, // 전투 중 적용된 모든 토큰
+      timeline: [],
     };
   }
 
@@ -625,15 +765,37 @@ export class BattleEngine {
           baseDamage = this.anomalySystem.modifyDamage(baseDamage, isPlayer ? 'player' : 'enemy', gameState);
         }
 
+        // 교차 특성 처리 (cross trait에서 배율 별도 추출)
+        const hasCrossTrait = card.traits?.includes('cross');
+        let crossMultiplier = 1;
+        if (hasCrossTrait && i === 0) {
+          const oppositeTypes = ['attack', 'defense', 'skill'].filter(t => t !== card.type);
+          const crossActive = oppositeTypes.some(t => hasToken(attacker.tokens, `cross_${t}`));
+          if (crossActive) {
+            crossMultiplier = BATTLE_CONSTANTS.CROSS_MULTIPLIER;
+          }
+        }
+
+        // 방어 무시 (pierce trait 등)
+        const hasPierceTrait = card.traits?.includes('pierce') || card.traits?.includes('ignoreBlock');
+
         const result = calculateDamage({
           baseDamage,
           attacker,
           defender,
           card,
           comboMultiplier: i === 0 ? totalMultiplier : 1,  // 첫 타격에만 콤보/특성 적용
+          crossMultiplier,
+          ignoreBlock: hasPierceTrait,
         });
 
-        defender.block = Math.max(0, defender.block - result.finalDamage);
+        // 회피 처리
+        if (result.isDodged) {
+          log.push(`${prefix}: ${card.name} → 빗나감! (회피)`);
+          continue;
+        }
+
+        defender.block = Math.max(0, defender.block - result.blocked);
         defender.hp -= result.actualDamage;
         damageDealt += result.actualDamage;
 
@@ -656,11 +818,28 @@ export class BattleEngine {
         log.push(`${prefix}: ${card.name}${hits > 1 ? ` (${i + 1}/${hits})` : ''}${multiplierText} → ${result.actualDamage} 피해${critText}`);
 
         // 반격 처리 (defender가 counter 토큰 보유 시)
-        if (hasToken(defender.tokens, 'counter') && result.actualDamage > 0) {
-          const counterDamage = getTokenStacks(defender.tokens, 'counter') * 2;
-          attacker.hp -= counterDamage;
-          defender.tokens = removeToken(defender.tokens, 'counter', 1);
-          log.push(`  ⚔️ 반격! ${counterDamage} 피해`);
+        if (result.actualDamage > 0) {
+          if (UNIFIED_CORE_FLAGS.useEffectCore) {
+            // 효과 코어 사용
+            const counterResult = EffectCore.processCounterEffect(defender.tokens);
+            if (counterResult.triggered) {
+              attacker.hp -= counterResult.damage;
+              defender.tokens = counterResult.newTokens;
+              log.push(`  ⚔️ 반격! ${counterResult.damage} 피해`);
+            }
+            // 가시 효과 (공격받을 때 반사 피해)
+            const thornResult = EffectCore.processThornEffect(defender.tokens);
+            if (thornResult.damage > 0) {
+              attacker.hp -= thornResult.damage;
+              log.push(`  🌵 가시 반사! ${thornResult.damage} 피해`);
+            }
+          } else if (hasToken(defender.tokens, 'counter')) {
+            // 레거시 로직
+            const counterDamage = getTokenStacks(defender.tokens, 'counter') * 2;
+            attacker.hp -= counterDamage;
+            defender.tokens = removeToken(defender.tokens, 'counter', 1);
+            log.push(`  ⚔️ 반격! ${counterDamage} 피해`);
+          }
         }
 
         // 처형 체크 (카드 효과)
@@ -684,7 +863,34 @@ export class BattleEngine {
 
     // 방어
     if (card.block) {
-      let block = calculateBlock(card.block, attacker);
+      // 교차 특성 처리 (방어 카드용)
+      const hasDefenseCross = card.traits?.includes('cross');
+      let defenseBlockCrossMult = 1;
+      if (hasDefenseCross) {
+        const oppositeTypes = ['attack', 'defense', 'skill'].filter(t => t !== card.type);
+        const crossActive = oppositeTypes.some(t => hasToken(attacker.tokens, `cross_${t}`));
+        if (crossActive) {
+          defenseBlockCrossMult = BATTLE_CONSTANTS.CROSS_MULTIPLIER;
+        }
+        // 현재 타입 토큰 설정
+        for (const t of ['attack', 'defense', 'skill']) {
+          attacker.tokens = removeToken(attacker.tokens, `cross_${t}`, 1);
+        }
+        this.addTokenTracked(attacker, `cross_${card.type}`, 1);
+      }
+
+      // 홀로그램/성장방어 지원
+      const hasHologram = card.traits?.includes('hologram');
+      const hasGrowingDefense = card.traits?.includes('growingDefense');
+
+      let block = calculateBlock({
+        baseBlock: card.block,
+        defender: attacker,
+        card,
+        crossMultiplier: defenseBlockCrossMult,
+        timelinePosition: 0, // 시뮬레이터에서는 단순화된 턴 기반 사용
+        useMaxHpAsBlock: hasHologram,
+      });
 
       // 이변으로 블록 수정
       if (this.options.enableAnomalies) {
@@ -696,8 +902,11 @@ export class BattleEngine {
         block = this.anomalySystem.modifyBlock(block, gameState);
       }
 
+      const crossText = defenseBlockCrossMult > 1 ? ' (교차!)' : '';
+      const holoText = hasHologram ? ' (홀로그램)' : '';
+      const growText = hasGrowingDefense ? ' (성장)' : '';
       attacker.block += block;
-      log.push(`${prefix}: ${card.name} → ${block} 방어`);
+      log.push(`${prefix}: ${card.name} → ${block} 방어${crossText}${holoText}${growText}`);
 
       // 카드 사용 시 상징 트리거 (V2 - 블록 생성 카드도 포함)
       if (isPlayer && this.options.enableRelics) {
@@ -735,23 +944,23 @@ export class BattleEngine {
     log: string[]
   ): void {
     if (effects.applyVulnerable) {
-      defender.tokens = addToken(defender.tokens, 'vulnerable', effects.applyVulnerable);
+      this.addTokenTracked(defender, 'vulnerable', effects.applyVulnerable);
       log.push(`  → 취약 ${effects.applyVulnerable} 부여`);
     }
     if (effects.applyWeak) {
-      defender.tokens = addToken(defender.tokens, 'weak', effects.applyWeak);
+      this.addTokenTracked(defender, 'weak', effects.applyWeak);
       log.push(`  → 무딤 ${effects.applyWeak} 부여`);
     }
     if (effects.applyBurn) {
-      defender.tokens = addToken(defender.tokens, 'burn', effects.applyBurn);
+      this.addTokenTracked(defender, 'burn', effects.applyBurn);
       log.push(`  → 화상 ${effects.applyBurn} 부여`);
     }
     if (effects.applyPoison) {
-      defender.tokens = addToken(defender.tokens, 'poison', effects.applyPoison);
+      this.addTokenTracked(defender, 'poison', effects.applyPoison);
       log.push(`  → 독 ${effects.applyPoison} 부여`);
     }
     if (effects.addStrength) {
-      attacker.tokens = addToken(attacker.tokens, 'strength', effects.addStrength);
+      this.addTokenTracked(attacker, 'strength', effects.addStrength);
       log.push(`  → 힘 +${effects.addStrength}`);
     }
     if (effects.heal) {
@@ -759,7 +968,7 @@ export class BattleEngine {
       log.push(`  → 회복 ${effects.heal}`);
     }
     if (effects.stun) {
-      defender.tokens = addToken(defender.tokens, 'stun', 1);
+      this.addTokenTracked(defender, 'stun', 1);
       log.push(`  → 기절!`);
     }
   }
@@ -814,7 +1023,7 @@ export class BattleEngine {
           for (const t of ['attack', 'defense', 'skill']) {
             attacker.tokens = removeToken(attacker.tokens, `cross_${t}`, 1);
           }
-          attacker.tokens = addToken(attacker.tokens, crossToken, 1);
+          this.addTokenTracked(attacker, crossToken, 1);
           break;
 
         case 'execute':
@@ -844,25 +1053,25 @@ export class BattleEngine {
       switch (trait) {
         case 'chain':
           // 연계: 다음 카드 피해 증가 (공세 토큰)
-          attacker.tokens = addToken(attacker.tokens, 'offensive', 1);
+          this.addTokenTracked(attacker, 'offensive', 1);
           log.push(`  → 연계: 다음 공격 강화`);
           break;
 
         case 'followup':
           // 후속: 다음 카드가 finisher면 피해 2배
-          attacker.tokens = addToken(attacker.tokens, 'followup_ready', 1);
+          this.addTokenTracked(attacker, 'followup_ready', 1);
           log.push(`  → 후속 준비`);
           break;
 
         case 'counter':
           // 반격: 다음 피해를 받으면 반격
-          attacker.tokens = addToken(attacker.tokens, 'counter', 2);
+          this.addTokenTracked(attacker, 'counter', 2);
           log.push(`  → 반격 준비`);
           break;
 
         case 'training':
           // 단련: 영구 힘 +1
-          attacker.tokens = addToken(attacker.tokens, 'strength', 1);
+          this.addTokenTracked(attacker, 'strength', 1);
           log.push(`  → 단련: 힘 +1`);
           break;
 
@@ -876,7 +1085,7 @@ export class BattleEngine {
 
         case 'thorns':
           // 가시: 반사 피해 준비
-          attacker.tokens = addToken(attacker.tokens, 'counter', 1);
+          this.addTokenTracked(attacker, 'counter', 1);
           break;
 
         case 'echo':
@@ -890,29 +1099,29 @@ export class BattleEngine {
 
         case 'leech':
           // 흡혈: 가한 피해의 일부 회복
-          attacker.tokens = addToken(attacker.tokens, 'absorb', 1);
+          this.addTokenTracked(attacker, 'absorb', 1);
           break;
 
         case 'pierce':
           // 관통: 다음 공격 방어력 무시 (취약 부여로 구현)
-          defender.tokens = addToken(defender.tokens, 'vulnerable', 1);
+          this.addTokenTracked(defender, 'vulnerable', 1);
           log.push(`  → 관통: 취약 부여`);
           break;
 
         case 'momentum':
           // 기세: 콤보 중 피해 증가
-          attacker.tokens = addToken(attacker.tokens, 'offensive', 1);
+          this.addTokenTracked(attacker, 'offensive', 1);
           break;
 
         case 'protect':
           // 보호: 다음 피해 감소
-          attacker.tokens = addToken(attacker.tokens, 'defensive', 2);
+          this.addTokenTracked(attacker, 'defensive', 2);
           log.push(`  → 보호: 방어 강화`);
           break;
 
         case 'focus':
           // 집중: 치명타 확률 증가
-          attacker.tokens = addToken(attacker.tokens, 'crit_boost', 2);
+          this.addTokenTracked(attacker, 'crit_boost', 2);
           log.push(`  → 집중: 치명타 집중`);
           break;
       }
@@ -922,6 +1131,28 @@ export class BattleEngine {
   // ==================== DOT 데미지 ====================
 
   private applyDotDamage(entity: SimPlayerState | SimEnemyState, log: string[]): void {
+    // 효과 코어 사용 시
+    if (UNIFIED_CORE_FLAGS.useEffectCore) {
+      // 턴 종료 패시브 (독 처리)
+      const turnEndResult = EffectCore.processTurnEndPassives(entity.tokens);
+      if (turnEndResult.hpChange !== 0) {
+        entity.hp += turnEndResult.hpChange;
+        entity.tokens = turnEndResult.newTokens;
+        log.push(...turnEndResult.logs.map(l => `☠️ ${l}`));
+      }
+
+      // 화상은 턴 시작에 처리되지만 여기서도 확인 (호환성)
+      const burn = getTokenStacks(entity.tokens, 'burn');
+      if (burn > 0) {
+        const burnDamage = burn * 3; // effect-core의 화상 피해량
+        entity.hp -= burnDamage;
+        log.push(`🔥 화상으로 ${burnDamage} 피해`);
+        entity.tokens = removeToken(entity.tokens, 'burn', 1);
+      }
+      return;
+    }
+
+    // 레거시 로직
     const burn = getTokenStacks(entity.tokens, 'burn');
     if (burn > 0) {
       entity.hp -= burn;
@@ -1116,25 +1347,25 @@ export class BattleEngine {
 
       // 힘 증가
       if (effects.strength && effects.strength > 0) {
-        player.tokens = addToken(player.tokens, 'strength', effects.strength);
+        this.addTokenTracked(player, 'strength', effects.strength);
         log.push(`  💪 ${relicName}: 힘 +${effects.strength}`);
       }
 
       // 민첩 증가
       if (effects.agility && effects.agility > 0) {
-        player.tokens = addToken(player.tokens, 'dexterity', effects.agility);
+        this.addTokenTracked(player, 'dexterity', effects.agility);
         log.push(`  🏃 ${relicName}: 민첩 +${effects.agility}`);
       }
 
       // 플레이어에게 토큰 부여
       if (effects.tokenToPlayer) {
-        player.tokens = addToken(player.tokens, effects.tokenToPlayer.id, effects.tokenToPlayer.stacks);
+        this.addTokenTracked(player, effects.tokenToPlayer.id, effects.tokenToPlayer.stacks);
         log.push(`  ✨ ${relicName}: ${effects.tokenToPlayer.id} +${effects.tokenToPlayer.stacks}`);
       }
 
       // 적에게 토큰 부여
       if (effects.tokenToEnemy) {
-        enemy.tokens = addToken(enemy.tokens, effects.tokenToEnemy.id, effects.tokenToEnemy.stacks);
+        this.addTokenTracked(enemy, effects.tokenToEnemy.id, effects.tokenToEnemy.stacks);
         log.push(`  ✨ ${relicName}: 적에게 ${effects.tokenToEnemy.id} +${effects.tokenToEnemy.stacks}`);
       }
 

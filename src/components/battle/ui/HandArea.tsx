@@ -103,11 +103,18 @@ export const HandArea: FC<HandAreaProps> = memo(({
   discardPile = [],
   enemyUnits = []
 }) => {
+  // O(1) 조회를 위한 unitId → unit 맵 (최적화: find O(n) → Map O(1))
+  const enemyUnitMap = useMemo(() => {
+    const map = new Map<number, Unit>();
+    enemyUnits.forEach(u => map.set(u.unitId, u));
+    return map;
+  }, [enemyUnits]);
+
   // 타겟 유닛 정보 가져오기
   const getTargetUnit = useCallback((targetUnitId: number | undefined): Unit | null => {
     if (targetUnitId === undefined && targetUnitId !== 0) return null;
-    return enemyUnits.find((u) => u.unitId === targetUnitId) || null;
-  }, [enemyUnits]);
+    return enemyUnitMap.get(targetUnitId) ?? null;
+  }, [enemyUnitMap]);
 
   // 날 세우기 보너스
   const fencingBonus = useMemo(() => {

@@ -20,11 +20,13 @@ interface PlayerState {
 
 interface EnemyState {
   hp?: number;
+  etherPts?: number;
   [key: string]: unknown;
 }
 
 interface PostCombatOptions {
   type?: 'victory' | 'defeat';
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }
 
@@ -64,15 +66,18 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
     if (!resultType || resultSentRef.current) return;
     const finalEther = (player.etherPts as number);
     const delta = finalEther - ((initialEtherRef.current as number) ?? 0);
+    // 적 에테르가 0 이하면 영혼파괴 (에테르 승리)
+    const isEtherVictory = resultType === 'victory' && enemy != null && typeof enemy.etherPts === 'number' && enemy.etherPts <= 0;
     onBattleResult?.({
       result: resultType as BattleResult['result'],
       playerEther: finalEther,
       deltaEther: delta,
       playerHp: player.hp,
-      playerMaxHp: player.maxHp
+      playerMaxHp: player.maxHp,
+      isEtherVictory
     });
     resultSentRef.current = true;
-  }, [player.etherPts, player.hp, player.maxHp, onBattleResult, initialEtherRef, resultSentRef]);
+  }, [player.etherPts, player.hp, player.maxHp, enemy, onBattleResult, initialEtherRef, resultSentRef]);
 
   const closeCharacterSheet = useCallback(() => {
     actions.setShowCharacterSheet(false);

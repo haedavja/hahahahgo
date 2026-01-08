@@ -1,0 +1,3280 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TERMINUS</title>
+    <style>
+      :root {
+        --bg0: #020409;
+        --panel: rgba(2, 4, 9, 0.62);
+        --border: rgba(148, 163, 184, 0.22);
+        --muted: #94a3b8;
+        --text: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+        background: radial-gradient(circle at 20% 0%, rgba(34, 64, 122, 0.45), rgba(2, 4, 9, 0.96));
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      .page {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 360px 1fr;
+      }
+
+      .panel {
+        border-right: 1px solid var(--border);
+        background: var(--panel);
+        padding: 16px 14px;
+        overflow: auto;
+      }
+
+      .main {
+        position: relative;
+      }
+      #graph {
+        position: absolute;
+        inset: 0;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .row-between {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.6);
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tab {
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.35);
+        color: var(--text);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .tab.active {
+        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(59, 130, 246, 0.18);
+      }
+
+      #altView {
+        position: absolute;
+        inset: 0;
+        overflow: auto;
+        padding: 16px;
+        display: none;
+      }
+      .cardGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .card {
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 23, 42, 0.35);
+        padding: 12px 12px;
+      }
+      .cardTitle {
+        font-size: 12px;
+        color: #cbd5e1;
+        font-weight: 900;
+      }
+      .cardValue {
+        font-size: 22px;
+        font-weight: 950;
+        margin-top: 6px;
+      }
+      .mini {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+        line-height: 1.35;
+      }
+
+      label {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.55);
+        color: var(--text);
+        outline: none;
+      }
+
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+        margin: 14px 0;
+      }
+
+      button {
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.45);
+        color: var(--text);
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(30, 41, 59, 0.55);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .list {
+        margin-top: 8px;
+        max-height: 240px;
+        overflow: auto;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 23, 42, 0.35);
+      }
+
+      .list button {
+        width: 100%;
+        text-align: left;
+        border: none;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 0;
+        background: transparent;
+        padding: 8px 10px;
+      }
+      .list button.selected {
+        background: rgba(59, 130, 246, 0.18);
+      }
+      .list button:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <aside class="panel">
+        <div class="row-between">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">테르미누스</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Notion DB → 그래프</div>
+          </div>
+          <div class="row" style="gap: 8px;">
+            <button id="btn-export" type="button" title="terminus-graph.json 다시 불러오기">갱신</button>
+            <button id="btn-fit" type="button">맞춤</button>
+          </div>
+        </div>
+
+        <div class="row" style="flex-wrap: wrap; margin-top: 12px;">
+          <span class="badge">view=terminus</span>
+          <span id="badge-export" class="badge" style="display: none;"></span>
+        </div>
+
+        <div id="modeTabs" class="tabs" style="margin-top: 12px;">
+          <button class="tab active" type="button" data-mode="territory">영역</button>
+          <button class="tab" type="button" data-mode="relation">관계</button>
+          <button class="tab" type="button" data-mode="layer">레이어</button>
+          <button class="tab" type="button" data-mode="pov">POV</button>
+          <button class="tab" type="button" data-mode="state">상태전이</button>
+          <button class="tab" type="button" data-mode="timeline">타임라인</button>
+          <button class="tab" type="button" data-mode="ui">UI</button>
+        </div>
+
+        <div id="modeHint" class="hint" style="margin-top: 10px;"></div>
+
+        <div id="control-layer" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">레이어</div>
+          <select id="layer">
+            <option value="ALL">전체</option>
+            <option value="CORE">CORE</option>
+            <option value="SYSTEM">SYSTEM</option>
+            <option value="NARRATIVE">NARRATIVE</option>
+            <option value="PLAYER">PLAYER</option>
+            <option value="UNSORTED">미분류</option>
+          </select>
+        </div>
+
+        <div id="control-pov" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">관측자(POV)</div>
+          <select id="pov">
+            <option value="PLAYER">PLAYER</option>
+            <option value="NPC">NPC</option>
+            <option value="종언자">종언자</option>
+            <option value="CORE">CORE</option>
+            <option value="ALL">전체</option>
+          </select>
+        </div>
+
+        <div id="control-status" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">상태</div>
+          <select id="status">
+            <option value="ALL">전체</option>
+            <option value="초안">초안</option>
+            <option value="정리중">정리중</option>
+            <option value="확정">확정</option>
+            <option value="미지정">미지정</option>
+          </select>
+        </div>
+
+        <div id="control-relation" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">관계 깊이</div>
+          <select id="relationDepth">
+            <option value="1" selected>1 (직접 연결)</option>
+            <option value="2">2 (친구의 친구)</option>
+            <option value="3">3 (확장)</option>
+          </select>
+          <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">추정 관계 최소 점수</div>
+          <select id="relationMinScore">
+            <option value="0">0 (전부)</option>
+            <option value="0.12">0.12</option>
+            <option value="0.18" selected>0.18</option>
+            <option value="0.24">0.24</option>
+            <option value="0.3">0.30</option>
+          </select>
+          <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">최대 노드</div>
+          <select id="relationLimit">
+            <option value="80">80</option>
+            <option value="120">120</option>
+            <option value="200" selected>200</option>
+            <option value="320">320</option>
+            <option value="500">500</option>
+          </select>
+          <div class="row" style="margin-top: 10px; gap: 14px;">
+            <label class="checkbox"><input id="relationShowHierarchy" type="checkbox" /> 계층(도메인/카테고리)도 같이</label>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">겹침 완화(간격)</div>
+          <select id="density">
+            <option value="compact">촘촘</option>
+            <option value="normal" selected>보통</option>
+            <option value="spacious">넓게</option>
+          </select>
+        </div>
+
+        <div id="stats" class="hint" style="margin-top: 12px;"></div>
+
+        <div style="margin-top: 14px;">
+          <label for="q">검색(제목)</label>
+          <div style="margin-top: 6px;">
+            <input id="q" type="text" placeholder="예: 초법, 설정, 캐릭터…" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top: 12px;">
+          <div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">도메인</div>
+            <select id="domain">
+              <option value="ALL">전체</option>
+              <option value="세계관">세계관</option>
+              <option value="소설">소설</option>
+              <option value="게임">게임</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">대분류</div>
+            <select id="category">
+              <option value="ALL">전체</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">역할(1차 분류)</div>
+          <select id="role">
+            <option value="ALL">전체</option>
+            <option value="__NONE__">미지정(없음)</option>
+            <option value="존재">존재</option>
+            <option value="사건">사건</option>
+            <option value="구조">구조</option>
+            <option value="결과">결과</option>
+            <option value="미지정_존재">미지정_존재</option>
+            <option value="미지정_사건">미지정_사건</option>
+            <option value="미지정_구조">미지정_구조</option>
+            <option value="미지정_결과">미지정_결과</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-top: 12px; gap: 14px;">
+          <label class="checkbox"><input id="showItems" type="checkbox" /> 항목 표시</label>
+          <label class="checkbox"><input id="showRelations" type="checkbox" checked /> 관련 노드(점선)</label>
+          <label class="checkbox"><input id="showInferred" type="checkbox" checked /> 추정 관계(태그)</label>
+        </div>
+
+        <div id="itemControls" style="margin-top: 10px; display: none;">
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">항목 최대 표시</div>
+          <div class="row">
+            <select id="itemLimit">
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="250" selected>250</option>
+              <option value="400">400</option>
+              <option value="600">600</option>
+            </select>
+            <button id="btn-collapse" type="button" style="display: none; white-space: nowrap;">펼침 닫기</button>
+          </div>
+          <div id="itemStats" class="hint" style="margin-top: 6px; display: none;"></div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <label class="checkbox"><input id="mindmap" type="checkbox" checked /> 마인드맵 정렬(안정)</label>
+        </div>
+
+        <hr />
+
+        <div>
+          <div style="font-size: 12px; color: #cbd5e1; font-weight: 800;">선택 노드</div>
+          <div id="selectedEmpty" class="hint">노드를 클릭하면 상세가 나옵니다.</div>
+          <div id="selectedBox" style="display: none; margin-top: 8px;"></div>
+        </div>
+
+        <div id="itemListBox" style="display: none; margin-top: 14px;">
+          <div class="row-between">
+            <div style="font-size: 12px; color: #cbd5e1; font-weight: 800;">항목 목록</div>
+            <div id="itemListCount" style="font-size: 12px; color: var(--muted);"></div>
+          </div>
+          <div id="itemList" class="list"></div>
+          <div id="itemListHint" class="hint" style="display: none;"></div>
+        </div>
+
+        <hr />
+
+        <div class="hint">
+          - 항목이 겹치면 <b>검색/필터</b>로 줄이거나, 카테고리 노드 클릭(펼침)으로 좁히세요.<br />
+          - 관련 노드(점선)는 선택한 노드 주변만 표시합니다.
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="graph"></div>
+        <div id="altView"></div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/force-graph@1.49.0/dist/force-graph.min.js"></script>
+
+    <script>
+      const DEFAULT_WARMUP_TICKS = 40;
+      const DEFAULT_COOLDOWN_TICKS = 220;
+      const ITEM_LIST_LIMIT = 120;
+
+      const MODES = [
+        { id: "territory", label: "영역" },
+        { id: "relation", label: "관계" },
+        { id: "layer", label: "레이어" },
+        { id: "pov", label: "POV" },
+        { id: "state", label: "상태전이" },
+        { id: "timeline", label: "타임라인" },
+        { id: "ui", label: "UI" },
+      ];
+
+      const MODE_HINTS = {
+        territory: "도메인/대분류 기반 '영역 지도'입니다. 항목은 검색/필터(역할 포함) 또는 카테고리 클릭(펼침)으로 좁힌 뒤 표시하세요.",
+        relation: "선택한 항목을 중심으로 '연결된 것만' 모아서 보여줍니다. 먼저 항목을 하나 선택한 뒤 보세요.",
+        layer: "CORE/SYSTEM/NARRATIVE/PLAYER 레이어로 정렬합니다. 기본은 추론, 노션 '레이어'가 있으면 그 값을 우선합니다. (카테고리 클릭 → 펼침)",
+        pov: "관측자(POV)별 '무엇까지 보이는가'를 보여줍니다. 노션 '가시성'이 없으면 레이어 기반으로 추론합니다. (POV 클릭 → 펼침)",
+        state: "상태(초안→정리중→확정)를 상태 전이처럼 봅니다. (상태 노드 클릭 → 펼침)",
+        timeline:
+          "스토리 시간(시간/날짜/연대/타임라인)이 있으면 그걸로 묶고, 없으면 노션 작성/수정 시각으로 임시 타임라인을 만듭니다. (버킷 클릭 → 펼침)",
+        ui: "그래프 대신 대시보드/목록으로 빠르게 탐색합니다. (카드 클릭으로 필터)",
+      };
+
+      const elGraph = document.getElementById("graph");
+      const elStats = document.getElementById("stats");
+      const elExport = document.getElementById("badge-export");
+      const elQ = document.getElementById("q");
+      const elDomain = document.getElementById("domain");
+      const elCategory = document.getElementById("category");
+      const elRole = document.getElementById("role");
+      const elShowItems = document.getElementById("showItems");
+      const elShowRelations = document.getElementById("showRelations");
+      const elShowInferred = document.getElementById("showInferred");
+      const elMindmap = document.getElementById("mindmap");
+      const elItemControls = document.getElementById("itemControls");
+      const elItemLimit = document.getElementById("itemLimit");
+      const elItemStats = document.getElementById("itemStats");
+      const elBtnCollapse = document.getElementById("btn-collapse");
+      const elAltView = document.getElementById("altView");
+
+      const elModeTabs = document.getElementById("modeTabs");
+      const elModeHint = document.getElementById("modeHint");
+      const elControlLayer = document.getElementById("control-layer");
+      const elLayer = document.getElementById("layer");
+      const elControlPov = document.getElementById("control-pov");
+      const elPov = document.getElementById("pov");
+      const elControlStatus = document.getElementById("control-status");
+      const elStatus = document.getElementById("status");
+      const elControlRelation = document.getElementById("control-relation");
+      const elRelationDepth = document.getElementById("relationDepth");
+      const elRelationMinScore = document.getElementById("relationMinScore");
+      const elRelationLimit = document.getElementById("relationLimit");
+      const elRelationShowHierarchy = document.getElementById("relationShowHierarchy");
+      const elDensity = document.getElementById("density");
+
+      const elSelectedEmpty = document.getElementById("selectedEmpty");
+      const elSelectedBox = document.getElementById("selectedBox");
+      const elItemListBox = document.getElementById("itemListBox");
+      const elItemList = document.getElementById("itemList");
+      const elItemListCount = document.getElementById("itemListCount");
+      const elItemListHint = document.getElementById("itemListHint");
+
+      const state = {
+        raw: null,
+        mode: "territory",
+        query: "",
+        domainFilter: "ALL",
+        categoryFilter: "ALL",
+        roleFilter: "ALL",
+        layerFilter: "ALL",
+        povFilter: "PLAYER",
+        statusFilter: "ALL",
+        relationDepth: 1,
+        inferredMinScore: 0.18,
+        relationLimit: 200,
+        showInferred: true,
+        relationShowHierarchy: false,
+        density: "normal",
+        showItems: false,
+        showRelations: true,
+        mindmapLayout: true,
+        itemLimit: 250,
+        expandedCategoryScope: null,
+        expandedScope: null,
+        notionPreviewNodeId: null,
+        notionPreviewOpen: false,
+        selectedNodeId: null,
+        hoveredNodeId: null,
+        userInteracted: false,
+        autoFitDone: false,
+      };
+
+      const nodeCache = new Map();
+
+      function includesCI(haystack, needle) {
+        return String(haystack || "").toLowerCase().includes(String(needle || "").toLowerCase());
+      }
+
+      function toSafeIdPart(value) {
+        return String(value || "")
+          .trim()
+          .replace(/\s+/g, "_")
+          .replace(/[^0-9a-zA-Z가-힣_]+/g, "_")
+          .slice(0, 80);
+      }
+
+      function makeId(prefix, ...parts) {
+        return [prefix, ...parts.map(toSafeIdPart)].join("__");
+      }
+
+      const LAYERS = ["CORE", "SYSTEM", "NARRATIVE", "PLAYER", "UNSORTED"];
+      const LAYER_LABEL = {
+        CORE: "CORE",
+        SYSTEM: "SYSTEM",
+        NARRATIVE: "NARRATIVE",
+        PLAYER: "PLAYER",
+        UNSORTED: "미분류",
+      };
+
+      const DOMAIN_ORDER = ["세계관", "소설", "게임"];
+
+      function normalizeLayer(value) {
+        const raw = String(value || "").trim().toUpperCase();
+        if (!raw) return null;
+        if (raw === "CORE" || raw === "SYSTEM" || raw === "NARRATIVE" || raw === "PLAYER") return raw;
+        if (raw === "UNSORTED") return "UNSORTED";
+        if (raw === "코어") return "CORE";
+        if (raw === "시스템") return "SYSTEM";
+        if (raw === "서사" || raw === "내러티브") return "NARRATIVE";
+        if (raw === "플레이어") return "PLAYER";
+        return null;
+      }
+
+      function inferLayerFromItem(item) {
+        const direct = normalizeLayer(item && item.layer);
+        if (direct) return direct;
+
+        const category = String(item && item.category ? item.category : "");
+        const tags = new Set(Array.isArray(item && item.tags) ? item.tags : []);
+
+        if (tags.has("플레이어") || tags.has("노출") || tags.has("공개")) return "PLAYER";
+        if (category === "시스템(게임)") return "SYSTEM";
+        if (category === "플롯/에피소드") return "NARRATIVE";
+        if (category === "메타") return "CORE";
+
+        if (tags.has("시스템") || tags.has("룰") || tags.has("밸런스")) return "SYSTEM";
+        if (tags.has("스토리") || tags.has("플롯") || tags.has("에피소드") || tags.has("서사")) return "NARRATIVE";
+
+        return "UNSORTED";
+      }
+
+      function getRoleFromItem(item) {
+        const r = item && item.role != null ? String(item.role).trim() : "";
+        return r || null;
+      }
+
+      function isRoleMatch(item) {
+        const f = String(state.roleFilter || "ALL");
+        if (f === "ALL") return true;
+        const r = getRoleFromItem(item);
+        if (f === "__NONE__") return !r;
+        return String(r || "") === f;
+      }
+
+      function suggestRoleFromCategory(item) {
+        const category = String(item && item.category ? item.category : "");
+        if (category === "인물" || category === "세력" || category === "장소/지역" || category === "유물/아이템" || category === "신격/판테온") return "존재";
+        if (category === "역사/사건" || category === "플롯/에피소드") return "사건";
+        if (category === "초법" || category === "기술" || category === "시스템(게임)") return "구조";
+        if (category === "용어/개념" || category === "설정" || category === "메타" || category === "우주론/레이어" || category === "종교/신앙") return "구조";
+        return null;
+      }
+
+      const PERSPECTIVES = ["PLAYER", "NPC", "종언자", "CORE"];
+      const PERSPECTIVE_LEVEL = { PLAYER: 0, NPC: 1, 종언자: 2, CORE: 3 };
+      const LAYER_LEVEL = { PLAYER: 0, NARRATIVE: 1, SYSTEM: 2, CORE: 3, UNSORTED: 3 };
+
+      function normalizePerspective(value) {
+        const v = String(value || "").trim();
+        if (!v) return null;
+        if (v === "PLAYER" || v === "NPC" || v === "종언자" || v === "CORE") return v;
+        const upper = v.toUpperCase();
+        if (upper === "PLAYER") return "PLAYER";
+        if (upper === "NPC") return "NPC";
+        if (v === "플레이어") return "PLAYER";
+        return null;
+      }
+
+      function pickPrimaryVisibility(item) {
+        const raw = Array.isArray(item && item.visibility) ? item.visibility : [];
+        const normalized = raw.map(normalizePerspective).filter(Boolean);
+        if (normalized.length === 0) return null;
+        for (const p of PERSPECTIVES) {
+          if (normalized.includes(p)) return p;
+        }
+        return normalized[0] || null;
+      }
+
+      function isVisibleToPerspective(item, pov) {
+        const p = normalizePerspective(pov);
+        if (!p) return false;
+
+        const raw = Array.isArray(item && item.visibility) ? item.visibility : [];
+        const normalized = raw.map(normalizePerspective).filter(Boolean);
+        if (normalized.length > 0) return normalized.includes(p);
+
+        const layer = inferLayerFromItem(item);
+        return (PERSPECTIVE_LEVEL[p] || 0) >= (LAYER_LEVEL[layer] || 0);
+      }
+
+      function getRootNode(raw) {
+        const hit = (raw && raw.nodes ? raw.nodes : []).find((n) => n.type === "root");
+        return hit ? upsertCachedNode(hit) : upsertCachedNode({ id: "__terminus_root__", type: "root", label: "테르미누스" });
+      }
+
+      function getEndpointId(value) {
+        if (!value) return null;
+        if (typeof value === "string" || typeof value === "number") return String(value);
+        if (typeof value === "object" && value.id != null) return String(value.id);
+        return null;
+      }
+
+      function linkKey(s, t, type) {
+        if (!s || !t) return "";
+        if (type === "relation") {
+          const a = [String(s), String(t)].sort();
+          return a[0] + "|" + a[1] + "|" + type;
+        }
+        return String(s) + "|" + String(t) + "|" + type;
+      }
+
+      function getNodeSize(node) {
+        if (node.type === "root") return 10;
+        if (node.type === "domain") return 8;
+        if (node.type === "layer") return 8;
+        if (node.type === "pov") return 8;
+        if (node.type === "state") return 8;
+        if (node.type === "time") return 7;
+        if (node.type === "category") return 6;
+        return 3;
+      }
+
+      function getNodeBaseColor(node) {
+        if (node.type === "root") return "#f8fafc";
+        if (node.type === "domain") {
+          if (node.domain === "세계관") return "#60a5fa";
+          if (node.domain === "소설") return "#f472b6";
+          if (node.domain === "게임") return "#34d399";
+          return "#93c5fd";
+        }
+        if (node.type === "layer") {
+          const l = normalizeLayer(node.layer || node.label);
+          if (l === "CORE") return "#cbd5e1";
+          if (l === "SYSTEM") return "#34d399";
+          if (l === "NARRATIVE") return "#fde047";
+          if (l === "PLAYER") return "#60a5fa";
+          return "#94a3b8";
+        }
+        if (node.type === "pov") {
+          const p = normalizePerspective(node.pov || node.label);
+          if (p === "PLAYER") return "#60a5fa";
+          if (p === "NPC") return "#fde047";
+          if (p === "종언자") return "#a78bfa";
+          if (p === "CORE") return "#cbd5e1";
+          return "#94a3b8";
+        }
+        if (node.type === "state") {
+          const s = String(node.statusName || node.status || node.baseLabel || stripCountSuffix(node.label || ""));
+          if (s === "초안") return "#94a3b8";
+          if (s === "정리중") return "#fde047";
+          if (s === "확정") return "#34d399";
+          return "#cbd5e1";
+        }
+        if (node.type === "time") return "#cbd5e1";
+        if (node.type === "category") {
+          const key = String(node.categoryName || node.baseLabel || stripCountSuffix(node.label || ""));
+          switch (key) {
+            case "초법":
+              return "#a78bfa";
+            case "기술":
+              return "#60a5fa";
+            case "군사":
+              return "#34d399";
+            case "세력":
+              return "#fb7185";
+            case "인물":
+              return "#fbbf24";
+            case "장소/지역":
+              return "#f59e0b";
+            case "역사/사건":
+              return "#f97316";
+            case "용어/개념":
+              return "#94a3b8";
+            case "유물/아이템":
+              return "#ec4899";
+            case "플롯/에피소드":
+              return "#fde047";
+            case "시스템(게임)":
+              return "#22c55e";
+            case "메타":
+              return "#cbd5e1";
+            case "설정":
+              return "#a3a3a3";
+            default:
+              return "#93c5fd";
+          }
+        }
+        const primaryDomain = (node.domains && node.domains[0]) || node.domain || null;
+        if (primaryDomain === "세계관") return "rgba(96, 165, 250, 0.9)";
+        if (primaryDomain === "소설") return "rgba(244, 114, 182, 0.9)";
+        if (primaryDomain === "게임") return "rgba(52, 211, 153, 0.9)";
+        return "#9ca3af";
+      }
+
+      function upsertCachedNode(raw) {
+        const id = String(raw.id);
+        let node = nodeCache.get(id);
+        if (!node) {
+          node = { ...raw };
+          nodeCache.set(id, node);
+        } else {
+          Object.assign(node, raw);
+        }
+        return node;
+      }
+
+      function renderCategories(raw) {
+        const current = elCategory.value;
+        const set = new Set();
+        for (const n of raw.nodes || []) {
+          if (n.type === "category") set.add(n.label);
+        }
+        const cats = Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "ko"));
+
+        elCategory.innerHTML = "";
+        const optAll = document.createElement("option");
+        optAll.value = "ALL";
+        optAll.textContent = "전체";
+        elCategory.appendChild(optAll);
+        for (const c of cats) {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          elCategory.appendChild(opt);
+        }
+        elCategory.value = cats.includes(current) ? current : "ALL";
+      }
+
+      function computeTerritoryGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const visibleNodeIds = new Set();
+
+        const expandedDomain = state.expandedCategoryScope ? state.expandedCategoryScope.domain : null;
+        const expandedCategory = state.expandedCategoryScope ? state.expandedCategoryScope.category : null;
+
+        const shouldShowItems =
+          state.showItems &&
+          (q.length > 0 ||
+            state.domainFilter !== "ALL" ||
+            state.categoryFilter !== "ALL" ||
+            state.roleFilter !== "ALL" ||
+            expandedDomain !== null);
+
+        const baseNodes = [];
+        const candidateItems = [];
+
+        for (const n of raw.nodes || []) {
+          if (n.type === "root" || n.type === "domain") {
+            if (n.type === "domain" && state.domainFilter !== "ALL" && n.domain !== state.domainFilter) continue;
+            visibleNodeIds.add(n.id);
+            baseNodes.push(upsertCachedNode(n));
+            continue;
+          }
+
+          if (n.type === "category") {
+            const domainOk = state.domainFilter === "ALL" || n.domain === state.domainFilter;
+            const categoryOk = state.categoryFilter === "ALL" || n.label === state.categoryFilter;
+            if (!domainOk || !categoryOk) continue;
+            visibleNodeIds.add(n.id);
+            baseNodes.push(upsertCachedNode(n));
+            continue;
+          }
+
+          if (n.type !== "item") continue;
+          if (!shouldShowItems) continue;
+          if (!isRoleMatch(n)) continue;
+
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          const expandedOk = expandedDomain ? domains.includes(expandedDomain) && n.category === expandedCategory : true;
+          if (!domainOk || !categoryOk || !queryOk || !expandedOk) continue;
+
+          candidateItems.push(upsertCachedNode(n));
+        }
+
+        candidateItems.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        if (state.selectedNodeId) {
+          const idx = candidateItems.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = candidateItems.splice(idx, 1)[0];
+            candidateItems.unshift(keep);
+          }
+        }
+
+        const truncated = candidateItems.length > state.itemLimit;
+        const shownItems = truncated ? candidateItems.slice(0, state.itemLimit) : candidateItems;
+        for (const n of shownItems) visibleNodeIds.add(n.id);
+
+        const relationFocusId = state.selectedNodeId ? String(state.selectedNodeId) : null;
+        const minScore = Number(state.inferredMinScore || 0);
+        const links = [];
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (!visibleNodeIds.has(String(s)) || !visibleNodeIds.has(String(t))) continue;
+
+          if (l.type === "relation") {
+            if (!state.showRelations || !relationFocusId) continue;
+            if (String(s) !== relationFocusId && String(t) !== relationFocusId) continue;
+            links.push({ source: String(s), target: String(t), type: "relation" });
+            continue;
+          }
+
+          if (l.type === "rel_inferred") {
+            if (!state.showInferred || !relationFocusId) continue;
+            if (String(s) !== relationFocusId && String(t) !== relationFocusId) continue;
+            const w = Number(l.weight || 0);
+            if (w < minScore) continue;
+            links.push({ source: String(s), target: String(t), type: "rel_inferred", weight: w, tags: l.tags || null });
+            continue;
+          }
+
+          // hierarchy 등은 그대로 유지(복사해서 raw 변형 방지)
+          links.push({ source: String(s), target: String(t), type: l.type });
+        }
+
+        return {
+          nodes: baseNodes.concat(shownItems),
+          links,
+          stats: { matchedItems: candidateItems.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function stripCountSuffix(label) {
+        const s = String(label || "");
+        return s.replace(/\s*\(\d+\)\s*$/, "");
+      }
+
+      function hasNarrowingForItemsForMode(mode, extra) {
+        const m = String(mode || "").trim();
+        const q = state.query.trim();
+        if (q.length > 0) return true;
+        if (state.domainFilter !== "ALL") return true;
+        if (state.categoryFilter !== "ALL") return true;
+        if (state.roleFilter !== "ALL") return true;
+
+        if (m === "layer" || m === "pov" || m === "state" || m === "timeline" || m === "ui") {
+          if (state.layerFilter !== "ALL") return true;
+        }
+
+        if (m === "state" || m === "ui") {
+          if (state.statusFilter !== "ALL") return true;
+        }
+
+        if (m === "pov") {
+          if (state.povFilter && state.povFilter !== "ALL" && state.povFilter !== "PLAYER") return true;
+        }
+
+        if (extra && extra()) return true;
+        return false;
+      }
+
+      function computeLayerGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const matched = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
+          matched.push(upsertCachedNode({ ...n, layer }));
+        }
+
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "layer" &&
+          state.expandedScope.layer &&
+          state.expandedScope.category;
+
+        const narrowing = hasNarrowingForItemsForMode("layer");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded) {
+            toShow = matched.filter(
+              (n) => String(n.layer) === String(state.expandedScope.layer) && String(n.category) === String(state.expandedScope.category),
+            );
+          } else if (narrowing) {
+            toShow = matched.slice();
+          } else {
+            const statusRank = (it) => {
+              const s = String(it && it.status ? it.status : "미지정");
+              if (s === "확정") return 0;
+              if (s === "정리중") return 1;
+              if (s === "초안") return 2;
+              return 3;
+            };
+
+            const buckets = new Map(); // layer -> Map(cat -> items[])
+            for (const it of matched) {
+              const layer = inferLayerFromItem(it);
+              const cat = String(it.category || "기타");
+              if (!buckets.has(layer)) buckets.set(layer, new Map());
+              const m = buckets.get(layer);
+              if (!m.has(cat)) m.set(cat, []);
+              m.get(cat).push(it);
+            }
+
+            for (const [, m] of buckets.entries()) {
+              for (const [, list] of m.entries()) {
+                list.sort((a, b) => {
+                  const ra = statusRank(a);
+                  const rb = statusRank(b);
+                  if (ra !== rb) return ra - rb;
+                  return String(a.label || "").localeCompare(String(b.label || ""), "ko");
+                });
+              }
+            }
+
+            const PER_LAYER = 24;
+            const picked = [];
+            const seen = new Set();
+            for (const layer of LAYERS) {
+              const m = buckets.get(layer);
+              if (!m) continue;
+              const cats = Array.from(m.entries()).sort((a, b) => (b[1].length || 0) - (a[1].length || 0));
+              let pass = 0;
+              while (pass < 3 && cats.length) {
+                for (const [, list] of cats) {
+                  const it = list[pass];
+                  if (!it) continue;
+                  const id = String(it.id);
+                  if (seen.has(id)) continue;
+                  picked.push(it);
+                  seen.add(id);
+                  if (picked.filter((x) => inferLayerFromItem(x) === layer).length >= PER_LAYER) break;
+                }
+                if (picked.filter((x) => inferLayerFromItem(x) === layer).length >= PER_LAYER) break;
+                pass++;
+              }
+            }
+            toShow = picked;
+          }
+        }
+
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const layerNodeId = new Map();
+        for (const l of LAYERS) {
+          const id = makeId("__layer", l);
+          layerNodeId.set(l, id);
+          nodes.push(upsertCachedNode({ id, type: "layer", label: LAYER_LABEL[l] || l, layer: l }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        if (previewMode) {
+          const layerCount = new Map();
+          for (const item of matched) {
+            const layer = inferLayerFromItem(item);
+            const id = layerNodeId.get(layer);
+            if (!id) continue;
+            layerCount.set(id, (layerCount.get(id) || 0) + 1);
+          }
+
+          for (const node of nodes) {
+            if (node.type !== "layer") continue;
+            const id = String(node.id);
+            const c = layerCount.get(id) || 0;
+            node.count = c;
+            const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.layer || node.label);
+            node.label = (LAYER_LABEL[node.layer] || base) + " (" + c + ")";
+          }
+
+          for (const item of shownItems) {
+            const layer = inferLayerFromItem(item);
+            const lid = layerNodeId.get(layer);
+            if (!lid) continue;
+            nodes.push(item);
+            links.push({ source: lid, target: item.id, type: "hierarchy" });
+          }
+
+          return {
+            nodes,
+            links,
+            stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+          };
+        }
+
+        const catNodeId = new Map();
+        const catCount = new Map();
+        const ensureCat = (layer, category) => {
+          const key = layer + "::" + category;
+          let id = catNodeId.get(key);
+          if (id) return id;
+          id = makeId("__layercat", layer, category);
+          catNodeId.set(key, id);
+          nodes.push(upsertCachedNode({ id, type: "category", label: category, baseLabel: category, categoryName: category, layer, count: 0 }));
+          links.push({ source: layerNodeId.get(layer), target: id, type: "hierarchy" });
+          return id;
+        };
+
+        for (const item of matched) {
+          const layer = inferLayerFromItem(item);
+          const cat = String(item.category || "기타");
+          const catId = ensureCat(layer, cat);
+          catCount.set(catId, (catCount.get(catId) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "category") continue;
+          const c = catCount.get(String(node.id)) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.categoryName || node.label);
+          node.label = base + " (" + c + ")";
+        }
+
+        for (const item of shownItems) {
+          const layer = inferLayerFromItem(item);
+          const cat = String(item.category || "기타");
+          const catId = ensureCat(layer, cat);
+          nodes.push(item);
+          links.push({ source: catId, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computePovGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const povFilter = state.povFilter;
+        const showAll = povFilter === "ALL";
+        const povs = showAll ? PERSPECTIVES.slice() : [povFilter];
+
+        const matched = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
+
+          if (!showAll) {
+            if (!isVisibleToPerspective(n, povFilter)) continue;
+            matched.push(upsertCachedNode({ ...n, layer, pov: povFilter }));
+            continue;
+          }
+
+          const assigned = pickPrimaryVisibility(n) || (layer === "PLAYER" ? "PLAYER" : layer === "NARRATIVE" ? "NPC" : layer === "SYSTEM" ? "종언자" : "CORE");
+          matched.push(upsertCachedNode({ ...n, layer, pov: assigned }));
+        }
+
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "pov" &&
+          state.expandedScope.pov;
+
+        const narrowing = hasNarrowingForItemsForMode("pov");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded && showAll) {
+            toShow = matched.filter((n) => String(n.pov) === String(state.expandedScope.pov));
+          } else if (narrowing) {
+            toShow = matched.slice();
+          } else {
+            const bucketToItems = new Map();
+            for (const it of matched) {
+              const key = String(showAll ? it.pov : povFilter);
+              if (!bucketToItems.has(key)) bucketToItems.set(key, []);
+              bucketToItems.get(key).push(it);
+            }
+            for (const list of bucketToItems.values()) {
+              list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+            }
+
+            const PER_BUCKET = 36;
+            const picked = [];
+            const seen = new Set();
+            for (const p of povs) {
+              const list = bucketToItems.get(String(p)) || [];
+              for (const it of list.slice(0, PER_BUCKET)) {
+                const id = String(it.id);
+                if (seen.has(id)) continue;
+                picked.push(it);
+                seen.add(id);
+              }
+            }
+            toShow = picked;
+          }
+        }
+
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const povNodeId = new Map();
+        for (const p of povs) {
+          const id = makeId("__pov", p);
+          povNodeId.set(p, id);
+          nodes.push(upsertCachedNode({ id, type: "pov", label: p, baseLabel: p, pov: p }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        const povCount = new Map();
+        for (const item of matched) {
+          const p = showAll ? item.pov : povFilter;
+          const id = povNodeId.get(p) || povNodeId.get(povFilter);
+          if (!id) continue;
+          povCount.set(id, (povCount.get(id) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "pov") continue;
+          const id = String(node.id);
+          const c = povCount.get(id) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.pov || node.label);
+          node.label = base + " (" + c + ")";
+        }
+
+        for (const item of shownItems) {
+          const p = showAll ? item.pov : povFilter;
+          const id = povNodeId.get(p) || povNodeId.get(povFilter);
+          if (!id) continue;
+          nodes.push(item);
+          links.push({ source: id, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computeStateGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const STATUS_NODES = ["초안", "정리중", "확정", "미지정"];
+
+        const matched = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
+
+          const status = n.status ? String(n.status) : "미지정";
+          const statusOk = state.statusFilter === "ALL" || status === state.statusFilter;
+          if (!statusOk) continue;
+
+          matched.push(upsertCachedNode({ ...n, layer, status }));
+        }
+
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "state" &&
+          state.expandedScope.status;
+
+        const narrowing = hasNarrowingForItemsForMode("state");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded && state.statusFilter === "ALL") {
+            toShow = matched.filter((n) => String(n.status || "미지정") === String(state.expandedScope.status));
+          } else if (narrowing) {
+            toShow = matched.slice();
+          } else {
+            const bucketToItems = new Map();
+            for (const it of matched) {
+              const key = String(it.status || "미지정");
+              if (!bucketToItems.has(key)) bucketToItems.set(key, []);
+              bucketToItems.get(key).push(it);
+            }
+            for (const list of bucketToItems.values()) {
+              list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+            }
+
+            const PER_BUCKET = 40;
+            const picked = [];
+            const seen = new Set();
+            for (const s of STATUS_NODES) {
+              const list = bucketToItems.get(String(s)) || [];
+              for (const it of list.slice(0, PER_BUCKET)) {
+                const id = String(it.id);
+                if (seen.has(id)) continue;
+                picked.push(it);
+                seen.add(id);
+              }
+            }
+            toShow = picked;
+          }
+        }
+
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const statusNodeId = new Map();
+        const statusCount = new Map();
+        for (const s of STATUS_NODES) {
+          const id = makeId("__state", s);
+          statusNodeId.set(s, id);
+          nodes.push(upsertCachedNode({ id, type: "state", label: s, baseLabel: s, status: s, statusName: s }));
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        links.push({ source: statusNodeId.get("초안"), target: statusNodeId.get("정리중"), type: "transition" });
+        links.push({ source: statusNodeId.get("정리중"), target: statusNodeId.get("확정"), type: "transition" });
+
+        for (const item of matched) {
+          const status = item.status || "미지정";
+          const sid = statusNodeId.get(status) || statusNodeId.get("미지정");
+          statusCount.set(sid, (statusCount.get(sid) || 0) + 1);
+        }
+
+        for (const node of nodes) {
+          if (node.type !== "state") continue;
+          const id = String(node.id);
+          const c = statusCount.get(id) || 0;
+          node.count = c;
+          const base = node.baseLabel != null ? String(node.baseLabel) : stripCountSuffix(node.statusName || node.status || node.label);
+          node.label = base + " (" + c + ")";
+        }
+
+        for (const item of shownItems) {
+          const sid = statusNodeId.get(item.status || "미지정") || statusNodeId.get("미지정");
+          nodes.push(item);
+          links.push({ source: sid, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function getTimelineBucket(item) {
+        function labelSortKey(label) {
+          const s = String(label || "").trim();
+          if (!s) return Number.POSITIVE_INFINITY;
+
+          const iso = s.match(/^(\d{4})[-/.](\d{1,2})(?:[-/.](\d{1,2}))?$/);
+          if (iso) {
+            const y = Number(iso[1]);
+            const m = Number(iso[2] || 1);
+            const d = Number(iso[3] || 1);
+            if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) return y * 10000 + m * 100 + d;
+          }
+
+          const year = s.match(/(19|20)\d{2}/);
+          if (year) return Number(year[0]) * 10000;
+
+          const t = s.match(/^t\s*([+-]?\d+)/i);
+          if (t) return 900000000 + Number(t[1] || 0);
+
+          const num = s.match(/(\d+)/);
+          if (num) return 950000000 + Number(num[1] || 0);
+
+          return Number.POSITIVE_INFINITY;
+        }
+
+        const t = item && item.time ? String(item.time) : "";
+        if (t) {
+          const d = new Date(t);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            return { key: "Y:" + y, label: String(y), sortKey: y * 10000 };
+          }
+        }
+        const label = item && item.timeLabel ? String(item.timeLabel).trim() : "";
+        if (label) return { key: "L:" + label, label, sortKey: labelSortKey(label) };
+
+        const createdAt = item && item.createdAt ? String(item.createdAt) : "";
+        if (createdAt) {
+          const d = new Date(createdAt);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            const m = d.getUTCMonth() + 1;
+            const mm = String(m).padStart(2, "0");
+            const key = "C:" + y + "-" + mm;
+            return { key, label: "작성 " + y + "-" + mm, sortKey: y * 10000 + m * 100 };
+          }
+        }
+
+        const editedAt = item && item.editedAt ? String(item.editedAt) : "";
+        if (editedAt) {
+          const d = new Date(editedAt);
+          if (!Number.isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            const m = d.getUTCMonth() + 1;
+            const mm = String(m).padStart(2, "0");
+            const key = "E:" + y + "-" + mm;
+            return { key, label: "수정 " + y + "-" + mm, sortKey: y * 10000 + m * 100 + 50 };
+          }
+        }
+        return { key: "UNSPEC", label: "미지정", sortKey: Number.POSITIVE_INFINITY + 1 };
+      }
+
+      function computeTimelineGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const q = state.query.trim();
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+
+        const matched = [];
+        for (const n of items) {
+          const domains = Array.isArray(n.domains) ? n.domains : [];
+          const domainOk = state.domainFilter === "ALL" || domains.includes(state.domainFilter);
+          const categoryOk = state.categoryFilter === "ALL" || n.category === state.categoryFilter;
+          const roleOk = isRoleMatch(n);
+          const layer = inferLayerFromItem(n);
+          const layerOk = state.layerFilter === "ALL" || layer === state.layerFilter;
+          const queryOk = q.length === 0 || includesCI(n.label, q);
+          if (!domainOk || !categoryOk || !roleOk || !layerOk || !queryOk) continue;
+
+          matched.push(upsertCachedNode({ ...n, layer }));
+        }
+
+        matched.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+
+        const expanded =
+          state.expandedScope &&
+          state.expandedScope.mode === "timeline" &&
+          state.expandedScope.bucketKey;
+
+        const narrowing = hasNarrowingForItemsForMode("timeline");
+        const previewMode = Boolean(state.showItems) && !expanded && !narrowing;
+        const shouldShowItems = Boolean(state.showItems) && (expanded || narrowing || previewMode);
+
+        let toShow = [];
+        if (shouldShowItems) {
+          if (expanded) {
+            toShow = matched.filter((it) => getTimelineBucket(it).key === state.expandedScope.bucketKey);
+          } else if (narrowing) {
+            toShow = matched.slice();
+          } else {
+            const statusRank = (it) => {
+              const s = String(it && it.status ? it.status : "미지정");
+              if (s === "확정") return 0;
+              if (s === "정리중") return 1;
+              if (s === "초안") return 2;
+              return 3;
+            };
+
+            const bucketToItems = new Map();
+            for (const it of matched) {
+              const b = getTimelineBucket(it).key;
+              if (!bucketToItems.has(b)) bucketToItems.set(b, []);
+              bucketToItems.get(b).push(it);
+            }
+
+            for (const list of bucketToItems.values()) {
+              list.sort((a, b) => {
+                const ra = statusRank(a);
+                const rb = statusRank(b);
+                if (ra !== rb) return ra - rb;
+                return String(a.label || "").localeCompare(String(b.label || ""), "ko");
+              });
+            }
+
+            const PER_BUCKET = 3;
+            const picked = [];
+            const seen = new Set();
+            const keys = Array.from(bucketToItems.keys()).sort((a, b) => {
+              const ia = bucketToItems.get(a) || [];
+              const ib = bucketToItems.get(b) || [];
+              const sa = ia.length ? getTimelineBucket(ia[0]).sortKey : Number.POSITIVE_INFINITY;
+              const sb = ib.length ? getTimelineBucket(ib[0]).sortKey : Number.POSITIVE_INFINITY;
+              if (sa !== sb) return sa - sb;
+              return String(a).localeCompare(String(b), "ko");
+            });
+
+            for (const k of keys) {
+              const list = bucketToItems.get(k) || [];
+              for (const it of list.slice(0, PER_BUCKET)) {
+                const id = String(it.id);
+                if (seen.has(id)) continue;
+                picked.push(it);
+                seen.add(id);
+              }
+            }
+            toShow = picked;
+          }
+        }
+
+        if (state.selectedNodeId) {
+          const idx = toShow.findIndex((n) => String(n.id) === String(state.selectedNodeId));
+          if (idx >= 0) {
+            const keep = toShow.splice(idx, 1)[0];
+            toShow.unshift(keep);
+          } else {
+            const selected = matched.find((n) => String(n.id) === String(state.selectedNodeId));
+            if (selected) toShow.unshift(selected);
+          }
+        }
+
+        const truncated = toShow.length > state.itemLimit;
+        const shownItems = truncated ? toShow.slice(0, state.itemLimit) : toShow;
+
+        const nodes = [];
+        const links = [];
+
+        const root = getRootNode(raw);
+        nodes.push(root);
+
+        const bucketCount = new Map();
+        const bucketInfoByKey = new Map();
+        for (const item of matched) {
+          const b = getTimelineBucket(item);
+          bucketInfoByKey.set(b.key, b);
+          bucketCount.set(b.key, (bucketCount.get(b.key) || 0) + 1);
+        }
+
+        let buckets = [...bucketInfoByKey.values()].sort((a, b) => {
+          if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+          return String(a.label).localeCompare(String(b.label), "ko");
+        });
+
+        const MAX_BUCKETS = 80;
+        const OTHER_KEY = "__OTHER__";
+        if (buckets.length > MAX_BUCKETS) {
+          const kept = buckets.slice(0, MAX_BUCKETS - 1);
+          kept.push({ key: OTHER_KEY, label: "(기타…)", sortKey: Number.POSITIVE_INFINITY + 9 });
+          buckets = kept;
+        }
+
+        const bucketNodeId = new Map();
+        for (const b of buckets) {
+          const id = makeId("__time", b.key);
+          bucketNodeId.set(b.key, id);
+          const count = bucketCount.get(b.key) || 0;
+          nodes.push(
+            upsertCachedNode({
+              id,
+              type: "time",
+              label: b.label + " (" + count + ")",
+              bucketKey: b.key,
+              bucketLabel: b.label,
+              bucketSortKey: b.sortKey,
+              count,
+            }),
+          );
+          links.push({ source: root.id, target: id, type: "hierarchy" });
+        }
+
+        for (const item of shownItems) {
+          const b = getTimelineBucket(item);
+          const bid = bucketNodeId.get(b.key) || bucketNodeId.get(OTHER_KEY);
+          if (!bid) continue;
+          nodes.push(item);
+          links.push({ source: bid, target: item.id, type: "hierarchy" });
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: matched.length, shownItems: shownItems.length, truncated },
+        };
+      }
+
+      function computeRelationGraphData() {
+        const raw = state.raw;
+        if (!raw) return null;
+
+        const focusId = state.selectedNodeId ? String(state.selectedNodeId) : null;
+        const root = getRootNode(raw);
+        if (!focusId) {
+          return {
+            nodes: [root],
+            links: [],
+            stats: { matchedItems: 0, shownItems: 0, truncated: false, emptyFocus: true },
+          };
+        }
+
+        const byRawId = new Map();
+        for (const n of raw.nodes || []) byRawId.set(String(n.id), n);
+
+        const focus = byRawId.get(focusId);
+        if (!focus || focus.type !== "item") {
+          return {
+            nodes: [root],
+            links: [],
+            stats: { matchedItems: 0, shownItems: 0, truncated: false, emptyFocus: true },
+          };
+        }
+
+        const adj = new Map(); // itemId -> Set(itemId)
+        const hierParents = new Map(); // itemId -> Set(parentId)
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+
+          const w = Number(l.weight || 0);
+          const isRel =
+            (state.showRelations && l.type === "relation") ||
+            (state.showInferred && l.type === "rel_inferred" && w >= Number(state.inferredMinScore || 0));
+          if (isRel) {
+            if (!adj.has(s)) adj.set(s, new Set());
+            if (!adj.has(t)) adj.set(t, new Set());
+            adj.get(s).add(t);
+            adj.get(t).add(s);
+          }
+
+          if (l.type === "hierarchy") {
+            // category->item (또는 root->domain 같은 계층도 포함되지만, 여기서는 item의 부모만 필요)
+            const sn = byRawId.get(s);
+            const tn = byRawId.get(t);
+            if (tn && tn.type === "item") {
+              if (!hierParents.has(t)) hierParents.set(t, new Set());
+              hierParents.get(t).add(s);
+            }
+            if (sn && sn.type === "item") {
+              if (!hierParents.has(s)) hierParents.set(s, new Set());
+              hierParents.get(s).add(t);
+            }
+          }
+        }
+
+        const maxDepth = Math.max(1, Math.min(3, Number(state.relationDepth || 1)));
+        const maxNodes = Math.max(30, Math.min(800, Number(state.relationLimit || 200)));
+
+        const visited = new Set([focusId]);
+        const depthById = new Map([[focusId, 0]]);
+        const q = [{ id: focusId, depth: 0 }];
+
+        while (q.length) {
+          const cur = q.shift();
+          if (!cur) break;
+          if (cur.depth >= maxDepth) continue;
+          const ns = adj.get(cur.id);
+          if (!ns) continue;
+          for (const nb of ns) {
+            if (visited.has(nb)) continue;
+            const rawNb = byRawId.get(nb);
+            if (!rawNb || rawNb.type !== "item") continue;
+            visited.add(nb);
+            depthById.set(nb, cur.depth + 1);
+            q.push({ id: nb, depth: cur.depth + 1 });
+            if (visited.size >= maxNodes) break;
+          }
+          if (visited.size >= maxNodes) break;
+        }
+
+        const itemIds = Array.from(visited);
+        const nodes = [upsertCachedNode(root)];
+        const links = [];
+
+        const includeHierarchy = Boolean(state.relationShowHierarchy);
+        const parentIds = new Set();
+        if (includeHierarchy) {
+          // 깊이 0~1까지만 카테고리/도메인 컨텍스트를 붙여서 과도한 분산을 막음
+          for (const id of itemIds) {
+            const d = depthById.get(id) || 0;
+            if (d > 1) continue;
+            const ps = hierParents.get(id);
+            if (!ps) continue;
+            for (const p of ps) parentIds.add(String(p));
+          }
+        }
+
+        for (const pid of parentIds) {
+          const n = byRawId.get(pid);
+          if (!n) continue;
+          nodes.push(upsertCachedNode(n));
+        }
+
+        for (const id of itemIds) {
+          const n = byRawId.get(id);
+          if (!n) continue;
+          const depth = depthById.get(id) || 0;
+          nodes.push(upsertCachedNode({ ...n, depth }));
+        }
+
+        const inSet = new Set(nodes.map((n) => String(n.id)));
+        const seen = new Set();
+        for (const l of raw.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (!inSet.has(String(s)) || !inSet.has(String(t))) continue;
+
+          const w = Number(l.weight || 0);
+          if (
+            (state.showRelations && l.type === "relation") ||
+            (state.showInferred && l.type === "rel_inferred" && w >= Number(state.inferredMinScore || 0))
+          ) {
+            const key = linkKey(s, t, l.type);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            links.push({ source: s, target: t, type: l.type, weight: Number(l.weight || 0), tags: l.tags || null });
+          }
+
+          if (includeHierarchy && l.type === "hierarchy") {
+            const key = linkKey(s, t, "hierarchy");
+            if (seen.has(key)) continue;
+            seen.add(key);
+            links.push({ source: s, target: t, type: "hierarchy" });
+          }
+        }
+
+        return {
+          nodes,
+          links,
+          stats: { matchedItems: itemIds.length, shownItems: itemIds.length, truncated: visited.size >= maxNodes },
+        };
+      }
+
+      function computeGraphData() {
+        if (state.mode === "territory") return computeTerritoryGraphData();
+        if (state.mode === "relation") return computeRelationGraphData();
+        if (state.mode === "layer") return computeLayerGraphData();
+        if (state.mode === "pov") return computePovGraphData();
+        if (state.mode === "state") return computeStateGraphData();
+        if (state.mode === "timeline") return computeTimelineGraphData();
+        return null;
+      }
+
+      function computeById(graphData) {
+        const m = new Map();
+        for (const n of graphData.nodes || []) m.set(String(n.id), n);
+        return m;
+      }
+
+      function computeHighlight(graphData) {
+        const focusId = state.hoveredNodeId || state.selectedNodeId;
+        const highlightNodes = new Set();
+        const highlightLinks = new Set();
+        if (!graphData || !focusId) return { highlightNodes, highlightLinks };
+
+        highlightNodes.add(String(focusId));
+        for (const l of graphData.links || []) {
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          if (s !== String(focusId) && t !== String(focusId)) continue;
+          highlightNodes.add(s);
+          highlightNodes.add(t);
+          highlightLinks.add(linkKey(s, t, l.type));
+        }
+        return { highlightNodes, highlightLinks };
+      }
+
+      function pickDefaultRelationFocusId(raw) {
+        if (!raw) return null;
+        const nodes = raw.nodes || [];
+        const byId = new Map();
+        for (const n of nodes) byId.set(String(n.id), n);
+
+        const degree = new Map();
+        for (const l of raw.links || []) {
+          if (!l) continue;
+          if (l.type !== "relation" && l.type !== "rel_inferred") continue;
+          const s = getEndpointId(l.source);
+          const t = getEndpointId(l.target);
+          if (!s || !t) continue;
+          const sn = byId.get(String(s));
+          const tn = byId.get(String(t));
+          if (!sn || !tn) continue;
+          if (sn.type !== "item" || tn.type !== "item") continue;
+          degree.set(String(s), (degree.get(String(s)) || 0) + 1);
+          degree.set(String(t), (degree.get(String(t)) || 0) + 1);
+        }
+
+        let bestId = null;
+        let bestDeg = -1;
+        let bestLabel = "";
+        for (const [id, d] of degree.entries()) {
+          const node = byId.get(String(id));
+          const label = node && node.label ? String(node.label) : "";
+          if (d > bestDeg) {
+            bestDeg = d;
+            bestId = id;
+            bestLabel = label;
+            continue;
+          }
+          if (d === bestDeg) {
+            if (String(label).localeCompare(String(bestLabel), "ko") < 0) {
+              bestId = id;
+              bestLabel = label;
+            }
+          }
+        }
+        return bestId;
+      }
+
+      function openNotion(node) {
+        if (!node || !node.url) return;
+        try {
+          const w = window.open(node.url, "_blank", "noopener,noreferrer");
+          if (!w) window.location.href = node.url;
+        } catch {
+          window.location.href = node.url;
+        }
+      }
+
+      function getNotionPageKey(node) {
+        if (!node) return null;
+        if (node.url) {
+          try {
+            const u = new URL(String(node.url));
+            const seg = String(u.pathname || "").split("/").filter(Boolean).pop() || "";
+            const key = seg.replace(/[^0-9a-fA-F]/g, "");
+            if (/^[0-9a-fA-F]{32}$/.test(key)) return key.toLowerCase();
+          } catch {
+            // ignore
+          }
+        }
+        const id = String(node.id || "");
+        const key = id.replace(/-/g, "");
+        if (/^[0-9a-fA-F]{32}$/.test(key)) return key.toLowerCase();
+        return null;
+      }
+
+      function getNotionEmbedUrl(node) {
+        if (!node || !node.url) return null;
+        const key = getNotionPageKey(node);
+        if (!key) return null;
+        try {
+          const u = new URL(String(node.url));
+          return u.origin + "/embed/" + key;
+        } catch {
+          return "https://www.notion.so/embed/" + key;
+        }
+      }
+
+      function updateSelectedUI(node) {
+        if (!node) {
+          elSelectedEmpty.style.display = "";
+          elSelectedBox.style.display = "none";
+          elSelectedBox.innerHTML = "";
+          return;
+        }
+
+        elSelectedEmpty.style.display = "none";
+        elSelectedBox.style.display = "";
+
+        const badges = [];
+        badges.push('<span class="badge">' + node.type + "</span>");
+        if (node.domain) badges.push('<span class="badge">domain: ' + node.domain + "</span>");
+        if (node.domains && node.domains.length)
+          badges.push('<span class="badge">domains: ' + node.domains.join(", ") + "</span>");
+        if (node.category) badges.push('<span class="badge">cat: ' + node.category + "</span>");
+        if (node.role) badges.push('<span class="badge">역할: ' + node.role + "</span>");
+        if (node.layer) {
+          const l = normalizeLayer(node.layer) || inferLayerFromItem(node);
+          badges.push('<span class="badge">layer: ' + (l === "UNSORTED" ? "미분류" : l) + "</span>");
+        }
+        if (node.pov) badges.push('<span class="badge">POV: ' + node.pov + "</span>");
+        if (node.time || node.timeLabel) badges.push('<span class="badge">time: ' + (node.timeLabel || node.time) + "</span>");
+        if (node.status) badges.push('<span class="badge">상태: ' + node.status + "</span>");
+
+        const tags =
+          node.tags && node.tags.length
+            ? '<div style="margin-top:10px; font-size:12px; color:#cbd5e1; line-height:1.4;"><div style="color: var(--muted);">연관</div><div>' +
+              node.tags.join(", ") +
+              "</div></div>"
+            : "";
+
+        if (String(state.notionPreviewNodeId) !== String(node.id)) {
+          state.notionPreviewOpen = false;
+          state.notionPreviewNodeId = null;
+        }
+
+        let notionPreviewHtml = "";
+        if (node.type === "item" && node.url) {
+          const embedUrl = getNotionEmbedUrl(node);
+          const isOpen = Boolean(state.notionPreviewOpen) && String(state.notionPreviewNodeId) === String(node.id);
+          notionPreviewHtml =
+            '<div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.4;">' +
+            '<div style="color: var(--muted); font-weight: 800;">노션 상세</div>' +
+            '<div class="hint" style="margin-top:6px;">페이지가 웹 공유 상태이거나 로그인 상태일 때만 미리보기가 보일 수 있습니다.</div>' +
+            '<div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">' +
+            '<button id="btn-open-notion" type="button">노션 새 탭 열기</button>' +
+            (embedUrl
+              ? isOpen
+                ? '<button id="btn-notion-preview-close" type="button">미리보기 닫기</button>'
+                : '<button id="btn-notion-preview-open" type="button">미리보기 열기</button>'
+              : "") +
+            "</div>" +
+            (embedUrl && isOpen
+              ? '<div style="margin-top:10px; border:1px solid rgba(148,163,184,0.25); border-radius:12px; overflow:hidden;">' +
+                '<iframe id="notionPreviewFrame" src="' +
+                embedUrl +
+                '" style="width:100%; height: 520px; border:0;" loading="lazy" referrerpolicy="no-referrer"></iframe>' +
+                "</div>"
+              : "") +
+            "</div>";
+        }
+
+        let relHtml = "";
+        if (node.type === "item" && state.mode === "relation" && state.lastGraphData && state.lastById) {
+          const byId = state.lastById;
+          const links = state.lastGraphData.links || [];
+          const neighbors = [];
+          for (const l of links) {
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) continue;
+            if (String(s) !== String(node.id) && String(t) !== String(node.id)) continue;
+            const otherId = String(s) === String(node.id) ? String(t) : String(s);
+            const other = byId.get(otherId);
+            if (!other || other.type !== "item") continue;
+            const w = Number(l.weight || 0);
+            neighbors.push({ otherId, other, type: l.type, weight: w, tags: Array.isArray(l.tags) ? l.tags : [] });
+          }
+          neighbors.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+          const shown = neighbors.slice(0, 12);
+          if (shown.length) {
+            relHtml =
+              '<div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.4;">' +
+              '<div style="color: var(--muted); font-weight: 800;">근처 관계</div>' +
+              '<div class="list" style="margin-top:6px; max-height: 220px;">' +
+              shown
+                .map((n) => {
+                  const score = n.type === "rel_inferred" ? (n.weight ? " · 점수 " + n.weight.toFixed(2) : "") : "";
+                  const why = n.type === "rel_inferred" && n.tags.length ? " · " + n.tags.join(", ") : "";
+                  return (
+                    '<button type="button" data-select-id="' +
+                    n.otherId +
+                    '">' +
+                    '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+                    '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                    (n.other.label || "") +
+                    "</div>" +
+                    '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' +
+                    (n.type === "relation" ? "확정" : "추정") +
+                    score +
+                    why +
+                    "</div>" +
+                    "</div>" +
+                    "</button>"
+                  );
+                })
+                .join("") +
+              "</div>" +
+              "</div>";
+          }
+        }
+
+        const showRelationBtn = node.type === "item";
+
+        elSelectedBox.innerHTML =
+          '<div style="font-size:14px; font-weight:900; line-height:1.25;">' +
+          (node.label || "") +
+          "</div>" +
+          '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">' +
+          badges.join("") +
+          "</div>" +
+          tags +
+          notionPreviewHtml +
+          relHtml +
+          '<div style="display:flex; gap:8px; margin-top:12px;">' +
+          '<button id="btn-open-relation" type="button" style="' +
+          (showRelationBtn ? "" : "display:none;") +
+          '">관계로 보기</button>' +
+          "</div>";
+
+        const btn = document.getElementById("btn-open-notion");
+        if (btn) btn.addEventListener("click", () => openNotion(node));
+
+        const btnPrevOpen = document.getElementById("btn-notion-preview-open");
+        if (btnPrevOpen)
+          btnPrevOpen.addEventListener("click", () => {
+            state.notionPreviewOpen = true;
+            state.notionPreviewNodeId = String(node.id);
+            refresh();
+          });
+
+        const btnPrevClose = document.getElementById("btn-notion-preview-close");
+        if (btnPrevClose)
+          btnPrevClose.addEventListener("click", () => {
+            state.notionPreviewOpen = false;
+            state.notionPreviewNodeId = null;
+            refresh();
+          });
+
+        const btnRel = document.getElementById("btn-open-relation");
+        if (btnRel)
+          btnRel.addEventListener("click", () => {
+            state.userInteracted = true;
+            setModeKeepSelected("relation");
+          });
+
+        // 관계 목록에서 이웃 노드로 빠르게 점프
+        for (const b of elSelectedBox.querySelectorAll("button[data-select-id]")) {
+          b.addEventListener("click", () => {
+            const id = b.getAttribute("data-select-id");
+            if (!id) return;
+            state.userInteracted = true;
+            state.selectedNodeId = String(id);
+            state.hoveredNodeId = null;
+            const hit = state.lastById && state.lastById.get(String(id));
+            if (hit) focusNode(hit);
+            refresh();
+          });
+        }
+      }
+
+      function renderItemList(graphData, byId) {
+        if (!state.showItems || !graphData) {
+          elItemListBox.style.display = "none";
+          elItemList.innerHTML = "";
+          return;
+        }
+
+        const items = (graphData.nodes || []).filter((n) => n.type === "item");
+        if (items.length === 0) {
+          const matchedItems =
+            graphData.stats && typeof graphData.stats.matchedItems === "number" ? Number(graphData.stats.matchedItems) : 0;
+          const shownItems =
+            graphData.stats && typeof graphData.stats.shownItems === "number" ? Number(graphData.stats.shownItems) : 0;
+
+          elItemListBox.style.display = "";
+          elItemListCount.textContent = matchedItems ? shownItems + "/" + matchedItems : "0";
+          elItemList.innerHTML = "";
+          elItemListHint.style.display = "";
+
+          if (state.mode === "relation") {
+            elItemListHint.textContent = "항목을 하나 선택한 뒤, '관계로 보기'를 누르거나 관계 모드에서 선택된 항목을 기준으로 표시됩니다.";
+          } else if (state.mode === "territory") {
+            elItemListHint.textContent = "검색/필터를 적용하거나, 카테고리 노드를 클릭해서 펼치면 항목이 표시됩니다.";
+          } else if (state.mode === "layer" || state.mode === "pov" || state.mode === "state" || state.mode === "timeline") {
+            elItemListHint.textContent = "그룹 노드를 클릭해서 펼치거나, 검색/필터로 범위를 줄이면 항목이 표시됩니다.";
+          } else {
+            elItemListHint.textContent = "검색/필터로 범위를 줄이면 항목이 표시됩니다.";
+          }
+          return;
+        }
+
+        elItemListBox.style.display = "";
+        elItemListCount.textContent = Math.min(ITEM_LIST_LIMIT, items.length) + "/" + items.length;
+        elItemListHint.style.display = "none";
+        elItemList.innerHTML = "";
+
+        const shown = items.slice(0, ITEM_LIST_LIMIT);
+        for (const n of shown) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = String(n.id) === String(state.selectedNodeId) ? "selected" : "";
+          const layer = n.layer ? normalizeLayer(n.layer) || inferLayerFromItem(n) : null;
+          const right = [];
+          if (layer && layer !== "UNSORTED") right.push(layer);
+          const role = getRoleFromItem(n);
+          if (role) right.push(role);
+          if (n.status) right.push(n.status);
+          btn.innerHTML =
+            '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+            '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+            (n.label || "") +
+            "</div>" +
+            (right.length
+              ? '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' + right.join(" · ") + "</div>"
+              : "") +
+            "</div>";
+          btn.addEventListener("click", () => {
+            state.userInteracted = true;
+            state.selectedNodeId = String(n.id);
+            state.hoveredNodeId = null;
+            const hit = byId.get(String(n.id));
+            if (hit) focusNode(hit);
+            refresh();
+          });
+          elItemList.appendChild(btn);
+        }
+
+        if (items.length > ITEM_LIST_LIMIT) {
+          elItemListHint.textContent = "너무 많아서 " + ITEM_LIST_LIMIT + "개까지만 목록에 표시합니다. (검색/필터로 줄이기)";
+          elItemListHint.style.display = "";
+        }
+      }
+
+      function focusNode(node) {
+        if (!node || typeof node.x !== "number" || typeof node.y !== "number") return;
+        graph.centerAt(node.x, node.y, 450);
+        const currentZoom = graph.zoom() || 1;
+        if (currentZoom < 1.8) graph.zoom(2.6, 450);
+      }
+
+      function updateUiFromGraphData(graphData, byId) {
+        if (!state.raw) return;
+
+        const meta = state.raw.meta || {};
+        const exportedAt = meta.exportedAt || meta.exportedAtUtc || "";
+        if (exportedAt) {
+          elExport.textContent = "export: " + exportedAt;
+          elExport.style.display = "";
+        } else {
+          elExport.style.display = "none";
+        }
+
+        const nodeCount = (state.raw.nodes || []).length;
+        const linkCount = (state.raw.links || []).length;
+        const pageCount = meta.totalPagesFetched != null ? meta.totalPagesFetched : "?";
+        const modeLabel = (MODES.find((m) => m.id === state.mode) || {}).label || state.mode;
+        const viewNodeCount = (graphData.nodes || []).length;
+        const viewLinkCount = (graphData.links || []).length;
+        elStats.textContent =
+          "모드: " +
+          modeLabel +
+          " | pages: " +
+          pageCount +
+          " | view nodes: " +
+          viewNodeCount +
+          " / view links: " +
+          viewLinkCount +
+          " | raw nodes: " +
+          nodeCount +
+          " / raw links: " +
+          linkCount;
+
+        if (state.showItems) {
+          elItemControls.style.display = "";
+          const showStatExtra =
+            state.mode === "territory" ? graphData.stats && (graphData.stats.matchedItems > 0 || state.expandedCategoryScope) : graphData.stats && graphData.stats.matchedItems > 0;
+          elItemStats.style.display = showStatExtra ? "" : "none";
+          if (graphData.stats) {
+            let t = "항목: " + graphData.stats.shownItems + "/" + graphData.stats.matchedItems;
+            if (graphData.stats.truncated) t += " (최대 " + state.itemLimit + "개만 표시)";
+            if (state.mode === "territory" && state.expandedCategoryScope)
+              t += "\\n펼침: " + state.expandedCategoryScope.domain + " / " + state.expandedCategoryScope.category;
+            if (state.expandedScope) {
+              if (state.expandedScope.mode === "layer") t += "\\n펼침: " + state.expandedScope.layer + " / " + state.expandedScope.category;
+              if (state.expandedScope.mode === "pov") t += "\\n펼침: " + state.expandedScope.pov;
+              if (state.expandedScope.mode === "state") t += "\\n펼침: " + state.expandedScope.status;
+              if (state.expandedScope.mode === "timeline") t += "\\n펼침: " + state.expandedScope.bucketKey;
+            }
+            elItemStats.textContent = t;
+          }
+        } else {
+          elItemControls.style.display = "none";
+          elItemStats.style.display = "none";
+          state.expandedCategoryScope = null;
+        }
+
+        elBtnCollapse.style.display = state.expandedCategoryScope || state.expandedScope ? "" : "none";
+
+        const selected = state.selectedNodeId ? byId.get(String(state.selectedNodeId)) : null;
+        updateSelectedUI(selected);
+      }
+
+      function updateModeUI() {
+        const mode = state.mode;
+
+        for (const btn of elModeTabs.querySelectorAll("button[data-mode]")) {
+          btn.classList.toggle("active", btn.dataset.mode === mode);
+        }
+
+        elModeHint.textContent = MODE_HINTS[mode] || "";
+
+        elControlLayer.style.display = mode === "layer" || mode === "ui" ? "" : "none";
+        elControlPov.style.display = mode === "pov" ? "" : "none";
+        elControlStatus.style.display = mode === "state" || mode === "ui" ? "" : "none";
+        if (elControlRelation) elControlRelation.style.display = mode === "relation" ? "" : "none";
+
+        const allowMindmap = mode === "territory";
+        elMindmap.disabled = !allowMindmap;
+        if (elMindmap.parentElement) elMindmap.parentElement.style.opacity = allowMindmap ? "1" : "0.45";
+
+        const allowRelations = mode === "territory" || mode === "relation";
+        elShowRelations.disabled = !allowRelations;
+        if (elShowRelations.parentElement) elShowRelations.parentElement.style.opacity = allowRelations ? "1" : "0.45";
+
+        if (elShowInferred) {
+          elShowInferred.disabled = !allowRelations;
+          if (elShowInferred.parentElement) elShowInferred.parentElement.style.opacity = allowRelations ? "1" : "0.45";
+        }
+
+        const allowShowItems = mode !== "ui";
+        elShowItems.disabled = !allowShowItems;
+        if (elShowItems.parentElement) elShowItems.parentElement.style.opacity = allowShowItems ? "1" : "0.45";
+      }
+
+      function setMode(nextMode, opts) {
+        const next = String(nextMode || "").trim();
+        if (!next) return;
+        state.mode = next;
+        state.userInteracted = false;
+        state.autoFitDone = false;
+        state.hoveredNodeId = null;
+        const keepSelected = Boolean(opts && opts.keepSelected);
+        if (!keepSelected) state.selectedNodeId = null;
+        state.expandedCategoryScope = null;
+        state.expandedScope = null;
+        updateModeUI();
+        refresh();
+      }
+
+      function setModeKeepSelected(nextMode) {
+        setMode(nextMode, { keepSelected: true });
+      }
+
+      function getDagModeForMode() {
+        // territory는 DAG 배치(radialout)가 노드를 한 링에 몰아넣는 경우가 있어서 사용하지 않습니다.
+        // 대신 mindmapLayout(안정)일 때 도메인/카테고리를 앵커링해서 항상 퍼지게 만듭니다.
+        if (state.mode === "territory") return null;
+        if (state.mode === "layer") return "td";
+        if (state.mode === "pov") return "radialout";
+        if (state.mode === "state") return "lr";
+        // timeline은 bucket 순서/정렬을 위해 고정 배치(anchors)를 사용합니다.
+        if (state.mode === "timeline") return null;
+        return null;
+      }
+
+      function getDagLevelDistanceForMode() {
+        const density = state.density || "normal";
+        const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+        if (state.mode === "territory") return state.mindmapLayout ? Math.floor(110 * mult) : null;
+        if (state.mode === "layer") return Math.floor(130 * mult);
+        if (state.mode === "pov") return Math.floor(120 * mult);
+        if (state.mode === "state") return Math.floor(140 * mult);
+        if (state.mode === "timeline") return Math.floor(140 * mult);
+        return null;
+      }
+
+      function applyAnchors(graphData) {
+        if (!graphData) return;
+        const nodes = graphData.nodes || [];
+        const shouldAnchorTerritory = state.mode === "territory" && Boolean(state.mindmapLayout);
+        const shouldAnchorTimeline = state.mode === "timeline";
+        const shouldAnchorPov = state.mode === "pov";
+        const shouldAnchorState = state.mode === "state";
+        const shouldAnchorLayer = state.mode === "layer" && !nodes.some((n) => n && n.type === "category");
+        const shouldAnchor = shouldAnchorTerritory || shouldAnchorTimeline || shouldAnchorPov || shouldAnchorState || shouldAnchorLayer;
+
+        for (const n of nodes) {
+          if (!n) continue;
+          if (!shouldAnchor && (n.fx != null || n.fy != null)) {
+            delete n.fx;
+            delete n.fy;
+          }
+        }
+
+        if (!shouldAnchor) return;
+
+        function anchorBucketGrid({ bucketType, bucketOrder, bucketLabelKey, bucketSortKey }) {
+          const density = state.density || "normal";
+          const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+
+          const cols = density === "compact" ? 4 : density === "spacious" ? 2 : 3;
+          const bucketX = 0;
+          const itemX0 = Math.floor(280 * mult);
+          const itemGapX = Math.floor(190 * mult);
+          const itemGapY = Math.floor(30 * mult);
+          const headerH = Math.floor(62 * mult);
+          const bucketPad = Math.floor(52 * mult);
+
+          const byId = new Map();
+          for (const n of nodes) byId.set(String(n.id), n);
+
+          const orderIndex = new Map();
+          if (Array.isArray(bucketOrder)) {
+            for (let i = 0; i < bucketOrder.length; i++) orderIndex.set(String(bucketOrder[i]), i);
+          }
+
+          const bucketNodes = nodes
+            .filter((n) => n && n.type === bucketType)
+            .slice()
+            .sort((a, b) => {
+              if (bucketSortKey) {
+                const sa = Number(a && a[bucketSortKey] != null ? a[bucketSortKey] : Number.POSITIVE_INFINITY);
+                const sb = Number(b && b[bucketSortKey] != null ? b[bucketSortKey] : Number.POSITIVE_INFINITY);
+                if (sa !== sb) return sa - sb;
+              }
+              if (bucketLabelKey) {
+                const la = String(a && a[bucketLabelKey] != null ? a[bucketLabelKey] : "");
+                const lb = String(b && b[bucketLabelKey] != null ? b[bucketLabelKey] : "");
+                if (la && lb && la !== lb) return la.localeCompare(lb, "ko");
+              }
+              const ba = stripCountSuffix(a && a.label ? a.label : "");
+              const bb = stripCountSuffix(b && b.label ? b.label : "");
+              const ia = orderIndex.has(ba) ? orderIndex.get(ba) : Number.POSITIVE_INFINITY;
+              const ib = orderIndex.has(bb) ? orderIndex.get(bb) : Number.POSITIVE_INFINITY;
+              if (ia !== ib) return ia - ib;
+              return String(ba).localeCompare(String(bb), "ko");
+            });
+
+          const bucketItems = new Map(); // bucketId -> itemNodes[]
+          for (const l of graphData.links || []) {
+            if (!l || l.type !== "hierarchy") continue;
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) continue;
+            const sn = byId.get(String(s));
+            const tn = byId.get(String(t));
+            if (!sn || !tn) continue;
+
+            if (sn.type === bucketType && tn.type === "item") {
+              const key = String(sn.id);
+              if (!bucketItems.has(key)) bucketItems.set(key, []);
+              bucketItems.get(key).push(tn);
+            } else if (tn.type === bucketType && sn.type === "item") {
+              const key = String(tn.id);
+              if (!bucketItems.has(key)) bucketItems.set(key, []);
+              bucketItems.get(key).push(sn);
+            }
+          }
+
+          for (const list of bucketItems.values()) {
+            list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+          }
+
+          let y = 0;
+          for (const b of bucketNodes) {
+            const items = bucketItems.get(String(b.id)) || [];
+
+            b.fx = bucketX;
+            b.fy = y;
+
+            for (let i = 0; i < items.length; i++) {
+              const it = items[i];
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              it.fx = itemX0 + col * itemGapX;
+              it.fy = y + headerH + row * itemGapY;
+            }
+
+            const rows = Math.max(1, Math.ceil(items.length / Math.max(1, cols)));
+            const bucketH = headerH + rows * itemGapY;
+            y += bucketH + bucketPad;
+          }
+
+          const root = nodes.find((n) => n.type === "root");
+          if (root) {
+            root.fx = -Math.floor(240 * mult);
+            root.fy = Math.floor(y / 2);
+          }
+
+          // bucket+item+root 외에는 고정값 제거
+          for (const n of nodes) {
+            if (!n) continue;
+            if (n.type === "root" || n.type === bucketType || n.type === "item") continue;
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+        }
+
+        if (shouldAnchorPov) {
+          anchorBucketGrid({ bucketType: "pov", bucketOrder: PERSPECTIVES });
+          return;
+        }
+
+        if (shouldAnchorState) {
+          anchorBucketGrid({ bucketType: "state", bucketOrder: ["초안", "정리중", "확정", "미지정"] });
+          return;
+        }
+
+        if (shouldAnchorLayer) {
+          anchorBucketGrid({ bucketType: "layer", bucketOrder: LAYERS.map((l) => LAYER_LABEL[l] || l) });
+          return;
+        }
+
+        if (shouldAnchorTimeline) {
+          const density = state.density || "normal";
+          const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+
+          const cols = density === "compact" ? 4 : density === "spacious" ? 2 : 3;
+          const bucketX = 0;
+          const itemX0 = Math.floor(280 * mult);
+          const itemGapX = Math.floor(190 * mult);
+          const itemGapY = Math.floor(30 * mult);
+          const headerH = Math.floor(62 * mult);
+          const bucketPad = Math.floor(52 * mult);
+
+          const byId = new Map();
+          for (const n of nodes) byId.set(String(n.id), n);
+
+          const bucketNodes = nodes
+            .filter((n) => n.type === "time" && n.bucketKey)
+            .slice()
+            .sort((a, b) => {
+              const sa = Number(a.bucketSortKey != null ? a.bucketSortKey : Number.POSITIVE_INFINITY);
+              const sb = Number(b.bucketSortKey != null ? b.bucketSortKey : Number.POSITIVE_INFINITY);
+              if (sa !== sb) return sa - sb;
+              const la = String(a.bucketLabel || stripCountSuffix(a.label || ""));
+              const lb = String(b.bucketLabel || stripCountSuffix(b.label || ""));
+              return la.localeCompare(lb, "ko");
+            });
+
+          const bucketItems = new Map(); // bucketKey -> itemNodes[]
+          for (const l of graphData.links || []) {
+            if (!l || l.type !== "hierarchy") continue;
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) continue;
+            const sn = byId.get(String(s));
+            const tn = byId.get(String(t));
+            if (!sn || !tn) continue;
+            if (sn.type !== "time" || tn.type !== "item") continue;
+            const key = String(sn.bucketKey || "");
+            if (!key) continue;
+            if (!bucketItems.has(key)) bucketItems.set(key, []);
+            bucketItems.get(key).push(tn);
+          }
+
+          for (const list of bucketItems.values()) {
+            list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+          }
+
+          let y = 0;
+          for (const b of bucketNodes) {
+            const key = String(b.bucketKey || "");
+            const items = bucketItems.get(key) || [];
+
+            b.fx = bucketX;
+            b.fy = y;
+
+            for (let i = 0; i < items.length; i++) {
+              const it = items[i];
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              it.fx = itemX0 + col * itemGapX;
+              it.fy = y + headerH + row * itemGapY;
+            }
+
+            const rows = Math.max(1, Math.ceil(items.length / Math.max(1, cols)));
+            const bucketH = headerH + rows * itemGapY;
+            y += bucketH + bucketPad;
+          }
+
+          const root = nodes.find((n) => n.type === "root");
+          if (root) {
+            root.fx = -Math.floor(240 * mult);
+            root.fy = Math.floor(y / 2);
+          }
+
+          // 타임라인 이외 노드는 고정값 제거
+          for (const n of nodes) {
+            if (!n) continue;
+            if (n.type === "root" || n.type === "time" || n.type === "item") continue;
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+
+          return;
+        }
+
+        const density = state.density || "normal";
+        const mult = density === "spacious" ? 1.35 : density === "compact" ? 0.92 : 1;
+
+        const root = nodes.find((n) => n.type === "root");
+        if (root) {
+          root.fx = 0;
+          root.fy = 0;
+        }
+
+        const domains = nodes.filter((n) => n.type === "domain");
+        const domainByName = new Map();
+        for (const d of domains) {
+          const name = String(d.domain || d.label || "");
+          domainByName.set(name, d);
+        }
+
+        const domainCenters = new Map();
+        const ringR1 = Math.floor(520 * mult);
+        const ordered = DOMAIN_ORDER.filter((n) => domainByName.has(n));
+        const fallback = domains
+          .map((d) => String(d.domain || d.label || ""))
+          .filter((n) => n && !ordered.includes(n))
+          .sort((a, b) => a.localeCompare(b, "ko"));
+        const allDomainNames = ordered.concat(fallback);
+
+        for (let i = 0; i < allDomainNames.length; i++) {
+          const name = allDomainNames[i];
+          const node = domainByName.get(name);
+          if (!node) continue;
+          const angle = -Math.PI / 2 + (i / Math.max(1, allDomainNames.length)) * Math.PI * 2;
+          const x = Math.cos(angle) * ringR1;
+          const y = Math.sin(angle) * ringR1;
+          node.fx = x;
+          node.fy = y;
+          domainCenters.set(name, { x, y });
+        }
+
+        const cats = nodes.filter((n) => n.type === "category");
+        const catsByDomain = new Map();
+        for (const c of cats) {
+          const dn = String(c.domain || "");
+          if (!catsByDomain.has(dn)) catsByDomain.set(dn, []);
+          catsByDomain.get(dn).push(c);
+        }
+
+        for (const [dn, list] of catsByDomain.entries()) {
+          const center = domainCenters.get(dn);
+          if (!center) continue;
+
+          const sorted = list
+            .slice()
+            .sort((a, b) => String(a.categoryName || a.baseLabel || a.label || "").localeCompare(String(b.categoryName || b.baseLabel || b.label || ""), "ko"));
+
+          const perRing = 14;
+          const ringCount = Math.max(1, Math.ceil(sorted.length / perRing));
+          const baseR2 = Math.floor((360 + Math.min(160, sorted.length * 5)) * mult);
+          const ringStep = Math.floor((85 + Math.min(25, ringCount * 3)) * mult);
+
+          for (let idx = 0; idx < sorted.length; idx++) {
+            const ring = Math.floor(idx / perRing);
+            const inRing = idx % perRing;
+            const count = Math.min(perRing, sorted.length - ring * perRing);
+            const angle = (inRing / Math.max(1, count)) * Math.PI * 2;
+            const r = baseR2 + ring * ringStep;
+            const x = center.x + Math.cos(angle) * r;
+            const y = center.y + Math.sin(angle) * r;
+            sorted[idx].fx = x;
+            sorted[idx].fy = y;
+          }
+        }
+
+        // item/기타 노드는 자유롭게 두고(링크로만 끌려오게), 이전 고정값이 남지 않도록 정리
+        for (const n of nodes) {
+          if (!n) continue;
+          if (n.type === "item") {
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+          if (n.type !== "root" && n.type !== "domain" && n.type !== "category" && n.type !== "item") {
+            if (n.fx != null || n.fy != null) {
+              delete n.fx;
+              delete n.fy;
+            }
+          }
+        }
+      }
+
+      function applyForces(graphData) {
+        if (!graphData) return;
+
+        const density = state.density || "normal";
+        const baseCharge = density === "spacious" ? -260 : density === "compact" ? -130 : -190;
+        const baseLink = density === "spacious" ? 72 : density === "compact" ? 44 : 58;
+
+        const itemCount = (graphData.nodes || []).reduce((acc, n) => acc + (n.type === "item" ? 1 : 0), 0);
+        const scale = Math.min(2.2, 1 + itemCount / 220);
+        const chargeStrength = Math.floor(baseCharge * scale * (state.mode === "relation" ? 0.78 : 1));
+        const linkDistance = Math.floor(
+          baseLink * Math.min(1.8, 1 + itemCount / 450) * (state.mode === "relation" ? 0.68 : 1),
+        );
+
+        const charge = graph.d3Force && graph.d3Force("charge");
+        if (charge && typeof charge.strength === "function") charge.strength(chargeStrength);
+
+        const link = graph.d3Force && graph.d3Force("link");
+        if (link && typeof link.distance === "function") {
+          link.distance((l) => {
+            if (l.type === "relation") return 28;
+            if (l.type === "rel_inferred") return 38;
+            if (l.type === "transition") return 36;
+            if (state.mode === "relation") return Math.max(26, Math.floor(linkDistance * 0.9));
+            if (state.mode === "territory") return Math.floor(linkDistance * (state.mindmapLayout ? 1.65 : 1.25));
+            return linkDistance;
+          });
+        }
+
+        if (typeof graph.d3ReheatSimulation === "function") graph.d3ReheatSimulation();
+      }
+
+      function renderDashboard() {
+        const raw = state.raw;
+        if (!raw) return;
+
+        const items = (raw.nodes || []).filter((n) => n.type === "item");
+        const meta = raw.meta || {};
+        const exportedAt = meta.exportedAt || meta.exportedAtUtc || "";
+
+        const countDomain = new Map([
+          ["세계관", 0],
+          ["소설", 0],
+          ["게임", 0],
+        ]);
+        const countLayer = new Map(
+          LAYERS.map((l) => [l, 0]),
+        );
+        const countStatus = new Map([
+          ["초안", 0],
+          ["정리중", 0],
+          ["확정", 0],
+          ["미지정", 0],
+        ]);
+        const countRole = new Map([
+          ["존재", 0],
+          ["사건", 0],
+          ["구조", 0],
+          ["결과", 0],
+          ["미지정(없음)", 0],
+          ["미지정_존재", 0],
+          ["미지정_사건", 0],
+          ["미지정_구조", 0],
+          ["미지정_결과", 0],
+        ]);
+
+        for (const it of items) {
+          const domains = Array.isArray(it.domains) ? it.domains : [];
+          for (const d of domains) countDomain.set(d, (countDomain.get(d) || 0) + 1);
+          const layer = inferLayerFromItem(it);
+          countLayer.set(layer, (countLayer.get(layer) || 0) + 1);
+          const status = it.status ? String(it.status) : "미지정";
+          countStatus.set(status, (countStatus.get(status) || 0) + 1);
+          const role = getRoleFromItem(it);
+          const roleKey = role || "미지정(없음)";
+          if (!countRole.has(roleKey)) countRole.set(roleKey, 0);
+          countRole.set(roleKey, (countRole.get(roleKey) || 0) + 1);
+        }
+
+        const filtersActive =
+          state.query.trim().length > 0 ||
+          state.domainFilter !== "ALL" ||
+          state.categoryFilter !== "ALL" ||
+          state.roleFilter !== "ALL" ||
+          state.layerFilter !== "ALL" ||
+          state.statusFilter !== "ALL";
+
+        const filtered = items.filter((it) => {
+          if (!isRoleMatch(it)) return false;
+          const domains = Array.isArray(it.domains) ? it.domains : [];
+          if (state.domainFilter !== "ALL" && !domains.includes(state.domainFilter)) return false;
+          if (state.categoryFilter !== "ALL" && it.category !== state.categoryFilter) return false;
+          const layer = inferLayerFromItem(it);
+          if (state.layerFilter !== "ALL" && layer !== state.layerFilter) return false;
+          const status = it.status ? String(it.status) : "미지정";
+          if (state.statusFilter !== "ALL" && status !== state.statusFilter) return false;
+          if (state.query.trim().length > 0 && !includesCI(it.label, state.query.trim())) return false;
+          return true;
+        });
+
+        filtered.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "ko"));
+        const truncated = filtered.length > state.itemLimit;
+        const shown = filtersActive ? (truncated ? filtered.slice(0, state.itemLimit) : filtered) : [];
+
+        elAltView.innerHTML =
+          '<div style="max-width: 980px; margin: 0 auto;">' +
+          '<div style="font-size: 16px; font-weight: 950;">UI 대시보드</div>' +
+          '<div class="mini" style="margin-top: 6px;">export: ' +
+          (exportedAt || "-") +
+          " | 총 항목: " +
+          items.length +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ['세계관', '소설', '게임']
+            .map((d) => {
+              const v = countDomain.get(d) || 0;
+              return (
+                '<button class="card" type="button" data-set-domain="' +
+                d +
+                '">' +
+                '<div class="cardTitle">도메인</div>' +
+                '<div class="cardValue" style="color:' +
+                (d === "세계관" ? "#60a5fa" : d === "소설" ? "#f472b6" : "#34d399") +
+                ';">' +
+                d +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["CORE", "SYSTEM", "NARRATIVE", "PLAYER"]
+            .map((l) => {
+              const v = countLayer.get(l) || 0;
+              return (
+                '<button class="card" type="button" data-set-layer="' +
+                l +
+                '">' +
+                '<div class="cardTitle">레이어</div>' +
+                '<div class="cardValue">' +
+                l +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["초안", "정리중", "확정", "미지정"]
+            .map((s) => {
+              const v = countStatus.get(s) || 0;
+              return (
+                '<button class="card" type="button" data-set-status="' +
+                s +
+                '">' +
+                '<div class="cardTitle">상태</div>' +
+                '<div class="cardValue">' +
+                s +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div style="margin-top: 14px;" class="cardGrid">' +
+          ["미지정(없음)", "존재", "사건", "구조", "결과", "미지정_존재", "미지정_사건", "미지정_구조", "미지정_결과"]
+            .map((r) => {
+              const v = countRole.get(r) || 0;
+              const value = r === "미지정(없음)" ? "__NONE__" : r;
+              return (
+                '<button class="card" type="button" data-set-role="' +
+                value +
+                '">' +
+                '<div class="cardTitle">역할</div>' +
+                '<div class="cardValue">' +
+                r +
+                "</div>" +
+                '<div class="mini">항목: ' +
+                v +
+                "</div>" +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<div class="row" style="margin-top: 14px; gap: 10px; flex-wrap: wrap;">' +
+          '<button type="button" data-action="clear">필터 초기화</button>' +
+          '<button type="button" data-action="toTerritory">그래프(영역)로 보기</button>' +
+          "</div>" +
+          '<div class="hint" style="margin-top: 10px;">' +
+          (filtersActive
+            ? "결과: " +
+              shown.length +
+              "/" +
+              filtered.length +
+              (truncated ? " (최대 " + state.itemLimit + "개만 표시)" : "")
+            : "검색/필터를 하나라도 걸면 결과 목록을 보여줍니다.") +
+          "</div>" +
+          '<div class="list" style="margin-top: 10px; max-height: none;">' +
+          (filtersActive
+            ? shown
+                .map((it) => {
+                  const status = it.status ? String(it.status) : "";
+                  const layer = inferLayerFromItem(it);
+                  const role = getRoleFromItem(it);
+                  const suggested = !role ? suggestRoleFromCategory(it) : null;
+                  return (
+                    '<button type="button" data-open-url="' +
+                    (it.url || "") +
+                    '">' +
+                    '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+                    '<div style="font-size:12px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                    (it.label || "") +
+                    "</div>" +
+                    '<div style="font-size:11px; color: var(--muted); white-space:nowrap;">' +
+                    (layer !== "UNSORTED" ? layer : "") +
+                    (role ? " · " + role : suggested ? " · 역할없음→" + suggested : "") +
+                    (status ? " · " + status : "") +
+                    "</div>" +
+                    "</div>" +
+                    "</button>"
+                  );
+                })
+                .join("")
+            : "") +
+          "</div>" +
+          "</div>";
+      }
+
+      function refresh() {
+        if (!state.raw) return;
+
+        if (state.mode === "relation" && !state.selectedNodeId) {
+          const id = pickDefaultRelationFocusId(state.raw);
+          if (id) state.selectedNodeId = String(id);
+        }
+
+        if (state.mode === "ui") {
+          elGraph.style.display = "none";
+          elAltView.style.display = "";
+          renderDashboard();
+          elItemListBox.style.display = "none";
+          elSelectedBox.style.display = "none";
+          elSelectedEmpty.style.display = "";
+          elSelectedEmpty.textContent = "UI 모드: 오른쪽 목록에서 선택하세요.";
+          elItemControls.style.display = "none";
+          elItemStats.style.display = "none";
+          elBtnCollapse.style.display = "none";
+          return;
+        }
+
+        elGraph.style.display = "";
+        elAltView.style.display = "none";
+
+        // Expand scope hygiene
+        if (state.mode === "territory") {
+          state.expandedScope = null;
+          const q = state.query.trim();
+          if (!state.showItems) state.expandedCategoryScope = null;
+          if (
+            state.showItems &&
+            (q.length > 0 || state.domainFilter !== "ALL" || state.categoryFilter !== "ALL" || state.roleFilter !== "ALL")
+          ) {
+            state.expandedCategoryScope = null;
+          }
+        } else if (state.mode === "relation") {
+          state.expandedCategoryScope = null;
+          state.expandedScope = null;
+        } else {
+          state.expandedCategoryScope = null;
+          const q = state.query.trim();
+          const hasFilters =
+            q.length > 0 ||
+            state.domainFilter !== "ALL" ||
+            state.categoryFilter !== "ALL" ||
+            state.roleFilter !== "ALL" ||
+            state.layerFilter !== "ALL" ||
+            (state.mode === "state" && state.statusFilter !== "ALL");
+          if (!state.showItems || hasFilters) state.expandedScope = null;
+        }
+
+        const graphData = computeGraphData();
+        if (!graphData) return;
+        applyAnchors(graphData);
+        const byId = computeById(graphData);
+        state.lastGraphData = graphData;
+        state.lastById = byId;
+
+        if (state.selectedNodeId && !byId.has(String(state.selectedNodeId))) state.selectedNodeId = null;
+        if (state.hoveredNodeId && !byId.has(String(state.hoveredNodeId))) state.hoveredNodeId = null;
+
+        const highlight = computeHighlight(graphData);
+
+        applyForces(graphData);
+
+        graph
+          .graphData(graphData)
+          .dagMode(getDagModeForMode())
+          .dagLevelDistance(getDagLevelDistanceForMode())
+          .nodeVal((n) => getNodeSize(n))
+          .nodeColor((n) => {
+            const base = getNodeBaseColor(n);
+            if (highlight.highlightNodes.size === 0) return base;
+            if (highlight.highlightNodes.has(String(n.id))) return base;
+            return "rgba(148, 163, 184, 0.55)";
+          })
+          .linkWidth((l) => {
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) return 0.8;
+            const key = linkKey(s, t, l.type);
+            const w = Number(l.weight || 0);
+            const base =
+              l.type === "transition"
+                ? 1.6
+                : l.type === "relation"
+                  ? 1.2
+                  : l.type === "rel_inferred"
+                    ? Math.max(0.65, Math.min(1.8, 0.6 + w * 1.9))
+                    : 0.9;
+            return highlight.highlightLinks.has(key) ? 2.2 : base;
+          })
+          .linkColor((l) => {
+            if (l.type === "relation") return "rgba(248, 113, 113, 0.85)";
+            if (l.type === "rel_inferred") return "rgba(251, 191, 36, 0.65)";
+            if (l.type === "transition") return "rgba(56, 189, 248, 0.75)";
+            const s = getEndpointId(l.source);
+            const t = getEndpointId(l.target);
+            if (!s || !t) return "rgba(148, 163, 184, 0.18)";
+            const key = linkKey(s, t, l.type);
+            if (highlight.highlightLinks.size === 0) return "rgba(148, 163, 184, 0.18)";
+            return highlight.highlightLinks.has(key) ? "rgba(226, 232, 240, 0.5)" : "rgba(148, 163, 184, 0.08)";
+          })
+          .linkLineDash((l) =>
+            l.type === "relation" ? [6, 4] : l.type === "rel_inferred" ? [2, 5] : l.type === "transition" ? [3, 3] : null,
+          )
+          .nodeCanvasObjectMode(() => "after")
+          .nodeCanvasObject((node, ctx, globalScale) => {
+            const label = node.label;
+            if (!label) return;
+
+            const alwaysLabel = node.type !== "item";
+            const isFocus = String(node.id) === String(state.selectedNodeId) || String(node.id) === String(state.hoveredNodeId);
+            const zoomedIn = globalScale > 2.2;
+            if (!alwaysLabel && !isFocus && !zoomedIn) return;
+
+            const fontSize = Math.max(10, 14 / globalScale);
+            ctx.font = fontSize + "px sans-serif";
+            const textWidth = ctx.measureText(label).width;
+            const padding = 6 / globalScale;
+
+            const x = node.x || 0;
+            const y = node.y || 0;
+            ctx.fillStyle = "rgba(2, 4, 9, 0.65)";
+            ctx.fillRect(x - textWidth / 2 - padding, y + 7 / globalScale, textWidth + padding * 2, fontSize + padding);
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillStyle = "#e2e8f0";
+            ctx.fillText(label, x, y + 7 / globalScale);
+          });
+
+        updateUiFromGraphData(graphData, byId);
+        renderItemList(graphData, byId);
+      }
+
+      function syncStateFromControls() {
+        state.query = elQ.value || "";
+        state.domainFilter = elDomain.value || "ALL";
+        state.categoryFilter = elCategory.value || "ALL";
+        state.roleFilter = elRole ? elRole.value || "ALL" : "ALL";
+        state.layerFilter = elLayer ? elLayer.value || "ALL" : "ALL";
+        state.povFilter = elPov ? elPov.value || "PLAYER" : "PLAYER";
+        state.statusFilter = elStatus ? elStatus.value || "ALL" : "ALL";
+        state.relationDepth = elRelationDepth ? Number(elRelationDepth.value || 1) : 1;
+        state.relationLimit = elRelationLimit ? Number(elRelationLimit.value || 200) : 200;
+        state.inferredMinScore = elRelationMinScore ? Number(elRelationMinScore.value || 0.18) : 0.18;
+        state.relationShowHierarchy = Boolean(elRelationShowHierarchy && elRelationShowHierarchy.checked);
+        state.density = elDensity ? elDensity.value || "normal" : "normal";
+        state.showItems = Boolean(elShowItems.checked);
+        state.showRelations = Boolean(elShowRelations.checked);
+        state.showInferred = Boolean(elShowInferred && elShowInferred.checked);
+        state.mindmapLayout = Boolean(elMindmap.checked);
+        state.itemLimit = Number(elItemLimit.value || 250);
+      }
+
+      function resizeGraph() {
+        const rect = elGraph.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        graph.width(Math.floor(rect.width));
+        graph.height(Math.floor(rect.height));
+      }
+
+      async function loadRawGraph() {
+        const res = await fetch("./terminus-graph.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("terminus-graph.json 로드 실패: HTTP " + res.status);
+        return res.json();
+      }
+
+      async function doExportReload() {
+        try {
+          state.raw = await loadRawGraph();
+          renderCategories(state.raw);
+          updateModeUI();
+          state.autoFitDone = false;
+          refresh();
+        } catch (e) {
+          elStats.textContent = String((e && e.message) || e);
+        }
+      }
+
+      // Init graph
+      const graph = ForceGraph()(elGraph)
+        .backgroundColor("rgba(2, 4, 9, 0)")
+        .nodeId("id")
+        .linkSource("source")
+        .linkTarget("target")
+        .warmupTicks(DEFAULT_WARMUP_TICKS)
+        .cooldownTicks(DEFAULT_COOLDOWN_TICKS)
+        .d3VelocityDecay(0.55)
+        .onNodeHover((node) => {
+          state.hoveredNodeId = node && node.id != null ? String(node.id) : null;
+          refresh();
+        })
+        .onNodeClick((node, event) => {
+          if (!node || node.id == null) return;
+          state.userInteracted = true;
+
+          const id = String(node.id);
+          state.selectedNodeId = id;
+
+          if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
+            openNotion(node);
+            return;
+          }
+
+          // 클릭으로 항목을 "펼침" 하려는 경우, 자동으로 항목 표시를 켠다.
+          if (state.mode !== "ui" && node.type !== "item" && !state.showItems && !elShowItems.disabled) {
+            elShowItems.checked = true;
+            syncStateFromControls();
+          }
+
+          if (
+            state.mode === "territory" &&
+            state.showItems &&
+            state.domainFilter === "ALL" &&
+            state.categoryFilter === "ALL" &&
+            state.query.trim().length === 0 &&
+            node.type === "category" &&
+            node.domain
+          ) {
+            const next = { domain: node.domain, category: node.label };
+            if (
+              state.expandedCategoryScope &&
+              state.expandedCategoryScope.domain === next.domain &&
+              state.expandedCategoryScope.category === next.category
+            ) {
+              state.expandedCategoryScope = null;
+            } else {
+              state.expandedCategoryScope = next;
+            }
+          }
+
+          if (state.mode === "layer" && state.showItems && node.type === "category" && node.layer) {
+            const categoryName = String(node.categoryName || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "layer", layer: String(node.layer), category: categoryName };
+            if (
+              state.expandedScope &&
+              state.expandedScope.mode === "layer" &&
+              String(state.expandedScope.layer) === next.layer &&
+              String(state.expandedScope.category) === next.category
+            ) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "pov" && state.showItems && node.type === "pov") {
+            const pov = String(node.pov || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "pov", pov };
+            if (state.expandedScope && state.expandedScope.mode === "pov" && String(state.expandedScope.pov) === pov) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "state" && state.showItems && node.type === "state") {
+            const status = String(node.statusName || node.status || node.baseLabel || stripCountSuffix(node.label || ""));
+            const next = { mode: "state", status };
+            if (state.expandedScope && state.expandedScope.mode === "state" && String(state.expandedScope.status) === status) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          if (state.mode === "timeline" && state.showItems && node.type === "time" && node.bucketKey) {
+            const bucketKey = String(node.bucketKey);
+            const next = { mode: "timeline", bucketKey };
+            if (
+              state.expandedScope &&
+              state.expandedScope.mode === "timeline" &&
+              String(state.expandedScope.bucketKey) === bucketKey
+            ) {
+              state.expandedScope = null;
+            } else {
+              state.expandedScope = next;
+            }
+          }
+
+          focusNode(node);
+          refresh();
+        })
+        .onBackgroundClick(() => {
+          state.selectedNodeId = null;
+          refresh();
+        })
+        .onEngineStop(() => {
+          if (state.autoFitDone) return;
+          if (state.userInteracted) return;
+          graph.zoomToFit(450, 70);
+          state.autoFitDone = true;
+        });
+
+      // mark interaction
+      elGraph.addEventListener(
+        "pointerdown",
+        () => {
+          state.userInteracted = true;
+        },
+        { passive: true },
+      );
+
+      // Wire controls
+      elQ.addEventListener("input", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elDomain.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elCategory.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      if (elRole) {
+        elRole.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      elShowItems.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      elShowRelations.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      if (elShowInferred) {
+        elShowInferred.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      elMindmap.addEventListener("change", () => {
+        state.autoFitDone = false;
+        syncStateFromControls();
+        refresh();
+      });
+      elItemLimit.addEventListener("change", () => {
+        syncStateFromControls();
+        refresh();
+      });
+      if (elLayer) {
+        elLayer.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elPov) {
+        elPov.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elStatus) {
+        elStatus.addEventListener("change", () => {
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationDepth) {
+        elRelationDepth.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationMinScore) {
+        elRelationMinScore.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationLimit) {
+        elRelationLimit.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elRelationShowHierarchy) {
+        elRelationShowHierarchy.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      if (elDensity) {
+        elDensity.addEventListener("change", () => {
+          state.autoFitDone = false;
+          syncStateFromControls();
+          refresh();
+        });
+      }
+      elBtnCollapse.addEventListener("click", () => {
+        state.expandedCategoryScope = null;
+        state.expandedScope = null;
+        refresh();
+      });
+
+      // Mode tabs
+      for (const btn of elModeTabs.querySelectorAll("button[data-mode]")) {
+        btn.addEventListener("click", () => {
+          setMode(btn.dataset.mode, { keepSelected: true });
+        });
+      }
+
+      // Dashboard actions (UI 모드)
+      elAltView.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest("button") : null;
+        if (!btn) return;
+
+        const openUrl = btn.dataset.openUrl;
+        if (openUrl) {
+          window.open(openUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+
+        const setDomain = btn.dataset.setDomain;
+        if (setDomain) {
+          elDomain.value = setDomain;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const setLayer = btn.dataset.setLayer;
+        if (setLayer) {
+          elLayer.value = setLayer;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const setStatus = btn.dataset.setStatus;
+        if (setStatus) {
+          elStatus.value = setStatus;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const setRole = btn.dataset.setRole;
+        if (setRole) {
+          if (elRole) elRole.value = setRole;
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+
+        const action = btn.dataset.action;
+        if (action === "clear") {
+          elQ.value = "";
+          elDomain.value = "ALL";
+          elCategory.value = "ALL";
+          if (elRole) elRole.value = "ALL";
+          if (elLayer) elLayer.value = "ALL";
+          if (elPov) elPov.value = "PLAYER";
+          if (elStatus) elStatus.value = "ALL";
+          syncStateFromControls();
+          refresh();
+          return;
+        }
+        if (action === "toTerritory") {
+          setMode("territory");
+          return;
+        }
+      });
+
+      document.getElementById("btn-fit").addEventListener("click", () => graph.zoomToFit(350, 50));
+      document.getElementById("btn-export").addEventListener("click", () => doExportReload());
+
+      window.addEventListener("resize", () => resizeGraph());
+
+      // Boot
+      syncStateFromControls();
+      updateModeUI();
+      resizeGraph();
+      doExportReload();
+    </script>
+  </body>
+</html>

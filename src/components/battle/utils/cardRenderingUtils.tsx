@@ -6,6 +6,7 @@
 
 import { ReactElement } from 'react';
 import { getEnhancementColor, getEnhancementLabel } from '../../../lib/cardEnhancementUtils';
+import { RARITY_COLORS, BG_COLORS } from '../ui/constants/colors';
 
 interface RarityBadge {
   color: string;
@@ -22,12 +23,12 @@ interface Card {
 type CardUpgrades = Record<string, string | undefined>;
 
 /**
- * 희귀도 배지 설정
+ * 희귀도 배지 설정 (colors.ts의 RARITY_COLORS 사용)
  */
 export const RARITY_BADGES: Record<string, RarityBadge> = {
-  rare: { color: '#60a5fa', label: '희귀' },
-  special: { color: '#34d399', label: '특별' },
-  legendary: { color: '#fbbf24', label: '전설' },
+  rare: { color: RARITY_COLORS.rare, label: '희귀' },
+  special: { color: RARITY_COLORS.special, label: '특별' },
+  legendary: { color: RARITY_COLORS.legendary, label: '전설' },
 };
 
 /**
@@ -58,7 +59,7 @@ export function renderRarityBadge(card: Card, cardUpgrades: CardUpgrades): React
         padding: '2px 10px',
         borderRadius: '12px',
         background: badge.color,
-        color: '#0f172a',
+        color: BG_COLORS.dark,
         fontWeight: 800,
         boxShadow: `0 0 10px ${badge.color}`,
         marginLeft: '6px'
@@ -86,7 +87,7 @@ export function renderEnhancementBadge(enhancementLevel: number | undefined): Re
         padding: '1px 5px',
         borderRadius: '4px',
         background: color,
-        color: '#0f172a',
+        color: BG_COLORS.dark,
         fontWeight: 700,
         marginLeft: '4px',
         boxShadow: `0 0 6px ${color}`,
@@ -120,7 +121,7 @@ export function renderNameWithBadge(card: Card, cardUpgrades: CardUpgrades, defa
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
       <span
         style={{
-          color: '#0f172a',
+          color: BG_COLORS.dark,
           background: badge.color,
           padding: '2px 10px',
           borderRadius: '12px',

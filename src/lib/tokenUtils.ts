@@ -12,9 +12,18 @@
  *
  * ## 상쇄 시스템
  * 일부 토큰은 반대 토큰과 상쇄됨 (예: 공세 ↔ 약화)
+ *
+ * ## 코어 연동
+ * 게임의 배열 기반 토큰 ↔ 코어의 객체 기반 토큰 변환은
+ * src/core/adapters/game-token-adapter.ts 에서 처리
+ * 게임 특수 로직(상쇄, 탄걸림 등)은 이 파일에서 유지
  */
 
 import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_REMOVES } from '../data/tokens';
+
+// 공통 코어에서 수정자 계산 함수 가져오기 (통합 사용)
+import * as TokenCore from '../core/combat/token-core';
+import { toUnifiedTokens } from '../core/adapters/game-token-adapter';
 import type {
   TokenInstance,
   TokenState,
@@ -476,4 +485,41 @@ export function createEmptyTokens(): TokenState {
     turn: [],
     permanent: []
   };
+}
+
+// ==================== 코어 기반 수정자 계산 ====================
+// 게임 토큰을 통합 형식으로 변환 후 코어 함수 사용
+
+/**
+ * 공격 수정자 계산 (코어 사용)
+ * 게임의 배열 기반 토큰을 객체로 변환 후 코어 함수 호출
+ */
+export function calculateAttackModifiers(entity: TokenEntity | null | undefined): TokenCore.AttackModifiers {
+  if (!entity?.tokens) {
+    return { attackMultiplier: 1, damageBonus: 0, critBoost: 0, ignoreBlock: false, lifesteal: 0 };
+  }
+  const unified = toUnifiedTokens(entity.tokens);
+  return TokenCore.calculateAttackModifiers(unified);
+}
+
+/**
+ * 방어 수정자 계산 (코어 사용)
+ */
+export function calculateDefenseModifiers(entity: TokenEntity | null | undefined): TokenCore.DefenseModifiers {
+  if (!entity?.tokens) {
+    return { defenseMultiplier: 1, defenseBonus: 0, dodgeChance: 0 };
+  }
+  const unified = toUnifiedTokens(entity.tokens);
+  return TokenCore.calculateDefenseModifiers(unified);
+}
+
+/**
+ * 받는 피해 수정자 계산 (코어 사용)
+ */
+export function calculateDamageTakenModifiers(entity: TokenEntity | null | undefined): TokenCore.DamageTakenModifiers {
+  if (!entity?.tokens) {
+    return { damageMultiplier: 1, damageReduction: 0 };
+  }
+  const unified = toUnifiedTokens(entity.tokens);
+  return TokenCore.calculateDamageTakenModifiers(unified);
 }

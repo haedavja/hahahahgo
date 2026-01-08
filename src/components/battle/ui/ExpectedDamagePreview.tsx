@@ -14,6 +14,7 @@ import type {
   SimulationResult,
   PostCombatOptions,
   UITimelineAction,
+  Card,
 } from '../../../types';
 
 // =====================
@@ -47,6 +48,17 @@ const LINE_NUMBER_STYLE: CSSProperties = {
   marginRight: '4px'
 };
 
+const HP_INFO_BASE_STYLE: CSSProperties = {
+  fontSize: '13px',
+  fontWeight: 'bold',
+  marginTop: '4px'
+};
+
+const LOG_LINE_BASE_STYLE: CSSProperties = {
+  fontSize: '13px',
+  marginBottom: '6px'
+};
+
 const CONTROL_SECTION_STYLE: CSSProperties = {
   marginTop: '20px',
   display: 'flex',
@@ -76,7 +88,7 @@ interface ExpectedDamagePreviewProps {
   fixedOrder: UITimelineAction[] | null;
   willOverdrive: boolean;
   enemyMode: string;
-  enemyActions: UITimelineAction[];
+  enemyActions: Card[];
   phase: string;
   log: string[] | null;
   qIndex: number;
@@ -97,7 +109,7 @@ interface ExpectedDamagePreviewProps {
     fixedOrder: UITimelineAction[] | null;
     willOverdrive: boolean;
     enemyMode: string;
-    enemyActions: UITimelineAction[];
+    enemyActions: Card[];
     turnNumber: number;
   }) => SimulationResult;
 }
@@ -131,10 +143,10 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = memo(({
 
   const res = useMemo(() => simulatePreview({ player: simPlayer, enemy: simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber }), [simPlayer, simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber, simulatePreview]);
 
-  const summaryItems = [
+  const summaryItems = useMemo(() => [
     { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${simEnemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
     { icon: "💥", label: "예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent: "text-rose-300", hpInfo: `플레이어 HP ${simPlayer.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
-  ];
+  ], [res.pDealt, res.pTaken, res.finalEHp, res.finalPHp, simEnemy.hp, simPlayer.hp, phase]);
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
@@ -163,7 +175,7 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = memo(({
               <div className="expect-label">{item.label}</div>
               <div className={`expect-value ${item.accent}`}>{item.value}</div>
               {item.hpInfo && (
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: item.hpColor, marginTop: '4px' }}>
+                <div style={{ ...HP_INFO_BASE_STYLE, color: item.hpColor }}>
                   {item.hpInfo}
                 </div>
               )}
@@ -180,7 +192,7 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = memo(({
             const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
             const lineColor = startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1';
             return (
-              <div key={idx} style={{ fontSize: '13px', color: lineColor, marginBottom: '6px' }}>
+              <div key={idx} style={{ ...LOG_LINE_BASE_STYLE, color: lineColor }}>
                 <span style={LINE_NUMBER_STYLE}>{idx + 1}.</span>
                 {line}
               </div>

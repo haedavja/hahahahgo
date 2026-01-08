@@ -89,7 +89,7 @@ describe('victoryDefeatTransition', () => {
 
         vi.advanceTimersByTime(500);
 
-        expect(actions.setPostCombatOptions).toHaveBeenCalledWith({ type: 'victory' });
+        expect(actions.setPostCombatOptions).toHaveBeenCalledWith({ type: 'victory', isEtherVictory: false });
         expect(actions.setPhase).toHaveBeenCalledWith('post');
       });
 

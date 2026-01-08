@@ -11,6 +11,7 @@
 
 import { useEffect, type MutableRefObject } from 'react';
 import { useGameStore } from '../../../state/gameStore';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 import { initializeDeck, drawFromDeck } from '../utils/handGeneration';
 import { generateHandUid } from '../../../lib/randomUtils';
 import { playInsightSound } from '../utils/insightSystem';
@@ -138,7 +139,7 @@ export function usePlayerInitialization(params: UsePlayerInitializationParams): 
         playInsightSound(Math.min(safeInitialPlayer?.insight || 0, 3));
         actions.setInsightAnimLevel(Math.min(3, safeInitialPlayer?.insight || 0));
         actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
-        setTimeout(() => actions.setInsightAnimLevel(0), 1000);
+        setTimeout(() => actions.setInsightAnimLevel(0), ANIMATION_TIMING.INSIGHT_ANIMATION);
         setTimeout(() => actions.setInsightBadge({ ...(battle.insightBadge as Record<string, unknown>), show: false }), 1200);
       }, 50);
     }

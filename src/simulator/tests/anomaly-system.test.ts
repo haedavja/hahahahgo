@@ -73,7 +73,7 @@ const createMockGameState = (): GameState => ({
   enemy: { hp: 50, maxHp: 50, block: 0, tokens: {} },
   turn: 1,
   phase: 'player',
-} as unknown as GameState);
+} as GameState);
 
 describe('anomaly-system', () => {
   beforeEach(() => {

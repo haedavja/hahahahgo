@@ -109,7 +109,32 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   }
   if (bossNode) bossNode.type = "boss";
 
-  const candidates = nodes.filter((n: MapNodeGenerated) => n !== startNode && n !== bossNode);
+  // 휴식 노드 고정 층 (슬레이 더 스파이어 스타일)
+  const REST_LAYERS = [5, 9]; // 중반, 보스 직전
+  // 정예 노드 고정 층 (슬레이 더 스파이어 스타일)
+  const ELITE_LAYERS = [3, 7]; // 초중반, 후반
+
+  // 휴식 층의 노드들에 휴식 노드 배치 (각 층에서 1개씩)
+  REST_LAYERS.forEach(restLayer => {
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === restLayer);
+    if (layerNodes.length > 0) {
+      const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+      restNode.type = "rest";
+    }
+  });
+
+  // 정예 층의 노드들에 정예 노드 배치 (각 층에서 1개씩)
+  ELITE_LAYERS.forEach(eliteLayer => {
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === eliteLayer && n.type !== "rest");
+    if (layerNodes.length > 0) {
+      const eliteNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
+      eliteNode.type = "elite";
+    }
+  });
+
+  const candidates = nodes.filter((n: MapNodeGenerated) =>
+    n !== startNode && n !== bossNode && n.type !== "rest" && n.type !== "elite"
+  );
   const shuffled = shuffle(candidates);
   const eventTarget = Math.max(1, Math.round(shuffled.length * 0.5));
   shuffled.slice(0, eventTarget).forEach((node: MapNodeGenerated) => {
@@ -117,8 +142,24 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
-  const pool = ["battle", "battle", "battle", "rest", "shop", "elite", "dungeon"];
+  // 비고정 휴식/정예도 낮은 확률로 등장 (고정 층 제외)
   remaining.forEach((node: MapNodeGenerated) => {
+    // 고정 층이 아닌 곳에서만 비고정 휴식/정예 가능
+    const isRestLayer = REST_LAYERS.includes(node.layer);
+    const isEliteLayer = ELITE_LAYERS.includes(node.layer);
+
+    // 기본 pool: 전투, 상점, 던전
+    const pool: string[] = ["battle", "battle", "battle", "shop", "dungeon"];
+
+    // 고정 휴식 층이 아니면 비고정 휴식 추가
+    if (!isRestLayer) {
+      pool.push("rest");
+    }
+    // 고정 정예 층이 아니면 비고정 정예 추가
+    if (!isEliteLayer) {
+      pool.push("elite");
+    }
+
     node.type = pool[Math.floor(Math.random() * pool.length)];
   });
 
@@ -225,8 +266,10 @@ export const createInitialState = () => {
     cardGrowth: {} as Record<string, { rarity: string; growthCount: number; traits: string[] }>, // 카드 성장 상태
     storedTraits: [] as string[], // 전투 보상으로 획득한 특성 (특화에 사용 가능)
     relics: initialRelics,
+    orderedRelics: initialRelics,
     items: [null, null, null] as (GameItem | null)[], // 아이템 슬롯 3개 (null = 빈 슬롯)
     itemBuffs: {} as Record<string, number>, // 아이템으로 인한 임시 스탯 버프 { strength: 2, agility: 3, insight: 1 }
+    tempBuffs: [] as { stat: 'strength' | 'agility' | 'insight'; value: number; remainingNodes: number }[], // 노드 기반 임시 버프
     completedEvents: [] as string[], // 완료된 이벤트 ID 목록 (중복 방지)
     pendingNextEvent: null as string | null, // 다음에 등장할 연쇄 이벤트 ID (alparius 등)
     activeEvent: null as ActiveEvent | null,
@@ -238,6 +281,9 @@ export const createInitialState = () => {
     characterBuild: {
       mainSpecials: [] as string[],
       subSpecials: [] as string[],
+      cards: [],
+      traits: [] as string[],
+      egos: [] as string[],
       ownedCards: [...DEFAULT_STARTING_DECK],  // 기본 시작 덱으로 초기화
     } as CharacterBuild,
   };

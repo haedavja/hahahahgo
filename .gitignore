@@ -50,3 +50,17 @@ test-results/
 
 # Claude settings with API keys
 .claude/settings.json
+
+# Local secrets / local-only notes
+ddd.txt
+.claude/settings.local.json
+
+# Playwright outputs
+playwright-report/
+
+# Generated reports
+bundle-report.json
+storybook-static/
+
+# Local move-stash
+_moved_from_hahahahgo/

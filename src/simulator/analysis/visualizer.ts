@@ -219,6 +219,339 @@ export class AsciiCharts {
       return chars[index];
     }).join('');
   }
+
+  /**
+   * 박스플롯 (5-number summary)
+   */
+  boxPlot(data: number[], label?: string): string {
+    if (data.length === 0) return '(no data)';
+
+    const sorted = [...data].sort((a, b) => a - b);
+    const n = sorted.length;
+
+    // 5-number summary
+    const min = sorted[0];
+    const max = sorted[n - 1];
+    const median = n % 2 === 0
+      ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2
+      : sorted[Math.floor(n / 2)];
+    const q1 = sorted[Math.floor(n * 0.25)];
+    const q3 = sorted[Math.floor(n * 0.75)];
+
+    const lines: string[] = [];
+    const width = this.config.width - 20;
+    const range = max - min || 1;
+
+    // 위치 계산
+    const minPos = 0;
+    const maxPos = width;
+    const q1Pos = Math.round(((q1 - min) / range) * width);
+    const medPos = Math.round(((median - min) / range) * width);
+    const q3Pos = Math.round(((q3 - min) / range) * width);
+
+    if (label) {
+      lines.push(`\n📊 ${label}`);
+    }
+
+    // 상단 수염
+    let topLine = ' '.repeat(minPos) + '├';
+    topLine += '─'.repeat(Math.max(0, q1Pos - minPos - 1));
+    lines.push(`${''.padStart(8)}${topLine}`);
+
+    // 박스
+    let boxLine = ' '.repeat(q1Pos) + '┌';
+    boxLine += '─'.repeat(Math.max(0, medPos - q1Pos - 1));
+    boxLine += '│';
+    boxLine += '─'.repeat(Math.max(0, q3Pos - medPos - 1));
+    boxLine += '┐';
+    boxLine += '─'.repeat(Math.max(0, maxPos - q3Pos - 1));
+    boxLine += '┤';
+    lines.push(`${''.padStart(8)}${boxLine}`);
+
+    // 하단 수염 (박스와 동일)
+    lines.push(`${''.padStart(8)}${topLine}`);
+
+    // 수치
+    lines.push(`  Min: ${min.toFixed(1)}, Q1: ${q1.toFixed(1)}, Med: ${median.toFixed(1)}, Q3: ${q3.toFixed(1)}, Max: ${max.toFixed(1)}`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 산점도 (ASCII)
+   */
+  scatterPlot(
+    points: Array<{ x: number; y: number; label?: string }>,
+    title?: string
+  ): string {
+    const lines: string[] = [];
+    const height = this.config.height;
+    const width = this.config.width - 10;
+
+    if (points.length === 0) return '(no data)';
+
+    const minX = Math.min(...points.map(p => p.x));
+    const maxX = Math.max(...points.map(p => p.x));
+    const minY = Math.min(...points.map(p => p.y));
+    const maxY = Math.max(...points.map(p => p.y));
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+
+    if (title) {
+      lines.push(`\n${title}`);
+      lines.push('─'.repeat(width + 10));
+    }
+
+    // 그래프 초기화
+    const graph: string[][] = Array(height).fill(null).map(() => Array(width).fill(' '));
+
+    // 포인트 그리기
+    for (const point of points) {
+      const x = Math.floor(((point.x - minX) / rangeX) * (width - 1));
+      const y = Math.floor(((point.y - minY) / rangeY) * (height - 1));
+      const row = height - 1 - y;
+      if (row >= 0 && row < height && x >= 0 && x < width) {
+        graph[row][x] = point.label ? point.label[0] : '●';
+      }
+    }
+
+    // Y축 레이블과 함께 출력
+    for (let row = 0; row < height; row++) {
+      const yValue = maxY - (row / (height - 1)) * rangeY;
+      const yLabel = yValue.toFixed(1).padStart(7);
+      lines.push(`${yLabel} │${graph[row].join('')}`);
+    }
+
+    // X축
+    lines.push(`${''.padStart(7)} └${'─'.repeat(width)}`);
+    lines.push(`${''.padStart(8)} ${minX.toFixed(1)}${' '.repeat(Math.max(0, width - 14))}${maxX.toFixed(1)}`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 시계열 차트 (추세선 포함)
+   */
+  timeSeriesChart(
+    data: Array<{ timestamp: Date | number; value: number }>,
+    title?: string
+  ): string {
+    const lines: string[] = [];
+    const height = this.config.height;
+    const width = this.config.width - 10;
+
+    if (data.length === 0) return '(no data)';
+
+    const values = data.map(d => d.value);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const range = maxValue - minValue || 1;
+
+    if (title) {
+      lines.push(`\n📈 ${title}`);
+      lines.push('─'.repeat(width + 10));
+    }
+
+    // 그래프 초기화
+    const graph: string[][] = Array(height).fill(null).map(() => Array(width).fill(' '));
+
+    // 데이터 그리기
+    const step = Math.max(1, Math.floor(data.length / width));
+    let prevRow = -1;
+    let prevX = -1;
+
+    for (let i = 0; i < data.length; i += step) {
+      const x = Math.floor((i / data.length) * (width - 1));
+      const y = Math.floor(((values[i] - minValue) / range) * (height - 1));
+      const row = height - 1 - y;
+
+      if (row >= 0 && row < height && x >= 0 && x < width) {
+        graph[row][x] = '●';
+
+        // 선 연결
+        if (prevRow >= 0 && prevX >= 0 && x > prevX) {
+          const slope = (row - prevRow) / (x - prevX);
+          for (let lineX = prevX + 1; lineX < x; lineX++) {
+            const lineRow = Math.round(prevRow + slope * (lineX - prevX));
+            if (lineRow >= 0 && lineRow < height) {
+              if (graph[lineRow][lineX] === ' ') {
+                graph[lineRow][lineX] = '·';
+              }
+            }
+          }
+        }
+        prevRow = row;
+        prevX = x;
+      }
+    }
+
+    // Y축 레이블과 함께 출력
+    for (let row = 0; row < height; row++) {
+      const yValue = maxValue - (row / (height - 1)) * range;
+      const yLabel = yValue.toFixed(1).padStart(7);
+      lines.push(`${yLabel} │${graph[row].join('')}`);
+    }
+
+    // X축
+    lines.push(`${''.padStart(7)} └${'─'.repeat(width)}`);
+
+    // 통계 정보
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const trend = values.length > 1 ? (values[values.length - 1] - values[0]) / values.length : 0;
+    const trendIcon = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
+
+    lines.push(`  평균: ${avg.toFixed(2)}, 추세: ${trendIcon} ${Math.abs(trend).toFixed(3)}/포인트`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 면적 차트 (스택드)
+   */
+  areaChart(series: Series[], title?: string): string {
+    const lines: string[] = [];
+    const height = this.config.height;
+    const width = this.config.width - 10;
+    const fills = ['█', '▓', '▒', '░'];
+
+    if (series.length === 0 || series[0].data.length === 0) return '(no data)';
+
+    // 각 포인트에서 합계 계산
+    const dataLength = series[0].data.length;
+    const stackedData: number[][] = Array(dataLength).fill(null).map(() => []);
+
+    for (let i = 0; i < dataLength; i++) {
+      let cumSum = 0;
+      for (let s = 0; s < series.length; s++) {
+        cumSum += series[s].data[i] || 0;
+        stackedData[i].push(cumSum);
+      }
+    }
+
+    const maxValue = Math.max(...stackedData.map(d => d[d.length - 1]));
+
+    if (title) {
+      lines.push(`\n${title}`);
+      lines.push('─'.repeat(width + 10));
+    }
+
+    // 그래프 초기화
+    const graph: string[][] = Array(height).fill(null).map(() => Array(width).fill(' '));
+
+    // 각 열에 대해 스택 그리기
+    for (let col = 0; col < width; col++) {
+      const dataIdx = Math.floor((col / width) * dataLength);
+      const stack = stackedData[dataIdx];
+
+      for (let s = series.length - 1; s >= 0; s--) {
+        const topValue = stack[s];
+        const bottomValue = s > 0 ? stack[s - 1] : 0;
+        const topRow = height - 1 - Math.floor((topValue / maxValue) * (height - 1));
+        const bottomRow = height - 1 - Math.floor((bottomValue / maxValue) * (height - 1));
+
+        for (let row = topRow; row <= bottomRow && row < height; row++) {
+          if (row >= 0) {
+            graph[row][col] = fills[s % fills.length];
+          }
+        }
+      }
+    }
+
+    // Y축과 함께 출력
+    for (let row = 0; row < height; row++) {
+      const yValue = maxValue * (1 - row / (height - 1));
+      const yLabel = yValue.toFixed(0).padStart(7);
+      lines.push(`${yLabel} │${graph[row].join('')}`);
+    }
+
+    lines.push(`${''.padStart(7)} └${'─'.repeat(width)}`);
+
+    // 범례
+    if (this.config.showLegend) {
+      lines.push('');
+      const legend = series.map((s, i) => `${fills[i % fills.length]} ${s.name}`).join('  ');
+      lines.push(`범례: ${legend}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 상관관계 매트릭스 (히트맵 스타일)
+   */
+  correlationMatrix(
+    data: Record<string, number[]>,
+    title?: string
+  ): string {
+    const lines: string[] = [];
+    const keys = Object.keys(data);
+    const n = keys.length;
+
+    if (n === 0) return '(no data)';
+
+    // 피어슨 상관계수 계산
+    const correlations: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (i === j) {
+          correlations[i][j] = 1;
+        } else {
+          correlations[i][j] = this.pearsonCorrelation(data[keys[i]], data[keys[j]]);
+        }
+      }
+    }
+
+    if (title) {
+      lines.push(`\n${title}`);
+      lines.push('─'.repeat(n * 6 + 15));
+    }
+
+    // 헤더
+    lines.push(''.padEnd(10) + keys.map(k => k.slice(0, 5).padEnd(6)).join(''));
+
+    // 행
+    const corrSymbols = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+    for (let i = 0; i < n; i++) {
+      let row = keys[i].slice(0, 9).padEnd(10);
+      for (let j = 0; j < n; j++) {
+        const corr = correlations[i][j];
+        if (i === j) {
+          row += '  1   ';
+        } else {
+          const absCorr = Math.abs(corr);
+          const sign = corr >= 0 ? '+' : '-';
+          const symbolIdx = Math.floor(absCorr * (corrSymbols.length - 1));
+          row += `${sign}${corrSymbols[symbolIdx]}${absCorr.toFixed(1)} `;
+        }
+      }
+      lines.push(row);
+    }
+
+    lines.push('');
+    lines.push('범례: █ 강한 상관, ▅ 중간, ▂ 약함, +양의상관, -음의상관');
+
+    return lines.join('\n');
+  }
+
+  private pearsonCorrelation(x: number[], y: number[]): number {
+    const n = Math.min(x.length, y.length);
+    if (n === 0) return 0;
+
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += x[i];
+      sumY += y[i];
+      sumXY += x[i] * y[i];
+      sumX2 += x[i] * x[i];
+      sumY2 += y[i] * y[i];
+    }
+
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+    return denominator === 0 ? 0 : numerator / denominator;
+  }
 }
 
 // ==================== 히트맵 ====================

@@ -12,6 +12,7 @@ import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
 import { applyCombatEndEffects } from '../../lib/relicEffects';
 import { updateStats } from '../metaProgress';
+import { recordGameBattle, recordRunEnd } from '../../simulator/bridge/stats-bridge';
 import {
   BATTLE_CARDS,
   resolveEnemyDeck,
@@ -52,7 +53,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       if (battleConfig.enemyId) {
         enemy = ENEMIES.find((e) => e.id === battleConfig.enemyId) || null;
       } else if (battleConfig.tier) {
-        enemy = getRandomEnemy(battleConfig.tier as number) || null;
+        enemy = getRandomEnemy(battleConfig.tier) || null;
       }
 
       if (enemy) {
@@ -70,7 +71,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         : drawHand(playerDrawPile, 3);
 
       const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
-      const enemyHp = (battleConfig.enemyHp as number) || enemy?.hp || 30;
+      const enemyHp = battleConfig.enemyHp ?? enemy?.hp ?? 30;
 
       const battleStats = {
         player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
@@ -82,8 +83,31 @@ export const createBattleActions: SliceCreator = (set) => ({
       const preview = { playerHand, enemyHand, timeline, tuLimit: 30 };
 
       const enemyInfo = enemy
-        ? { id: enemy.id, name: enemy.name, emoji: enemy.emoji, tier: enemy.tier, isBoss: enemy.isBoss || false }
-        : undefined;
+        ? {
+            id: enemy.id,
+            name: enemy.name,
+            emoji: enemy.emoji,
+            tier: enemy.tier,
+            isBoss: enemy.isBoss || false,
+            // 그룹 정보 (battleConfig에서 전달받은 경우)
+            groupId: battleConfig.groupId,
+            groupName: battleConfig.groupName,
+            enemyCount: battleConfig.enemyCount,
+            composition: battleConfig.composition,
+          }
+        : battleConfig.groupId
+          ? {
+              // 적 정보 없이 그룹 정보만 있는 경우
+              id: battleConfig.enemyId,
+              name: battleConfig.groupName ?? battleConfig.label ?? 'Unknown',
+              tier: battleConfig.tier,
+              isBoss: false,
+              groupId: battleConfig.groupId,
+              groupName: battleConfig.groupName,
+              enemyCount: battleConfig.enemyCount,
+              composition: battleConfig.composition,
+            }
+          : undefined;
 
       // Convert ResolverSimulationResult to SimulationResult format
       const simulationResult = simulation ? {
@@ -96,10 +120,10 @@ export const createBattleActions: SliceCreator = (set) => ({
       } : undefined;
 
       const activeBattle: GameStore['activeBattle'] = {
-        nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
-        kind: (battleConfig.kind as string) || 'combat',
-        label: (battleConfig.label as string) || enemy?.name || '던전 몬스터',
-        rewards: (battleConfig.rewards as BattleRewards) || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
+        nodeId: battleConfig.nodeId ?? 'dungeon-combat',
+        kind: battleConfig.kind ?? 'combat',
+        label: battleConfig.label ?? enemy?.name ?? '던전 몬스터',
+        rewards: battleConfig.rewards ?? { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
         difficulty: enemy?.tier || 2,
         enemyInfo,
         playerLibrary: toBattleCards(playerLibrary),
@@ -124,7 +148,7 @@ export const createBattleActions: SliceCreator = (set) => ({
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const autoResult = pickOutcome(state.activeBattle.simulation as unknown as Parameters<typeof pickOutcome>[0], 'victory');
+      const autoResult = pickOutcome(state.activeBattle.simulation ?? null, 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
         ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
@@ -153,6 +177,87 @@ export const createBattleActions: SliceCreator = (set) => ({
         finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
       } catch (error) {
         if (import.meta.env.DEV) console.error('Error applying combat end effects:', error);
+      }
+
+      // 시뮬레이터 통계 시스템에 전투 결과 기록
+      try {
+        const enemyInfo = state.activeBattle.enemyInfo;
+        const battleLog = state.activeBattle.simulation?.lines ?? [];
+
+        // HP 차이로 피해량 계산 (시뮬레이터 방식)
+        const initialPlayerHp = state.playerHp; // 전투 시작 시 플레이어 HP
+        const totalEnemyHp = state.activeBattle.totalEnemyHp || 0; // 적 총 HP
+
+        // 플레이어가 가한 피해 = 적 초기 HP - 적 최종 HP (승리 시 0)
+        const calculatedDamageDealt = resultLabel === 'victory'
+          ? totalEnemyHp
+          : Math.max(0, totalEnemyHp - (outcome.enemyRemainingHp || totalEnemyHp));
+
+        // 플레이어가 받은 피해 = 초기 HP - 최종 HP
+        const calculatedDamageTaken = Math.max(0, initialPlayerHp - finalPlayerHp);
+
+        recordGameBattle(
+          {
+            result: resultLabel as 'victory' | 'defeat',
+            playerHp: finalPlayerHp,
+            deltaEther: 0,
+            isEtherVictory: outcome.isEtherVictory,
+          },
+          {
+            nodeId: state.activeBattle.nodeId,
+            kind: state.activeBattle.kind,
+            damageDealt: outcome.damageDealt || calculatedDamageDealt,
+            damageTaken: outcome.damageTaken || calculatedDamageTaken,
+            battleLog,
+            isEtherVictory: outcome.isEtherVictory,
+            // P1: 새 통계 필드 추가
+            enemyFinalHp: resultLabel === 'victory' ? 0 : (outcome.enemyRemainingHp ?? totalEnemyHp),
+            enemyMaxHp: totalEnemyHp,
+            floor: state.map?.baseLayer,
+          },
+          {
+            id: enemyInfo?.id,
+            name: enemyInfo?.name || state.activeBattle.label || 'Unknown',
+            tier: enemyInfo?.tier,
+            isBoss: enemyInfo?.isBoss,
+            emoji: enemyInfo?.emoji,
+            // 그룹 정보 전달
+            groupId: enemyInfo?.groupId,
+            groupName: enemyInfo?.groupName,
+            enemyCount: enemyInfo?.enemyCount,
+            composition: enemyInfo?.composition,
+          },
+          {
+            hp: finalPlayerHp,
+            maxHp: newMaxHp,
+            deck: state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            relics: state.relics || [],
+          }
+        );
+
+        // 패배 시 런 종료 기록
+        if (resultLabel === 'defeat' && finalPlayerHp <= 0) {
+          const currentFloor = state.map?.baseLayer ?? 1;
+          recordRunEnd(
+            false,
+            currentFloor,
+            state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            state.relics || []
+          );
+        }
+
+        // 보스 승리 시 런 종료 기록
+        if (resultLabel === 'victory' && (enemyInfo?.isBoss || state.activeBattle.kind === 'boss')) {
+          const currentFloor = state.map?.baseLayer ?? 11;
+          recordRunEnd(
+            true,
+            currentFloor,
+            state.activeBattle.playerLibrary?.map(c => c.id) || [],
+            state.relics || []
+          );
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.error('[StatsBridge] Error recording battle:', error);
       }
 
       return {

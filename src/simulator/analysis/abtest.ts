@@ -12,6 +12,27 @@ import type {
 } from '../core/types';
 import { loadCards, type CardData } from '../data/loader';
 import type { SimulatorInterface } from './balance';
+import { deepClone } from './base-analyzer';
+import { normalCDF } from './stats-utils';
+
+/** 패치 가능한 카드 속성 */
+type PatchableStat = 'attack' | 'defense' | 'cost';
+
+/** 카드 속성 접근 헬퍼 - 타입 안전한 동적 접근 */
+function getCardStat(card: CardData, stat: PatchableStat): number {
+  return card[stat] ?? 0;
+}
+
+/** 카드 속성 설정 헬퍼 - 타입 안전한 동적 설정 */
+function setCardStat(card: CardData, stat: PatchableStat, value: number): void {
+  if (stat === 'cost') {
+    card.cost = value;
+  } else if (stat === 'attack') {
+    card.attack = value;
+  } else if (stat === 'defense') {
+    card.defense = value;
+  }
+}
 
 // ==================== A/B 테스트 관리자 ====================
 
@@ -225,27 +246,9 @@ export class ABTestManager {
     const z = Math.abs(p1 - p2) / se;
 
     // Z-score를 확률로 변환 (정규분포 CDF 근사)
-    const significance = this.normalCDF(z);
+    const significance = normalCDF(z);
 
     return significance;
-  }
-
-  private normalCDF(z: number): number {
-    // 정규분포 CDF 근사 (Abramowitz and Stegun approximation)
-    const a1 =  0.254829592;
-    const a2 = -0.284496736;
-    const a3 =  1.421413741;
-    const a4 = -1.453152027;
-    const a5 =  1.061405429;
-    const p  =  0.3275911;
-
-    const sign = z < 0 ? -1 : 1;
-    z = Math.abs(z) / Math.sqrt(2);
-
-    const t = 1.0 / (1.0 + p * z);
-    const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-z * z);
-
-    return 0.5 * (1.0 + sign * y);
   }
 
   private determineWinner(
@@ -323,19 +326,29 @@ export class ABTestManager {
 
   // ==================== 패치 적용 ====================
 
+  /**
+   * 패치 적용
+   * @see deepClone from base-analyzer.ts
+   */
   private applyPatch(
     cards: Record<string, CardData>,
     changes: CardPatchChange[]
   ): Record<string, CardData> {
-    const patched = JSON.parse(JSON.stringify(cards));
+    const patched = deepClone(cards);
 
     for (const change of changes) {
-      if (patched[change.cardId]) {
-        (patched[change.cardId] as any)[change.stat] = change.newValue;
+      const card = patched[change.cardId];
+      if (card && this.isPatchableStat(change.stat)) {
+        setCardStat(card, change.stat, change.newValue);
       }
     }
 
     return patched;
+  }
+
+  /** 타입 가드: stat이 패치 가능한 속성인지 확인 */
+  private isPatchableStat(stat: string): stat is PatchableStat {
+    return stat === 'attack' || stat === 'defense' || stat === 'cost';
   }
 
   // ==================== 히스토리 ====================
@@ -367,7 +380,7 @@ export function createPatchChange(
 ): CardPatchChange {
   const cards = loadCards();
   const card = cards[cardId];
-  const oldValue = (card as any)?.[stat] || 0;
+  const oldValue = card ? getCardStat(card, stat) : 0;
 
   return {
     cardId,

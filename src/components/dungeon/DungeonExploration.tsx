@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출
  */
 
-import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo, lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import type { DungeonObject, RenderDungeonSceneParams, RenderDungeonSegment, RenderDungeonGrid, RenderMazeData, RenderDungeonRoom, Direction } from "../../types";
@@ -158,7 +158,10 @@ import type { GameStore } from "../../state/slices/types";
 import { generateMaze } from "./utils/mazeGenerator";
 import { OBJECT_HANDLERS, type HandlerContext, type MazeRoom } from "./utils/dungeonHandlers";
 import { renderDungeonScene } from "./utils/renderDungeon";
-import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonModals";
+// Lazy loaded modals
+const RewardModal = lazy(() => import("./ui/DungeonModals").then(m => ({ default: m.RewardModal })));
+const DungeonSummaryModal = lazy(() => import("./ui/DungeonModals").then(m => ({ default: m.DungeonSummaryModal })));
+const CrossroadModal = lazy(() => import("./ui/DungeonModals").then(m => ({ default: m.CrossroadModal })));
 
 // ========== 메인 컴포넌트 ==========
 function DungeonExplorationComponent() {
@@ -589,15 +592,19 @@ function DungeonExplorationComponent() {
         던전 탈출
       </button>
 
-      {/* 모달들 */}
-      <RewardModal rewardModal={rewardModal} onClose={closeRewardModal} />
-      <DungeonSummaryModal dungeonSummary={dungeonSummary} onClose={closeDungeonSummary} />
-      <CrossroadModal
-        crossroadModal={crossroadModal}
-        screenShake={screenShake}
-        onSelectChoice={executeChoice}
-        onClose={closeCrossroadModal}
-      />
+      {/* 모달들 (lazy loaded) */}
+      <Suspense fallback={null}>
+        {rewardModal && <RewardModal rewardModal={rewardModal} onClose={closeRewardModal} />}
+        {dungeonSummary && <DungeonSummaryModal dungeonSummary={dungeonSummary} onClose={closeDungeonSummary} />}
+        {crossroadModal && (
+          <CrossroadModal
+            crossroadModal={crossroadModal}
+            screenShake={screenShake}
+            onSelectChoice={executeChoice}
+            onClose={closeCrossroadModal}
+          />
+        )}
+      </Suspense>
 
       {/* 캐릭터 창 */}
       {showCharacter && (

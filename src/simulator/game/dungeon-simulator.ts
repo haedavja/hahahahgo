@@ -24,10 +24,8 @@ const DUNGEON_CARD_REWARDS = [
   'defensive_stance', 'disrupt'
 ];
 
-// 던전에서 획득 가능한 상징 풀 (희귀)
-const DUNGEON_RELIC_REWARDS = [
-  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
-];
+// 던전에서 획득 가능한 상징 풀 (희귀) - 이제 전체 RELICS에서 동적으로 선택
+// const DUNGEON_RELIC_REWARDS = ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor']; // 레거시
 
 // ==================== 타입 정의 ====================
 
@@ -157,8 +155,94 @@ const DEFAULT_GENERATION_CONFIG: DungeonGenerationConfig = {
 // ==================== 던전 시뮬레이터 ====================
 
 export class DungeonSimulator {
+  private relicLibrary: Record<string, { id: string; rarity?: string }> = {};
+
   constructor() {
     log.info('DungeonSimulator initialized');
+  }
+
+  /**
+   * 상징 데이터 로드 (전체 풀에서 선택하기 위해)
+   */
+  loadRelicData(relics: Record<string, { id: string; rarity?: string }>): void {
+    this.relicLibrary = relics;
+    log.info('DungeonSimulator: Relic library loaded', { count: Object.keys(relics).length });
+  }
+
+  /**
+   * 사용 가능한 상징 풀 반환
+   */
+  private getAvailableRelics(): string[] {
+    const relicIds = Object.keys(this.relicLibrary);
+    // 풀백: 데이터가 로드되지 않은 경우 기본값 사용
+    if (relicIds.length === 0) {
+      return ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'];
+    }
+    return relicIds;
+  }
+
+  // 상징 등급별 가중치 (legendary, dev 제외)
+  private static readonly RELIC_RARITY_WEIGHTS: Record<string, number> = {
+    common: 50,
+    rare: 30,
+    special: 15,
+    legendary: 0,  // 보물상자에서는 legendary 제외
+    dev: 0,        // 개발자 전용 제외
+  };
+
+  /**
+   * 등급별 가중치를 적용하여 상징 선택
+   * @param availableRelics 획득 가능한 상징 ID 배열
+   * @returns 선택된 상징 ID 또는 null
+   */
+  private selectRelicByRarity(availableRelics: string[]): string | null {
+    if (availableRelics.length === 0) return null;
+
+    const rng = getGlobalRandom();
+
+    // 등급별로 상징 분류
+    const relicsByRarity: Record<string, string[]> = {};
+    for (const relicId of availableRelics) {
+      const relic = this.relicLibrary[relicId];
+      const rarity = relic?.rarity || 'common';
+      if (!relicsByRarity[rarity]) {
+        relicsByRarity[rarity] = [];
+      }
+      relicsByRarity[rarity].push(relicId);
+    }
+
+    // 가중치 계산 (해당 등급의 상징이 있는 경우만)
+    const weightedPool: { relicId: string; weight: number }[] = [];
+    for (const [rarity, relicIds] of Object.entries(relicsByRarity)) {
+      const weight = DungeonSimulator.RELIC_RARITY_WEIGHTS[rarity] || 0;
+
+      if (weight > 0) {
+        // 각 상징에 동일한 가중치 부여 (등급 가중치 / 해당 등급 상징 수)
+        const perRelicWeight = weight / relicIds.length;
+        for (const relicId of relicIds) {
+          weightedPool.push({ relicId, weight: perRelicWeight });
+        }
+      }
+    }
+
+    if (weightedPool.length === 0) {
+      // 가중치가 0인 상징만 남은 경우 폴백: 랜덤 선택
+      return rng.pick(availableRelics);
+    }
+
+    // 가중치 기반 랜덤 선택
+    const totalWeight = weightedPool.reduce((sum, item) => sum + item.weight, 0);
+    let roll = rng.next() * totalWeight;
+
+    for (const item of weightedPool) {
+      roll -= item.weight;
+      if (roll <= 0) {
+        return item.relicId;
+      }
+    }
+
+    // 폴백: 마지막 항목 반환
+    return weightedPool[weightedPool.length - 1].relicId;
   }
 
   // ==================== 던전 생성 ====================
@@ -518,11 +602,16 @@ export class DungeonSimulator {
       cardsGained.push(randomCard);
       player.deck.push(randomCard);
 
-      // 희귀 보물 상자는 상징도 제공 (25% 확률)
+      // 희귀 보물 상자는 상징도 제공 (25% 확률, 등급별 가중치 적용)
       if (obj.quality === 'rare' && rng.chance(0.25)) {
-        const randomRelic = rng.pick(DUNGEON_RELIC_REWARDS);
-        relicsGained.push(randomRelic);
-        player.relics.push(randomRelic);
+        const availableRelics = this.getAvailableRelics().filter(r => !player.relics.includes(r));
+        if (availableRelics.length > 0) {
+          const selectedRelic = this.selectRelicByRarity(availableRelics);
+          if (selectedRelic) {
+            relicsGained.push(selectedRelic);
+            player.relics.push(selectedRelic);
+          }
+        }
       }
     }
 

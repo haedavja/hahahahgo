@@ -6,7 +6,7 @@
  * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
@@ -20,8 +20,20 @@ import {
   getServicePrice,
   type MerchantTypeKey,
 } from '../../data/shop';
-import { BuyTab, SellTab, ServiceTab, CardRemovalModal, CardUpgradeModal, type ShopService } from './ShopTabs';
+import { BuyTab, SellTab, ServiceTab, type ShopService } from './ShopTabs';
+
+// Lazy loaded modals
+const CardRemovalModal = lazy(() => import('./ShopTabs').then(m => ({ default: m.CardRemovalModal })));
+const CardUpgradeModal = lazy(() => import('./ShopTabs').then(m => ({ default: m.CardUpgradeModal })));
 import type { BattleCard, GameItem } from '../../state/slices/types';
+import {
+  recordShopPurchase,
+  recordCardPick,
+  recordRelicAcquired,
+  recordItemAcquired,
+  recordCardUpgrade,
+  recordShopVisit,
+} from '../../simulator/bridge/stats-bridge';
 
 // 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
 
@@ -43,7 +55,7 @@ const OVERLAY_STYLE: CSSProperties = {
 };
 
 const MODAL_CONTAINER_STYLE: CSSProperties = {
-  width: '800px',
+  width: 'min(90vw, 800px)',
   maxHeight: '85vh',
   background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
   borderRadius: '16px',
@@ -140,6 +152,30 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
   const [showCardUpgradeModal, setShowCardUpgradeModal] = useState(false);
   const [cardUpgradePrice, setCardUpgradePrice] = useState(0);
+  const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Notification 타이머 cleanup
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Escape 키로 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // 상점 방문 통계 기록
+  useEffect(() => {
+    recordShopVisit(merchantType);
+  }, [merchantType]);
 
   const sellableItems = useMemo(() => {
     return items
@@ -172,8 +208,18 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
   const showNotification = useCallback((message: string, type = 'info') => {
+    // 이전 타이머가 있으면 취소
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 2000);
+    notificationTimerRef.current = setTimeout(() => setNotification(null), 2000);
+  }, []);
+
+  // 상점 방문 통계 기록 (마운트 시 1회만 기록)
+  useEffect(() => {
+    recordShopVisit({ gold });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBuyRelic = (relicId: string, price: number) => {
@@ -189,7 +235,13 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${RELICS[relicId as keyof typeof RELICS]?.name}을(를) 구매했습니다!`, 'success');
+
+    const relicName = RELICS[relicId as keyof typeof RELICS]?.name || relicId;
+    showNotification(`${relicName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordRelicAcquired(relicId, { source: 'shop' });
+    recordShopPurchase('relic', relicId, price);
   };
 
   const handleBuyItem = (itemId: string, price: number) => {
@@ -207,7 +259,13 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${ITEMS[itemId as keyof typeof ITEMS]?.name}을(를) 구매했습니다!`, 'success');
+
+    const itemName = ITEMS[itemId as keyof typeof ITEMS]?.name || itemId;
+    showNotification(`${itemName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordItemAcquired(itemId, itemName);
+    recordShopPurchase('item', itemId, price);
   };
 
   const handleBuyCard = (cardId: string, price: number) => {
@@ -219,8 +277,14 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     addResources({ gold: -price });
     addOwnedCard(cardId);
     setPurchasedCards((prev) => new Set([...prev, cardId]));
+
     const card = CARDS.find(c => c.id === cardId);
-    showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
+    const cardName = card?.name || cardId;
+    showNotification(`${cardName}을(를) 구매했습니다!`, 'success');
+
+    // 통계 기록
+    recordCardPick(cardId, []);
+    recordShopPurchase('card', cardId, price);
   };
 
   const handleSellItem = (slotIndex: number) => {
@@ -308,19 +372,30 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     enhanceCard(card.id);
     setShowCardUpgradeModal(false);
     showNotification(`${card.name} 카드를 강화했습니다!`, 'success');
+
+    // 통계 기록: 카드 강화
+    const currentLevel = cardUpgrades[card.id] ? 2 : 1;
+    recordCardUpgrade(card.id, currentLevel + 1, { cost: cardUpgradePrice });
   };
 
   const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
 
   return (
-    <div style={OVERLAY_STYLE} onClick={onClose} data-testid="shop-modal-overlay">
+    <div
+      style={OVERLAY_STYLE}
+      onClick={onClose}
+      data-testid="shop-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shop-modal-title"
+    >
       <div onClick={handleContainerClick} style={MODAL_CONTAINER_STYLE} data-testid="shop-modal">
         {/* 헤더 */}
         <div style={HEADER_STYLE} data-testid="shop-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '2rem' }}>{merchant.emoji}</span>
             <div>
-              <h2 style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }} data-testid="shop-merchant-name">{merchant.name}</h2>
+              <h2 id="shop-modal-title" style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }} data-testid="shop-merchant-name">{merchant.name}</h2>
               <p style={{ fontSize: '0.875rem', margin: '4px 0 0', color: '#94a3b8', fontStyle: 'italic' }}>
                 "{merchant.greeting}"
               </p>
@@ -331,7 +406,12 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
               <span style={{ fontSize: '1.25rem' }}>💰</span>
               <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }} data-testid="shop-gold-amount">{gold}G</span>
             </div>
-            <button onClick={onClose} style={EXIT_BUTTON_STYLE} data-testid="shop-exit-btn">
+            <button
+              onClick={onClose}
+              style={EXIT_BUTTON_STYLE}
+              data-testid="shop-exit-btn"
+              aria-label="상점 닫기"
+            >
               나가기
             </button>
           </div>
@@ -447,24 +527,28 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
         </div>
       </div>
 
-      {/* 카드 제거 모달 */}
+      {/* 카드 제거 모달 (lazy loaded) */}
       {showCardRemovalModal && (
-        <CardRemovalModal
-          allPlayerCards={allPlayerCards}
-          cardRemovalPrice={cardRemovalPrice}
-          onRemoveCard={handleRemoveCard}
-          onClose={() => setShowCardRemovalModal(false)}
-        />
+        <Suspense fallback={null}>
+          <CardRemovalModal
+            allPlayerCards={allPlayerCards}
+            cardRemovalPrice={cardRemovalPrice}
+            onRemoveCard={handleRemoveCard}
+            onClose={() => setShowCardRemovalModal(false)}
+          />
+        </Suspense>
       )}
 
-      {/* 카드 업그레이드 모달 */}
+      {/* 카드 업그레이드 모달 (lazy loaded) */}
       {showCardUpgradeModal && (
-        <CardUpgradeModal
-          allPlayerCards={allPlayerCards}
-          cardUpgradePrice={cardUpgradePrice}
-          onUpgradeCard={handleUpgradeCard}
-          onClose={() => setShowCardUpgradeModal(false)}
-        />
+        <Suspense fallback={null}>
+          <CardUpgradeModal
+            allPlayerCards={allPlayerCards}
+            cardUpgradePrice={cardUpgradePrice}
+            onUpgradeCard={handleUpgradeCard}
+            onClose={() => setShowCardUpgradeModal(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -40,10 +40,19 @@ export interface LogosEffects {
 
 /**
  * 현재 성장 상태에서 로고스 효과 계산
+ * (React 환경에서 사용 - useGameStore 의존)
  */
 export function getLogosEffects(): LogosEffects {
   const growth = useGameStore.getState().growth || initialGrowthState;
   return calculateLogosEffects(growth);
+}
+
+/**
+ * 성장 상태에서 로고스 효과 계산 (순수 함수)
+ * (Godot 포팅용 - 외부 의존성 없음)
+ */
+export function calculateLogosEffectsPure(growth: GrowthState | null | undefined): LogosEffects {
+  return calculateLogosEffects(growth || initialGrowthState);
 }
 
 /**
@@ -196,12 +205,22 @@ export function getCombatTokens(): { onAttack: string; onDefense: string } {
 
 /**
  * 로고스 레벨 요약
+ * (React 환경에서 사용 - useGameStore 의존)
  */
 export function getLogosLevelSummary(): { common: number; gunkata: number; battleWaltz: number } {
   const growth = useGameStore.getState().growth || initialGrowthState;
+  return getLogosLevelSummaryPure(growth);
+}
+
+/**
+ * 로고스 레벨 요약 (순수 함수)
+ * (Godot 포팅용 - 외부 의존성 없음)
+ */
+export function getLogosLevelSummaryPure(growth: GrowthState | null | undefined): { common: number; gunkata: number; battleWaltz: number } {
+  const g = growth || initialGrowthState;
   return {
-    common: growth.logosLevels.common,
-    gunkata: growth.logosLevels.gunkata,
-    battleWaltz: growth.logosLevels.battleWaltz
+    common: g.logosLevels.common,
+    gunkata: g.logosLevels.gunkata,
+    battleWaltz: g.logosLevels.battleWaltz
   };
 }

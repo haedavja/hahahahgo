@@ -69,14 +69,17 @@ const NODE_ICONS = {
 };
 
 export const DungeonMinimap = memo(function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: DungeonMinimapProps) {
-  if (!dungeonState?.nodes || !dungeonState?.connections) {
-    return null;
-  }
-
-  const { nodes, connections, currentNodeId, unlockedShortcuts, discoveredHidden } = dungeonState;
+  // React hooks 규칙: 모든 훅은 early return 전에 호출되어야 함
+  // dungeonState가 없을 때를 위한 기본값
+  const nodes = dungeonState?.nodes || [];
+  const connections = dungeonState?.connections || {};
+  const currentNodeId = dungeonState?.currentNodeId;
+  const unlockedShortcuts = dungeonState?.unlockedShortcuts;
+  const discoveredHidden = dungeonState?.discoveredHidden;
 
   // 미니맵 그리드 범위 계산
   const bounds = useMemo(() => {
+    if (nodes.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
@@ -249,6 +252,11 @@ export const DungeonMinimap = memo(function DungeonMinimap({ dungeonState, onNod
       );
     });
   }, [nodes, bounds, currentNodeId, discoveredHidden, onNodeClick]);
+
+  // Early return은 모든 훅 호출 후에 수행
+  if (!dungeonState?.nodes || !dungeonState?.connections) {
+    return null;
+  }
 
   // SVG 크기 계산
   const cellSize = 50;

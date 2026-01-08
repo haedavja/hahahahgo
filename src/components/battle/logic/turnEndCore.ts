@@ -142,9 +142,10 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
 
   // 현재 은총 상태 가져오기
   const rawGrace = enemy.grace;
+  const availablePrayers = Array.isArray(enemy.availablePrayers) ? enemy.availablePrayers : undefined;
   const currentGrace: MonsterGraceState = (rawGrace && typeof rawGrace === 'object' && 'gracePts' in rawGrace)
     ? rawGrace as MonsterGraceState
-    : createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+    : createInitialGraceState(availablePrayers);
 
   const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
     playerAppliedEther: effectivePlayerAppliedEther,

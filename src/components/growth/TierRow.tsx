@@ -38,6 +38,15 @@ const getTierOffset = (tier: number): string => {
   return '0';
 };
 
+// 티어별 불투명 배경색 상수 (모듈 레벨에서 한 번만 생성)
+const TIER_OPAQUE_BACKGROUNDS: Record<number, string> = {
+  2: '#1f2a2a', // 핑크 톤
+  3: '#1a2433', // 파랑 톤
+  4: '#2a2419', // 주황 톤
+  5: '#231f33', // 보라 톤
+  6: '#2a1a1a', // 빨강 톤
+};
+
 export const TierRow = memo(function TierRow({
   tier,
   label,
@@ -185,17 +194,7 @@ const NodeCard = memo(function NodeCard({
   // 불투명 배경색 (연결선이 카드 뒤로 숨겨지도록)
   const getOpaqueBackground = () => {
     if (isPending) return '#2d2a1f'; // 노란 톤의 어두운 배경
-    if (isUnlocked) {
-      // 티어별 불투명 배경
-      const opaqueColors: Record<number, string> = {
-        2: '#1f2a2a', // 핑크 톤
-        3: '#1a2433', // 파랑 톤
-        4: '#2a2419', // 주황 톤
-        5: '#231f33', // 보라 톤
-        6: '#2a1a1a', // 빨강 톤
-      };
-      return opaqueColors[node.tier] || '#1e293b';
-    }
+    if (isUnlocked) return TIER_OPAQUE_BACKGROUNDS[node.tier] || '#1e293b';
     return '#141a22'; // 해금 안됨: 더 어두운 배경
   };
 

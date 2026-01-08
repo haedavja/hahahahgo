@@ -7,6 +7,7 @@
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { handleBoundaryError } from '../../lib/errorLogger';
+import { STATUS_COLORS } from '../battle/ui/constants/colors';
 
 interface ComponentErrorBoundaryProps {
   children: ReactNode;
@@ -67,7 +68,7 @@ export class ComponentErrorBoundary extends Component<ComponentErrorBoundaryProp
             border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '4px',
             fontSize: '0.75rem',
-            color: '#f87171',
+            color: STATUS_COLORS.errorLight,
           }}>
             ⚠️ {this.props.componentName || '컴포넌트'} 오류
           </div>

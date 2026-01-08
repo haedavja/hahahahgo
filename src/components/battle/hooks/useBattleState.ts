@@ -18,7 +18,8 @@ import type {
   DeflationInfo,
   OrderItem,
   HoveredCard,
-  HoveredEnemyAction
+  HoveredEnemyAction,
+  ReflectionBattleState
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUnitState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
@@ -95,10 +96,10 @@ export interface BattleActions {
   // 전투 페이즈
   setPhase: (phase: string) => void;
 
-  // 카드 관리 (다양한 카드 타입 허용)
-  setHand: (hand: unknown[]) => void;
-  setSelected: (selected: unknown[]) => void;
-  addSelected: (card: unknown) => void;
+  // 카드 관리
+  setHand: (hand: Card[]) => void;
+  setSelected: (selected: Card[]) => void;
+  addSelected: (card: Card) => void;
   removeSelected: (index: number) => void;
   setCanRedraw: (canRedraw: boolean) => void;
   setSortType: (sortType: SortType) => void;
@@ -112,10 +113,10 @@ export interface BattleActions {
   setDisabledCardIndices: (indices: number[] | Set<number>) => void;
   setCardUsageCount: (count: Record<string, number>) => void;
 
-  // 덱/무덤 시스템 (다양한 카드 타입 허용)
-  setDeck: (deck: unknown[]) => void;
-  setDiscardPile: (pile: unknown[]) => void;
-  addToDiscard: (card: unknown) => void;
+  // 덱/무덤 시스템
+  setDeck: (deck: Card[]) => void;
+  setDiscardPile: (pile: Card[]) => void;
+  addToDiscard: (card: Card) => void;
   drawFromDeck: (count: number) => void;
   shuffleDiscardIntoDeck: () => void;
 
@@ -131,11 +132,11 @@ export interface BattleActions {
   setEtherAnimationPts: (pts: number) => void;
   setNetEtherDelta: (delta: number | null) => void;
 
-  // 전투 실행 (다양한 카드/큐 타입 허용)
-  setQueue: (queue: unknown[]) => void;
+  // 전투 실행
+  setQueue: (queue: OrderItem[]) => void;
   setQIndex: (index: number) => void;
-  setFixedOrder: (order: unknown[] | null) => void;
-  setEnemyPlan: (plan: EnemyPlan | unknown[]) => void;
+  setFixedOrder: (order: OrderItem[] | null) => void;
+  setEnemyPlan: (plan: EnemyPlan) => void;
   setPostCombatOptions: (options: PostCombatOptions | null) => void;
   setExecutingCardIndex: (index: number | null) => void;
   setResolvedPlayerCards: (count: number) => void;
@@ -205,7 +206,7 @@ export interface BattleActions {
 
   // 피해 분배 시스템
   setDistributionMode: (mode: boolean) => void;
-  setPendingDistributionCard: (card: unknown) => void;
+  setPendingDistributionCard: (card: Card | null) => void;
   setDamageDistribution: (dist: DamageDistributionMap) => void;
   updateDamageDistribution: (unitId: number, damage: number) => void;
   setTotalDistributableDamage: (total: number) => void;
@@ -218,10 +219,13 @@ export interface BattleActions {
   // 다음 턴 효과
   setNextTurnEffects: (effects: NextTurnEffects) => void;
   updateNextTurnEffects: (updates: Partial<NextTurnEffects>) => void;
-  setReflectionState: (state: unknown) => void;
+  setReflectionState: (state: ReflectionBattleState | null) => void;
 
   // 기타
   dispatch: Dispatch<BattleAction>;
+
+  // 확장을 위한 인덱스 시그니처 - 훅 파라미터 타입과 호환성 확보
+  [key: string]: unknown;
 }
 
 /**
@@ -236,46 +240,41 @@ export interface BattleActions {
 export function useBattleState(initialStateOverrides: InitialStateOverrides = {}): UseBattleStateResult {
   // Lazy initializer function for useReducer
   const initializeBattleState = useCallback(() => {
-    // Default player and enemy states
-    const defaultPlayer = {
-      name: 'Player',
+    // Default player and enemy states with explicit types
+    const defaultPlayer: PlayerState = {
       hp: 100,
       maxHp: 100,
       energy: 6,
       maxEnergy: 6,
       block: 0,
-      ether: 0,
       maxSpeed: 30,
-      tokens: {},
-      deck: []
+      tokens: { usage: [], turn: [], permanent: [] },
     };
 
-    const defaultEnemy = {
-      name: 'Enemy',
+    const defaultEnemy: EnemyState = {
       hp: 100,
       maxHp: 100,
       block: 0,
-      ether: 0,
       maxSpeed: 30,
-      tokens: {},
-      units: []
+      tokens: { usage: [], turn: [], permanent: [] },
+      units: [],
     };
 
     // Merge overrides with defaults
-    const playerState = {
+    const playerState: PlayerState = {
       ...defaultPlayer,
       ...initialStateOverrides.player
     };
 
-    const enemyState = {
+    const enemyState: EnemyState = {
       ...defaultEnemy,
       ...initialStateOverrides.enemy
     };
 
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
-      initialPlayerState: playerState as unknown as PlayerState,
-      initialEnemyState: enemyState as unknown as EnemyState,
+      initialPlayerState: playerState,
+      initialEnemyState: enemyState,
       initialPlayerRelics: initialStateOverrides.orderedRelics || [],
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'

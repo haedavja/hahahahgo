@@ -24,6 +24,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // console.log 경고 (error 대신 warn으로 점진적 적용)
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     },
   },
 ])

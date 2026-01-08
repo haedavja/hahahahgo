@@ -1,0 +1,7 @@
+{
+  "COMMON": "common",
+  "RARE": "rare",
+  "SPECIAL": "special",
+  "LEGENDARY": "legendary",
+  "DEV": "dev"
+}

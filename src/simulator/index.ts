@@ -91,6 +91,101 @@ export {
   getConstants,
 } from './core/battle-engine';
 
+// ==================== Typed Event System (타입 안전 이벤트) ====================
+export type {
+  // 이벤트 기본 타입
+  BattleEventType,
+  Actor,
+  EventActor,
+  BaseBattleEvent,
+  TypedBattleEvent,
+  LegacyBattleEvent,
+  // 개별 이벤트 데이터 타입
+  BattleStartData,
+  TurnStartData,
+  CardSelectData,
+  CardRespondData,
+  TimelineResolveData,
+  CardExecuteData,
+  DamageDealtData,
+  BlockGainedData,
+  HealData,
+  TokenAppliedData,
+  TokenRemovedData,
+  CounterTriggeredData,
+  CrossTriggeredData,
+  ChainTriggeredData,
+  SpecialTriggeredData,
+  ComboTriggeredData,
+  RelicTriggeredData,
+  TurnEndData,
+  BattleEndData,
+  // 개별 이벤트 타입
+  BattleStartEvent,
+  TurnStartEvent,
+  CardSelectEvent,
+  CardRespondEvent,
+  TimelineResolveEvent,
+  CardExecuteEvent,
+  DamageDealtEvent,
+  BlockGainedEvent,
+  HealEvent,
+  TokenAppliedEvent,
+  TokenRemovedEvent,
+  CounterTriggeredEvent,
+  CrossTriggeredEvent,
+  ChainTriggeredEvent,
+  SpecialTriggeredEvent,
+  ComboTriggeredEvent,
+  RelicTriggeredEvent,
+  TurnEndEvent,
+  BattleEndEvent,
+} from './core/event-types';
+
+export {
+  // 타입 가드
+  isBattleStartEvent,
+  isTurnStartEvent,
+  isDamageDealtEvent,
+  isTokenAppliedEvent,
+  isTokenRemovedEvent,
+  isCardExecuteEvent,
+  isComboTriggeredEvent,
+  isRelicTriggeredEvent,
+  isBattleEndEvent,
+  // 이벤트 생성 헬퍼
+  createBattleStartEvent,
+  createTurnStartEvent,
+  createDamageDealtEvent,
+  createBlockGainedEvent,
+  createTokenAppliedEvent,
+  createBattleEndEvent,
+  // 이벤트 필터링 유틸리티
+  filterEventsByType,
+  filterEventsByActor,
+  filterEventsByTurn,
+  // 이벤트 통계 유틸리티
+  sumDamageDealt,
+  countCardsPlayed,
+  getUniqueCardsUsed,
+  countTokensApplied,
+  // 호환성 함수
+  toLegacyEvent,
+  fromLegacyEvent,
+} from './core/event-types';
+
+// ==================== LRU Cache (메모리 관리) ====================
+export {
+  LRUCache,
+  TTLCache,
+  WeakRefCache,
+  createStateCache,
+  createResultCache,
+  createTranspositionCache,
+  type LRUCacheOptions,
+  type CacheStats,
+} from './core/lru-cache';
+
 // ==================== Parallel Processing ====================
 export { WorkerPool, runParallelSimulation, runQuickSimulation, type PoolOptions, type PoolStats } from './parallel/pool';
 
@@ -549,6 +644,73 @@ export {
   type ComprehensiveReportData,
 } from './analysis/ai-share-formatter';
 
+// ==================== Balance Insights (NEW) ====================
+export {
+  BalanceInsightAnalyzer,
+  createBalanceInsightAnalyzer,
+  type BalanceRecommendation,
+  type BalancePriority,
+  type ActionType,
+  type BottleneckAnalysis,
+  type MustPickDetection,
+  type DiversityMetrics,
+  type PatchComparison,
+  type FrustrationPoint,
+  type PlayerExperiencePrediction,
+  type BalanceInsightReport,
+  // 카드 특성/성장/승급 분석 타입
+  type CardTraitAnalysis,
+  type GrowthStatAnalysis,
+  type GrowthPathAnalysis,
+  type UpgradeBalanceAnalysis,
+} from './analysis/balance-insights';
+
+// ==================== Comprehensive Analytics (종합 분석 시스템) ====================
+export {
+  ComprehensiveAnalyzer,
+  generateComprehensiveReport,
+} from './analysis/comprehensive-analytics';
+
+export type {
+  // 런 진행 분석
+  FloorDeathRateAnalysis,
+  FloorDeckStateAnalysis,
+  CardPickTimingAnalysis,
+  BossWinRateAnalysis,
+  CardRemovalAnalysis,
+  RunProgressionAnalysis,
+  // 시너지 분석
+  DeckArchetype,
+  TripleCardSynergy,
+  RelicCardSynergy,
+  PokerHandEfficiency,
+  SynergyAnalysis,
+  // 경제/자원 분석
+  EtherEfficiencyAnalysis,
+  ShopPatternAnalysis,
+  HPCurveAnalysis,
+  RiskRewardAnalysis,
+  EconomyAnalysis,
+  // 플레이 스타일 분석
+  AggressionMetrics,
+  DefenseMetrics,
+  InitiativeAnalysis,
+  DeckCyclingAnalysis,
+  PlayStyleAnalysis,
+  // 난이도 진행
+  WinStreakAnalysis,
+  DifficultyLevelAnalysis,
+  PlayerGrowthCurve,
+  DifficultyProgressionAnalysis,
+  // 적 패턴 분석
+  EnemyBehaviorPattern,
+  EnemyReactionAnalysis,
+  EnemyCounterAnalysis,
+  EnemyPatternAnalysis,
+  // 종합 리포트
+  ComprehensiveAnalyticsReport,
+} from './analysis/advanced-analytics-types';
+
 // ==================== Caching Layer ====================
 export {
   MemoryCache,
@@ -559,7 +721,7 @@ export {
   formatCacheStats,
   withCache,
   type CacheAdapter,
-  type CacheStats,
+  type CacheStats as SimCacheStats,
   type CacheConfig,
 } from './cache';
 

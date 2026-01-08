@@ -285,8 +285,11 @@ export class DiskCache implements CacheAdapter {
     for (const file of files) {
       try {
         unlinkSync(file);
-      } catch {
-        // 무시
+      } catch (e) {
+        // 파일 삭제 실패 - 잠금 또는 권한 문제일 수 있음
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[DiskCache] Failed to delete file:', file, e);
+        }
       }
     }
     this.stats = { hits: 0, misses: 0 };
@@ -303,7 +306,11 @@ export class DiskCache implements CacheAdapter {
         return false;
       }
       return true;
-    } catch {
+    } catch (e) {
+      // JSON 파싱 또는 파일 읽기 실패
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[DiskCache] has() check failed for key:', key, e);
+      }
       return false;
     }
   }
@@ -318,8 +325,11 @@ export class DiskCache implements CacheAdapter {
         if (!data.expires || data.expires >= Date.now()) {
           keys.push(data.key);
         }
-      } catch {
-        // 무시
+      } catch (e) {
+        // 손상된 캐시 파일 무시
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[DiskCache] Failed to read key from file:', file, e);
+        }
       }
     }
 
@@ -371,13 +381,19 @@ export class DiskCache implements CacheAdapter {
           unlinkSync(file);
           removed++;
         }
-      } catch {
+      } catch (e) {
         // 손상된 파일 제거
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[DiskCache] Corrupted cache file, removing:', file, e);
+        }
         try {
           unlinkSync(file);
           removed++;
-        } catch {
-          // 무시
+        } catch (unlinkError) {
+          // 삭제 실패 - 파일 잠금 또는 권한 문제
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[DiskCache] Failed to remove corrupted file:', file, unlinkError);
+          }
         }
       }
     }

@@ -6,6 +6,7 @@
  */
 
 import type { RelicRarity } from '../types';
+import type { UIRelicsMap, RelicRarities } from '../types/ui';
 
 /** 상징 조건 평가용 상태 */
 interface RelicConditionState {
@@ -18,13 +19,13 @@ interface RelicConditionState {
 }
 
 /** 상징 희귀도 상수 */
-export const RELIC_RARITIES: Record<string, RelicRarity | 'dev'> = {
+export const RELIC_RARITIES: RelicRarities = {
   COMMON: 'common',
   RARE: 'rare',
   SPECIAL: 'special',
   LEGENDARY: 'legendary',
   DEV: 'dev',  // 개발자 전용
-} as const;
+};
 
 export const RELIC_TAGS = {
   ENERGY: 'energy',      // 행동력
@@ -52,7 +53,7 @@ export const RELIC_TAGS = {
  * - ON_CARD_DRAW: 카드 뽑을 때
  */
 
-export const RELICS = {
+export const RELICS: UIRelicsMap = {
   // ==================== 일반 등급 ====================
   etherCrystal: {
     id: 'etherCrystal',
@@ -642,6 +643,312 @@ export const RELICS = {
     effects: {
       type: 'ON_COMBAT_START',
       grantImmunity: 1,
+    },
+  },
+
+  // ==================== 이벤트 전용 상징 ====================
+  // 이벤트에서만 획득 가능한 특별한 상징들
+
+  bloodPactSeal: {
+    id: 'bloodPactSeal',
+    name: '피의 계약인',
+    emoji: '🩸',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: '피해를 입을 때마다 힘 2 획득. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_DAMAGE_TAKEN',
+      strength: 2,
+    },
+  },
+
+  soulForge: {
+    id: 'soulForge',
+    name: '영혼의 용광로',
+    emoji: '🔥',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ETHER],
+    description: '카드가 소멸될 때마다 에테르 100pt 획득. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_CARD_EXHAUST',
+      etherGain: 100,
+    },
+  },
+
+  soulFragment: {
+    id: 'soulFragment',
+    name: '영혼 파편',
+    emoji: '👻',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ENERGY, RELIC_TAGS.HP],
+    description: '최대 HP가 낮을수록 행동력 증가. HP 50% 이하시 +1, 25% 이하시 +2. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      conditionalEnergy: {
+        hpThreshold50: 1,
+        hpThreshold25: 2,
+      },
+    },
+  },
+
+  voidHeart: {
+    id: 'voidHeart',
+    name: '공허의 심장',
+    emoji: '🖤',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH, RELIC_TAGS.DEFENSE],
+    description: 'HP가 30% 이하일 때 피해량 50% 증가, 받는 피해 30% 감소. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      lowHpBonus: {
+        threshold: 0.3,
+        damageBonus: 0.5,
+        damageReduction: 0.3,
+      },
+    },
+  },
+
+  forbiddenPower: {
+    id: 'forbiddenPower',
+    name: '금단의 힘',
+    emoji: '⚡',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: '힘 +3. 매 전투마다 HP 5 손실. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      strength: 3,
+      combatDamage: 5,
+    },
+  },
+
+  forbiddenWisdom: {
+    id: 'forbiddenWisdom',
+    name: '금단의 지혜',
+    emoji: '📖',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.DRAW],
+    description: '매 턴 카드 1장 추가 드로우. 덱 크기 -3. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      drawPerTurn: 1,
+      deckSizePenalty: 3,
+    },
+  },
+
+  deathsEmbrace: {
+    id: 'deathsEmbrace',
+    name: '죽음의 포옹',
+    emoji: '💀',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.HP, RELIC_TAGS.STRENGTH],
+    description: 'HP 1로 전투 시작. 대신 힘 +5, 첫 턴 무적. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_COMBAT_START',
+      setHp: 1,
+      strength: 5,
+      grantInvincible: 1,
+    },
+  },
+
+  phoenixFeather: {
+    id: 'phoenixFeather',
+    name: '불사조의 깃털',
+    emoji: '🪶',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.HP, RELIC_TAGS.HEAL],
+    description: '치명상 시 HP 50%로 부활 (1회). (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_DEATH',
+      revive: true,
+      reviveHpPercent: 0.5,
+      usesPerRun: 1,
+    },
+  },
+
+  phoenixAsh: {
+    id: 'phoenixAsh',
+    name: '불사조의 재',
+    emoji: '🔥',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.STRENGTH],
+    description: 'HP가 낮을수록 피해량 증가. HP 1%당 피해량 +1%. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      lowHpDamageScaling: true,
+    },
+  },
+
+  abyssalCore: {
+    id: 'abyssalCore',
+    name: '심연의 핵',
+    emoji: '🌀',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ETHER, RELIC_TAGS.STRENGTH],
+    description: '콤보 배수 +5. 매 턴 HP 3 손실. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      comboMultiplierBonus: 5,
+      hpLossPerTurn: 3,
+    },
+  },
+
+  timeloop: {
+    id: 'timeloop',
+    name: '시간의 고리',
+    emoji: '⏰',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '전투 시작 시 타임라인 2칸 먼저 시작. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'ON_COMBAT_START',
+      timelineAdvance: 2,
+    },
+  },
+
+  paradoxShard: {
+    id: 'paradoxShard',
+    name: '역설의 파편',
+    emoji: '💎',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.ENERGY],
+    description: '첫 턴 행동력 +2. 마지막 턴 행동력 +2. (이벤트 전용)',
+    eventOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      firstTurnEnergy: 2,
+      lastTurnEnergy: 2,
+    },
+  },
+
+  // ==================== 상점 전용 상징 ====================
+  // shopOnly: true - 상점에서만 구매 가능한 가성비 좋은 상징
+
+  merchantsBadge: {
+    id: 'merchantsBadge',
+    name: '상인의 배지',
+    emoji: '🏅',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점에서 모든 물품 10% 추가 할인. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      shopDiscount: 0.10,
+    },
+  },
+
+  goldPurse: {
+    id: 'goldPurse',
+    name: '황금 주머니',
+    emoji: '👝',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '전투 승리 시 골드 +5. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_COMBAT_WIN',
+      bonusGold: 5,
+    },
+  },
+
+  bargainingChip: {
+    id: 'bargainingChip',
+    name: '흥정 토큰',
+    emoji: '🎰',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 물품 1개를 무료로 획득 (1회 사용 후 소멸). (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_SHOP_VISIT',
+      freeItem: 1,
+      usesPerRun: 1,
+    },
+  },
+
+  vipCard: {
+    id: 'vipCard',
+    name: 'VIP 카드',
+    emoji: '💳',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 방문 시 항상 VIP 할인(15%) 적용. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      permanentVIP: true,
+      shopDiscount: 0.15,
+    },
+  },
+
+  investmentToken: {
+    id: 'investmentToken',
+    name: '투자 증서',
+    emoji: '📈',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '층 이동 시 보유 골드의 5% 이자 획득. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_FLOOR_CHANGE',
+      goldInterestRate: 0.05,
+    },
+  },
+
+  merchantsEye: {
+    id: 'merchantsEye',
+    name: '상인의 눈',
+    emoji: '👁️',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.UTILITY, RELIC_TAGS.INSIGHT],
+    description: '상점에서 모든 물품의 가치를 확인 가능. 구매 시 추가로 랜덤 아이템 1개 획득. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'ON_SHOP_PURCHASE',
+      revealValues: true,
+      bonusItem: 1,
+    },
+  },
+
+  merchantsPact: {
+    id: 'merchantsPact',
+    name: '상인의 계약',
+    emoji: '📜',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점 새로고침이 무료. 판매 가격 20% 증가. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      freeReroll: true,
+      sellPriceBonus: 0.20,
+    },
+  },
+
+  goldenScale: {
+    id: 'goldenScale',
+    name: '황금 저울',
+    emoji: '⚖️',
+    rarity: RELIC_RARITIES.LEGENDARY,
+    tags: [RELIC_TAGS.UTILITY],
+    description: '상점에서 구매/판매 가격이 동일. 모든 상점 할인 2배. (상점 전용)',
+    shopOnly: true,
+    effects: {
+      type: 'PASSIVE',
+      equalBuySell: true,
+      doubleDiscounts: true,
     },
   },
 

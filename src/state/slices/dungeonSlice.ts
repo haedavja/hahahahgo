@@ -10,6 +10,7 @@ import type { GameStore, DungeonSliceActions } from './types';
 import { cloneNodes, payCost } from '../gameStoreHelpers';
 import { travelToNode } from '../battleHelpers';
 import { updateStats } from '../metaProgress';
+import { recordDungeon } from '../../simulator/bridge/stats-bridge';
 
 export type DungeonActionsSlice = DungeonSliceActions;
 
@@ -66,7 +67,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id: string) => {
+      dungeonNode.connections?.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });
@@ -91,7 +92,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id: string) => {
+      dungeonNode.connections?.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });
@@ -113,11 +114,19 @@ export const createDungeonActions: SliceCreator = (set) => ({
       if (!dungeonNode) return { ...state, activeDungeon: null };
 
       updateStats({ dungeonClears: 1 });
+
+      // 통계 기록: 던전 완료
+      const dungeonId = state.activeDungeon.dungeonData?.id || nodeId;
+      recordDungeon(dungeonId, true, {
+        floor: state.activeDungeon.dungeonData?.floor ?? 1,
+        turnsSpent: state.activeDungeon.dungeonData?.timeElapsed ?? 0,
+      });
+
       dungeonNode.cleared = true;
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id: string) => {
+      dungeonNode.connections?.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });

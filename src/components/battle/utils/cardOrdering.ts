@@ -8,7 +8,7 @@
  * - 민첩 적용 속도 계산
  */
 
-import type { OrderingCardInfo, OrderingEnemyAction, OrderItem } from '../../../types';
+import type { Card, OrderItem } from '../../../types';
 import { applyAgility, applyAgilityWithAnomaly } from "../../../lib/agilityUtils";
 
 interface AnomalyPlayerState {
@@ -43,8 +43,8 @@ function hasCardTrait(card: { id?: string; traits?: string[] }, traitId: string,
  * @returns sp 값이 계산된 fixedOrder 배열
  */
 export function createFixedOrder(
-  enhancedPlayerCards: OrderingCardInfo[],
-  enemyActions: OrderingEnemyAction[] | null | undefined,
+  enhancedPlayerCards: Card[],
+  enemyActions: Card[] | null | undefined,
   effectiveAgility: number,
   playerState?: AnomalyPlayerState,
   cardGrowth?: CardGrowthMap

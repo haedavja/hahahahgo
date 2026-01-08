@@ -89,6 +89,7 @@ export {
   createDefaultPlayer,
   type PlayerRunState,
   type RunConfig,
+  type DifficultyModifiers,
   type RunStrategy,
   type NodeResult,
   type RunResult,

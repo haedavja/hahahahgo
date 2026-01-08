@@ -8,6 +8,7 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { handleBoundaryError } from '../../lib/errorLogger';
 import { useGameStore } from '../../state/gameStore';
+import { TEXT_COLORS, STATUS_COLORS, BG_COLORS } from './ui/constants/colors';
 
 interface BattleErrorBoundaryProps {
   children: ReactNode;
@@ -27,8 +28,8 @@ const OVERLAY_STYLE: React.CSSProperties = {
   flexDirection: 'column',
   justifyContent: 'center',
   alignItems: 'center',
-  background: 'rgba(15, 23, 42, 0.95)',
-  color: '#e2e8f0',
+  background: 'rgba(15, 23, 42, 0.95)', // BG_COLORS.dark with opacity
+  color: TEXT_COLORS.primary,
   fontFamily: 'sans-serif',
   padding: '20px',
   textAlign: 'center',
@@ -37,7 +38,7 @@ const OVERLAY_STYLE: React.CSSProperties = {
 
 const BUTTON_PRIMARY_STYLE: React.CSSProperties = {
   padding: '12px 24px',
-  background: '#3b82f6',
+  background: STATUS_COLORS.info,
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -47,7 +48,7 @@ const BUTTON_PRIMARY_STYLE: React.CSSProperties = {
 
 const BUTTON_SECONDARY_STYLE: React.CSSProperties = {
   padding: '12px 24px',
-  background: '#374151',
+  background: BG_COLORS.button,
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -118,10 +119,10 @@ export class BattleErrorBoundary extends Component<BattleErrorBoundaryProps, Bat
       return (
         <div style={OVERLAY_STYLE}>
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚔️</div>
-          <h1 style={{ color: '#f87171', marginBottom: '16px', fontSize: '1.5rem' }}>
+          <h1 style={{ color: STATUS_COLORS.errorLight, marginBottom: '16px', fontSize: '1.5rem' }}>
             전투 중 오류 발생
           </h1>
-          <p style={{ color: '#94a3b8', marginBottom: '24px', maxWidth: '400px' }}>
+          <p style={{ color: TEXT_COLORS.secondary, marginBottom: '24px', maxWidth: '400px' }}>
             전투 진행 중 문제가 발생했습니다.
             전투를 다시 시작하거나 맵으로 돌아갈 수 있습니다.
           </p>
@@ -137,7 +138,7 @@ export class BattleErrorBoundary extends Component<BattleErrorBoundaryProps, Bat
             </button>
           </div>
           {this.state.errorId && (
-            <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '16px' }}>
+            <p style={{ color: TEXT_COLORS.muted, fontSize: '0.75rem', marginTop: '16px' }}>
               에러 ID: {this.state.errorId}
             </p>
           )}
@@ -145,10 +146,10 @@ export class BattleErrorBoundary extends Component<BattleErrorBoundaryProps, Bat
             <pre style={{
               marginTop: '24px',
               padding: '16px',
-              background: '#1e293b',
+              background: BG_COLORS.primary,
               borderRadius: '8px',
               fontSize: '0.75rem',
-              color: '#f87171',
+              color: STATUS_COLORS.errorLight,
               maxWidth: '600px',
               overflow: 'auto',
               textAlign: 'left',

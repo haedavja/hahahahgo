@@ -479,3 +479,16 @@ export function parseLogLevel(level: string): LogLevel {
 if (typeof process !== 'undefined' && process.env?.LOG_LEVEL) {
   setLogLevel(parseLogLevel(process.env.LOG_LEVEL));
 }
+
+// config에서 로그 레벨 동기화
+try {
+  // 동적 import로 순환 의존성 방지
+  import('./config').then(({ getConfig }) => {
+    const configLevel = getConfig().logging.level;
+    setLogLevel(parseLogLevel(configLevel));
+  }).catch(() => {
+    // config 로드 실패 시 기본값 유지
+  });
+} catch {
+  // 브라우저 환경에서는 무시
+}

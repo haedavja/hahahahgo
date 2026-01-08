@@ -7,7 +7,7 @@
  */
 
 import type { MutableRefObject } from 'react';
-import type { Card, TokenState, TokenEntity } from './core';
+import type { Card, TokenState, TokenEntity, EnemyUnitState } from './core';
 import type { HandCard } from './systems';
 import type { NextTurnEffects, InsightBadge } from './combat';
 import type { DeflationInfo } from './ui';
@@ -49,7 +49,7 @@ export interface BattleEntityState extends TokenEntity {
   drawPenalty?: number;
   insightPenalty?: number;
   // 적 전용 필드
-  units?: Array<BattleUnitState>;
+  units?: EnemyUnitState[];
   shroud?: number;
   name?: string;
   emoji?: string;
@@ -175,7 +175,7 @@ export interface UseComboSystemParams {
   battleQIndex: number;
   battleQueueLength: number;
   computeComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean) => number;
-  explainComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] };
+  explainComboMultiplier: (baseMultiplier: number, cardsCount: number, includeFiveCard?: boolean, includeRefBook?: boolean, relicOrderOverride?: string[] | null, orderedRelicList?: string[]) => { multiplier: number; steps: string[] };
   orderedRelicList: string[];
   selected: Card[];
   actions: {
@@ -272,6 +272,25 @@ export interface UseBattleTimelinesParams {
   enemyPlanActions: Card[];
   insightReveal: { visible: boolean; level: number } | null;
   selected: Card[];
+}
+
+/** useBattleTimelines 반환 타입 - 타임라인 캐스트 제거용 */
+export interface UseBattleTimelinesResult {
+  playerTimeline: Array<{
+    actor: 'player' | 'enemy';
+    card: Card;
+    sp: number;
+    idx: number;
+    finalSpeed?: number;
+    [key: string]: unknown;
+  }>;
+  enemyTimeline: Array<{
+    actor: 'player' | 'enemy';
+    card: Card;
+    sp: number;
+    idx: number;
+    [key: string]: unknown;
+  }>;
 }
 
 // DeflationInfo는 ui.ts에서 import됨

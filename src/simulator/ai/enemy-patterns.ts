@@ -1,23 +1,32 @@
 /**
  * @file enemy-patterns.ts
- * @description 적 AI 패턴 시스템 - 적별 고유 행동 패턴 구현
+ * @description 적 AI 패턴 시스템
  *
- * ## 패턴 타입
- * - aggressive: 공격 우선, HP 낮을수록 더 공격적
- * - defensive: 방어 우선, HP 낮을수록 더 방어적
- * - balanced: 상황에 따라 균형 있게 대응
- * - tactical: 교차/특수 효과 우선
- * - berserk: HP 낮을수록 광폭화
+ * ## 기본 패턴 (3종)
+ * - aggressive: 공격 우선
+ * - defensive: 방어 우선
+ * - balanced: 균형 있게 대응
+ *
+ * ## 확장 패턴 (4종)
+ * - tactical: 전술적 판단 (balanced 기반 + 특수효과 중시)
+ * - berserk: 광폭화 (aggressive 기반 + HP 낮을 때 더 공격적)
+ * - support: 지원 (defensive 기반 + 힐 우선)
+ * - assassin: 암살자 (aggressive 기반 + 빠른 고피해)
  */
 
 import type { GameCard, EnemyState, PlayerState, TokenState } from '../core/game-types';
 
 // ==================== 타입 정의 ====================
 
+// 단순화된 패턴 (실제 게임과 동일)
 export type EnemyPattern =
   | 'aggressive'
   | 'defensive'
-  | 'balanced'
+  | 'balanced';
+
+// 레거시 호환을 위한 확장 패턴 (내부적으로 기본 패턴으로 매핑)
+export type ExtendedEnemyPattern =
+  | EnemyPattern
   | 'tactical'
   | 'berserk'
   | 'support'
@@ -49,26 +58,28 @@ export interface CardScore {
 
 export interface EnemyDecision {
   selectedCards: GameCard[];
-  pattern: EnemyPattern;
+  pattern: ExtendedEnemyPattern;
   reasoning: string[];
 }
 
 // ==================== 패턴 설정 ====================
 
-const PATTERN_CONFIGS: Record<EnemyPattern, PatternConfig> = {
+// 패턴 설정 (기본 + 확장)
+const PATTERN_CONFIGS: Record<ExtendedEnemyPattern, PatternConfig> = {
+  // 기본 패턴
   aggressive: {
-    attackWeight: 2.0,
-    defenseWeight: 0.5,
+    attackWeight: 1.8,
+    defenseWeight: 0.6,
     specialWeight: 1.0,
-    hpThresholds: { low: 0.4, critical: 0.2 },
+    hpThresholds: { low: 0.3, critical: 0.15 },
     lowHpBehavior: 'more_aggressive',
     criticalBehavior: 'all_in',
   },
   defensive: {
-    attackWeight: 0.8,
-    defenseWeight: 2.0,
-    specialWeight: 1.2,
-    hpThresholds: { low: 0.5, critical: 0.25 },
+    attackWeight: 0.7,
+    defenseWeight: 1.8,
+    specialWeight: 1.0,
+    hpThresholds: { low: 0.4, critical: 0.2 },
     lowHpBehavior: 'more_defensive',
     criticalBehavior: 'desperate_defense',
   },
@@ -76,63 +87,94 @@ const PATTERN_CONFIGS: Record<EnemyPattern, PatternConfig> = {
     attackWeight: 1.2,
     defenseWeight: 1.2,
     specialWeight: 1.0,
-    hpThresholds: { low: 0.4, critical: 0.2 },
+    hpThresholds: { low: 0.35, critical: 0.15 },
     lowHpBehavior: 'more_defensive',
     criticalBehavior: 'all_in',
   },
+  // 확장 패턴
   tactical: {
-    attackWeight: 1.0,
-    defenseWeight: 1.0,
-    specialWeight: 2.0,
+    attackWeight: 1.3,
+    defenseWeight: 1.3,
+    specialWeight: 1.5,
     hpThresholds: { low: 0.35, critical: 0.15 },
-    lowHpBehavior: 'more_aggressive',
+    lowHpBehavior: 'more_defensive',
     criticalBehavior: 'all_in',
   },
   berserk: {
-    attackWeight: 1.5,
-    defenseWeight: 0.3,
+    attackWeight: 2.0,
+    defenseWeight: 0.4,
     specialWeight: 0.8,
-    hpThresholds: { low: 0.5, critical: 0.25 },
+    hpThresholds: { low: 0.5, critical: 0.2 },
     lowHpBehavior: 'berserk',
     criticalBehavior: 'all_in',
   },
   support: {
-    attackWeight: 0.6,
+    attackWeight: 0.8,
     defenseWeight: 1.5,
-    specialWeight: 2.0,
+    specialWeight: 1.8,
     hpThresholds: { low: 0.4, critical: 0.2 },
     lowHpBehavior: 'more_defensive',
     criticalBehavior: 'heal_priority',
   },
   assassin: {
-    attackWeight: 2.5,
+    attackWeight: 2.2,
     defenseWeight: 0.3,
-    specialWeight: 1.5,
-    hpThresholds: { low: 0.3, critical: 0.15 },
+    specialWeight: 1.2,
+    hpThresholds: { low: 0.25, critical: 0.1 },
     lowHpBehavior: 'more_aggressive',
     criticalBehavior: 'all_in',
   },
 };
 
+// 확장 패턴을 기본 패턴으로 매핑 (레거시 함수 - 일부 기능에서 사용)
+function normalizePattern(pattern: ExtendedEnemyPattern): EnemyPattern {
+  switch (pattern) {
+    case 'tactical':
+    case 'balanced':
+      return 'balanced';
+    case 'berserk':
+    case 'assassin':
+    case 'aggressive':
+      return 'aggressive';
+    case 'support':
+    case 'defensive':
+      return 'defensive';
+    default:
+      return 'balanced';
+  }
+}
+
+// 확장 패턴 유효성 검사
+function isValidExtendedPattern(pattern: string): pattern is ExtendedEnemyPattern {
+  return ['aggressive', 'defensive', 'balanced', 'tactical', 'berserk', 'support', 'assassin'].includes(pattern);
+}
+
 // ==================== 적 AI 클래스 ====================
 
 export class EnemyAI {
   private cards: Record<string, GameCard>;
-  private pattern: EnemyPattern;
+  private pattern: ExtendedEnemyPattern;
   private config: PatternConfig;
 
-  constructor(cards: Record<string, GameCard>, pattern: EnemyPattern = 'balanced') {
+  constructor(cards: Record<string, GameCard>, pattern: ExtendedEnemyPattern = 'balanced') {
     this.cards = cards;
     this.pattern = pattern;
-    this.config = PATTERN_CONFIGS[pattern];
+    this.config = PATTERN_CONFIGS[this.pattern];
   }
 
   /**
-   * 패턴 변경
+   * 패턴 변경 (확장 패턴 완전 지원)
    */
-  setPattern(pattern: EnemyPattern): void {
+  setPattern(pattern: ExtendedEnemyPattern): void {
     this.pattern = pattern;
-    this.config = PATTERN_CONFIGS[pattern];
+    this.config = PATTERN_CONFIGS[this.pattern];
+  }
+
+  /**
+   * 현재 패턴 반환
+   */
+  getPattern(): ExtendedEnemyPattern {
+    return this.pattern;
   }
 
   /**
@@ -476,7 +518,7 @@ export class EnemyAI {
   }
 
   /**
-   * 패턴별 보너스
+   * 패턴별 보너스 (단순화됨)
    */
   private getPatternBonus(card: GameCard, reasons: string[]): number {
     let bonus = 0;
@@ -485,44 +527,31 @@ export class EnemyAI {
       case 'aggressive':
         // 다중 히트 선호
         if (card.hits && card.hits > 1) {
-          bonus += card.hits * 5;
-          reasons.push('다중히트 보너스');
+          bonus += card.hits * 3;
+          reasons.push('다중히트');
+        }
+        // 고피해 카드 선호
+        if (card.damage && card.damage >= 8) {
+          bonus += 5;
         }
         break;
 
       case 'defensive':
-        // 방어 + 반격 조합 선호
+        // 방어 + 공격 조합 선호
         if (card.block && card.damage) {
-          bonus += 10;
-          reasons.push('방반 조합');
+          bonus += 8;
+          reasons.push('방반');
+        }
+        // 고방어 카드 선호
+        if (card.block && card.block >= 8) {
+          bonus += 5;
         }
         break;
 
-      case 'tactical':
-        // 교차 보너스 있는 카드 선호
-        if (card.crossBonus) {
-          bonus += 15;
-          reasons.push('교차 보너스');
-        }
-        // 특성 있는 카드 선호
-        if (card.traits && card.traits.length > 0) {
-          bonus += card.traits.length * 5;
-        }
-        break;
-
-      case 'berserk':
-        // 자해 카드도 사용
-        if (card.traits?.includes('double_edge')) {
-          bonus += 10;
-          reasons.push('양날의 검');
-        }
-        break;
-
-      case 'assassin':
-        // 빠른 고피해 카드 선호
-        if (card.damage && card.damage >= 10 && (card.speedCost || 5) <= 4) {
-          bonus += 20;
-          reasons.push('암살 적합');
+      case 'balanced':
+        // 균형잡힌 카드 선호
+        if (card.block && card.damage) {
+          bonus += 5;
         }
         break;
     }
@@ -574,47 +603,49 @@ export class EnemyAI {
 
 export function createEnemyAI(
   cards: Record<string, GameCard>,
-  pattern?: EnemyPattern
+  pattern?: ExtendedEnemyPattern
 ): EnemyAI {
   return new EnemyAI(cards, pattern);
 }
 
 /**
  * 적 ID에서 패턴 추출
+ * - 각 적에 맞는 확장 패턴 반환
  */
-export function getPatternForEnemy(enemyId: string): EnemyPattern {
-  // 적 이름 기반 패턴 매핑
-  const patterns: Record<string, EnemyPattern> = {
-    // 1막 일반 적
+export function getPatternForEnemy(enemyId: string): ExtendedEnemyPattern {
+  const patterns: Record<string, ExtendedEnemyPattern> = {
+    // 공격적 적
     ghoul: 'aggressive',
     marauder: 'aggressive',
-    deserter: 'defensive',
-    slaughterer: 'berserk',
-    slurthim: 'support',       // 디버프 전문
-    wildrat: 'assassin',       // 빠른 공격
+    wildrat: 'aggressive',
+    slaughterer: 'aggressive',
+
+    // 광폭화 적
     berserker: 'berserk',
-    polluted: 'support',       // 독/디버프
-
-    // 1막 엘리트/보스
-    hunter: 'tactical',        // 함정 + 저격
-    captain: 'tactical',       // 지휘관, 소환
-
-    // 2막+ 적 (추가)
-    scavenger: 'support',
-    alchemist: 'support',
-    shaman: 'support',
-    overlord: 'tactical',
     warlord: 'berserk',
-    archon: 'tactical',
+
+    // 방어적 적
+    deserter: 'defensive',
+    slurthim: 'defensive',
+    polluted: 'defensive',
+
+    // 전술적 적 (엘리트/보스)
+    hunter: 'tactical',
+    captain: 'tactical',
+    overlord: 'tactical',
+
+    // 지원형 적
+    alchemist: 'support',
+
+    // 암살자형 적
     nemesis: 'assassin',
-    titan: 'berserk',
   };
 
   return patterns[enemyId] || 'balanced';
 }
 
 /**
- * 적 패턴에 따른 카드 선택 우선순위 가져오기
+ * 적 패턴에 따른 카드 선택 우선순위 가져오기 (단순화)
  */
 export function getCardPriorityForPattern(pattern: EnemyPattern): {
   preferredTypes: string[];
@@ -622,21 +653,12 @@ export function getCardPriorityForPattern(pattern: EnemyPattern): {
 } {
   switch (pattern) {
     case 'aggressive':
-      return { preferredTypes: ['attack'], avoidTypes: ['defense'] };
+      return { preferredTypes: ['attack'], avoidTypes: [] };
     case 'defensive':
-      return { preferredTypes: ['defense', 'support'], avoidTypes: [] };
+      return { preferredTypes: ['defense', 'general'], avoidTypes: [] };
     case 'balanced':
-      return { preferredTypes: ['attack', 'defense'], avoidTypes: [] };
-    case 'tactical':
-      return { preferredTypes: ['support', 'move'], avoidTypes: [] };
-    case 'berserk':
-      return { preferredTypes: ['attack'], avoidTypes: ['defense', 'support'] };
-    case 'support':
-      return { preferredTypes: ['support', 'reaction'], avoidTypes: ['attack'] };
-    case 'assassin':
-      return { preferredTypes: ['attack', 'move'], avoidTypes: ['defense'] };
     default:
-      return { preferredTypes: [], avoidTypes: [] };
+      return { preferredTypes: ['attack', 'defense'], avoidTypes: [] };
   }
 }
 
@@ -684,139 +706,45 @@ export interface BossSpecialAction {
 }
 
 /**
- * 보스 패턴 정의
+ * 보스 패턴 정의 (단순화 - 실제 게임과 동일)
+ * - 복잡한 페이즈 시스템 제거
+ * - 특수 행동 최소화
  */
 export const BOSS_PATTERNS: Record<string, BossPattern> = {
   slaughterer: {
     id: 'slaughterer',
     name: '학살자',
-    basePattern: 'berserk',
+    basePattern: 'aggressive',
     phases: {
       phase1: { hpThreshold: 1.0, pattern: 'aggressive', cardsPerTurn: 2 },
-      phase2: { hpThreshold: 0.6, pattern: 'berserk', cardsPerTurn: 3 },
-      phase3: { hpThreshold: 0.3, pattern: 'berserk', cardsPerTurn: 3 },
-      enrage: { hpThreshold: 0.15, pattern: 'berserk', cardsPerTurn: 4 },
+      phase2: { hpThreshold: 0.5, pattern: 'aggressive', cardsPerTurn: 3 },
     },
-    specialActions: [
-      {
-        id: 'blood_rage',
-        name: '피의 광기',
-        trigger: 'onHpThreshold',
-        condition: { hpPercent: 50 },
-        effect: {
-          type: 'buff',
-          value: 3,
-          target: 'self',
-          description: '힘 +3, 이후 턴마다 힘 +1 추가',
-        },
-      },
-      {
-        id: 'massacre',
-        name: '대학살',
-        trigger: 'onHpThreshold',
-        condition: { hpPercent: 25 },
-        effect: {
-          type: 'aoe',
-          value: 20,
-          target: 'player',
-          description: '전체 피해 20 + 출혈 3',
-        },
-      },
-    ],
-    turnPatterns: [
-      { interval: 3, action: 'heavy_attack' }, // 3턴마다 강공격
-    ],
+    specialActions: [],
+    turnPatterns: [],
   },
 
   captain: {
     id: 'captain',
     name: '탈영병 대장',
-    basePattern: 'tactical',
+    basePattern: 'balanced',
     phases: {
-      phase1: { hpThreshold: 1.0, pattern: 'tactical', cardsPerTurn: 2 },
-      phase2: { hpThreshold: 0.5, pattern: 'defensive', cardsPerTurn: 3 },
-      phase3: { hpThreshold: 0.25, pattern: 'aggressive', cardsPerTurn: 4 },
+      phase1: { hpThreshold: 1.0, pattern: 'balanced', cardsPerTurn: 3 },
+      phase2: { hpThreshold: 0.4, pattern: 'aggressive', cardsPerTurn: 3 },
     },
-    specialActions: [
-      {
-        id: 'summon_guards',
-        name: '호위병 소환',
-        trigger: 'onHpThreshold',
-        condition: { hpPercent: 50 },
-        effect: {
-          type: 'summon',
-          value: 2,
-          target: 'self',
-          description: '탈영병 2명 소환',
-        },
-      },
-      {
-        id: 'rally',
-        name: '독려',
-        trigger: 'onTurn',
-        condition: { turn: 4 },
-        effect: {
-          type: 'buff',
-          value: 2,
-          target: 'all',
-          description: '모든 아군 힘/방어 +2',
-        },
-      },
-      {
-        id: 'execution',
-        name: '처형',
-        trigger: 'onPlayerAction',
-        condition: { playerAction: 'low_hp' },
-        effect: {
-          type: 'special',
-          value: 999,
-          target: 'player',
-          description: 'HP 20% 이하 시 처형 시도 (관통 50)',
-        },
-      },
-    ],
-    turnPatterns: [
-      { interval: 2, action: 'command' }, // 2턴마다 지휘
-      { interval: 5, action: 'fortify' }, // 5턴마다 강화
-    ],
+    specialActions: [],
+    turnPatterns: [],
   },
 
   hunter: {
     id: 'hunter',
     name: '현상금 사냥꾼',
-    basePattern: 'assassin',
+    basePattern: 'balanced',
     phases: {
-      phase1: { hpThreshold: 1.0, pattern: 'tactical', cardsPerTurn: 2 },
-      phase2: { hpThreshold: 0.4, pattern: 'assassin', cardsPerTurn: 3 },
+      phase1: { hpThreshold: 1.0, pattern: 'balanced', cardsPerTurn: 2 },
+      phase2: { hpThreshold: 0.5, pattern: 'aggressive', cardsPerTurn: 2 },
     },
-    specialActions: [
-      {
-        id: 'set_trap',
-        name: '함정 설치',
-        trigger: 'onTurn',
-        condition: { turn: 1 },
-        effect: {
-          type: 'special',
-          target: 'player',
-          description: '첫 턴 함정 설치 (이동 시 피해)',
-        },
-      },
-      {
-        id: 'aimed_shot',
-        name: '조준 사격',
-        trigger: 'onTurn',
-        condition: { turn: 3 },
-        effect: {
-          type: 'special',
-          value: 30,
-          target: 'player',
-          description: '3턴마다 조준 후 고피해 사격',
-        },
-      },
-    ],
-    turnPatterns: [
-      { interval: 3, action: 'aimed_shot' },
-    ],
+    specialActions: [],
+    turnPatterns: [],
   },
 };
 
@@ -840,23 +768,31 @@ export function getBossPhase(bossId: string, hpRatio: number): BossPhase {
 }
 
 /**
- * 보스 페이즈에 따른 패턴 가져오기
+ * 보스 페이즈에 따른 패턴 가져오기 (단순화)
  */
 export function getBossPatternForPhase(bossId: string, hpRatio: number): EnemyPattern {
   const pattern = BOSS_PATTERNS[bossId];
   if (!pattern) return 'balanced';
 
   const phase = getBossPhase(bossId, hpRatio);
+  let resultPattern: EnemyPattern;
+
   switch (phase) {
     case 'enrage':
-      return pattern.phases.enrage?.pattern || 'berserk';
+      resultPattern = pattern.phases.enrage?.pattern || 'aggressive';
+      break;
     case 'phase3':
-      return pattern.phases.phase3?.pattern || pattern.phases.phase2.pattern;
+      resultPattern = pattern.phases.phase3?.pattern || pattern.phases.phase2.pattern;
+      break;
     case 'phase2':
-      return pattern.phases.phase2.pattern;
+      resultPattern = pattern.phases.phase2.pattern;
+      break;
     default:
-      return pattern.phases.phase1.pattern;
+      resultPattern = pattern.phases.phase1.pattern;
   }
+
+  // 항상 기본 패턴으로 정규화
+  return normalizePattern(resultPattern);
 }
 
 /**
@@ -983,28 +919,17 @@ export function selectBossCards(
 }
 
 /**
- * 적 체력 비율에 따른 패턴 변화 추천
+ * 적 체력 비율에 따른 패턴 변화 추천 (단순화)
  */
 export function getPatternModifierByHp(basePattern: EnemyPattern, hpRatio: number): EnemyPattern {
   // 체력이 낮을 때 패턴 변화
   if (hpRatio <= 0.2) {
-    // 치명적 상태
-    switch (basePattern) {
-      case 'defensive':
-      case 'support':
-        return 'defensive';  // 더 방어적
-      default:
-        return 'berserk';    // 올인 공격
-    }
+    // 치명적 상태 - 공격적으로 변경
+    return basePattern === 'defensive' ? 'defensive' : 'aggressive';
   } else if (hpRatio <= 0.4) {
     // 위험 상태
-    switch (basePattern) {
-      case 'balanced':
-        return 'aggressive';  // 공격적으로 전환
-      case 'support':
-        return 'defensive';   // 방어적으로 전환
-      default:
-        return basePattern;
+    if (basePattern === 'balanced') {
+      return 'aggressive';
     }
   }
   return basePattern;

@@ -50,6 +50,9 @@ const availableCards = CARDS.map((card, index) => ({
   description: card.description,
 }));
 
+// O(1) 카드 조회를 위한 Map (CARDS.find O(n) → Map.get O(1))
+const CARDS_MAP = new Map(CARDS.map(c => [c.id, c]));
+
 export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetProps) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
@@ -126,53 +129,67 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
     }
   }, [mainSpecials, subSpecials, initialized, updateCharacterBuild]);
 
-  // 카드 개수 카운트 헬퍼
-  const getCardCount = (cardId: string, list: string[]) => list.filter((id: string) => id === cardId).length;
-
   // 대기 카드 (상점 구매 등)
   const ownedCards = characterBuild?.ownedCards || [];
 
-  // 표시할 카드 목록
+  // 카드 개수 카운트 맵 (O(n) filter 반복 → O(1) Map 조회)
+  const ownedCardCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    ownedCards.forEach((id: string) => counts.set(id, (counts.get(id) || 0) + 1));
+    return counts;
+  }, [ownedCards]);
+
+  // 표시할 카드 목록 (CARDS.find O(n) → CARDS_MAP.get O(1) 최적화)
   const displayedCards = useMemo(() => {
     if (showAllCards) {
       return availableCards.map((card, idx) => ({ ...card, speedCost: card.speed, actionCost: card.ap, _displayKey: `all_${card.id}_${idx}` }));
     }
     const result: DisplayCard[] = [];
     mainSpecials.forEach((cardId: string, idx: number) => {
-      const card = CARDS.find((c) => c.id === cardId);
+      const card = CARDS_MAP.get(cardId);
       if (card) {
         result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' as const } as DisplayCard);
       }
     });
     subSpecials.forEach((cardId: string, idx: number) => {
-      const card = CARDS.find((c) => c.id === cardId);
+      const card = CARDS_MAP.get(cardId);
       if (card) {
         result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' as const } as DisplayCard);
       }
     });
-    const usedCounts: Record<string, number> = {};
+    const usedCounts = new Map<string, number>();
     [...mainSpecials, ...subSpecials].forEach((cardId: string) => {
-      usedCounts[cardId] = (usedCounts[cardId] || 0) + 1;
+      usedCounts.set(cardId, (usedCounts.get(cardId) || 0) + 1);
     });
-    const shownCounts: Record<string, number> = {};
+    const shownCounts = new Map<string, number>();
     ownedCards.forEach((cardId: string, idx: number) => {
-      shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
-      const used = usedCounts[cardId] || 0;
-      if (shownCounts[cardId] <= (ownedCards.filter((id: string) => id === cardId).length - used)) {
-        const card = CARDS.find((c) => c.id === cardId);
+      shownCounts.set(cardId, (shownCounts.get(cardId) || 0) + 1);
+      const used = usedCounts.get(cardId) || 0;
+      const ownedCount = ownedCardCounts.get(cardId) || 0;
+      if ((shownCounts.get(cardId) || 0) <= (ownedCount - used)) {
+        const card = CARDS_MAP.get(cardId);
         if (card) {
           result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' as const } as DisplayCard);
         }
       }
     });
     return result;
-  }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
+  }, [showAllCards, mainSpecials, subSpecials, ownedCards, ownedCardCounts]);
+
+  // 사용 중인 카드 개수 맵 (handleCardClick용 O(n) filter → O(1) Map 조회)
+  const usedCardCounts = useMemo(() => {
+    const mainCounts = new Map<string, number>();
+    const subCounts = new Map<string, number>();
+    mainSpecials.forEach((id: string) => mainCounts.set(id, (mainCounts.get(id) || 0) + 1));
+    subSpecials.forEach((id: string) => subCounts.set(id, (subCounts.get(id) || 0) + 1));
+    return { mainCounts, subCounts };
+  }, [mainSpecials, subSpecials]);
 
   // 좌클릭: 추가, 우클릭: 제거
   const handleCardClick = (cardId: string, isRightClick = false) => {
-    const ownedCount = ownedCards.filter((id: string) => id === cardId).length;
-    const usedInMain = mainSpecials.filter((id: string) => id === cardId).length;
-    const usedInSub = subSpecials.filter((id: string) => id === cardId).length;
+    const ownedCount = ownedCardCounts.get(cardId) || 0;
+    const usedInMain = usedCardCounts.mainCounts.get(cardId) || 0;
+    const usedInSub = usedCardCounts.subCounts.get(cardId) || 0;
     const totalUsed = usedInMain + usedInSub;
 
     if (specialMode === "main") {

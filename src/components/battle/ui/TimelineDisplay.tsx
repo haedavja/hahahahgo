@@ -218,6 +218,23 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     return offsets;
   }, [enemyTimeline]);
 
+  // 그리드라인 메모이제이션 (스타일 객체도 미리 생성)
+  const playerGridlines = useMemo(() =>
+    Array.from({ length: playerMax + 1 }, (_, i) => ({
+      key: `p-grid-${i}`,
+      style: { left: `${(i / playerMax) * 100}%` } as React.CSSProperties
+    })),
+    [playerMax]
+  );
+
+  const enemyGridlines = useMemo(() =>
+    Array.from({ length: enemyMax + 1 }, (_, i) => ({
+      key: `e-grid-${i}`,
+      style: { left: `${(i / enemyMax) * 100}%` } as React.CSSProperties
+    })),
+    [enemyMax]
+  );
+
   // 여유/무리 범위 계산 (분리된 훅 사용)
   const leisureCardRanges = useLeisureRanges({ playerTimeline, spOffsets, cardGrowth });
   const strainCardRanges = useStrainRanges({ playerTimeline, spOffsets, cardGrowth });
@@ -239,6 +256,19 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     onLeisurePositionChange: actions.onLeisurePositionChange,
     onStrainOffsetChange: actions.onStrainOffsetChange,
   });
+
+  // O(n) includes → O(1) Set 조회로 최적화
+  const usedCardSet = useMemo(() => new Set(usedCardIndices), [usedCardIndices]);
+  const destroyingSet = useMemo(() => new Set(destroyingEnemyCards), [destroyingEnemyCards]);
+  const freezingSet = useMemo(() => new Set(freezingEnemyCards), [freezingEnemyCards]);
+
+  // queue.findIndex() O(n²) → O(1) Map 조회로 최적화
+  const queueIndexMap = useMemo(() => {
+    if (!queue || battle.phase !== 'resolve') return null;
+    const map = new Map<TimelineAction, number>();
+    queue.forEach((q, i) => map.set(q, i));
+    return map;
+  }, [queue, battle.phase]);
 
   return (
     <>
@@ -306,8 +336,8 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 onMouseLeave={handleDragEnd}
               >
                 {/* 그리드라인 */}
-                {Array.from({ length: playerMax + 1 }, (_, i) => (
-                  <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
+                {playerGridlines.map(g => (
+                  <div key={g.key} className="timeline-gridline" style={g.style} />
                 ))}
 
                 {/* 여유 범위 인디케이터 */}
@@ -348,15 +378,15 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const currentTimelineSp = battle.phase === 'resolve'
                     ? Math.floor((timelineProgress / 100) * playerMax)
                     : 0;
-                  const globalIdx = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                  const cardAlreadyUsed = globalIdx !== -1 && globalIdx < qIndex;
+                  // queueIndexMap으로 O(1) 조회 (기존 queue.findIndex O(n) 대체)
+                  const globalIndex = queueIndexMap?.get(a) ?? -1;
+                  const cardAlreadyUsed = globalIndex !== -1 && globalIndex < qIndex;
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
 
-                  const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
-                  const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                  const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
 
                   const hasLeisure = hasCardTrait(a.card, 'leisure');
                   const hasStrain = hasCardTrait(a.card, 'strain');
@@ -393,15 +423,16 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               <div className="timeline-lane enemy-lane" style={enemyLaneStyle} data-testid="enemy-timeline-lane">
                 {!hideEnemyTimeline && (
                   <>
-                    {Array.from({ length: enemyMax + 1 }, (_, i) => (
-                      <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
+                    {enemyGridlines.map(g => (
+                      <div key={g.key} className="timeline-gridline" style={g.style} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
-                      const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                      // queueIndexMap으로 O(1) 조회
+                      const globalIndex = queueIndexMap?.get(a) ?? -1;
                       const isExecuting = executingCardIndex === globalIndex;
-                      const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                      const isDestroying = destroyingEnemyCards.includes(idx);
-                      const isFreezing = freezingEnemyCards.includes(idx);
+                      const isUsed = globalIndex !== -1 && usedCardSet.has(globalIndex) && globalIndex < qIndex;
+                      const isDestroying = destroyingSet.has(idx);
+                      const isFreezing = freezingSet.has(idx);
                       const isFrozen = frozenOrder > 0 && !isFreezing;
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;

@@ -30,6 +30,7 @@ interface EnemyState {
 
 interface PostCombatOptions {
   type?: 'victory' | 'defeat';
+  isEtherVictory?: boolean;
   [key: string]: unknown;
 }
 

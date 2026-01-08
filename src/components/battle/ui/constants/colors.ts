@@ -63,3 +63,43 @@ export const ENEMY_SLOT_COLORS = [
   'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x9 - 스칼렛
   'linear-gradient(180deg, #450a0a 0%, #1c0a0a 100%)'  // x10 - 블랙 레드
 ];
+
+// ==================== 시맨틱 텍스트 색상 ====================
+
+export const TEXT_COLORS = {
+  primary: '#e2e8f0',    // slate-200 - 기본 텍스트
+  secondary: '#94a3b8',  // slate-400 - 보조 텍스트
+  muted: '#64748b',      // slate-500 - 약한 텍스트
+  light: '#f1f5f9',      // slate-100 - 밝은 텍스트
+  accent: '#cbd5e1',     // slate-300 - 강조 텍스트
+} as const;
+
+// ==================== 상태 색상 ====================
+
+export const STATUS_COLORS = {
+  success: '#22c55e',    // green-500 - 성공/승리
+  error: '#ef4444',      // red-500 - 오류/패배
+  errorLight: '#f87171', // red-400 - 밝은 오류
+  warning: '#fbbf24',    // amber-400 - 경고
+  info: '#3b82f6',       // blue-500 - 정보
+  infoLight: '#60a5fa',  // blue-400 - 밝은 정보
+} as const;
+
+// ==================== 배경 색상 ====================
+
+export const BG_COLORS = {
+  primary: '#1e293b',    // slate-800 - 기본 배경
+  secondary: '#334155',  // slate-700 - 보조 배경
+  dark: '#0f172a',       // slate-900 - 어두운 배경
+  darker: '#020617',     // slate-950 - 가장 어두운 배경
+  button: '#374151',     // gray-700 - 버튼 배경
+} as const;
+
+// ==================== 카드 등급 색상 ====================
+
+export const RARITY_COLORS = {
+  common: '#94a3b8',     // slate-400 - 일반
+  rare: '#60a5fa',       // blue-400 - 희귀
+  special: '#34d399',    // emerald-400 - 특별
+  legendary: '#fbbf24',  // amber-400 - 전설
+} as const;

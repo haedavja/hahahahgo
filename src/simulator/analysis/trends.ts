@@ -225,20 +225,79 @@ export class TrendAnalyzer {
       }
     }
 
+    // 각 카드별로 해당 카드가 topCards에 있던 포인트들의 평균 승률 계산
+    const cardWinRates: Record<string, { winRateSum: number; count: number }> = {};
+
+    for (const point of points) {
+      for (const card of point.topCards) {
+        if (!cardWinRates[card]) {
+          cardWinRates[card] = { winRateSum: 0, count: 0 };
+        }
+        cardWinRates[card].winRateSum += point.winRate;
+        cardWinRates[card].count++;
+      }
+    }
+
     return Object.entries(cardStats).map(([cardId, stats]) => {
       const change = stats.late - stats.early;
+      const winRateData = cardWinRates[cardId];
+      // 해당 카드가 나타난 포인트들의 평균 승률 사용
+      const winRateWithCard = winRateData && winRateData.count > 0
+        ? winRateData.winRateSum / winRateData.count
+        : 0.5;
+
       return {
         cardId,
         usageChange: change,
-        winRateWithCard: 0.5,  // 실제 구현 시 계산 필요
+        winRateWithCard,
         trending: change > 1 ? 'rising' : change < -1 ? 'falling' : 'stable',
       };
     });
   }
 
   private analyzeEnemyTrends(points: TrendPoint[]): EnemyTrend[] {
-    // 간단한 구현
-    return [];
+    if (points.length < 2) return [];
+
+    const midpoint = Math.floor(points.length / 2);
+    const earlyPoints = points.slice(0, midpoint);
+    const latePoints = points.slice(midpoint);
+
+    // 적별 초반/후반 승률 추적
+    const enemyStats: Record<string, { earlyWinRateSum: number; earlyCount: number; lateWinRateSum: number; lateCount: number }> = {};
+
+    for (const point of earlyPoints) {
+      for (const enemy of point.topEnemies) {
+        if (!enemyStats[enemy]) {
+          enemyStats[enemy] = { earlyWinRateSum: 0, earlyCount: 0, lateWinRateSum: 0, lateCount: 0 };
+        }
+        enemyStats[enemy].earlyWinRateSum += point.winRate;
+        enemyStats[enemy].earlyCount++;
+      }
+    }
+
+    for (const point of latePoints) {
+      for (const enemy of point.topEnemies) {
+        if (!enemyStats[enemy]) {
+          enemyStats[enemy] = { earlyWinRateSum: 0, earlyCount: 0, lateWinRateSum: 0, lateCount: 0 };
+        }
+        enemyStats[enemy].lateWinRateSum += point.winRate;
+        enemyStats[enemy].lateCount++;
+      }
+    }
+
+    return Object.entries(enemyStats)
+      .filter(([_, stats]) => stats.earlyCount > 0 && stats.lateCount > 0)
+      .map(([enemyId, stats]) => {
+        const earlyWinRate = stats.earlyWinRateSum / stats.earlyCount;
+        const lateWinRate = stats.lateWinRateSum / stats.lateCount;
+        const change = lateWinRate - earlyWinRate;
+
+        return {
+          enemyId,
+          playerWinRateChange: change,
+          difficulty: change < -0.05 ? 'harder' : change > 0.05 ? 'easier' : 'stable',
+        };
+      });
   }
 
   private generateInsights(

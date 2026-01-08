@@ -1,11 +1,24 @@
 # Claude 작업 규칙 및 프로젝트 가이드
 
-**최종 업데이트**: 2025-12-31
+**최종 업데이트**: 2026-01-04
 **프로젝트**: 하하하GO (턴제 전략 카드 게임)
 
 ---
 
 ## 1. 기본 작업 규칙
+
+### 세션 시작 시 필수 확인 (Continuation 포함)
+```bash
+# 1. 최근 커밋 확인 - 이미 완료된 작업인지 체크
+git log --oneline -10
+
+# 2. 현재 변경사항 확인
+git status
+
+# 3. 최근 변경 파일 확인
+git diff HEAD~3 --stat
+```
+**⚠️ Summary만 믿지 말고 실제 코드 상태를 먼저 확인할 것**
 
 ### 필수 준수 사항
 1. **Git bash만 사용** - PowerShell 사용 금지
@@ -202,6 +215,167 @@ chore: 기타 작업
   - 이변(Anomaly) 시스템 구현
   - TypeScript 마이그레이션
   - 성능 최적화 (React.memo, useMemo)
+
+---
+
+## 10. 에이전트 활용 정책 (필수)
+
+### 🔴 에이전트 우선 원칙
+**직접 도구(Grep, Glob, Read) 사용 전에 에이전트 사용을 먼저 고려할 것**
+
+### 에이전트 종류별 활용 가이드
+
+| 에이전트 | 트리거 조건 | 사용 예시 |
+|----------|------------|----------|
+| **Explore** | 코드 흐름 파악, 2개+ 파일 검색 | "전투 승리 조건 추적", "최적화 기회 탐색" |
+| **Plan** | 3개+ 파일 수정 예상, 새 기능/리팩토링 | "에테르 시스템 리팩토링 계획" |
+| **general-purpose** | 복잡한 다단계 검색, 넓은 범위 조사 | "모든 as any 사용처 및 수정 방안" |
+| **claude-code-guide** | Claude Code 기능 질문 | "MCP 서버 설정 방법" |
+
+### ⚡ 병렬 에이전트 실행 규칙
+
+**독립적인 조사가 필요할 때 반드시 병렬 실행:**
+
+```typescript
+// ❌ 나쁜 예: 순차 실행
+Task(subagent_type='Explore', prompt='성능 최적화 기회')
+// ... 결과 기다림
+Task(subagent_type='Explore', prompt='타입 안전성 문제')
+
+// ✅ 좋은 예: 병렬 실행 (단일 메시지에 여러 Task)
+Task(subagent_type='Explore', prompt='성능 최적화 (useMemo, useCallback 누락)')
+Task(subagent_type='Explore', prompt='번들 크기 최적화 (동적 import 가능)')
+Task(subagent_type='Explore', prompt='타입 안전성 (as any, as unknown 사용)')
+```
+
+### 📋 필수 에이전트 사용 체크리스트
+
+| 작업 유형 | 필수 에이전트 | 시점 |
+|----------|--------------|------|
+| 버그 수정 | Explore | 원인 파악 전 |
+| 새 기능 구현 | Plan → Explore | 코드 작성 전 |
+| 리팩토링 (3개+ 파일) | Plan | 코드 수정 전 |
+| 최적화 | Explore (병렬 3개) | 분석 시 |
+| 코드 흐름 추적 | Explore (very thorough) | 항상 |
+
+### 🚫 직접 도구 사용 허용 조건
+
+다음 경우에만 Grep/Glob/Read 직접 사용:
+1. **단일 파일** 내 특정 라인 확인
+2. **이미 위치를 아는** 코드 수정
+3. **단순 문자열** 검색 (클래스명, 함수명 등)
+
+### 📝 에이전트 프롬프트 작성 가이드
+
+```markdown
+## 필수 포함 요소:
+1. 목적: 무엇을 찾거나 분석하는지
+2. 범위: 어떤 파일/디렉토리를 대상으로
+3. 출력 형식: 파일명:라인번호 형식 요청
+4. 제약: 연구만 / 코드 변경 금지 명시
+
+## 예시:
+"src/components/battle/ 디렉토리에서 useMemo/useCallback이
+누락된 곳을 찾아주세요. 각 위치를 파일명:라인번호 형식으로
+알려주고, 최적화 우선순위를 제안해주세요. 연구만 하고
+코드 변경은 하지 마세요."
+```
+
+### ⚠️ 위반 시 문제점
+
+| 위반 | 결과 |
+|------|------|
+| Explore 미사용 | 파일 간 연결 누락, 불완전한 수정 |
+| Plan 미사용 | 방향 혼란, 재작업 필요 |
+| 병렬 미실행 | 시간 낭비, 컨텍스트 비효율 |
+| 프롬프트 불충분 | 부정확한 결과, 재조사 필요 |
+
+---
+
+## 11. 통계 시스템 아키텍처 원칙
+
+### 핵심 원칙: 단일 소스 (Single Source of Truth)
+**게임 통계와 시뮬레이터 통계는 반드시 동일한 도구를 사용해야 합니다.**
+
+### 아키텍처 구조
+```
+StatsCollector (detailed-stats.ts)
+        ↓
+    stats-bridge.ts (게임↔시뮬레이터 브릿지)
+        ↓
+    ┌───────────────┬───────────────┐
+    │ StatsWidget   │ SimulatorTab  │
+    │ (게임 UI)     │ (시뮬레이터 UI)│
+    └───────────────┴───────────────┘
+```
+
+### 통계 작업 시 필수 체크리스트
+1. **새 통계 추가 시**:
+   - [ ] `detailed-stats.ts`에 수집 로직 추가
+   - [ ] `stats-bridge.ts`에 기록 함수 추가 (recordXxx)
+   - [ ] `StatsBridge` export 객체에 함수 추가
+   - [ ] `StatsWidget.tsx`에 표시 UI 추가
+   - [ ] `SimulatorTab.tsx`에 동일한 표시 UI 추가
+   - [ ] 게임 시스템에서 기록 함수 호출 연결
+
+2. **통계 UI 수정 시**:
+   - [ ] StatsWidget과 SimulatorTab 동시 수정
+   - [ ] 동일한 데이터 형식 사용 확인
+
+### 금지 사항
+- ❌ StatsWidget에만 있고 SimulatorTab에 없는 통계
+- ❌ SimulatorTab에만 있고 StatsWidget에 없는 통계
+- ❌ stats-bridge를 거치지 않는 직접 통계 기록
+- ❌ 별도의 통계 수집 로직 생성
+
+### 통계 관련 파일 위치
+| 역할 | 파일 |
+|------|------|
+| 수집 로직 | `src/simulator/analysis/detailed-stats.ts` |
+| 타입 정의 | `src/simulator/analysis/detailed-stats-types.ts` |
+| 게임 브릿지 | `src/simulator/bridge/stats-bridge.ts` |
+| 게임 UI | `src/components/map/ui/StatsWidget.tsx` |
+| 시뮬레이터 UI | `src/components/dev/tabs/SimulatorTab.tsx` |
+| 분석 프레임워크 | `src/simulator/analysis/stats-analysis-framework.ts` |
+| 밸런스 인사이트 | `src/simulator/analysis/balance-insights.ts` |
+
+### 향후 개선 방향 (TODO)
+- [x] 공통 통계 탭 컴포넌트 라이브러리 생성 (`src/components/stats/`) ✅ 완료
+- [ ] StatsWidget/SimulatorTab에서 공용 컴포넌트 더 적극 활용
+- [ ] 통계 탭별 공용 컴포넌트 분리
+
+---
+
+## 12. 자동화 Hook 및 버전 태그
+
+### SessionStart Hook
+세션 시작 시 자동으로 Git 상태 출력 (`.claude/hooks/session-start.sh`)
+- 최근 커밋 10개
+- 현재 변경사항
+- 중복 작업 방지
+
+### PreCommit Hook
+커밋 전 버전 태그 갱신 여부 확인 (`.claude/hooks/pre-commit-check.sh`)
+- 버전 태그 미갱신 시 커밋 차단
+- `src/` 파일 수정 시 필수
+
+### 버전 태그 갱신 절차
+```bash
+# 1. 한국시간 확인
+TZ='Asia/Seoul' date '+%m-%d %H:%M'
+
+# 2. mapConfig.ts의 PATCH_VERSION_TAG 수정
+# 파일: src/components/map/utils/mapConfig.ts
+```
+
+### 커스텀 커맨드 (`.claude/commands/`)
+| 커맨드 | 설명 |
+|--------|------|
+| `/add-card` | 새 카드 추가 |
+| `/add-enemy` | 새 적 추가 |
+| `/balance-check` | 밸런스 검사 |
+| `/simulate-battle` | 전투 시뮬레이션 |
+| `/fix-battle-bug` | 전투 버그 수정 |
 
 ---
 

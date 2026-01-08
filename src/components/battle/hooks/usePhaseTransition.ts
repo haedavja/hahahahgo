@@ -28,15 +28,16 @@ import type {
   BattleAction,
   PlayerBattleState,
   EnemyUnit,
-  EnemyPlan,
-  AICard
+  EnemyPlan
 } from '../../../types';
+import { aiCardsToCards, cardsToAICards } from '../../../types/systems';
 import type { BattleRefValue } from '../../../types/hooks';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
 import { applyTraitModifiers, markCrossedCards } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
 import { playCardSubmitSound, playProceedSound } from '../../../lib/soundUtils';
 import { ETHER_THRESHOLD } from '../battleData';
+import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 /** 되감기 스냅샷 */
 interface RespondSnapshot {
@@ -83,7 +84,7 @@ interface PathosNextCardEffects {
 
 /** 페이즈 전환 훅 파라미터 */
 interface UsePhaseTransitionParams {
-  battleRef: MutableRefObject<BattleRefValue>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   battlePhase: string;
   battleSelected: Card[];
   selected: Card[];
@@ -156,7 +157,7 @@ export function usePhaseTransition({
     let generatedActions: Card[];
     if (willRegenerate) {
       const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts ?? 0), cardsPerTurn, Math.min(1, cardsPerTurn));
-      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []) as unknown as Card[];
+      generatedActions = aiCardsToCards(assignSourceUnitToActions(rawActions, enemy?.units || []));
     } else {
       generatedActions = currentEnemyPlan.actions;
     }
@@ -281,19 +282,19 @@ export function usePhaseTransition({
     actions.setEnemyCurrentDeflation(null);
 
     // 에테르 폭주 체크
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions as unknown as AICard[], enemy.etherPts ?? 0, turnNumber) && etherSlots(enemy.etherPts ?? 0) > 0;
+    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, cardsToAICards(enemyPlan.actions), enemy.etherPts ?? 0, turnNumber) && etherSlots(enemy.etherPts ?? 0) > 0;
     if (willOverdrive && etherSlots(player.etherPts ?? 0) > 0) {
       actions.setPlayer({ ...player, etherPts: (player.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
       playSound(1400, 220);
-      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
+      setTimeout(() => actions.setPlayerOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if (enemyWillOD) {
       actions.setEnemy({ ...enemy, etherPts: (enemy.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setEnemyOverdriveFlash(true);
       playSound(900, 220);
-      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
+      setTimeout(() => actions.setEnemyOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('☄️ 적 에테르 폭주 발동!');
     }
 
@@ -304,9 +305,6 @@ export function usePhaseTransition({
     actions.setQIndex(0);
     actions.setPhase('resolve');
     addLog('▶ 진행 시작');
-
-    setTimeout(() => {}, 100);
-    setTimeout(() => {}, 500);
 
     actions.setResolveStartPlayer({ ...player });
     actions.setResolveStartEnemy({ ...enemy });

@@ -6,13 +6,34 @@
  * - usage: 1회 사용 후 소멸
  * - turn: 해당 턴 동안 지속
  * - permanent: 전투 중 지속
+ *
+ * 기본 토큰 조작은 공통 코어(src/core/combat/token-core.ts)를 사용하고,
+ * 시뮬레이터 전용 확장 기능은 이 파일에서 구현
  */
 
 import type { TokenState, GameToken, TokenType, TokenCategory } from './game-types';
 import { syncAllTokens } from '../data/game-data-sync';
 import { getLogger } from './logger';
 
+// 코어에서 기본 토큰 함수 가져오기
+import * as TokenCore from '../../core/combat/token-core';
+
 const log = getLogger('TokenSystem');
+
+// ==================== 코어 함수 재내보내기 ====================
+// 기본 토큰 조작 함수들은 코어에서 직접 사용
+export const addToken = TokenCore.addTokenSimple;
+export const removeToken = TokenCore.removeTokenSimple;
+export const hasToken = TokenCore.hasToken;
+export const getTokenStacks = TokenCore.getTokenStacks;
+
+// 수정자 계산 함수도 코어에서 가져오기
+export const calculateAttackModifiers = TokenCore.calculateAttackModifiers;
+export const calculateDefenseModifiers = TokenCore.calculateDefenseModifiers;
+export const calculateDamageTakenModifiers = TokenCore.calculateDamageTakenModifiers;
+
+// 코어 타입 재내보내기
+export type { AttackModifiers, DefenseModifiers, DamageTakenModifiers } from '../../core/combat/token-core';
 
 // ==================== 토큰 정의 캐시 ====================
 
@@ -25,32 +46,7 @@ function getTokenDefinitions(): Record<string, GameToken> {
   return tokenCache;
 }
 
-// ==================== 토큰 조작 함수 ====================
-
-/**
- * 토큰 추가
- */
-export function addToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
-  const newTokens = { ...tokens };
-  newTokens[tokenId] = (newTokens[tokenId] || 0) + stacks;
-  log.debug('토큰 추가', { tokenId, stacks, total: newTokens[tokenId] });
-  return newTokens;
-}
-
-/**
- * 토큰 제거
- */
-export function removeToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
-  const newTokens = { ...tokens };
-  if (newTokens[tokenId]) {
-    newTokens[tokenId] = Math.max(0, newTokens[tokenId] - stacks);
-    if (newTokens[tokenId] === 0) {
-      delete newTokens[tokenId];
-    }
-    log.debug('토큰 제거', { tokenId, stacks, remaining: newTokens[tokenId] || 0 });
-  }
-  return newTokens;
-}
+// ==================== 시뮬레이터 전용 토큰 함수 ====================
 
 /**
  * 토큰 완전 제거
@@ -59,20 +55,6 @@ export function clearToken(tokens: TokenState, tokenId: string): TokenState {
   const newTokens = { ...tokens };
   delete newTokens[tokenId];
   return newTokens;
-}
-
-/**
- * 토큰 보유 확인
- */
-export function hasToken(tokens: TokenState, tokenId: string): boolean {
-  return (tokens[tokenId] || 0) > 0;
-}
-
-/**
- * 토큰 스택 수 조회
- */
-export function getTokenStacks(tokens: TokenState, tokenId: string): number {
-  return tokens[tokenId] || 0;
 }
 
 /**
@@ -109,230 +91,10 @@ export function clearTokensByCategory(tokens: TokenState, category: TokenCategor
   return newTokens;
 }
 
-// ==================== 토큰 효과 계산 ====================
-
-export interface DamageModifiers {
-  attackMultiplier: number;
-  damageBonus: number;
-  critBoost: number;
-  ignoreBlock: boolean;
-  lifesteal: number;
-}
-
-export interface DefenseModifiers {
-  defenseMultiplier: number;
-  defenseBonus: number;
-  dodgeChance: number;
-}
-
-export interface DamageTakenModifiers {
-  damageMultiplier: number;
-  damageReduction: number;
-}
-
-/**
- * 공격 수정자 계산
- * 우선순위: 1) 양수/음수 배율 중 가장 강한 것만 적용, 2) 고정 보너스 누적
- */
-export function calculateAttackModifiers(tokens: TokenState): DamageModifiers {
-  let attackMultiplier = 1;
-  let damageBonus = 0;
-  let critBoost = 0;
-  let ignoreBlock = false;
-  let lifesteal = 0;
-
-  // === 양수 배율 효과 (가장 높은 것만 적용) ===
-  // 영구 효과: offense(1.5) < offensePlus(2.0)
-  // 턴 효과: attack(1.5) < attackPlus(2.0)
-  let permanentBoost = 1;
-  let turnBoost = 1;
-
-  if (hasToken(tokens, 'offensePlus')) {
-    permanentBoost = 2.0;  // 공세+가 있으면 공세 무시
-  } else if (hasToken(tokens, 'offense')) {
-    permanentBoost = 1.5;
-  }
-
-  if (hasToken(tokens, 'attackPlus')) {
-    turnBoost = 2.0;  // 공격+가 있으면 공격 무시
-  } else if (hasToken(tokens, 'attack')) {
-    turnBoost = 1.5;
-  }
-
-  // 양수 배율 합산 (가산 방식: (permanentBoost-1) + (turnBoost-1) + 1)
-  const positiveBonus = (permanentBoost - 1) + (turnBoost - 1);
-
-  // === 음수 배율 효과 (가장 낮은 것만 적용) ===
-  let permanentDebuff = 1;
-  let turnDebuff = 1;
-
-  if (hasToken(tokens, 'dullPlus')) {
-    permanentDebuff = 0.25;  // 무딤+가 있으면 무딤 무시
-  } else if (hasToken(tokens, 'dull')) {
-    permanentDebuff = 0.5;
-  }
-
-  if (hasToken(tokens, 'dullnessPlus')) {
-    turnDebuff = 0.25;  // 부러짐+가 있으면 부러짐 무시
-  } else if (hasToken(tokens, 'dullness')) {
-    turnDebuff = 0.5;
-  }
-
-  // 음수 배율은 가장 나쁜 것만 적용
-  const negativeMultiplier = Math.min(permanentDebuff, turnDebuff);
-
-  // 최종 배율: (1 + 양수보너스) × 음수배율
-  attackMultiplier = (1 + positiveBonus) * negativeMultiplier;
-
-  // 힘 (strength) - 스택당 공격력 1 증가
-  const strengthStacks = getTokenStacks(tokens, 'strength');
-  if (strengthStacks > 0) {
-    damageBonus += strengthStacks;
-  }
-
-  // 날 세우기 (sharpened_blade) - 검격 카드 보너스
-  const sharpenedStacks = getTokenStacks(tokens, 'sharpened_blade');
-  if (sharpenedStacks > 0) {
-    damageBonus += sharpenedStacks;
-  }
-
-  // 집중 (crit_boost) - 치명타 확률 5% 증가
-  const critStacks = getTokenStacks(tokens, 'crit_boost');
-  if (critStacks > 0) {
-    critBoost += critStacks * 5;
-  }
-
-  // 철갑탄 (armor_piercing) - 방어력 무시
-  if (hasToken(tokens, 'armor_piercing')) {
-    ignoreBlock = true;
-  }
-
-  // 파쇄탄 (fragmentation) - 피해 6 증가
-  if (hasToken(tokens, 'fragmentation')) {
-    damageBonus += 6;
-  }
-
-  // 흡수 (absorb) - 50% 흡혈
-  if (hasToken(tokens, 'absorb')) {
-    lifesteal = 0.5;
-  }
-
-  return { attackMultiplier, damageBonus, critBoost, ignoreBlock, lifesteal };
-}
-
-/**
- * 방어 수정자 계산
- * 우선순위: 1) 양수/음수 배율 중 가장 강한 것만 적용, 2) 고정 보너스 누적
- */
-export function calculateDefenseModifiers(tokens: TokenState): DefenseModifiers {
-  let defenseMultiplier = 1;
-  let defenseBonus = 0;
-  let dodgeChance = 0;
-
-  // === 양수 배율 효과 (가장 높은 것만 적용) ===
-  let permanentBoost = 1;
-  let turnBoost = 1;
-
-  if (hasToken(tokens, 'guardPlus')) {
-    permanentBoost = 2.0;  // 수세+가 있으면 수세 무시
-  } else if (hasToken(tokens, 'guard')) {
-    permanentBoost = 1.5;
-  }
-
-  if (hasToken(tokens, 'defensePlus')) {
-    turnBoost = 2.0;  // 방어+가 있으면 방어 무시
-  } else if (hasToken(tokens, 'defense')) {
-    turnBoost = 1.5;
-  }
-
-  // 양수 배율 합산
-  const positiveBonus = (permanentBoost - 1) + (turnBoost - 1);
-
-  // === 음수 배율 효과 (가장 낮은 것만 적용) ===
-  let permanentDebuff = 1;
-  let turnDebuff = 1;
-
-  if (hasToken(tokens, 'shakenPlus')) {
-    permanentDebuff = 0;  // 흔들림+는 완전 무효화
-  } else if (hasToken(tokens, 'shaken')) {
-    permanentDebuff = 0.5;
-  }
-
-  if (hasToken(tokens, 'exposedPlus')) {
-    turnDebuff = 0;
-  } else if (hasToken(tokens, 'exposed')) {
-    turnDebuff = 0.5;
-  }
-
-  // 음수 배율은 가장 나쁜 것만 적용
-  const negativeMultiplier = Math.min(permanentDebuff, turnDebuff);
-
-  // 최종 배율
-  defenseMultiplier = (1 + positiveBonus) * negativeMultiplier;
-
-  // 힘 (strength) - 스택당 방어력 1 증가
-  const strengthStacks = getTokenStacks(tokens, 'strength');
-  if (strengthStacks > 0) {
-    defenseBonus += strengthStacks;
-  }
-
-  // 흐릿함 (blur) - 50% 회피
-  if (hasToken(tokens, 'blur')) {
-    dodgeChance = Math.max(dodgeChance, 0.5);
-  }
-
-  // 흐릿함+ (blurPlus) - 75% 회피
-  if (hasToken(tokens, 'blurPlus')) {
-    dodgeChance = Math.max(dodgeChance, 0.75);
-  }
-
-  // 회피 (dodge) - 턴 동안 50% 회피
-  if (hasToken(tokens, 'dodge')) {
-    dodgeChance = Math.max(dodgeChance, 0.5);
-  }
-
-  // 회피+ (dodgePlus) - 턴 동안 75% 회피
-  if (hasToken(tokens, 'dodgePlus')) {
-    dodgeChance = Math.max(dodgeChance, 0.75);
-  }
-
-  // 회피 토큰 (evasion)
-  if (hasToken(tokens, 'evasion')) {
-    dodgeChance = Math.max(dodgeChance, 0.5);
-  }
-
-  return { defenseMultiplier, defenseBonus, dodgeChance };
-}
-
-/**
- * 받는 피해 수정자 계산
- */
-export function calculateDamageTakenModifiers(tokens: TokenState): DamageTakenModifiers {
-  let damageMultiplier = 1;
-  let damageReduction = 0;
-
-  // 허약 (vulnerable) - 50% 추가 피해
-  if (hasToken(tokens, 'vulnerable')) {
-    damageMultiplier *= 1.5;
-  }
-
-  // 허약+ (vulnerablePlus) - 100% 추가 피해
-  if (hasToken(tokens, 'vulnerablePlus')) {
-    damageMultiplier *= 2.0;
-  }
-
-  // 아픔 (pain) - 50% 추가 피해
-  if (hasToken(tokens, 'pain')) {
-    damageMultiplier *= 1.5;
-  }
-
-  // 아픔+ (painPlus) - 100% 추가 피해
-  if (hasToken(tokens, 'painPlus')) {
-    damageMultiplier *= 2.0;
-  }
-
-  return { damageMultiplier, damageReduction };
-}
+// ==================== 토큰 효과 계산 (코어 사용) ====================
+// 기존 코드와의 호환성을 위해 DamageModifiers를 AttackModifiers의 별칭으로 유지
+export type DamageModifiers = TokenCore.AttackModifiers;
+// DefenseModifiers, DamageTakenModifiers는 이미 위에서 재내보내기됨
 
 // ==================== 토큰 사용 소모 ====================
 

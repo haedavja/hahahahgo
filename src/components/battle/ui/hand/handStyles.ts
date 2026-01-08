@@ -91,6 +91,70 @@ export const CARD_WRAPPER_BASE: CSSProperties = {
   position: 'relative',
 };
 
+/** 카드 래퍼 - 일반 상태 (첫 번째 카드) */
+export const CARD_WRAPPER_NORMAL_FIRST: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  marginLeft: '0',
+  opacity: 1,
+  filter: 'none',
+  transition: 'opacity 0.3s ease, filter 0.3s ease',
+};
+
+/** 카드 래퍼 - 일반 상태 */
+export const CARD_WRAPPER_NORMAL: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  marginLeft: '8px',
+  opacity: 1,
+  filter: 'none',
+  transition: 'opacity 0.3s ease, filter 0.3s ease',
+};
+
+/** 카드 래퍼 - 흐림 상태 (첫 번째 카드) */
+export const CARD_WRAPPER_DIMMED_FIRST: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  marginLeft: '0',
+  opacity: 0.4,
+  filter: 'grayscale(0.8) brightness(0.6)',
+  transition: 'opacity 0.3s ease, filter 0.3s ease',
+};
+
+/** 카드 래퍼 - 흐림 상태 */
+export const CARD_WRAPPER_DIMMED: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  marginLeft: '8px',
+  opacity: 0.4,
+  filter: 'grayscale(0.8) brightness(0.6)',
+  transition: 'opacity 0.3s ease, filter 0.3s ease',
+};
+
+/** 선택 단계 카드 래퍼 - 첫 번째 (활성) */
+export const SELECT_CARD_WRAPPER_FIRST: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  cursor: 'pointer',
+  marginLeft: '0',
+};
+
+/** 선택 단계 카드 래퍼 - 첫 번째 (비활성) */
+export const SELECT_CARD_WRAPPER_FIRST_DISABLED: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  cursor: 'not-allowed',
+  marginLeft: '0',
+};
+
+/** 선택 단계 카드 래퍼 (활성) */
+export const SELECT_CARD_WRAPPER: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  cursor: 'pointer',
+  marginLeft: '-20px',
+};
+
+/** 선택 단계 카드 래퍼 (비활성) */
+export const SELECT_CARD_WRAPPER_DISABLED: CSSProperties = {
+  ...CARD_WRAPPER_BASE,
+  cursor: 'not-allowed',
+  marginLeft: '-20px',
+};
+
 /** 카드 헤더 스타일 */
 export const CARD_HEADER_STYLE: CSSProperties = {
   display: 'flex',

@@ -25,7 +25,8 @@ export type CardTrait =
   | 'followup' | 'finisher' | 'multiTarget' | 'stun'
   | 'strongbone' | 'weakbone' | 'destroyer' | 'slaughter' | 'pinnacle'
   | 'cooperation' | 'swift' | 'slow' | 'mastery' | 'boredom'
-  | 'escape' | 'double_edge' | 'training' | 'leisure' | 'strain';
+  | 'escape' | 'double_edge' | 'training' | 'leisure' | 'strain'
+  | 'creation' | 'guard_stance';
 
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
@@ -57,71 +58,170 @@ export interface BattleTokenActions {
   removeTokenFromEnemy: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
   resetTokenForPlayer: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
   resetTokenForEnemy: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
+  // 확장 속성 허용 (actions 스프레드 지원)
+  [key: string]: unknown;
 }
 
-/** 카드 정의 */
+/**
+ * 카드 정의
+ *
+ * ## 필드 분류
+ *
+ * ### 필수 필드 (게임 데이터)
+ * - id, name, type, speedCost, actionCost, description
+ *
+ * ### 전투 수치
+ * - damage, defense, block, hits, counter
+ *
+ * ### 카드 속성
+ * - traits, cardCategory, rarity, special, priority, tags, iconKey
+ *
+ * ### 상태 효과 플래그
+ * - ignoreStatus, ignoreStrength, _applyBurn, _ignoreBlock, _addGunJam
+ *
+ * ### 특성 시스템 (여유/무리)
+ * - leisurePosition, strainOffset
+ *
+ * ### 런타임 마킹 (전투 중 동적 추가)
+ * - instanceId, __uid, __handUid, __sourceUnitId, __targetUnitId, __targetUnitIds
+ * - __isSubSpecial, __isMainSpecial, isAoe, _combo
+ *
+ * ### 카드 생성 추적
+ * - createdBy, createdId, isFromFleche, flecheChainCount, isGhost
+ *
+ * ### 특수 효과 (펜싱 등)
+ * - crossBonus, advanceAmount, pushAmount, parryRange, parryPushAmount
+ * - originalSpeedCost, priorityWeight
+ *
+ * ### 토큰 시스템
+ * - requiredTokens
+ *
+ * ### UI/함수
+ * - onPlay, icon
+ */
 export interface Card {
+  // ═══════════════════ 필수 필드 ═══════════════════
+  /** 카드 고유 식별자 */
   id: string;
+  /** 표시 이름 */
   name: string;
+  /** 카드 타입 (attack, defense, skill 등) */
   type: CardType;
-  damage?: number;
-  defense?: number;
-  block?: number;
+  /** 속도 비용 (타임라인 위치 결정) */
   speedCost: number;
+  /** 행동력 비용 */
   actionCost: number;
-  iconKey?: string;
+  /** 카드 설명 */
   description: string;
-  traits?: CardTrait[];
-  cardCategory?: CardCategory;
-  special?: string | string[];
-  isGhost?: boolean;
-  ignoreStatus?: boolean;
-  ignoreStrength?: boolean;
-  _combo?: string;
-  // 런타임 확장 속성
-  priority?: CardPriority;
-  tags?: string[];
+
+  // ═══════════════════ 전투 수치 ═══════════════════
+  /** 공격력 */
+  damage?: number;
+  /** 방어력 (defense 타입 카드) */
+  defense?: number;
+  /** 방어막 */
+  block?: number;
+  /** 타격 횟수 (기본 1) */
   hits?: number;
+  /** 반격 데미지 */
   counter?: number;
+
+  // ═══════════════════ 카드 속성 ═══════════════════
+  /** 아이콘 키 */
+  iconKey?: string;
+  /** 카드 특성 목록 */
+  traits?: CardTrait[];
+  /** 카드 카테고리 */
+  cardCategory?: CardCategory;
+  /** 특수 효과 ID */
+  special?: string | string[];
+  /** 카드 우선순위 */
+  priority?: CardPriority;
+  /** 카드 태그 */
+  tags?: string[];
+  /** 카드 레어리티 */
   rarity?: CardRarity;
-  // 토큰 요구사항
-  requiredTokens?: Array<{ id: string; stacks: number }>;
-  // 카드 생성 관련
-  createdBy?: string;
-  createdId?: string;
-  isFromFleche?: boolean;
-  flecheChainCount?: number;
-  // 특수 효과 관련 (SpecialCard 통합)
-  crossBonus?: CrossBonus;
-  advanceAmount?: number;
-  pushAmount?: number;
-  parryRange?: number;
-  parryPushAmount?: number;
-  originalSpeedCost?: number;
-  instanceId?: string;
-  priorityWeight?: number;
+  /** 고스트 카드 여부 (투명 처리) */
+  isGhost?: boolean;
+
+  // ═══════════════════ 상태 효과 플래그 ═══════════════════
+  /** 상태이상 무시 */
+  ignoreStatus?: boolean;
+  /** 힘 버프 무시 */
+  ignoreStrength?: boolean;
+  /** 화상 적용 */
+  _applyBurn?: boolean;
+  /** 방어막 무시 */
+  _ignoreBlock?: boolean;
+  /** 총기 잼 추가 */
+  _addGunJam?: boolean;
+
+  // ═══════════════════ 특성 시스템 ═══════════════════
   /** 여유 특성: 사용자가 선택한 타임라인 위치 (카드 속도의 1~2배 범위) */
   leisurePosition?: number;
   /** 무리 특성: 행동력 1을 사용해 앞당긴 속도 오프셋 (최대 3) */
   strainOffset?: number;
-  // 특수 효과 플래그
-  _applyBurn?: boolean;
-  _ignoreBlock?: boolean;
-  _addGunJam?: boolean;
-  // 내부 마킹
-  __targetUnitId?: number;
-  __targetUnitIds?: number[];
-  __sourceUnitId?: number;
+
+  // ═══════════════════ 런타임 마킹 ═══════════════════
+  /** 인스턴스 고유 ID */
+  instanceId?: string;
+  /** 내부 고유 ID */
   __uid?: string;
+  /** 핸드 내 고유 ID */
   __handUid?: string;
+  /** 소스 유닛 ID (멀티 유닛 전투) */
+  __sourceUnitId?: number;
+  /** 타겟 유닛 ID */
+  __targetUnitId?: number;
+  /** 타겟 유닛 ID 목록 (AOE) */
+  __targetUnitIds?: number[];
+  /** 서브 스페셜 여부 */
   __isSubSpecial?: boolean;
+  /** 메인 스페셜 여부 */
   __isMainSpecial?: boolean;
+  /** AOE 여부 */
   isAoe?: boolean;
-  // 카드 효과 함수
+  /** 콤보 정보 */
+  _combo?: string;
+
+  // ═══════════════════ 카드 생성 추적 ═══════════════════
+  /** 카드 생성 주체 */
+  createdBy?: string;
+  /** 생성된 카드 ID */
+  createdId?: string;
+  /** 플레셰에서 생성됨 */
+  isFromFleche?: boolean;
+  /** 플레셰 체인 카운트 */
+  flecheChainCount?: number;
+
+  // ═══════════════════ 특수 효과 ═══════════════════
+  /** 크로스 보너스 */
+  crossBonus?: CrossBonus;
+  /** 전진 거리 */
+  advanceAmount?: number;
+  /** 밀어내기 거리 */
+  pushAmount?: number;
+  /** 패리 범위 */
+  parryRange?: number;
+  /** 패리 밀어내기 거리 */
+  parryPushAmount?: number;
+  /** 원래 속도 비용 (수정 전) */
+  originalSpeedCost?: number;
+  /** 우선순위 가중치 */
+  priorityWeight?: number;
+
+  // ═══════════════════ 토큰 시스템 ═══════════════════
+  /** 필요 토큰 목록 */
+  requiredTokens?: Array<{ id: string; stacks: number }>;
+
+  // ═══════════════════ UI/함수 ═══════════════════
+  /** 카드 사용 시 호출되는 함수 */
   onPlay?: (battle: unknown, tokenActions: BattleTokenActions) => void;
-  // UI 확장 속성
+  /** 카드 아이콘 컴포넌트 */
   icon?: React.FC<{ size?: number; className?: string; strokeWidth?: number }>;
-  // 확장 속성 허용 (유연한 타입 호환)
+
+  // ═══════════════════ 확장 ═══════════════════
+  /** 확장 속성 허용 (유연한 타입 호환) */
   [key: string]: unknown;
 }
 

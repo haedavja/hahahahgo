@@ -22,6 +22,7 @@ import type {
 import { CARDS as BATTLE_CARDS, ENEMY_CARDS, ENEMIES, TRAITS as BATTLE_TRAITS } from '../../components/battle/battleData';
 import { CARD_LIBRARY } from '../../data/cards';
 import { TOKENS as GAME_TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES } from '../../data/tokens';
+import type { TokenDefinition } from '../../types';
 import { RELICS as GAME_RELICS } from '../../data/relics';
 import { ANOMALY_TYPES, ALL_ANOMALIES, type Anomaly, type AnomalyEffect } from '../../data/anomalies';
 
@@ -69,8 +70,8 @@ export function syncAllCards(forceReload = false): Record<string, GameCard> {
   const cards: Record<string, GameCard> = {};
 
   // battleData.ts의 CARDS 배열 변환
-  for (const card of BATTLE_CARDS as unknown[]) {
-    const c = card as Record<string, unknown>;
+  for (const card of BATTLE_CARDS) {
+    const c = card as unknown as Record<string, unknown>;
     const gameCard: GameCard = {
       id: c.id as string,
       name: c.name as string,
@@ -115,8 +116,8 @@ export function syncAllCards(forceReload = false): Record<string, GameCard> {
   }
 
   // battleData.ts의 ENEMY_CARDS 배열 변환
-  for (const card of ENEMY_CARDS as unknown[]) {
-    const c = card as Record<string, unknown>;
+  for (const card of ENEMY_CARDS) {
+    const c = card as unknown as Record<string, unknown>;
     const cardId = c.id as string;
     if (!cards[cardId]) {
       cards[cardId] = {
@@ -178,14 +179,14 @@ export function syncAllTokens(forceReload = false): Record<string, GameToken> {
   const tokens: Record<string, GameToken> = {};
 
   for (const [id, token] of Object.entries(GAME_TOKENS)) {
-    const t = token as unknown as Record<string, unknown>;
+    const t: TokenDefinition = token;
     tokens[id] = {
       id,
-      name: t.name as string,
-      type: t.type as TokenType,
-      category: t.category as TokenCategory,
-      emoji: (t.emoji as string) || '❓',
-      description: (t.description as string) || '',
+      name: t.name,
+      type: t.type,
+      category: t.category,
+      emoji: t.emoji || '❓',
+      description: t.description || '',
       effect: t.effect as GameToken['effect'],
     };
   }

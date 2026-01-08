@@ -1,0 +1,62 @@
+{/* Shop.mdx */}
+import { Meta, Title, Description, Stories, Primary, Controls, Canvas } from '@storybook/blocks';
+
+<Meta title="Shop/Overview" />
+
+# 상점 시스템
+
+상점은 플레이어가 골드를 사용하여 아이템, 카드, 상징을 구매하거나 서비스를 이용할 수 있는 공간입니다.
+
+## 구성 요소
+
+### ShopModal
+메인 상점 모달입니다. 상인 타입에 따라 다른 상품과 서비스를 제공합니다.
+
+```tsx
+<ShopModal merchantType="shop" onClose={handleClose} />
+```
+
+### 상인 타입
+| 타입 | 설명 | 특징 |
+|------|------|------|
+| `shop` | 일반 상점 | 모든 탭 사용 가능 |
+| `card_merchant` | 카드 상인 | 카드 위주 판매 |
+| `item_merchant` | 아이템 상인 | 소비 아이템 위주 |
+| `relic_merchant` | 유물 상인 | 상징 위주 판매 |
+| `service_merchant` | 서비스 상인 | 치료, 강화 서비스 |
+
+## 탭 구조
+
+### BuyTab (구매)
+- **상징(Relics)**: 영구 버프 효과
+- **아이템(Items)**: 전투 중 사용 가능한 소비품
+- **카드(Cards)**: 덱에 추가할 카드
+
+### SellTab (판매)
+- 보유 아이템을 골드로 교환
+- 판매가는 상인 타입에 따라 달라짐
+
+### ServiceTab (서비스)
+- **체력 회복**: 30% / 전체 회복
+- **상품 교체**: 새로운 상품 생성
+- **카드 제거**: 덱에서 카드 삭제
+- **카드 강화**: 카드 등급 상승
+
+## 데이터 흐름
+
+```
+generateShopInventory() → inventory state
+     ↓
+BuyTab / SellTab / ServiceTab
+     ↓
+handleBuy* / handleSell / handleUseService
+     ↓
+useGameStore (gold, relics, items 업데이트)
+```
+
+## 관련 파일
+- `src/components/shop/ShopModal.tsx` - 메인 모달
+- `src/components/shop/ShopTabs.tsx` - 탭 컴포넌트
+- `src/data/shop.ts` - 상점 데이터 및 가격
+- `src/data/relics.ts` - 상징 데이터
+- `src/data/items.ts` - 아이템 데이터

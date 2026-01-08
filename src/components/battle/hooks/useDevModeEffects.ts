@@ -55,7 +55,7 @@ interface UseDevModeEffectsParams {
   devClearBattleTokens: (() => void) | null;
   vanishedCards: Array<{ id: string } | string>;
   escapeBanRef: MutableRefObject<Set<string>>;
-  battleRef: MutableRefObject<BattleRefValue>;
+  battleRef: MutableRefObject<BattleRefValue | null>;
   addLog: (msg: string) => void;
   cardGrowth: Record<string, CardGrowthState | undefined>;
   actions: {

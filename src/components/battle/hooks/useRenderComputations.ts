@@ -16,6 +16,7 @@ import { shouldEnemyOverdrive } from '../utils/enemyAI';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
 import { BASE_PLAYER_ENERGY } from '../battleData';
 import type { Card } from '../../../types/core';
+import { cardsToAICards } from '../../../types/systems';
 import type { BattlePhase } from '../reducer/battleReducerActions';
 
 interface PlayerState {
@@ -35,7 +36,7 @@ interface EnemyState {
 }
 
 interface EnemyPlan {
-  actions?: unknown[];
+  actions?: Card[];
   mode?: unknown;
 }
 
@@ -140,7 +141,7 @@ export function useRenderComputations(params: UseRenderComputationsParams): Rend
   const enemyWillOverdrivePlan = useMemo(() =>
     shouldEnemyOverdrive(
       enemyPlan.mode as string | null,
-      enemyPlan.actions as unknown as import("../../../types").AICard[],
+      cardsToAICards(enemyPlan.actions),
       Number(enemy?.etherPts),
       turnNumber
     ),

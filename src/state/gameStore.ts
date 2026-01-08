@@ -28,6 +28,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { createInitialState } from "./useGameState";
 import { applyInitialRelicEffects } from "./gameStoreHelpers";
+import { recordRunStart } from "../simulator/bridge/stats-bridge";
 
 // 슬라이스 액션 생성자 import
 import { createPlayerActions } from "./slices/playerSlice";
@@ -109,8 +110,15 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
     ...growthActions,
 
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
-    resetRun: () => set(() => applyInitialRelicEffects(createInitialState()) as unknown as Partial<GameStore>),
-  } as unknown as GameStore;
+    resetRun: () => set(() => {
+      const newState = applyInitialRelicEffects(createInitialState());
+      // 새 런 시작 시 통계 초기화
+      const deck = newState.characterBuild?.ownedCards || [];
+      const relics = newState.relics || [];
+      recordRunStart(deck, relics);
+      return newState as Partial<GameStore>;
+    }),
+  } as GameStore;
 }));
 
 // ==================== 셀렉터 ====================

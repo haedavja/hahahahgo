@@ -106,7 +106,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       type: 'attack',
       damage: 10,
       description: '10 피해',
-    } as unknown as GameCard,
+    } as GameCard,
     card_002: {
       id: 'card_002',
       name: '방어',
@@ -114,7 +114,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       type: 'skill',
       block: 5,
       description: '5 방어',
-    } as unknown as GameCard,
+    } as GameCard,
     chain_001: {
       id: 'chain_001',
       name: '연계 시작',
@@ -123,7 +123,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 8,
       traits: ['chain'],
       description: '연계 시작',
-    } as unknown as GameCard,
+    } as GameCard,
     followup_001: {
       id: 'followup_001',
       name: '후속',
@@ -132,7 +132,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 6,
       traits: ['followup'],
       description: '후속',
-    } as unknown as GameCard,
+    } as GameCard,
     finisher_001: {
       id: 'finisher_001',
       name: '마무리',
@@ -141,7 +141,7 @@ function createMockCardLibrary(): Record<string, GameCard> {
       damage: 15,
       traits: ['finisher'],
       description: '마무리',
-    } as unknown as GameCard,
+    } as GameCard,
   };
 }
 
@@ -182,7 +182,7 @@ function createMockGameState(): GameBattleState {
     enemy: createMockEnemy(),
     timeline: [],
     comboUsageCount: {},
-  } as unknown as GameBattleState;
+  } as GameBattleState;
 }
 
 describe('enhanced-battle-processor', () => {

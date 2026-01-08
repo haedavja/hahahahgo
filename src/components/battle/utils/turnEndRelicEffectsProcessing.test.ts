@@ -16,11 +16,21 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from './turnEndRelicEffectsProcessing';
+import {
+  createCombatant,
+  createRelicsMap,
+  createRelicEffect,
+  createNextTurnEffects,
+  createTurnEndRelicEffects,
+  type TestRelicsMap,
+  type TestCombatant,
+} from '../../../test/factories';
 
 describe('turnEndRelicEffectsProcessing', () => {
   describe('playTurnEndRelicAnimations', () => {
     const createMockActions = () => ({
-      setRelicActivated: vi.fn()
+      setRelicActivated: vi.fn(),
+      setPlayer: vi.fn()
     });
 
     beforeEach(() => {
@@ -34,19 +44,19 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('ON_TURN_END 상징을 활성화해야 함', () => {
       const actions = createMockActions();
       const playSound = vi.fn();
-      const RELICS = {
-        relic1: { effects: { type: 'ON_TURN_END' } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('ON_TURN_END') }
+      });
 
       playTurnEndRelicAnimations({
         relics: ['relic1'],
         RELICS,
         cardsPlayedThisTurn: 3,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound,
         actions
-      } as any);
+      });
 
       expect(actions.setRelicActivated).toHaveBeenCalledWith('relic1');
       expect(playSound).toHaveBeenCalledWith(800, 200);
@@ -54,19 +64,19 @@ describe('turnEndRelicEffectsProcessing', () => {
 
     it('500ms 후 상징 활성화를 해제해야 함', () => {
       const actions = createMockActions();
-      const RELICS = {
-        relic1: { effects: { type: 'ON_TURN_END' } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('ON_TURN_END') }
+      });
 
       playTurnEndRelicAnimations({
         relics: ['relic1'],
         RELICS,
         cardsPlayedThisTurn: 3,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound: vi.fn(),
         actions
-      } as any);
+      });
 
       vi.advanceTimersByTime(500);
 
@@ -76,19 +86,19 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('ON_TURN_END가 아닌 상징은 무시해야 함', () => {
       const actions = createMockActions();
       const playSound = vi.fn();
-      const RELICS = {
-        relic1: { effects: { type: 'PASSIVE' } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('PASSIVE') }
+      });
 
       playTurnEndRelicAnimations({
         relics: ['relic1'],
         RELICS,
         cardsPlayedThisTurn: 3,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound,
         actions
-      } as any);
+      });
 
       expect(actions.setRelicActivated).not.toHaveBeenCalled();
       expect(playSound).not.toHaveBeenCalled();
@@ -97,44 +107,46 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('조건이 있으면 조건을 확인해야 함', () => {
       const actions = createMockActions();
       const condition = vi.fn(() => true);
-      const RELICS = {
-        relic1: { effects: { type: 'ON_TURN_END', condition } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('ON_TURN_END', { condition }) }
+      });
+      const player = createCombatant({ hp: 50 });
+      const enemy = createCombatant({ hp: 30 });
 
       playTurnEndRelicAnimations({
         relics: ['relic1'],
         RELICS,
         cardsPlayedThisTurn: 5,
-        player: { hp: 50 } as any,
-        enemy: { hp: 30 } as any,
+        player,
+        enemy,
         playSound: vi.fn(),
         actions
-      } as any);
+      });
 
       expect(condition).toHaveBeenCalledWith({
         cardsPlayedThisTurn: 5,
-        player: { hp: 50 } as any,
-        enemy: { hp: 30 } as any
-      } as any);
+        player,
+        enemy
+      });
       expect(actions.setRelicActivated).toHaveBeenCalledWith('relic1');
     });
 
     it('조건이 false면 활성화하지 않아야 함', () => {
       const actions = createMockActions();
       const condition = vi.fn(() => false);
-      const RELICS = {
-        relic1: { effects: { type: 'ON_TURN_END', condition } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('ON_TURN_END', { condition }) }
+      });
 
       playTurnEndRelicAnimations({
         relics: ['relic1'],
         RELICS,
         cardsPlayedThisTurn: 2,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound: vi.fn(),
         actions
-      } as any);
+      });
 
       expect(actions.setRelicActivated).not.toHaveBeenCalled();
     });
@@ -142,21 +154,21 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('여러 상징을 처리해야 함', () => {
       const actions = createMockActions();
       const playSound = vi.fn();
-      const RELICS = {
-        relic1: { effects: { type: 'ON_TURN_END' } },
-        relic2: { effects: { type: 'PASSIVE' } },
-        relic3: { effects: { type: 'ON_TURN_END' } }
-      } as any;
+      const RELICS: TestRelicsMap = createRelicsMap({
+        relic1: { effects: createRelicEffect('ON_TURN_END') },
+        relic2: { effects: createRelicEffect('PASSIVE') },
+        relic3: { effects: createRelicEffect('ON_TURN_END') }
+      });
 
       playTurnEndRelicAnimations({
         relics: ['relic1', 'relic2', 'relic3'],
         RELICS,
         cardsPlayedThisTurn: 3,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound,
         actions
-      } as any);
+      });
 
       expect(actions.setRelicActivated).toHaveBeenCalledWith('relic1');
       expect(actions.setRelicActivated).toHaveBeenCalledWith('relic3');
@@ -165,17 +177,17 @@ describe('turnEndRelicEffectsProcessing', () => {
 
     it('존재하지 않는 상징은 무시해야 함', () => {
       const actions = createMockActions();
-      const RELICS = {} as any;
+      const RELICS: TestRelicsMap = createRelicsMap({});
 
       playTurnEndRelicAnimations({
         relics: ['nonexistent'],
         RELICS,
         cardsPlayedThisTurn: 3,
-        player: {} as any,
-        enemy: {} as any,
+        player: createCombatant(),
+        enemy: createCombatant(),
         playSound: vi.fn(),
         actions
-      } as any);
+      });
 
       expect(actions.setRelicActivated).not.toHaveBeenCalled();
     });
@@ -183,6 +195,7 @@ describe('turnEndRelicEffectsProcessing', () => {
 
   describe('applyTurnEndRelicEffectsToNextTurn', () => {
     const createMockActions = () => ({
+      setRelicActivated: vi.fn(),
       setPlayer: vi.fn()
     });
 
@@ -190,12 +203,12 @@ describe('turnEndRelicEffectsProcessing', () => {
       const addLog = vi.fn();
 
       const result = applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 2, strength: 0 },
-        nextTurnEffects: { bonusEnergy: 1 } as any,
-        player: {} as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 2, strength: 0 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 1 }),
+        player: createCombatant(),
         addLog,
         actions: createMockActions()
-      } as any);
+      });
 
       expect(result.bonusEnergy).toBe(3);
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('다음턴 행동력'));
@@ -206,12 +219,12 @@ describe('turnEndRelicEffectsProcessing', () => {
       const addLog = vi.fn();
 
       applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 0, strength: 0 },
-        nextTurnEffects: { bonusEnergy: 1 } as any,
-        player: {} as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 0, strength: 0 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 1 }),
+        player: createCombatant(),
         addLog,
         actions: createMockActions()
-      } as any);
+      });
 
       expect(addLog).not.toHaveBeenCalledWith(expect.stringContaining('행동력'));
     });
@@ -219,15 +232,15 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('힘을 즉시 적용해야 함', () => {
       const addLog = vi.fn();
       const actions = createMockActions();
-      const player = { strength: 2, hp: 100 } as any;
+      const player: TestCombatant = createCombatant({ hp: 100, strength: 2 });
 
       applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 0, strength: 3 },
-        nextTurnEffects: { bonusEnergy: 0 } as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 0, strength: 3 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 0 }),
         player,
         addLog,
         actions
-      } as any);
+      });
 
       expect(actions.setPlayer).toHaveBeenCalledWith(expect.objectContaining({ strength: 5 }));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('힘'));
@@ -237,15 +250,15 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('음수 힘도 적용해야 함', () => {
       const addLog = vi.fn();
       const actions = createMockActions();
-      const player = { strength: 5 } as any;
+      const player: TestCombatant = createCombatant({ strength: 5 });
 
       applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 0, strength: -2 },
-        nextTurnEffects: { bonusEnergy: 0 } as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 0, strength: -2 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 0 }),
         player,
         addLog,
         actions
-      } as any);
+      });
 
       expect(actions.setPlayer).toHaveBeenCalledWith(expect.objectContaining({ strength: 3 }));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('-2'));
@@ -256,12 +269,12 @@ describe('turnEndRelicEffectsProcessing', () => {
       const actions = createMockActions();
 
       applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 0, strength: 0 },
-        nextTurnEffects: { bonusEnergy: 0 } as any,
-        player: { strength: 5 } as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 0, strength: 0 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 0 }),
+        player: createCombatant({ strength: 5 }),
         addLog,
         actions
-      } as any);
+      });
 
       expect(actions.setPlayer).not.toHaveBeenCalled();
     });
@@ -269,30 +282,31 @@ describe('turnEndRelicEffectsProcessing', () => {
     it('strength가 없는 플레이어도 처리해야 함', () => {
       const addLog = vi.fn();
       const actions = createMockActions();
-      const player = { hp: 100 } as any; // strength 없음
+      const player: TestCombatant = createCombatant({ hp: 100 });
+      delete player.strength;
 
       applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 0, strength: 2 },
-        nextTurnEffects: { bonusEnergy: 0 } as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 0, strength: 2 }),
+        nextTurnEffects: createNextTurnEffects({ bonusEnergy: 0 }),
         player,
         addLog,
         actions
-      } as any);
+      });
 
       expect(actions.setPlayer).toHaveBeenCalledWith(expect.objectContaining({ strength: 2 }));
     });
 
     it('기존 nextTurnEffects를 유지해야 함', () => {
       const result = applyTurnEndRelicEffectsToNextTurn({
-        turnEndRelicEffects: { energyNextTurn: 1, strength: 0 },
-        nextTurnEffects: { bonusEnergy: 2, otherEffect: true } as any,
-        player: {} as any,
+        turnEndRelicEffects: createTurnEndRelicEffects({ energyNextTurn: 1, strength: 0 }),
+        nextTurnEffects: { ...createNextTurnEffects({ bonusEnergy: 2 }), otherEffect: true },
+        player: createCombatant(),
         addLog: vi.fn(),
         actions: createMockActions()
-      } as any);
+      });
 
       expect(result.bonusEnergy).toBe(3);
-      expect(result.otherEffect).toBe(true);
+      expect((result as { otherEffect?: boolean }).otherEffect).toBe(true);
     });
   });
 });

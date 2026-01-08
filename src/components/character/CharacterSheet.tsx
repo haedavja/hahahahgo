@@ -9,9 +9,9 @@
 import { FC, useState, MouseEvent, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
-import { CardManagementModal } from "./CardManagementModal";
 
-// Lazy loading for heavy modal
+// Lazy loading for heavy modals
+const CardManagementModal = lazy(() => import("./CardManagementModal").then(m => ({ default: m.CardManagementModal })));
 const GrowthPyramidModal = lazy(() => import("../growth/GrowthPyramidModal").then(m => ({ default: m.GrowthPyramidModal })));
 import { TRAITS } from "../battle/battleData";
 import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
@@ -167,6 +167,80 @@ const EGO_HOVER_HINT_STYLE: CSSProperties = {
   fontSize: "12px"
 };
 
+// 추가 스타일 상수
+const HP_VALUE_STYLE: CSSProperties = {
+  fontWeight: 600,
+  color: "#fff"
+};
+
+const ENERGY_VALUE_STYLE: CSSProperties = {
+  fontWeight: 600,
+  color: "#67e8f9"
+};
+
+const SPEED_VALUE_STYLE: CSSProperties = {
+  fontWeight: 600,
+  color: "#7dd3fc"
+};
+
+const INSIGHT_VALUE_STYLE: CSSProperties = {
+  fontWeight: 700,
+  color: "#a78bfa"
+};
+
+const STORED_TRAITS_HINT_STYLE: CSSProperties = {
+  fontSize: '12px',
+  color: '#86efac',
+  opacity: 0.8
+};
+
+const TRAITS_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px',
+  marginTop: '8px'
+};
+
+const TRAIT_BADGE_STYLE: CSSProperties = {
+  padding: '6px 12px',
+  background: 'rgba(134, 239, 172, 0.15)',
+  border: '1px solid #86efac',
+  borderRadius: '6px',
+  fontSize: '13px'
+};
+
+const TRAIT_NAME_STYLE: CSSProperties = {
+  color: '#86efac',
+  fontWeight: 600
+};
+
+const TOOLTIP_TITLE_STYLE: CSSProperties = {
+  fontSize: "18px",
+  fontWeight: "bold",
+  color: "#fde68a",
+  marginBottom: "12px",
+  borderBottom: "1px solid rgba(253, 230, 138, 0.3)",
+  paddingBottom: "8px"
+};
+
+const TOOLTIP_CONTENT_STYLE: CSSProperties = {
+  fontSize: "16px",
+  lineHeight: 1.8
+};
+
+const TOOLTIP_ITEM_STYLE: CSSProperties = {
+  marginBottom: "8px"
+};
+
+const TOOLTIP_NAME_STYLE: CSSProperties = {
+  color: "#fde68a"
+};
+
+const TOOLTIP_DESC_STYLE: CSSProperties = {
+  color: "#9ca3af",
+  marginLeft: "8px"
+};
+
 // 효과 라벨 상수 (컴포넌트 외부)
 const EFFECT_LABELS: Record<string, string | null> = {
   playerStrength: '힘',
@@ -300,15 +374,15 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
         <div style={PANEL_STYLE}>
           <div style={STAT_ROW_STYLE}>
             <span style={LABEL_STYLE}>체력</span>
-            <span style={{ fontWeight: 600, color: "#fff" }}>{currentHp} / {maxHp}</span>
+            <span style={HP_VALUE_STYLE}>{currentHp} / {maxHp}</span>
           </div>
           <div style={STAT_ROW_STYLE}>
             <span style={LABEL_STYLE}>에너지</span>
-            <span style={{ fontWeight: 600, color: "#67e8f9" }}>{currentEnergy} / {maxEnergy}</span>
+            <span style={ENERGY_VALUE_STYLE}>{currentEnergy} / {maxEnergy}</span>
           </div>
           <div style={STAT_ROW_STYLE}>
             <span style={LABEL_STYLE}>속도</span>
-            <span style={{ fontWeight: 600, color: "#7dd3fc" }}>{speed}</span>
+            <span style={SPEED_VALUE_STYLE}>{speed}</span>
           </div>
           <div style={STAT_ROW_STYLE}>
             <span style={LABEL_STYLE}>힘</span>
@@ -320,7 +394,7 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
           </div>
           <div style={STAT_ROW_LAST_STYLE}>
             <span style={LABEL_STYLE}>통찰</span>
-            <span style={{ fontWeight: 700, color: "#a78bfa" }}>{playerInsight}</span>
+            <span style={INSIGHT_VALUE_STYLE}>{playerInsight}</span>
           </div>
         </div>
 
@@ -383,27 +457,21 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
         <div style={PANEL_STYLE}>
           <div style={STAT_ROW_STYLE}>
             <span style={LABEL_STYLE}>✨ 보유 특성</span>
-            <span style={{ fontSize: '12px', color: '#86efac', opacity: 0.8 }}>
+            <span style={STORED_TRAITS_HINT_STYLE}>
               카드 특화에 사용 가능
             </span>
           </div>
           {storedTraits && storedTraits.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+            <div style={TRAITS_CONTAINER_STYLE}>
               {storedTraits.map((traitId: string) => {
                 const trait = TRAITS[traitId as keyof typeof TRAITS];
                 return (
                   <div
                     key={traitId}
-                    style={{
-                      padding: '6px 12px',
-                      background: 'rgba(134, 239, 172, 0.15)',
-                      border: '1px solid #86efac',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                    }}
+                    style={TRAIT_BADGE_STYLE}
                     title={trait?.description || ''}
                   >
-                    <span style={{ color: '#86efac', fontWeight: 600 }}>+{trait?.name || traitId}</span>
+                    <span style={TRAIT_NAME_STYLE}>+{trait?.name || traitId}</span>
                   </div>
                 );
               })}
@@ -416,14 +484,14 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
         {/* 성찰 툴팁 */}
         {showEgoTooltip && activeReflectionsInfo.length > 0 && (
           <div style={tooltipStyle}>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fde68a", marginBottom: "12px", borderBottom: "1px solid rgba(253, 230, 138, 0.3)", paddingBottom: "8px" }}>
+            <div style={TOOLTIP_TITLE_STYLE}>
               ✨ 활성화된 성찰
             </div>
-            <div style={{ fontSize: "16px", lineHeight: 1.8 }}>
+            <div style={TOOLTIP_CONTENT_STYLE}>
               {activeReflectionsInfo.map((r: ReflectionInfo) => (
-                <div key={r.id} style={{ marginBottom: "8px" }}>
-                  <span style={{ color: "#fde68a" }}>{r.emoji} {r.name}</span>
-                  <span style={{ color: "#9ca3af", marginLeft: "8px" }}>
+                <div key={r.id} style={TOOLTIP_ITEM_STYLE}>
+                  <span style={TOOLTIP_NAME_STYLE}>{r.emoji} {r.name}</span>
+                  <span style={TOOLTIP_DESC_STYLE}>
                     매 턴 {Math.round(r.finalProbability * 100)}% 확률로 {r.description}
                   </span>
                 </div>
@@ -443,18 +511,20 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
 
       {/* 카드 관리 모달 */}
       {showOwnedCards && (
-        <CardManagementModal
-          onClose={handleCloseModal}
-          specialMode={specialMode}
-          setSpecialMode={setSpecialMode}
-          mainSpecials={mainSpecials}
-          subSpecials={subSpecials}
-          maxMainSlots={maxMainSlots}
-          maxSubSlots={maxSubSlots}
-          displayedCards={displayedCards}
-          showAllCards={showAllCards}
-          onCardClick={handleCardClick}
-        />
+        <Suspense fallback={null}>
+          <CardManagementModal
+            onClose={handleCloseModal}
+            specialMode={specialMode}
+            setSpecialMode={setSpecialMode}
+            mainSpecials={mainSpecials}
+            subSpecials={subSpecials}
+            maxMainSlots={maxMainSlots}
+            maxSubSlots={maxSubSlots}
+            displayedCards={displayedCards}
+            showAllCards={showAllCards}
+            onCardClick={handleCardClick}
+          />
+        </Suspense>
       )}
 
       {/* 성장 모달 */}

@@ -4,18 +4,29 @@
  */
 
 import type { EnemyDefinition } from '../../types/enemy';
-import type { BattleTokenActions } from '../../types/core';
+import type { Card, BattleTokenActions } from '../../types/core';
+import {
+  MAX_SPEED as CONFIG_MAX_SPEED,
+  DEFAULT_PLAYER_MAX_SPEED as CONFIG_PLAYER_MAX_SPEED,
+  DEFAULT_ENEMY_MAX_SPEED as CONFIG_ENEMY_MAX_SPEED,
+  BASE_PLAYER_ENERGY as CONFIG_BASE_ENERGY,
+  MAX_SUBMIT_CARDS as CONFIG_MAX_SUBMIT,
+  ETHER_THRESHOLD as CONFIG_ETHER_THRESHOLD,
+  DEFAULT_DRAW_COUNT as CONFIG_DRAW_COUNT,
+  TIMELINE,
+} from '../../config/balanceConfig';
 
 // Re-export for backwards compatibility
 export type { EnemyDefinition };
 
-export const MAX_SPEED = 30; // 기본 최대 속도 (레거시 호환용)
-export const DEFAULT_PLAYER_MAX_SPEED = 30; // 플레이어 기본 최대 속도
-export const DEFAULT_ENEMY_MAX_SPEED = 30; // 적 기본 최대 속도
-export const BASE_PLAYER_ENERGY = 6;
-export const MAX_SUBMIT_CARDS = 5;
-export const ETHER_THRESHOLD = 100;
-export const DEFAULT_DRAW_COUNT = 5; // 턴 시작 시 기본 드로우 수
+// 밸런스 상수 - balanceConfig.ts에서 가져옴
+export const MAX_SPEED = CONFIG_MAX_SPEED;
+export const DEFAULT_PLAYER_MAX_SPEED = CONFIG_PLAYER_MAX_SPEED;
+export const DEFAULT_ENEMY_MAX_SPEED = CONFIG_ENEMY_MAX_SPEED;
+export const BASE_PLAYER_ENERGY = CONFIG_BASE_ENERGY;
+export const MAX_SUBMIT_CARDS = CONFIG_MAX_SUBMIT;
+export const ETHER_THRESHOLD = CONFIG_ETHER_THRESHOLD;
+export const DEFAULT_DRAW_COUNT = CONFIG_DRAW_COUNT;
 
 // 기본 시작 덱 (게임 시작 시 플레이어가 갖고 시작하는 카드)
 export const DEFAULT_STARTING_DECK = [
@@ -90,7 +101,7 @@ export const TRAITS = {
   strain: { id: "strain", name: "무리", type: "positive", weight: 1, description: "클릭 시 행동력 1을 사용해 속도를 최대 3까지 앞당김" }
 };
 
-export const CARDS = [
+export const CARDS: Card[] = [
   // === 펜싱 카드 ===
   {
     id: "marche",
@@ -105,10 +116,7 @@ export const CARDS = [
     cardCategory: "fencing",
     special: "advanceTimeline",
     advanceAmount: 4,
-    appliedTokens: [{ id: 'blur', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('blur', 1);
-    }
+    appliedTokens: [{ id: 'blur', target: 'player' }]
   },
   {
     id: "lunge",
@@ -162,10 +170,7 @@ export const CARDS = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'shaken', target: 'enemy' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToEnemy('shaken', 1);
-    }
+    appliedTokens: [{ id: 'shaken', target: 'enemy' }]
   },
   {
     id: "beat",
@@ -195,11 +200,7 @@ export const CARDS = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('evasion', 1);
-      actions.addTokenToPlayer('offense', 1);
-    }
+    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }]
   },
   {
     id: "defensive_stance",
@@ -244,9 +245,6 @@ export const CARDS = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('counterShot', 2);
-    },
     crossBonus: { type: 'gun_attack', count: 1 }
   },
   {
@@ -421,11 +419,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
-    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToPlayer('insight', 1);
-      actions.addTokenToPlayer('crit_boost', 1);
-    }
+    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }]
   },
   {
     id: "gun_headshot",
@@ -553,10 +547,6 @@ export const CARDS = [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
     ],
-    onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      actions.addTokenToEnemy('dull', 1);
-      actions.addTokenToEnemy('shaken', 1);
-    },
     crossBonus: { type: 'add_tokens', tokens: [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
@@ -1006,14 +996,14 @@ export const CARDS = [
   },
 ];
 
-export const ENEMY_CARDS = [
+export const ENEMY_CARDS: Card[] = [
   // === 구울 카드 ===
-  { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 5, speedCost: 3, actionCost: 1, iconKey: "sword" },
+  { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 8, speedCost: 3, actionCost: 1, iconKey: "sword" },  // 5→8 피해 버프
   { id: "ghoul_block", name: "움츠리기", type: "general", block: 8, speedCost: 2, actionCost: 1, iconKey: "shield" },
 
   // === 약탈자 카드 ===
-  { id: "marauder_attack", name: "찌르기", type: "attack", damage: 3, speedCost: 2, actionCost: 1, iconKey: "sword" },
-  { id: "marauder_block", name: "막기", type: "general", block: 4, speedCost: 2, actionCost: 1, iconKey: "shield" },
+  { id: "marauder_attack", name: "찌르기", type: "attack", damage: 6, speedCost: 2, actionCost: 1, iconKey: "sword" },  // 3→6 피해 버프
+  { id: "marauder_block", name: "막기", type: "general", block: 5, speedCost: 2, actionCost: 1, iconKey: "shield" },  // 4→5 방어 버프
 
   // === 탈영병 카드 ===
   { id: "deserter_attack", name: "베기", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
@@ -1024,8 +1014,7 @@ export const ENEMY_CARDS = [
   { id: "deserter_fortify", name: "경계태세", type: "general", block: 5, speedCost: 3, actionCost: 1, iconKey: "shield" },
 
   // === 살육자 카드 ===
-  { id: "slaughterer_heavy", name: "처형", type: "attack", damage: 15, speedCost: 8, actionCost: 1, iconKey: "flame",
-    special: "piercing" },  // 방어력 무시
+  { id: "slaughterer_heavy", name: "처형", type: "attack", damage: 12, speedCost: 8, actionCost: 1, iconKey: "flame" },  // 15→12 피해, 방어관통 제거
   { id: "slaughterer_blur_block", name: "연막", type: "general", block: 7, speedCost: 4, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'blur', target: 'self' }] },
   { id: "slaughterer_quick", name: "난도질", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
@@ -1041,26 +1030,26 @@ export const ENEMY_CARDS = [
     appliedTokens: [{ id: 'dull', target: 'enemy' }] },
 
   // === 1막 신규 - 들쥐 카드 ===
-  { id: "wildrat_bite", name: "물기", type: "attack", damage: 2, speedCost: 1, actionCost: 1, iconKey: "sword" },
-  { id: "wildrat_swarm", name: "떼공격", type: "attack", damage: 1, hits: 3, speedCost: 3, actionCost: 1, iconKey: "sword" },
-  { id: "wildrat_flee", name: "도주", type: "general", block: 3, speedCost: 1, actionCost: 1, iconKey: "shield",
+  { id: "wildrat_bite", name: "물기", type: "attack", damage: 4, speedCost: 1, actionCost: 1, iconKey: "sword" },  // 2→4 피해 버프
+  { id: "wildrat_swarm", name: "떼공격", type: "attack", damage: 2, hits: 3, speedCost: 3, actionCost: 1, iconKey: "sword" },  // 1→2 피해 버프
+  { id: "wildrat_flee", name: "도주", type: "general", block: 4, speedCost: 1, actionCost: 1, iconKey: "shield",  // 3→4 방어 버프
     appliedTokens: [{ id: 'evasion', target: 'self' }] },
 
   // === 1막 신규 - 폭주자 카드 ===
-  { id: "berserker_slam", name: "내려찍기", type: "attack", damage: 8, speedCost: 5, actionCost: 1, iconKey: "flame" },
+  { id: "berserker_slam", name: "내려찍기", type: "attack", damage: 10, speedCost: 5, actionCost: 1, iconKey: "flame" },  // 8→10 피해 버프
   { id: "berserker_rage", name: "분노", type: "general", block: 0, speedCost: 2, actionCost: 1, iconKey: "flame",
     appliedTokens: [{ id: 'offense', stacks: 2, target: 'self' }] },
-  { id: "berserker_charge", name: "돌진", type: "attack", damage: 6, speedCost: 4, actionCost: 1, iconKey: "sword",
+  { id: "berserker_charge", name: "돌진", type: "attack", damage: 8, speedCost: 4, actionCost: 1, iconKey: "sword",  // 6→8 피해 버프
     special: "pushEnemyTimeline", pushAmount: 3 },
   { id: "berserker_roar", name: "포효", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
     appliedTokens: [{ id: 'shaken', target: 'enemy' }] },
 
   // === 1막 신규 - 오염체 카드 ===
-  { id: "polluted_spit", name: "독침", type: "attack", damage: 3, speedCost: 3, actionCost: 1, iconKey: "skull",
+  { id: "polluted_spit", name: "독침", type: "attack", damage: 5, speedCost: 3, actionCost: 1, iconKey: "skull",  // 3→5 피해 버프
     appliedTokens: [{ id: 'poison', target: 'enemy' }] },
-  { id: "polluted_cloud", name: "독안개", type: "general", block: 4, speedCost: 4, actionCost: 1, iconKey: "shield",
+  { id: "polluted_cloud", name: "독안개", type: "general", block: 5, speedCost: 4, actionCost: 1, iconKey: "shield",  // 4→5 방어 버프
     appliedTokens: [{ id: 'blur', target: 'self' }, { id: 'poison', target: 'enemy' }] },
-  { id: "polluted_explode", name: "자폭", type: "attack", damage: 12, speedCost: 6, actionCost: 1, iconKey: "flame",
+  { id: "polluted_explode", name: "자폭", type: "attack", damage: 15, speedCost: 6, actionCost: 1, iconKey: "flame",  // 12→15 피해 버프
     special: "selfDamage3" },  // 자해 3
 
   // === 1막 신규 - 현상금 사냥꾼 카드 (엘리트) ===
@@ -1077,10 +1066,10 @@ export const ENEMY_CARDS = [
   { id: "captain_command", name: "지휘", type: "general", block: 8, speedCost: 4, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'offense', target: 'self' }],
     special: "buffAllies" },  // 아군 강화
-  { id: "captain_rally", name: "집결", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "flame",
-    special: "summonDeserter" },  // 탈영병 소환
-  { id: "captain_execution", name: "군법처형", type: "attack", damage: 18, speedCost: 8, actionCost: 1, iconKey: "flame",
-    special: "piercing" },  // 방어력 무시
+  { id: "captain_rally", name: "집결", type: "general", block: 10, speedCost: 3, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'defense', target: 'self' }] },  // 방어 강화 (소환 제거)
+  { id: "captain_execution", name: "군법처형", type: "attack", damage: 14, speedCost: 8, actionCost: 1, iconKey: "flame",
+    special: "piercing" },  // 방어력 무시 (18→14 너프)
   { id: "captain_fortify", name: "방어태세", type: "general", block: 15, speedCost: 5, actionCost: 1, iconKey: "shield",
     appliedTokens: [{ id: 'blur', target: 'self' }] },
 ];
@@ -1133,7 +1122,7 @@ export const ENEMIES: EnemyDefinition[] = [
   {
     id: "slaughterer",
     name: "살육자",
-    hp: 150,
+    hp: 120,  // 150→120 너프
     ether: 300,
     speed: 25,
     maxSpeed: 25,
@@ -1144,7 +1133,7 @@ export const ENEMIES: EnemyDefinition[] = [
     description: "혼자 다니는 준보스급 적.",
     isBoss: true,
     passives: {
-      strengthPerTurn: 1      // 매턴 힘 1 증가
+      // strengthPerTurn 제거 - 무한 스케일링 문제 해결
     }
   },
   {
@@ -1235,12 +1224,11 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 3,
     emoji: "⚔️",
     tier: 3,
-    description: "탈영병들을 이끄는 전직 장교. 부하를 소환하고 강력한 공격을 가한다.",
+    description: "탈영병들을 이끄는 전직 장교. 강력한 방어와 치명적인 공격을 가한다.",
     isBoss: true,
     passives: {
       veilAtStart: true,     // 전투 시작 시 장막
-      healPerTurn: 5,        // 매턴 체력 5 회복
-      summonOnHalfHp: true   // 50% HP에서 탈영병 소환
+      healPerTurn: 3         // 매턴 체력 3 회복 (5→3 너프)
     }
   },
 ];

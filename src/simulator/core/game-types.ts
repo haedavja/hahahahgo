@@ -17,6 +17,22 @@ export interface AppliedToken {
   stacks?: number;
 }
 
+/** 효과값 추적 (토큰/아이템/상징 등의 실제 효과 기록) */
+export interface EffectValueRecord {
+  /** 사용/발동 횟수 */
+  count: number;
+  /** 총 피해 기여량 */
+  totalDamage: number;
+  /** 총 방어 기여량 */
+  totalBlock: number;
+  /** 총 회복량 */
+  totalHealing: number;
+  /** 총 에테르 획득량 */
+  totalEther: number;
+  /** 기타 효과 (키: 효과명, 값: 누적값) */
+  otherEffects: Record<string, number>;
+}
+
 export interface RequiredToken {
   id: string;
   stacks: number;
@@ -269,7 +285,10 @@ export interface PlayerState extends CombatantState {
   hand: string[];
   deck: string[];
   discard: string[];
+  mainSpecials: string[];           // 주특기 카드 ID 목록 (매 턴 자동 복귀)
+  subSpecials: string[];            // 부특기 카드 ID 목록 (리셔플 시 우선)
   relics: string[];
+  items?: string[];               // 소모성 아이템 목록
   insight: number;
   // 특성 시스템 관련
   repeatCards?: string[];         // 다음 턴 손패 확정 등장
@@ -281,6 +300,9 @@ export interface PlayerState extends CombatantState {
   repeatTimelineNext?: boolean;   // 다음 턴 타임라인 반복 (르 송쥬)
   blockPerCardExecution?: number; // 카드 실행마다 방어력 획득
   repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
+  // 아이템 시스템
+  etherMultiplier?: number;       // 에테르 획득 배율 (아이템 효과)
+  frozenTurns?: number;           // 적 타임라인 동결 턴 수
   // 호환성 필드
   etherPts?: number;              // 에테르 포인트 (리듀서 호환)
   cardEnhancements?: Record<string, number>; // 카드 강화 정보
@@ -306,6 +328,27 @@ export interface EnemyUnit {
 
 export interface EnemyPassives extends GameEnemyPassives {}
 
+// ==================== 은총 시스템 (게임과 동일) ====================
+
+/** 기원 타입 */
+export type PrayerType = 'immunity' | 'blessing' | 'healing' | 'offense' | 'veil';
+
+/** 몬스터 은총 상태 */
+export interface GraceState {
+  /** 현재 은총 포인트 */
+  gracePts: number;
+  /** 영혼 보호막 (면역 기원) */
+  soulShield: number;
+  /** 가호 남은 턴 */
+  blessingTurns: number;
+  /** 가호 보너스율 (%) */
+  blessingBonus: number;
+  /** 사용 가능한 기원 목록 */
+  availablePrayers: PrayerType[];
+  /** 이번 턴 사용한 기원 */
+  usedPrayersThisTurn: PrayerType[];
+}
+
 export interface EnemyState extends CombatantState {
   id: string;
   name: string;
@@ -324,6 +367,8 @@ export interface EnemyState extends CombatantState {
   strength?: number;
   /** 에테르 (호환) */
   ether?: number;
+  /** 은총 상태 */
+  graceState?: GraceState;
   /** 속도 (호환) */
   speed?: number;
   /** 보스 여부 */
@@ -357,6 +402,9 @@ export interface GameBattleState {
   // 통계 추적
   cardUsage?: Record<string, number>;         // 카드별 사용 횟수
   tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
+  tokenEffects?: Record<string, EffectValueRecord>;  // 토큰별 효과값 추적
+  itemEffects?: Record<string, EffectValueRecord>;   // 아이템별 효과값 추적
+  relicEffects?: Record<string, EffectValueRecord>;  // 상징별 효과값 추적
   // 에테르 콤보 시스템
   comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
   currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
@@ -440,10 +488,15 @@ export interface BattleResult {
   cardUsage: Record<string, number>;
   comboStats: Record<string, number>;
   tokenStats: Record<string, number>;
+  tokenEffectStats?: Record<string, EffectValueRecord>;  // 토큰별 효과값
+  itemEffectStats?: Record<string, EffectValueRecord>;   // 아이템별 효과값
+  relicEffectStats?: Record<string, EffectValueRecord>;  // 상징별 효과값
   timeline: TimelineCard[];
   victory?: boolean;
   battleId?: string;
   enemyId?: string;
+  /** 영혼파괴 여부 (에테르로 승리) */
+  isEtherVictory?: boolean;
   // 호환성 별칭
   totalDamageDealt?: number;
   playerHealth?: number;
@@ -463,4 +516,10 @@ export interface SimulationSummary {
   avgEtherGained: number;
   cardEfficiency: Record<string, { uses: number; avgDamage: number }>;
   tokenUsage: Record<string, number>;
+  /** 토큰별 효과 통계 (사용 횟수, 평균 효과값) */
+  tokenEffectSummary?: Record<string, { count: number; avgEffect: number }>;
+  /** 아이템별 효과 통계 */
+  itemEffectSummary?: Record<string, { count: number; avgEffect: number }>;
+  /** 상징별 효과 통계 */
+  relicEffectSummary?: Record<string, { count: number; avgEffect: number }>;
 }

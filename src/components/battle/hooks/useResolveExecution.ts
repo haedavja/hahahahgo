@@ -28,14 +28,11 @@ import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
 import { RELICS } from '../../../data/relics';
 import type {
-  UIRelicsMap,
   CombatBattleContext,
   Card,
-  Relic,
   ParryReadyState,
   EnemyPlan,
   BattleEvent,
-  BattleRef,
   VictoryCheckResult,
   PlayerBattleState,
   EnemyUnit,
@@ -46,6 +43,7 @@ import type {
   EtherCard,
   EtherAnimCard
 } from '../../../types';
+import type { BattleRefValue } from '../../../types/hooks';
 import type { FullBattleState } from '../reducer/battleReducerState';
 import type { PlayerState, EnemyState } from '../reducer/battleReducerActions';
 import type { BattleActions } from './useBattleState';
@@ -66,9 +64,9 @@ interface UseResolveExecutionParams {
   enemyTurnEtherAccumulated: number;
   finalComboMultiplier: number;
   enemyPlan: EnemyPlan;
-  relics: UIRelicsMap;
-  orderedRelicList: Relic[];
-  battleRef: MutableRefObject<BattleRef | null>;
+  relics: string[];
+  orderedRelicList: string[];
+  battleRef: MutableRefObject<BattleRefValue | null>;
   parryReadyStatesRef: MutableRefObject<ParryReadyState[]>;
   setParryReadyStates: Dispatch<SetStateAction<ParryReadyState[]>>;
   growingDefenseRef: MutableRefObject<number | null>;
@@ -190,7 +188,7 @@ export function useResolveExecution({
     };
 
     // 상징 턴 종료 효과 적용
-    const relicIds = Object.keys(relics);
+    const relicIds = relics;
     const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
       cardsPlayedThisTurn: battle.selected.length,
       player,
@@ -200,7 +198,7 @@ export function useResolveExecution({
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics: relicIds,
-      RELICS: RELICS as unknown as UIRelicsMap,
+      RELICS,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
@@ -398,7 +396,7 @@ export function useResolveExecution({
   const runAll = useCallback(() => {
     if (battle.qIndex >= battle.queue.length) return;
     playSound(1000, 150);
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList.map(r => r.id));
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
@@ -418,6 +416,16 @@ export function useResolveExecution({
     let localTurnEther = turnEtherAccumulated;
     let localEnemyTurnEther = enemyTurnEtherAccumulated;
 
+    // 최적화: 루프 외부에서 카테고리 Set 초기화 (기존: 매 반복마다 slice+filter+map+Set 생성)
+    const usedCategoriesSet = new Set<string>();
+    // qIndex 이전에 실행된 플레이어 카드의 카테고리 미리 수집
+    for (let j = 0; j < qIndex; j++) {
+      const q = battle.queue[j];
+      if (q.actor === 'player' && q.card?.cardCategory) {
+        usedCategoriesSet.add(q.card.cardCategory);
+      }
+    }
+
     for (let i = qIndex; i < battle.queue.length; i++) {
       const a = battle.queue[i];
 
@@ -425,8 +433,8 @@ export function useResolveExecution({
         continue;
       }
 
-      const executedPlayerCards = battle.queue.slice(0, i).filter((q: OrderItem) => q.actor === 'player');
-      const usedCardCategories = [...new Set(executedPlayerCards.map((q: OrderItem) => q.card?.cardCategory).filter(Boolean))];
+      // 최적화: 현재 인덱스 이전 카드의 카테고리 누적 (O(n²) → O(n))
+      const usedCardCategories = [...usedCategoriesSet];
       const previewNextTurnEffects = battle.nextTurnEffects || {};
 
       const battleContext = {
@@ -446,6 +454,10 @@ export function useResolveExecution({
       events.forEach(ev => addLog(ev.msg));
 
       if (a.actor === 'player') {
+        // 카테고리 누적 (다음 반복에서 사용)
+        if (a.card?.cardCategory) {
+          usedCategoriesSet.add(a.card.cardCategory);
+        }
         const gain = Math.floor(getCardEtherGain(a.card as EtherCard) * passiveRelicEffects.etherMultiplier);
         localTurnEther += gain;
       } else if (a.actor === 'enemy') {

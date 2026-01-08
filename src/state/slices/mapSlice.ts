@@ -47,6 +47,11 @@ export const createMapActions: SliceCreator = (set) => ({
       const currentMemory = updatedResources.memory ?? 0;
       updatedResources = { ...updatedResources, memory: currentMemory + MEMORY_GAIN_PER_NODE };
 
+      // 맵 이동 시 임시 버프 감소
+      const newTempBuffs = (state.tempBuffs || [])
+        .map(buff => ({ ...buff, remainingNodes: buff.remainingNodes - 1 }))
+        .filter(buff => buff.remainingNodes > 0);
+
       return {
         ...state,
         map: result.map,
@@ -58,6 +63,7 @@ export const createMapActions: SliceCreator = (set) => ({
         resources: updatedResources,
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
         itemBuffs: {},
+        tempBuffs: newTempBuffs,
       } as Partial<GameStore>;
     }),
 

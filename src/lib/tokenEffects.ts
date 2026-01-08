@@ -6,9 +6,19 @@
  * - applyTokenEffectsToCard: 카드 사용 전 (공격력/방어력 수정)
  * - applyTokenEffectsOnDamage: 피해 계산 시
  * - consumeTokens: 효과 적용 후 토큰 소모
+ *
+ * ## 코어 연동
+ * 공격/방어/피해 수정자 계산은 공통 코어 함수 사용
+ * (src/core/combat/token-core.ts)
  */
 
-import { getAllTokens, removeToken } from './tokenUtils';
+import {
+  getAllTokens,
+  removeToken,
+  calculateAttackModifiers,
+  calculateDefenseModifiers,
+  calculateDamageTakenModifiers
+} from './tokenUtils';
 import type {
   TokenEntity,
   TokenState,
@@ -77,117 +87,68 @@ export function applyTokenEffectsToCard(
     }
   }
 
-  // 공격력 증가 토큰
+  // 공격력 수정자 계산 (코어 함수 사용)
   if (cardType === 'attack' && modifiedCard.damage && modifiedCard.damage > 0) {
-    let damageBoost = 0;
+    const attackMods = calculateAttackModifiers(entity);
 
-    // 턴소모 토큰 (모든 공격 카드에 적용)
-    allTokens.forEach(token => {
-      if (token.durationType === 'turn' && token.effect.type === 'ATTACK_BOOST') {
-        damageBoost += token.effect.value * (token.stacks || 1);
-      }
-    });
+    // 코어 함수로 계산된 배율 및 보너스 적용
+    // attackMultiplier: 양수/음수 배율 통합 (예: 공세 1.5배, 무딤 0.5배)
+    // damageBonus: 힘, 날세우기 등 고정 보너스
+    const baseDamage = modifiedCard.damage + attackMods.damageBonus;
+    modifiedCard.damage = Math.max(0, Math.floor(baseDamage * attackMods.attackMultiplier));
 
-    // 사용소모 토큰 (1회만 적용)
+    // 코어에서 계산한 ignoreBlock 플래그 적용
+    if (attackMods.ignoreBlock) {
+      modifiedCard._ignoreBlock = true;
+    }
+
+    // 사용소모 토큰 소모 처리 (attack, attackPlus 등)
     const usageBoostToken = allTokens.find(
       t => t.durationType === 'usage' && t.effect.type === 'ATTACK_BOOST'
     );
     if (usageBoostToken) {
-      damageBoost += usageBoostToken.effect.value;
       consumedTokens.push({ id: usageBoostToken.id, type: 'usage' });
     }
 
-    if (damageBoost > 0) {
-      modifiedCard.damage = Math.round(modifiedCard.damage * (1 + damageBoost));
-    }
-  }
-
-  // 공격력 감소 토큰 (무딤)
-  if (cardType === 'attack' && modifiedCard.damage && modifiedCard.damage > 0) {
-    let damagePenalty = 0;
-
-    // 턴소모 토큰 (dullness 등)
-    allTokens.forEach(token => {
-      if (token.durationType === 'turn' && token.effect.type === 'ATTACK_PENALTY') {
-        damagePenalty += token.effect.value * (token.stacks || 1);
-      }
-    });
-
-    // 사용소모 토큰 (dull 등)
     const usagePenaltyToken = allTokens.find(
       t => t.durationType === 'usage' && t.effect.type === 'ATTACK_PENALTY'
     );
     if (usagePenaltyToken) {
-      damagePenalty += usagePenaltyToken.effect.value;
       consumedTokens.push({ id: usagePenaltyToken.id, type: 'usage' });
-    }
-
-    if (damagePenalty > 0) {
-      modifiedCard.damage = Math.max(0, Math.round(modifiedCard.damage * (1 - damagePenalty)));
     }
   }
 
-  // 방어력 증가 토큰
+  // 방어력 수정자 계산 (코어 함수 사용)
   const defenseValue = modifiedCard.defense || modifiedCard.block || 0;
   if (cardType === 'defense' && defenseValue > 0) {
-    let blockBoost = 0;
+    const defenseMods = calculateDefenseModifiers(entity);
 
-    // 턴소모 토큰
-    allTokens.forEach(token => {
-      if (token.durationType === 'turn' && token.effect.type === 'DEFENSE_BOOST') {
-        blockBoost += token.effect.value * (token.stacks || 1);
-      }
-    });
+    // 코어 함수로 계산된 배율 및 보너스 적용
+    // defenseMultiplier: 양수/음수 배율 통합 (예: 수세 1.5배, 흔들림 0.5배)
+    // defenseBonus: 힘 등 고정 보너스
+    const baseDefense = defenseValue + defenseMods.defenseBonus;
+    const finalDefense = Math.max(0, Math.floor(baseDefense * defenseMods.defenseMultiplier));
 
-    // 사용소모 토큰
+    if (modifiedCard.defense) {
+      modifiedCard.defense = finalDefense;
+    }
+    if (modifiedCard.block) {
+      modifiedCard.block = finalDefense;
+    }
+
+    // 사용소모 토큰 소모 처리 (defense, defensePlus 등)
     const usageBoostToken = allTokens.find(
       t => t.durationType === 'usage' && t.effect.type === 'DEFENSE_BOOST'
     );
     if (usageBoostToken) {
-      blockBoost += usageBoostToken.effect.value;
       consumedTokens.push({ id: usageBoostToken.id, type: 'usage' });
     }
 
-    if (blockBoost > 0) {
-      const boostedValue = Math.round(defenseValue * (1 + blockBoost));
-      if (modifiedCard.defense) {
-        modifiedCard.defense = boostedValue;
-      }
-      if (modifiedCard.block) {
-        modifiedCard.block = boostedValue;
-      }
-    }
-  }
-
-  // 방어력 감소 토큰 (흔들림, 무방비)
-  const defenseValue2 = modifiedCard.defense || modifiedCard.block || 0;
-  if (cardType === 'defense' && defenseValue2 > 0) {
-    let blockPenalty = 0;
-
-    // 턴소모 토큰
-    allTokens.forEach(token => {
-      if (token.durationType === 'turn' && token.effect.type === 'DEFENSE_PENALTY') {
-        blockPenalty += token.effect.value * (token.stacks || 1);
-      }
-    });
-
-    // 사용소모 토큰
     const usagePenaltyToken = allTokens.find(
       t => t.durationType === 'usage' && t.effect.type === 'DEFENSE_PENALTY'
     );
     if (usagePenaltyToken) {
-      blockPenalty += usagePenaltyToken.effect.value;
       consumedTokens.push({ id: usagePenaltyToken.id, type: 'usage' });
-    }
-
-    if (blockPenalty > 0) {
-      const penalizedValue = Math.max(0, Math.round(defenseValue2 * (1 - blockPenalty)));
-      if (modifiedCard.defense) {
-        modifiedCard.defense = penalizedValue;
-      }
-      if (modifiedCard.block) {
-        modifiedCard.block = penalizedValue;
-      }
     }
   }
 
@@ -240,23 +201,28 @@ export function applyTokenEffectsOnDamage(
     }
   }
 
-  // 2. 피해 증가 (허약, 아픔)
-  let damageMultiplier = 1;
+  // 2. 피해 배율 계산 (코어 함수 사용)
+  const damageTakenMods = calculateDamageTakenModifiers(defender);
 
+  // 코어 함수로 계산된 배율 적용 (허약, 아픔 등)
+  finalDamage = Math.round(finalDamage * damageTakenMods.damageMultiplier);
+
+  // 피해 감소 적용 (있는 경우)
+  if (damageTakenMods.damageReduction > 0) {
+    finalDamage = Math.max(0, finalDamage - damageTakenMods.damageReduction);
+  }
+
+  // 배율 로그 (1배 초과일 때만)
+  if (damageTakenMods.damageMultiplier > 1) {
+    logs.push(`취약 적용: 피해 ${Math.round(damageTakenMods.damageMultiplier * 100)}%`);
+  }
+
+  // 사용소모 토큰 소모 처리
   allTokens.forEach(token => {
-    if (token.effect.type === 'DAMAGE_TAKEN') {
-      if (token.durationType === 'turn') {
-        damageMultiplier += token.effect.value * (token.stacks || 1);
-        logs.push(`${token.name} 적용: 피해 +${Math.round(token.effect.value * 100)}%`);
-      } else if (token.durationType === 'usage') {
-        damageMultiplier += token.effect.value;
-        consumedTokens.push({ id: token.id, type: 'usage' });
-        logs.push(`${token.name} 소모: 피해 +${Math.round(token.effect.value * 100)}%`);
-      }
+    if (token.effect.type === 'DAMAGE_TAKEN' && token.durationType === 'usage') {
+      consumedTokens.push({ id: token.id, type: 'usage' });
     }
   });
-
-  finalDamage = Math.round(finalDamage * damageMultiplier);
 
   // 3. 반격
   let reflected = 0;

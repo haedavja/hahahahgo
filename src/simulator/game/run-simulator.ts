@@ -17,6 +17,7 @@ import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from '
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
+import type { SkillLevel } from '../core/battle-engine-types';
 import { EnhancedBattleProcessor, type EnhancedBattleResult } from '../core/enhanced-battle-processor';
 import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
 import { createComboOptimizer, type ComboOptimizer } from '../ai/combo-optimizer';
@@ -60,6 +61,12 @@ interface EnemyGroup {
   isBoss?: boolean;
 }
 
+// 적 그룹 선택 결과 타입
+interface EnemyGroupSelection {
+  enemies: EnemyState[];
+  group?: EnemyGroup;
+}
+
 const log = getLogger('RunSimulator');
 
 // 카드 타입 분류 (전략별 선택용)
@@ -93,10 +100,17 @@ const COMBAT_REWARD_CARDS = [
   'strike', 'deflect', 'quarte', 'octave', 'breach'
 ];
 
-// 상징 풀 (엘리트/보스 보상용)
-const REWARD_RELICS = [
-  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
-];
+// 상징 풀 (엘리트/보스 보상용) - 이제 전체 RELICS에서 동적으로 선택
+// const REWARD_RELICS = ['etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor']; // 레거시
+
+// 상징 등급별 가중치 (legendary는 보스에서만, dev는 제외)
+const RELIC_RARITY_WEIGHTS: Record<string, number> = {
+  common: 50,
+  rare: 30,
+  special: 15,
+  legendary: 0,  // 일반 보상에서는 제외 (보스 전용)
+  dev: 0,        // 개발자 전용 제외
+};
 
 // ==================== 타입 정의 ====================
 
@@ -122,12 +136,37 @@ export interface PlayerRunState {
   traits?: string[];
 }
 
+/**
+ * 난이도 수정자 (Hades Heat / StS Ascension 스타일)
+ * 각 값은 배율 또는 보너스로 적용됨
+ */
+export interface DifficultyModifiers {
+  /** 적 HP 배율 (기본 1.0) */
+  enemyHpMultiplier?: number;
+  /** 적 공격력 배율 (기본 1.0) */
+  enemyDamageMultiplier?: number;
+  /** 적 속도 보너스 (기본 0) */
+  enemySpeedBonus?: number;
+  /** 시작 최대 HP 배율 (기본 1.0) */
+  startingHpMultiplier?: number;
+  /** 휴식 회복 배율 (기본 1.0) */
+  restHealMultiplier?: number;
+  /** 골드 획득 배율 (기본 1.0) */
+  goldMultiplier?: number;
+  /** 상점 가격 배율 (기본 1.0) */
+  shopPriceMultiplier?: number;
+  /** 시작 저주 카드 수 (기본 0) */
+  startingCurseCards?: number;
+  /** 이변 레벨 보너스 (기본 0) */
+  anomalyLevelBonus?: number;
+}
+
 export interface RunConfig {
   /** 초기 플레이어 상태 */
   initialPlayer: PlayerRunState;
   /** 맵 설정 */
   mapLayers?: number;
-  /** 난이도 */
+  /** 난이도 (레거시: HP 배율만 적용) */
   difficulty: number;
   /** 전략 */
   strategy: RunStrategy;
@@ -139,6 +178,10 @@ export interface RunConfig {
   anomalyId?: string;
   /** 맵 위험도 (이변 레벨 계산용, 0-4) */
   mapRisk?: number;
+  /** 난이도 수정자 (세부 옵션) */
+  difficultyModifiers?: DifficultyModifiers;
+  /** 플레이어 스킬 레벨 (기본: optimal) */
+  skillLevel?: SkillLevel;
 }
 
 export type RunStrategy = 'aggressive' | 'defensive' | 'balanced' | 'speedrun' | 'treasure_hunter';
@@ -152,6 +195,8 @@ export interface NodeResult {
   cardsGained: string[];
   relicsGained: string[];
   details: string;
+  /** 영혼파괴 승리 여부 (전투 노드에서만 사용) */
+  isEtherVictory?: boolean;
 }
 
 export interface RunResult {
@@ -167,6 +212,10 @@ export interface RunResult {
   battlesWon: number;
   /** 전투 패배 수 */
   battlesLost: number;
+  /** 영혼파괴 승리 수 (에테르로 적 처치) */
+  soulDestructions: number;
+  /** 육체파괴 승리 수 (HP로 적 처치) */
+  physicalDestructions: number;
   /** 이벤트 완료 수 */
   eventsCompleted: number;
   /** 상점 방문 수 */
@@ -194,6 +243,10 @@ export interface RunStatistics {
   avgBattlesWon: number;
   avgGoldEarned: number;
   avgCardsInDeck: number;
+  /** 총 영혼파괴 승리 수 */
+  soulDestructions: number;
+  /** 총 육체파괴 승리 수 */
+  physicalDestructions: number;
   deathCauses: Record<string, number>;
   strategyComparison: Record<RunStrategy, { successRate: number; avgLayer: number }>;
 }
@@ -215,6 +268,7 @@ export class RunSimulator {
   private enemyLibrary: EnemyDefinition[] = [];
   private enemyGroupLibrary: EnemyGroup[] = [];
   private itemLibrary: Record<string, Item> = {};
+  private relicLibrary: Record<string, { id: string; rarity?: string }> = {}; // 전체 상징 풀
   private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
   private useEnhancedBattle: boolean = true; // 향상된 전투 시스템 사용
   private statsCollector: StatsCollector | null = null; // 상세 통계 수집기
@@ -277,11 +331,11 @@ export class RunSimulator {
     try {
       // 이벤트 데이터 로드
       const { NEW_EVENT_LIBRARY } = await import('../../data/newEvents');
-      this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY as any);
+      this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY);
 
       // 카드 데이터 로드 (CARD_LIBRARY 사용)
       const { CARD_LIBRARY } = await import('../../data/cards');
-      this.shopSimulator.loadCardData(CARD_LIBRARY as any);
+      this.shopSimulator.loadCardData(CARD_LIBRARY as Record<string, { id: string; rarity?: string }>);
       this.shopSimulator.loadFullCardLibrary(CARD_LIBRARY as Record<string, Card>);
       this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
       this.gameCardLibrary = CARD_LIBRARY as unknown as Record<string, GameCard>;
@@ -300,7 +354,9 @@ export class RunSimulator {
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
-      this.shopSimulator.loadRelicData(RELICS as any);
+      this.shopSimulator.loadRelicData(RELICS as Record<string, { id: string; rarity?: string }>);
+      this.dungeonSimulator.loadRelicData(RELICS as Record<string, { id: string; rarity?: string }>);
+      this.relicLibrary = RELICS as Record<string, { id: string; rarity?: string }>;
 
       // 적 데이터 로드
       const { ENEMIES, ENEMY_GROUPS } = await import('../../components/battle/battleData');
@@ -310,7 +366,7 @@ export class RunSimulator {
       // 아이템 데이터 로드
       const { ITEMS } = await import('../../data/items');
       this.itemLibrary = ITEMS as Record<string, Item>;
-      this.shopSimulator.loadItemData(ITEMS as any);
+      this.shopSimulator.loadItemData(ITEMS as Record<string, { id: string; tier?: number }>);
 
       log.info('Game data loaded successfully', {
         events: Object.keys(NEW_EVENT_LIBRARY).length,
@@ -333,6 +389,31 @@ export class RunSimulator {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
 
+    // 플레이어 스킬 레벨 설정
+    if (config.skillLevel) {
+      this.battleEngine.setSkillLevel(config.skillLevel);
+    }
+
+    // 시작 HP 배율 적용
+    const startingHpMult = config.difficultyModifiers?.startingHpMultiplier ?? 1;
+    if (startingHpMult !== 1) {
+      player.maxHp = Math.floor(player.maxHp * startingHpMult);
+      player.hp = Math.min(player.hp, player.maxHp);
+    }
+
+    // 시작 저주 카드 추가
+    const curseCount = config.difficultyModifiers?.startingCurseCards ?? 0;
+    if (curseCount > 0) {
+      for (let i = 0; i < curseCount; i++) {
+        player.deck.push('curse_weakness'); // 기본 저주 카드
+      }
+    }
+
+    // 통계 수집기 런 시작 초기화
+    if (this.statsCollector) {
+      this.statsCollector.startNewRun();
+    }
+
     // 피라미드 성장 시스템 초기화
     const growthSystem = createGrowthSystem(player.growth);
 
@@ -346,12 +427,19 @@ export class RunSimulator {
     // 성장 상태 저장
     player.growth = growthSystem.getState();
 
+    // 런 진행 기록 시작 (Slay the Spire 스타일)
+    if (this.statsCollector) {
+      this.statsCollector.startRunProgression();
+    }
+
     const result: RunResult = {
       success: false,
       finalLayer: 0,
       nodesVisited: 0,
       battlesWon: 0,
       battlesLost: 0,
+      soulDestructions: 0,
+      physicalDestructions: 0,
       eventsCompleted: 0,
       shopsVisited: 0,
       restsUsed: 0,
@@ -390,13 +478,28 @@ export class RunSimulator {
       switch (currentNode.type) {
         case 'combat':
         case 'elite':
-          if (nodeResult.success) result.battlesWon++;
-          else result.battlesLost++;
+          if (nodeResult.success) {
+            result.battlesWon++;
+            // 영혼파괴/육체파괴 집계
+            if (nodeResult.isEtherVictory) {
+              result.soulDestructions++;
+            } else {
+              result.physicalDestructions++;
+            }
+          } else {
+            result.battlesLost++;
+          }
           break;
         case 'boss':
           if (nodeResult.success) {
             result.battlesWon++;
             result.success = true;
+            // 영혼파괴/육체파괴 집계
+            if (nodeResult.isEtherVictory) {
+              result.soulDestructions++;
+            } else {
+              result.physicalDestructions++;
+            }
           } else {
             result.battlesLost++;
             result.deathCause = '보스전 패배';
@@ -418,6 +521,19 @@ export class RunSimulator {
 
       result.totalGoldEarned += nodeResult.goldChange > 0 ? nodeResult.goldChange : 0;
       result.totalCardsGained += nodeResult.cardsGained.length;
+
+      // 층 진행 기록 (Slay the Spire 스타일)
+      if (this.statsCollector) {
+        this.statsCollector.recordFloorProgress({
+          floor: currentNode.layer,
+          nodeType: currentNode.type,
+          hp: player.hp,
+          maxHp: player.maxHp,
+          gold: player.gold,
+          deckSize: player.deck.length,
+          relicCount: player.relics.length,
+        });
+      }
 
       // 보스 클리어 시 종료
       if (currentNode.type === 'boss' && nodeResult.success) {
@@ -454,6 +570,7 @@ export class RunSimulator {
         battlesWon: result.battlesWon,
         gold: result.totalGoldEarned,
         deckSize: player.deck.length,
+        relicCount: player.relics.length,
         deathCause: result.deathCause,
         strategy: config.strategy,
         upgradedCards: player.upgradedCards,
@@ -472,6 +589,44 @@ export class RunSimulator {
         gold: result.totalGoldEarned,
         deck: player.deck,
       });
+
+      // 런 진행 기록 종료 (Slay the Spire 스타일)
+      this.statsCollector.endRunProgression({
+        finalDeck: player.deck,
+        finalRelics: player.relics,
+      });
+
+      // 상징 런 통계 기록
+      this.statsCollector.recordRelicRunEnd({
+        relics: player.relics,
+        success: result.success,
+        floorReached: result.finalLayer,
+        hpPercent: player.maxHp > 0 ? player.hp / player.maxHp : 0,
+      });
+
+      // 난이도별 통계 기록 (Hades Heat 스타일)
+      this.statsCollector.recordDifficultyRun(
+        config.difficulty,
+        result.success,
+        result.finalLayer
+      );
+
+      // 성장 통계 기록
+      const growthState = player.growth as GrowthState | undefined;
+      if (growthState) {
+        this.statsCollector.recordGrowthRunEnd({
+          success: result.success,
+          finalStats: {
+            strength: player.strength || 0,
+            agility: player.agility || 0,
+            insight: player.insight || 0,
+          },
+          finalLevel: growthState.pyramidLevel || 0,
+        });
+      }
+
+      // 카드 사용 통계 마무리
+      this.statsCollector.finalizeRunCardStats(player.deck);
     }
 
     return result;
@@ -526,13 +681,26 @@ export class RunSimulator {
     result.hpChange = player.hp - startHp;
     result.goldChange = player.gold - startGold;
 
+    // 층별 스냅샷 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordFloorSnapshot({
+        floor: node.layer,
+        nodeType: node.type,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        gold: player.gold,
+        deckSize: player.deck.length,
+        relicCount: player.relics.length,
+      });
+    }
+
     return result;
   }
 
   /**
    * 적 그룹 선택 (노드 기반, 다중 적 지원)
    */
-  private selectEnemyGroup(nodeType: MapNodeType, layer: number): EnemyState[] {
+  private selectEnemyGroup(nodeType: MapNodeType, layer: number): EnemyGroupSelection {
     // 기본 적 (라이브러리가 없을 때)
     const defaultEnemy = (): EnemyState => ({
       id: 'ghoul',
@@ -548,7 +716,7 @@ export class RunSimulator {
     });
 
     if (this.enemyLibrary.length === 0) {
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     // 보스/엘리트는 단일 적
@@ -556,18 +724,18 @@ export class RunSimulator {
       const bosses = this.enemyLibrary.filter(e => e.isBoss === true);
       if (bosses.length > 0) {
         const boss = getGlobalRandom().pick(bosses);
-        return [this.convertToEnemyState(boss)];
+        return { enemies: [this.convertToEnemyState(boss)] };
       }
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     if (nodeType === 'elite') {
       const elites = this.enemyLibrary.filter(e => e.tier === 2 && !e.isBoss);
       if (elites.length > 0) {
         const elite = getGlobalRandom().pick(elites);
-        return [this.convertToEnemyState(elite)];
+        return { enemies: [this.convertToEnemyState(elite)] };
       }
-      return [defaultEnemy()];
+      return { enemies: [defaultEnemy()] };
     }
 
     // 일반 전투: 적 그룹 사용 (노드 범위 기반)
@@ -590,7 +758,7 @@ export class RunSimulator {
         }
 
         if (enemies.length > 0) {
-          return enemies;
+          return { enemies, group: selectedGroup };
         }
       }
     }
@@ -599,10 +767,10 @@ export class RunSimulator {
     const tier1Enemies = this.enemyLibrary.filter(e => e.tier === 1 && !e.isBoss);
     if (tier1Enemies.length > 0) {
       const enemy = getGlobalRandom().pick(tier1Enemies);
-      return [this.convertToEnemyState(enemy)];
+      return { enemies: [this.convertToEnemyState(enemy)] };
     }
 
-    return [defaultEnemy()];
+    return { enemies: [defaultEnemy()] };
   }
 
   /**
@@ -627,7 +795,7 @@ export class RunSimulator {
    * 단일 적 선택 (하위 호환성)
    */
   private selectEnemy(nodeType: MapNodeType, layer: number): EnemyState {
-    return this.selectEnemyGroup(nodeType, layer)[0];
+    return this.selectEnemyGroup(nodeType, layer).enemies[0];
   }
 
   /**
@@ -690,14 +858,32 @@ export class RunSimulator {
     const isBoss = node.type === 'boss';
 
     // 적 그룹 선택 (다중 적 지원)
-    const enemies = this.selectEnemyGroup(node.type, node.layer);
+    const { enemies, group: selectedGroup } = this.selectEnemyGroup(node.type, node.layer);
 
     // 난이도에 따른 적 강화
-    if (difficulty > 1) {
-      const hpMultiplier = 1 + (difficulty - 1) * 0.15; // 난이도당 15% HP 증가
-      for (const enemy of enemies) {
+    const mods = config.difficultyModifiers || {};
+    // HP 배율: 레거시 difficulty + 커스텀 수정자
+    const baseHpMult = difficulty > 1 ? 1 + (difficulty - 1) * 0.15 : 1;
+    const hpMultiplier = baseHpMult * (mods.enemyHpMultiplier ?? 1);
+    // 공격력 배율
+    const damageMultiplier = mods.enemyDamageMultiplier ?? 1;
+    // 속도 보너스
+    const speedBonus = mods.enemySpeedBonus ?? 0;
+
+    for (const enemy of enemies) {
+      // HP 적용
+      if (hpMultiplier !== 1) {
         enemy.hp = Math.floor(enemy.hp * hpMultiplier);
         enemy.maxHp = enemy.hp;
+      }
+      // 공격력 적용 (카드 데미지 스케일링)
+      if (damageMultiplier !== 1 && enemy.deck) {
+        // 적의 덱 카드 공격력 증가는 전투 엔진에서 처리
+        (enemy as EnemyState & { damageMultiplier?: number }).damageMultiplier = damageMultiplier;
+      }
+      // 속도 보너스 적용
+      if (speedBonus !== 0) {
+        enemy.speed = (enemy.speed || 0) + speedBonus;
       }
     }
 
@@ -749,7 +935,8 @@ export class RunSimulator {
             player.relics,
             enemy,
             config.anomalyId, // 이변 ID 전달
-            cardEnhancements // 카드 강화 레벨 전달
+            cardEnhancements, // 카드 강화 레벨 전달
+            player.items // 아이템 전달
           );
         } else {
           // 폴백: 확률 기반 시뮬레이션
@@ -781,6 +968,14 @@ export class RunSimulator {
               );
             }
           }
+          // 전투 피해 기록 (런 진행용)
+          if (this.statsCollector) {
+            this.statsCollector.recordBattleDamage(
+              enemy.id,
+              battleResult.enemyDamageDealt,
+              node.layer
+            );
+          }
         } else {
           // 전투 패배
           wonAllBattles = false;
@@ -798,10 +993,13 @@ export class RunSimulator {
     if (wonAllBattles && totalBattleResult) {
       result.success = true;
       result.details = `전투 승리 vs ${displayName} (${totalBattleResult.turns}턴)`;
+      // 영혼파괴 여부 기록 (BattleResult.isEtherVictory에서 가져옴)
+      result.isEtherVictory = (totalBattleResult as BattleResult).isEtherVictory || false;
 
-      // 보상 (적 수에 비례)
+      // 보상 (적 수에 비례, 난이도 수정자 적용)
+      const goldMult = config.difficultyModifiers?.goldMultiplier ?? 1;
       const baseGold = 15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0);
-      const goldReward = Math.floor(baseGold * (1 + (enemies.length - 1) * 0.3));
+      const goldReward = Math.floor(baseGold * (1 + (enemies.length - 1) * 0.3) * goldMult);
       player.gold += goldReward;
 
       // 카드 보상: 3장 중 1장 선택 (게임과 동일)
@@ -813,18 +1011,72 @@ export class RunSimulator {
         }
       }
 
-      // 엘리트/보스 상징 획득
-      if ((isElite || isBoss) && getGlobalRandom().chance(0.5)) {
-        const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
+      // 보스 상징 획득: legendary 확정 획득
+      if (isBoss) {
+        const allRelicIds = Object.keys(this.relicLibrary);
+        const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
         if (availableRelics.length > 0) {
-          const newRelic = getGlobalRandom().pick(availableRelics);
-          player.relics.push(newRelic);
-          result.relicsGained.push(newRelic);
+          const newRelic = this.selectLegendaryRelic(availableRelics);
+          if (newRelic) {
+            player.relics.push(newRelic);
+            result.relicsGained.push(newRelic);
+
+            // 상징 획득 통계 기록
+            if (this.statsCollector) {
+              this.statsCollector.recordRelicAcquired({
+                relicId: newRelic,
+                floor: node.layer,
+                source: 'boss',
+              });
+            }
+          }
         }
       }
+      // 엘리트 상징 획득: 등급별 가중치 적용 (legendary 제외), 50% 확률
+      else if (isElite && getGlobalRandom().chance(0.5)) {
+        const allRelicIds = Object.keys(this.relicLibrary);
+        const availableRelics = allRelicIds.filter(relicId => !player.relics.includes(relicId));
+        if (availableRelics.length > 0) {
+          const newRelic = this.selectRelicByRarity(availableRelics, false);
+          if (newRelic) {
+            player.relics.push(newRelic);
+            result.relicsGained.push(newRelic);
+
+            // 상징 획득 통계 기록
+            if (this.statsCollector) {
+              this.statsCollector.recordRelicAcquired({
+                relicId: newRelic,
+                floor: node.layer,
+                source: 'battle',
+              });
+            }
+          }
+        }
+      }
+
+      // 전투 승리 후 전장 밖 힐링 아이템 사용
+      this.useHealingItemsOutOfBattle(player);
     } else {
       result.success = false;
       result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
+
+      // 사망 분석 기록
+      if (this.statsCollector && totalBattleResult) {
+        const lastEnemy = enemies[enemies.length - 1] || { id: 'unknown', name: '알 수 없음' };
+        this.statsCollector.recordDeath({
+          floor: node.layer,
+          enemyId: lastEnemy.id,
+          enemyName: lastEnemy.name,
+          finalHp: 0,
+          overkillDamage: Math.abs(player.hp), // 초과 피해량
+          turnsBeforeDeath: totalBattleResult.turns,
+          lastHandCards: [], // 시뮬레이터에서는 핸드 정보 없음
+          deck: player.deck,
+          relics: player.relics,
+          hpHistory: [], // 시뮬레이터에서는 HP 히스토리 없음
+        });
+      }
+
       player.hp = 0;
     }
 
@@ -837,6 +1089,11 @@ export class RunSimulator {
           tier: isBoss ? 3 : isElite ? 2 : 1,
           isBoss,
           isElite,
+          // 그룹 정보 전달
+          groupId: selectedGroup?.id,
+          groupName: selectedGroup?.name,
+          enemyCount: selectedGroup?.enemies.length,
+          composition: selectedGroup?.enemies,
         });
       }
     }
@@ -866,38 +1123,76 @@ export class RunSimulator {
   ): void {
     if (player.items.length === 0) return;
 
-    // HP가 40% 이하이거나 어려운 전투일 때 아이템 사용 고려
     const hpRatio = player.hp / player.maxHp;
-    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
 
+    // 아이템 사용 조건 완화: 더 적극적으로 사용
+    // - 일반 전투: HP < 60% 또는 아이템 3개 이상 보유
+    // - 어려운 전투(정예/보스): 항상 사용
+    const hasExcessItems = player.items.length >= 3;
+    const shouldUseItems = hpRatio < 0.6 || isDifficultBattle || hasExcessItems;
     if (!shouldUseItems) return;
 
     // 사용할 아이템 선택
     const itemsToUse: { itemId: string; hpHealed?: number; specialEffect?: string }[] = [];
 
+    // 어려운 전투에서는 더 많은 아이템 사용 허용
+    const maxItems = isDifficultBattle ? 4 : 2;
+
+    // 힐 아이템 임계값: 보스전에서는 HP 90% 미만이면 사용
+    const healThreshold = isDifficultBattle ? 0.9 : 0.6;
+
     for (const itemId of player.items) {
       const item = this.itemLibrary[itemId];
       if (!item) continue;
 
-      // 힐 아이템: HP가 낮을 때 사용
-      if (item.effect.type === 'healPercent' && hpRatio < 0.5) {
+      // 힐 아이템: HP가 임계값 미만일 때 사용
+      if (item.effect.type === 'healPercent' && hpRatio < healThreshold) {
         const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         itemsToUse.push({ itemId, hpHealed: healAmount });
       }
 
-      // 방어 아이템: 어려운 전투 전 사용
-      if (item.effect.type === 'defense' && isDifficultBattle) {
+      // 방어 아이템: HP 70% 이하 또는 어려운 전투
+      if (item.effect.type === 'defense' && (hpRatio < 0.7 || isDifficultBattle)) {
         itemsToUse.push({ itemId, specialEffect: 'defense' });
       }
 
-      // 공격 강화: 어려운 전투 전 사용
-      if (item.effect.type === 'grantTokens' && isDifficultBattle) {
+      // 공격 강화(토큰): 어려운 전투 또는 공격 전략
+      if (item.effect.type === 'grantTokens' && (isDifficultBattle || strategy === 'aggressive')) {
         itemsToUse.push({ itemId, specialEffect: 'grantTokens' });
       }
 
-      // 최대 2개 아이템 사용
-      if (itemsToUse.length >= 2) break;
+      // 스탯 강화제: 어려운 전투 전 사용 (insight 포함)
+      if (item.effect.type === 'statBoost' && isDifficultBattle) {
+        const statEffect = item.effect as { type: 'statBoost'; stat: 'strength' | 'agility' | 'insight'; value: number };
+        itemsToUse.push({ itemId, specialEffect: `statBoost:${statEffect.stat}:${statEffect.value}` });
+      }
+
+      // 에테르 증폭제: 보스전에서 사용
+      if (item.effect.type === 'etherMultiplier' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'etherMultiplier' });
+      }
+
+      // 에테르 흡수기: 보스전에서 사용
+      if (item.effect.type === 'etherSteal' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'etherSteal' });
+      }
+
+      // 에너지 충전기: 어려운 전투에서 버스트 턴 준비
+      if (item.effect.type === 'turnEnergy' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'turnEnergy' });
+      }
+
+      // 에너지 확장기: 보스전에서 사용
+      if (item.effect.type === 'maxEnergy' && isDifficultBattle) {
+        itemsToUse.push({ itemId, specialEffect: 'maxEnergy' });
+      }
+
+      // 폭발물(damage)과 빙결 장치(cardFreeze)는 전투 중에 사용해야 함
+      // battle engine의 processItemUsage에서 처리됨
+
+      // 최대 아이템 수 제한
+      if (itemsToUse.length >= maxItems) break;
     }
 
     // 사용한 아이템 제거 및 통계 기록
@@ -915,6 +1210,49 @@ export class RunSimulator {
           hpHealed: usedItem.hpHealed,
           specialEffect: usedItem.specialEffect,
         });
+      }
+    }
+  }
+
+  /**
+   * 전투 후 또는 맵 이동 중 힐링 아이템 사용
+   * - HP가 50% 미만이면 힐링 아이템 사용
+   * - 전투 외 사용 가능한(usableIn: 'any') 아이템만 대상
+   */
+  private useHealingItemsOutOfBattle(player: PlayerRunState): void {
+    if (player.items.length === 0) return;
+
+    const hpRatio = player.hp / player.maxHp;
+
+    // HP가 50% 이상이면 사용 안 함
+    if (hpRatio >= 0.5) return;
+
+    // 힐링 아이템 찾기 (usableIn: 'any'인 healPercent 아이템)
+    for (let i = player.items.length - 1; i >= 0; i--) {
+      const itemId = player.items[i];
+      const item = this.itemLibrary[itemId];
+      if (!item) continue;
+
+      // 힐링 아이템이고 전투 외 사용 가능한 경우
+      if (item.effect.type === 'healPercent' && item.usableIn === 'any') {
+        const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+
+        // 아이템 제거
+        player.items.splice(i, 1);
+
+        // 통계 기록
+        if (this.statsCollector) {
+          this.statsCollector.recordItemUsed({
+            itemId,
+            inBattle: false,
+            hpHealed: healAmount,
+          });
+        }
+
+        // 1개만 사용 후 재평가
+        const newHpRatio = player.hp / player.maxHp;
+        if (newHpRatio >= 0.7) break; // HP 70% 이상 회복되면 중단
       }
     }
   }
@@ -1042,6 +1380,15 @@ export class RunSimulator {
         if (relicId && !player.relics.includes(relicId)) {
           player.relics.push(relicId);
           result.relicsGained.push(relicId);
+
+          // 상징 획득 통계 기록
+          if (this.statsCollector) {
+            this.statsCollector.recordRelicAcquired({
+              relicId,
+              floor: node.layer,
+              source: 'event',
+            });
+          }
         }
       }
 
@@ -1095,12 +1442,28 @@ export class RunSimulator {
   ): void {
     const inventory = this.shopSimulator.generateShopInventory('shop');
 
+    // 상점 가격 배율 적용
+    const priceMult = config.difficultyModifiers?.shopPriceMultiplier ?? 1;
+
     // 전략 기반 카드 필터링
     const filteredCards = this.filterShopCards(inventory.cards, player, config.strategy);
 
+    // 가격 배율 적용
+    const priceAdjustedCards = priceMult !== 1
+      ? filteredCards.map(c => ({ ...c, price: Math.floor((c.price || 0) * priceMult) }))
+      : filteredCards;
+    const priceAdjustedRelics = priceMult !== 1
+      ? inventory.relics.map(r => ({ ...r, price: Math.floor((r.price || 0) * priceMult) }))
+      : inventory.relics;
+    const priceAdjustedItems = priceMult !== 1
+      ? inventory.items.map(i => ({ ...i, price: Math.floor((i.price || 0) * priceMult) }))
+      : inventory.items;
+
     const filteredInventory = {
       ...inventory,
-      cards: filteredCards,
+      cards: priceAdjustedCards,
+      relics: priceAdjustedRelics,
+      items: priceAdjustedItems,
     };
 
     const shopConfig: ShopSimulationConfig = {
@@ -1167,6 +1530,15 @@ export class RunSimulator {
       // 아이템 획득 기록
       for (const itemId of itemsPurchased) {
         this.statsCollector.recordItemAcquired(itemId);
+      }
+
+      // 상징 획득 기록
+      for (const relicId of result.relicsGained) {
+        this.statsCollector.recordRelicAcquired({
+          relicId,
+          floor: node.layer,
+          source: 'shop',
+        });
       }
 
       // 상점 서비스 상세 기록
@@ -1297,11 +1669,15 @@ export class RunSimulator {
       }
     }
 
+    // 휴식 회복 배율 적용
+    const restHealMult = config.difficultyModifiers?.restHealMultiplier ?? 1;
+
     if (action === 'heal') {
-      // 힐: 최대 HP의 30% 회복
-      const healAmount = Math.floor(player.maxHp * 0.3);
+      // 힐: 최대 HP의 30% 회복 (난이도 수정자 적용)
+      const baseHeal = player.maxHp * 0.3;
+      const healAmount = Math.floor(baseHeal * restHealMult);
       player.hp = Math.min(player.maxHp, player.hp + healAmount);
-      result.details = `휴식: ${healAmount} HP 회복`;
+      result.details = `휴식: ${healAmount} HP 회복${restHealMult < 1 ? ` (회복량 ${Math.round(restHealMult * 100)}%)` : ''}`;
     } else if (action === 'upgrade') {
       // 강화: 아직 강화되지 않은 카드 중 하나 선택
       const upgradableCards = player.deck.filter(cardId =>
@@ -1317,13 +1693,15 @@ export class RunSimulator {
           result.details = `휴식: ${cardToUpgrade} 카드 강화`;
         } else {
           // 강화할 카드가 없으면 힐
-          const healAmount = Math.floor(player.maxHp * 0.3);
+          const baseHeal = player.maxHp * 0.3;
+          const healAmount = Math.floor(baseHeal * restHealMult);
           player.hp = Math.min(player.maxHp, player.hp + healAmount);
           result.details = `휴식: ${healAmount} HP 회복 (강화 가능 카드 없음)`;
         }
       } else {
         // 모든 카드가 이미 강화됨 - 힐로 대체
-        const healAmount = Math.floor(player.maxHp * 0.3);
+        const baseHeal = player.maxHp * 0.3;
+        const healAmount = Math.floor(baseHeal * restHealMult);
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         result.details = `휴식: ${healAmount} HP 회복 (모든 카드 강화됨)`;
       }
@@ -1435,7 +1813,8 @@ export class RunSimulator {
           dungeonPlayerState.relics,
           enemy,
           config.anomalyId,
-          cardEnhancements
+          cardEnhancements,
+          dungeonPlayerState.items // 아이템 전달
         );
 
         const won = battleResult.winner === 'player';
@@ -1496,6 +1875,85 @@ export class RunSimulator {
   }
 
   /**
+   * 등급별 가중치를 적용하여 상징 선택
+   * @param availableRelics 획득 가능한 상징 ID 배열
+   * @param includeLegendary legendary 등급 포함 여부 (보스 전용)
+   * @returns 선택된 상징 ID 또는 null
+   */
+  private selectRelicByRarity(
+    availableRelics: string[],
+    includeLegendary: boolean = false
+  ): string | null {
+    if (availableRelics.length === 0) return null;
+
+    // 등급별로 상징 분류
+    const relicsByRarity: Record<string, string[]> = {};
+    for (const relicId of availableRelics) {
+      const relic = this.relicLibrary[relicId];
+      const rarity = relic?.rarity || 'common';
+      if (!relicsByRarity[rarity]) {
+        relicsByRarity[rarity] = [];
+      }
+      relicsByRarity[rarity].push(relicId);
+    }
+
+    // 가중치 계산 (해당 등급의 상징이 있는 경우만)
+    const weightedPool: { relicId: string; weight: number }[] = [];
+    for (const [rarity, relicIds] of Object.entries(relicsByRarity)) {
+      let weight = RELIC_RARITY_WEIGHTS[rarity] || 0;
+
+      // legendary는 includeLegendary가 true일 때만 포함
+      if (rarity === 'legendary' && !includeLegendary) {
+        weight = 0;
+      }
+
+      if (weight > 0) {
+        // 각 상징에 동일한 가중치 부여 (등급 가중치 / 해당 등급 상징 수)
+        const perRelicWeight = weight / relicIds.length;
+        for (const relicId of relicIds) {
+          weightedPool.push({ relicId, weight: perRelicWeight });
+        }
+      }
+    }
+
+    if (weightedPool.length === 0) return null;
+
+    // 가중치 기반 랜덤 선택
+    const totalWeight = weightedPool.reduce((sum, item) => sum + item.weight, 0);
+    let roll = getGlobalRandom().next() * totalWeight;
+
+    for (const item of weightedPool) {
+      roll -= item.weight;
+      if (roll <= 0) {
+        return item.relicId;
+      }
+    }
+
+    // 폴백: 마지막 항목 반환
+    return weightedPool[weightedPool.length - 1].relicId;
+  }
+
+  /**
+   * 보스 전용: legendary 상징 선택
+   * @param availableRelics 획득 가능한 상징 ID 배열
+   * @returns legendary 상징 ID 또는 null (없으면 일반 선택)
+   */
+  private selectLegendaryRelic(availableRelics: string[]): string | null {
+    // legendary 상징만 필터링
+    const legendaryRelics = availableRelics.filter(relicId => {
+      const relic = this.relicLibrary[relicId];
+      return relic?.rarity === 'legendary';
+    });
+
+    if (legendaryRelics.length > 0) {
+      return getGlobalRandom().pick(legendaryRelics);
+    }
+
+    // legendary가 없으면 등급별 가중치로 선택 (legendary 포함)
+    return this.selectRelicByRarity(availableRelics, true);
+  }
+
+  /**
    * 카드 보상 선택 (게임과 동일: 3장 중 1장 선택 또는 스킵)
    * @param player 플레이어 상태
    * @param strategy 선택 전략
@@ -1528,6 +1986,13 @@ export class RunSimulator {
       // 픽률 통계: 스킵 기록
       if (this.statsCollector) {
         this.statsCollector.recordCardPickSkipped(cardChoices);
+        // 카드 선택 컨텍스트 기록 (Slay the Spire 스타일)
+        this.statsCollector.recordCardChoice({
+          pickedCardId: null,
+          offeredCardIds: cardChoices,
+          floor: player.deck.length, // 현재 덱 크기를 층으로 근사
+          skipped: true,
+        });
       }
       return null;
     }
@@ -1538,6 +2003,13 @@ export class RunSimulator {
     // 픽률 통계: 선택 기록
     if (this.statsCollector) {
       this.statsCollector.recordCardPicked(selectedCard, cardChoices);
+      // 카드 선택 컨텍스트 기록 (Slay the Spire 스타일)
+      this.statsCollector.recordCardChoice({
+        pickedCardId: selectedCard,
+        offeredCardIds: cardChoices,
+        floor: player.deck.length,
+        skipped: false,
+      });
     }
 
     return selectedCard;
@@ -1757,6 +2229,10 @@ export class RunSimulator {
 
     const successfulRuns = results.filter(r => r.success);
 
+    // 영혼파괴/육체파괴 집계
+    const totalSoulDestructions = results.reduce((sum, r) => sum + r.soulDestructions, 0);
+    const totalPhysicalDestructions = results.reduce((sum, r) => sum + r.physicalDestructions, 0);
+
     return {
       totalRuns: count,
       successRate: successfulRuns.length / count,
@@ -1764,6 +2240,8 @@ export class RunSimulator {
       avgBattlesWon: results.reduce((sum, r) => sum + r.battlesWon, 0) / count,
       avgGoldEarned: results.reduce((sum, r) => sum + r.totalGoldEarned, 0) / count,
       avgCardsInDeck: results.reduce((sum, r) => sum + r.finalPlayerState.deck.length, 0) / count,
+      soulDestructions: totalSoulDestructions,
+      physicalDestructions: totalPhysicalDestructions,
       deathCauses,
       strategyComparison: {
         [config.strategy]: {
@@ -1813,10 +2291,20 @@ export class RunSimulator {
     const traits = traitsByStrategy[strategy] || ['용맹함', '굳건함'];
     for (const trait of traits) {
       growthSystem.addTrait(trait);
+      // 성장 투자 기록 (개성)
+      if (this.statsCollector) {
+        this.statsCollector.recordGrowthInvestment(trait, 'trait');
+      }
     }
 
     // 자동 성장 (전략에 맞게)
-    growthSystem.autoGrow(strategy);
+    const selections = growthSystem.autoGrow(strategy);
+    // 자동 성장 선택 기록 (에토스/파토스/로고스)
+    if (this.statsCollector && selections) {
+      for (const selection of selections) {
+        this.statsCollector.recordGrowthInvestment(selection.id, selection.type);
+      }
+    }
   }
 
   /**
@@ -1853,6 +2341,11 @@ export class RunSimulator {
       if (availableTraits.length > 0) {
         const newTrait = rng.pick(availableTraits);
         growthSystem.addTrait(newTrait);
+
+        // 성장 투자 기록 (개성)
+        if (this.statsCollector) {
+          this.statsCollector.recordGrowthInvestment(newTrait, 'trait');
+        }
 
         // 성장 상태 업데이트
         player.growth = growthSystem.getState();
