@@ -1,0 +1,956 @@
+{
+  "etherCrystal": {
+    "id": "etherCrystal",
+    "name": "에테르 수정",
+    "emoji": "🔮",
+    "rarity": "common",
+    "tags": [
+      "energy"
+    ],
+    "description": "최대 행동력 1 증가",
+    "effects": {
+      "type": "PASSIVE",
+      "maxEnergy": 1
+    }
+  },
+  "etherGem": {
+    "id": "etherGem",
+    "name": "에테르 결정",
+    "emoji": "💎",
+    "rarity": "common",
+    "tags": [
+      "ether"
+    ],
+    "description": "카드 1장이 발동할 때마다 곱배수에 2배수를 더합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "comboMultiplierPerCard": 2
+    }
+  },
+  "longCoat": {
+    "id": "longCoat",
+    "name": "긴 옷",
+    "emoji": "🧥",
+    "rarity": "common",
+    "tags": [
+      "draw"
+    ],
+    "description": "보조특기 1개를 추가 선택가능해집니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "subSpecialSlots": 1
+    }
+  },
+  "sturdyArmor": {
+    "id": "sturdyArmor",
+    "name": "피피한 갑옷",
+    "emoji": "🛡️",
+    "rarity": "common",
+    "tags": [
+      "defense"
+    ],
+    "description": "매 턴 시작시 방어력 8획득",
+    "effects": {
+      "type": "ON_TURN_START",
+      "block": 8
+    }
+  },
+  "trainingBoots": {
+    "id": "trainingBoots",
+    "name": "트레이닝 부츠",
+    "emoji": "👟",
+    "rarity": "common",
+    "tags": [
+      "hp"
+    ],
+    "description": "최대체력이 10 증가합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "maxHp": 10
+    }
+  },
+  "redHerb": {
+    "id": "redHerb",
+    "name": "붉은약초",
+    "emoji": "🌿",
+    "rarity": "common",
+    "tags": [
+      "heal"
+    ],
+    "description": "전투가 끝날 때마다 체력 5회복",
+    "effects": {
+      "type": "ON_COMBAT_END",
+      "heal": 5
+    }
+  },
+  "contract": {
+    "id": "contract",
+    "name": "계약서",
+    "emoji": "📜",
+    "rarity": "common",
+    "tags": [
+      "energy"
+    ],
+    "description": "카드를 4장이상 내면 다음턴에 행동력 2를 얻습니다.",
+    "effects": {
+      "type": "ON_TURN_END",
+      "energyNextTurn": 2
+    }
+  },
+  "rareStone": {
+    "id": "rareStone",
+    "name": "희귀한 조약돌",
+    "emoji": "🪨",
+    "rarity": "common",
+    "tags": [
+      "ether"
+    ],
+    "description": "카드의 기본 획득 에테르량을 2배로 늘립니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "etherMultiplier": 2
+    }
+  },
+  "coin": {
+    "id": "coin",
+    "name": "은화",
+    "emoji": "🪙",
+    "rarity": "common",
+    "tags": [
+      "strength"
+    ],
+    "description": "매 턴 종료시 힘 1 획득",
+    "effects": {
+      "type": "ON_TURN_END",
+      "strength": 1
+    }
+  },
+  "bloodShackles": {
+    "id": "bloodShackles",
+    "name": "피의 족쇄",
+    "emoji": "⛓️",
+    "rarity": "common",
+    "tags": [
+      "strength",
+      "hp"
+    ],
+    "description": "매 전투마다 체력을 5 잃는 대신 힘 2 획득",
+    "effects": {
+      "type": "ON_COMBAT_START",
+      "damage": 5,
+      "strength": 2
+    }
+  },
+  "goldenHerb": {
+    "id": "goldenHerb",
+    "name": "황금 약초",
+    "emoji": "✨",
+    "rarity": "rare",
+    "tags": [
+      "heal"
+    ],
+    "description": "전투가 끝날 때마다 체력 10회복",
+    "effects": {
+      "type": "ON_COMBAT_END",
+      "heal": 10
+    }
+  },
+  "immortalMask": {
+    "id": "immortalMask",
+    "name": "불멸의 가면",
+    "emoji": "🎭",
+    "rarity": "rare",
+    "tags": [
+      "heal"
+    ],
+    "description": "카드가 사용될 때마다 체력 1 회복",
+    "effects": {
+      "type": "ON_CARD_PLAYED",
+      "heal": 1
+    }
+  },
+  "ironRing": {
+    "id": "ironRing",
+    "name": "강철반지",
+    "emoji": "💍",
+    "rarity": "rare",
+    "tags": [
+      "energy"
+    ],
+    "description": "최대 행동력 2 증가",
+    "effects": {
+      "type": "PASSIVE",
+      "maxEnergy": 2
+    }
+  },
+  "wizardGloves": {
+    "id": "wizardGloves",
+    "name": "현자주먹 장갑",
+    "emoji": "🧤",
+    "rarity": "rare",
+    "tags": [
+      "draw"
+    ],
+    "description": "보조특기 2개를 추가 선택가능해집니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "subSpecialSlots": 2
+    }
+  },
+  "luckyCoin": {
+    "id": "luckyCoin",
+    "name": "행운의 동전",
+    "emoji": "🍀",
+    "rarity": "rare",
+    "tags": [
+      "draw"
+    ],
+    "description": "카드 추출확률이 20% 증가합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "cardDrawBonus": 0.2
+    }
+  },
+  "celeryCarrot": {
+    "id": "celeryCarrot",
+    "name": "셀러리와 당근",
+    "emoji": "🥕",
+    "rarity": "rare",
+    "tags": [
+      "agility"
+    ],
+    "description": "민첩 1을 제공합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "agility": 1
+    }
+  },
+  "steelBoots": {
+    "id": "steelBoots",
+    "name": "강철 군화",
+    "emoji": "🥾",
+    "rarity": "rare",
+    "tags": [
+      "strength",
+      "agility"
+    ],
+    "description": "민첩 1을 잃고 힘3을 얻습니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "agility": -1,
+      "strength": 3
+    }
+  },
+  "redCompass": {
+    "id": "redCompass",
+    "name": "황금 나침반",
+    "emoji": "🧭",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "맵에서 이동할 때마다 2% 에테르 획득",
+    "effects": {
+      "type": "ON_NODE_MOVE",
+      "etherPercent": 2
+    }
+  },
+  "referenceBook": {
+    "id": "referenceBook",
+    "name": "참고서",
+    "emoji": "📚",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "낸 카드 수에 비례해 1.x배만큼 마지막 카드 발동된 다음 곱배수에 곱합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "etherCardMultiplier": true
+    }
+  },
+  "effortDiary": {
+    "id": "effortDiary",
+    "name": "노력의 일지",
+    "emoji": "📓",
+    "rarity": "special",
+    "tags": [
+      "draw"
+    ],
+    "description": "주특기 1개를 추가 선택가능해집니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "mainSpecialSlots": 1
+    }
+  },
+  "loyaltyPotion": {
+    "id": "loyaltyPotion",
+    "name": "충성물약",
+    "emoji": "🧪",
+    "rarity": "special",
+    "tags": [
+      "draw"
+    ],
+    "description": "카드 추출확률이 30% 증가합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "cardDrawBonus": 0.3
+    }
+  },
+  "ironHeart": {
+    "id": "ironHeart",
+    "name": "철의 심장",
+    "emoji": "❤️",
+    "rarity": "special",
+    "tags": [
+      "heal",
+      "defense"
+    ],
+    "description": "피해를 받았을때마다 다음턴에 방어력과 체력을 1 얻습니다.",
+    "effects": {
+      "type": "ON_DAMAGE_TAKEN",
+      "blockNextTurn": 1,
+      "healNextTurn": 1
+    }
+  },
+  "devilDice": {
+    "id": "devilDice",
+    "name": "악마의 주사위",
+    "emoji": "🎲",
+    "rarity": "special",
+    "tags": [
+      "ether"
+    ],
+    "description": "5번째 카드가 발동된 다음 곱배수에 5배수를 곱합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "etherFiveCardBonus": 5
+    }
+  },
+  "healthCheck": {
+    "id": "healthCheck",
+    "name": "건강검진표",
+    "emoji": "📋",
+    "rarity": "special",
+    "tags": [
+      "hp"
+    ],
+    "description": "전투종료시 체력이 최대치면 최대체력 +2, 체력이 다쳤으면 회복 +3",
+    "effects": {
+      "type": "ON_COMBAT_END",
+      "maxHpIfFull": 2,
+      "healIfDamaged": 3
+    }
+  },
+  "infiniteShield": {
+    "id": "infiniteShield",
+    "name": "무한방패",
+    "emoji": "🛡️",
+    "rarity": "dev",
+    "tags": [
+      "defense"
+    ],
+    "description": "턴 시작 시 방어력 1000을 얻습니다. (개발용)",
+    "effects": {
+      "type": "ON_TURN_START",
+      "block": 1000
+    }
+  },
+  "perpetualEngine": {
+    "id": "perpetualEngine",
+    "name": "영구동력",
+    "emoji": "♾️",
+    "rarity": "dev",
+    "tags": [
+      "energy"
+    ],
+    "description": "최대 행동력이 30 증가합니다. (개발용)",
+    "effects": {
+      "type": "PASSIVE",
+      "maxEnergy": 30
+    }
+  },
+  "lightShoes": {
+    "id": "lightShoes",
+    "name": "빛의 신발",
+    "emoji": "👟",
+    "rarity": "dev",
+    "tags": [
+      "speed"
+    ],
+    "description": "최대 속도가 100 증가합니다. (개발용)",
+    "effects": {
+      "type": "PASSIVE",
+      "maxSpeed": 100
+    }
+  },
+  "superArmor": {
+    "id": "superArmor",
+    "name": "슈퍼-장갑",
+    "emoji": "🧤",
+    "rarity": "dev",
+    "tags": [
+      "draw"
+    ],
+    "description": "최대 10장까지 카드를 낼 수 있습니다. (개발용)",
+    "effects": {
+      "type": "PASSIVE",
+      "maxSubmitCards": 10
+    }
+  },
+  "mockingMask": {
+    "id": "mockingMask",
+    "name": "비웃는 가면",
+    "emoji": "🎭",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "카드의 부정적 특성 하나당 2배수를 더합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "negativeTraitMultiplier": 2
+    }
+  },
+  "celebrationWreath": {
+    "id": "celebrationWreath",
+    "name": "축하의 화환",
+    "emoji": "💐",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "카드의 긍정적 특성 하나당 2배수를 더합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "positiveTraitMultiplier": 2
+    }
+  },
+  "windCloak": {
+    "id": "windCloak",
+    "name": "바람망토",
+    "emoji": "🧣",
+    "rarity": "common",
+    "tags": [
+      "speed"
+    ],
+    "description": "속도를 5 얻습니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "speed": 5
+    }
+  },
+  "lightBag": {
+    "id": "lightBag",
+    "name": "가벼운 가방",
+    "emoji": "🎒",
+    "rarity": "rare",
+    "tags": [
+      "speed",
+      "energy"
+    ],
+    "description": "최대 행동력 1을 잃고 속도를 12 얻습니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "maxEnergy": -1,
+      "speed": 12
+    }
+  },
+  "prostheticArm": {
+    "id": "prostheticArm",
+    "name": "의수",
+    "emoji": "🦾",
+    "rarity": "rare",
+    "tags": [
+      "timeline"
+    ],
+    "description": "방어카드만 냈다면 상대의 타임라인을 동결합니다.",
+    "effects": {
+      "type": "ON_TURN_END",
+      "freezeEnemyTimeline": true
+    }
+  },
+  "charityGold": {
+    "id": "charityGold",
+    "name": "적선의 금화",
+    "emoji": "🪙",
+    "rarity": "rare",
+    "tags": [
+      "timeline"
+    ],
+    "description": "행동력 2 이하의 카드만 냈다면 상대의 타임라인을 동결합니다.",
+    "effects": {
+      "type": "ON_TURN_END",
+      "freezeEnemyTimeline": true
+    }
+  },
+  "laughingBell": {
+    "id": "laughingBell",
+    "name": "웃는 종",
+    "emoji": "🔔",
+    "rarity": "rare",
+    "tags": [
+      "timeline"
+    ],
+    "description": "낸 카드가 3장 이하면 카드의 시간소모 5 감소.",
+    "effects": {
+      "type": "ON_TURN_END",
+      "speedCostReduction": 5
+    }
+  },
+  "wreath": {
+    "id": "wreath",
+    "name": "화환",
+    "emoji": "🌸",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "은총화를 획득하면 공격, 방어 1회 부여.",
+    "effects": {
+      "type": "ON_GRACE_GAIN",
+      "grantOffense": 1,
+      "grantDefense": 1
+    }
+  },
+  "pocketWatch": {
+    "id": "pocketWatch",
+    "name": "시계",
+    "emoji": "⏱️",
+    "rarity": "special",
+    "tags": [
+      "timeline"
+    ],
+    "description": "되감기 1회를 추가합니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "rewindCount": 1
+    }
+  },
+  "dud": {
+    "id": "dud",
+    "name": "불발탄",
+    "emoji": "💣",
+    "rarity": "rare",
+    "tags": [
+      "token",
+      "heal"
+    ],
+    "description": "긍정 토큰 1회 얻을때마다 체력 3회복, 부정 토큰 1회 얻을때마다 체력 1 상실.",
+    "effects": {
+      "type": "ON_TOKEN_GAIN",
+      "healOnPositive": 3,
+      "damageOnNegative": 1
+    }
+  },
+  "bulletproofVest": {
+    "id": "bulletproofVest",
+    "name": "방탄복",
+    "emoji": "🦺",
+    "rarity": "rare",
+    "tags": [
+      "defense"
+    ],
+    "description": "한 턴에 공격을 2번 이상 받으면 다음 턴 시작시 수세 1회 획득.",
+    "effects": {
+      "type": "ON_TURN_END",
+      "grantDefensiveNextTurn": 1
+    }
+  },
+  "neckGlove": {
+    "id": "neckGlove",
+    "name": "목장갑",
+    "emoji": "🧤",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "투페어 이상 내면 공세+ 1회 획득.",
+    "effects": {
+      "type": "ON_COMBO",
+      "grantOffensePlus": 1
+    }
+  },
+  "windTear": {
+    "id": "windTear",
+    "name": "바람의 눈물",
+    "emoji": "💧",
+    "rarity": "special",
+    "tags": [
+      "draw"
+    ],
+    "description": "카드를 한 장 더 낼 수 있습니다.",
+    "effects": {
+      "type": "PASSIVE",
+      "extraCardPlay": 1
+    }
+  },
+  "rosary": {
+    "id": "rosary",
+    "name": "묵주",
+    "emoji": "📿",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "상징이 발동될때마다 에테르 50pt 획득.",
+    "effects": {
+      "type": "ON_RELIC_ACTIVATE",
+      "etherGain": 50
+    }
+  },
+  "bullet": {
+    "id": "bullet",
+    "name": "총알",
+    "emoji": "🔫",
+    "rarity": "rare",
+    "tags": [
+      "ether"
+    ],
+    "description": "하이카드일 경우 5배수를 더합니다.",
+    "effects": {
+      "type": "ON_COMBO",
+      "comboMultiplierBonus": 5
+    }
+  },
+  "tonic": {
+    "id": "tonic",
+    "name": "보약",
+    "emoji": "🍵",
+    "rarity": "common",
+    "tags": [
+      "defense"
+    ],
+    "description": "전투 시작시 면역 1회 획득.",
+    "effects": {
+      "type": "ON_COMBAT_START",
+      "grantImmunity": 1
+    }
+  },
+  "bloodPactSeal": {
+    "id": "bloodPactSeal",
+    "name": "피의 계약인",
+    "emoji": "🩸",
+    "rarity": "legendary",
+    "tags": [
+      "strength"
+    ],
+    "description": "피해를 입을 때마다 힘 2 획득. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "ON_DAMAGE_TAKEN",
+      "strength": 2
+    }
+  },
+  "soulForge": {
+    "id": "soulForge",
+    "name": "영혼의 용광로",
+    "emoji": "🔥",
+    "rarity": "legendary",
+    "tags": [
+      "ether"
+    ],
+    "description": "카드가 소멸될 때마다 에테르 100pt 획득. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "ON_CARD_EXHAUST",
+      "etherGain": 100
+    }
+  },
+  "soulFragment": {
+    "id": "soulFragment",
+    "name": "영혼 파편",
+    "emoji": "👻",
+    "rarity": "legendary",
+    "tags": [
+      "energy",
+      "hp"
+    ],
+    "description": "최대 HP가 낮을수록 행동력 증가. HP 50% 이하시 +1, 25% 이하시 +2. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "conditionalEnergy": {
+        "hpThreshold50": 1,
+        "hpThreshold25": 2
+      }
+    }
+  },
+  "voidHeart": {
+    "id": "voidHeart",
+    "name": "공허의 심장",
+    "emoji": "🖤",
+    "rarity": "legendary",
+    "tags": [
+      "strength",
+      "defense"
+    ],
+    "description": "HP가 30% 이하일 때 피해량 50% 증가, 받는 피해 30% 감소. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "lowHpBonus": {
+        "threshold": 0.3,
+        "damageBonus": 0.5,
+        "damageReduction": 0.3
+      }
+    }
+  },
+  "forbiddenPower": {
+    "id": "forbiddenPower",
+    "name": "금단의 힘",
+    "emoji": "⚡",
+    "rarity": "legendary",
+    "tags": [
+      "strength"
+    ],
+    "description": "힘 +3. 매 전투마다 HP 5 손실. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "strength": 3,
+      "combatDamage": 5
+    }
+  },
+  "forbiddenWisdom": {
+    "id": "forbiddenWisdom",
+    "name": "금단의 지혜",
+    "emoji": "📖",
+    "rarity": "legendary",
+    "tags": [
+      "draw"
+    ],
+    "description": "매 턴 카드 1장 추가 드로우. 덱 크기 -3. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "drawPerTurn": 1,
+      "deckSizePenalty": 3
+    }
+  },
+  "deathsEmbrace": {
+    "id": "deathsEmbrace",
+    "name": "죽음의 포옹",
+    "emoji": "💀",
+    "rarity": "legendary",
+    "tags": [
+      "hp",
+      "strength"
+    ],
+    "description": "HP 1로 전투 시작. 대신 힘 +5, 첫 턴 무적. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "ON_COMBAT_START",
+      "setHp": 1,
+      "strength": 5,
+      "grantInvincible": 1
+    }
+  },
+  "phoenixFeather": {
+    "id": "phoenixFeather",
+    "name": "불사조의 깃털",
+    "emoji": "🪶",
+    "rarity": "legendary",
+    "tags": [
+      "hp",
+      "heal"
+    ],
+    "description": "치명상 시 HP 50%로 부활 (1회). (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "ON_DEATH",
+      "revive": true,
+      "reviveHpPercent": 0.5,
+      "usesPerRun": 1
+    }
+  },
+  "phoenixAsh": {
+    "id": "phoenixAsh",
+    "name": "불사조의 재",
+    "emoji": "🔥",
+    "rarity": "legendary",
+    "tags": [
+      "strength"
+    ],
+    "description": "HP가 낮을수록 피해량 증가. HP 1%당 피해량 +1%. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "lowHpDamageScaling": true
+    }
+  },
+  "abyssalCore": {
+    "id": "abyssalCore",
+    "name": "심연의 핵",
+    "emoji": "🌀",
+    "rarity": "legendary",
+    "tags": [
+      "ether",
+      "strength"
+    ],
+    "description": "콤보 배수 +5. 매 턴 HP 3 손실. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "comboMultiplierBonus": 5,
+      "hpLossPerTurn": 3
+    }
+  },
+  "timeloop": {
+    "id": "timeloop",
+    "name": "시간의 고리",
+    "emoji": "⏰",
+    "rarity": "legendary",
+    "tags": [
+      "timeline"
+    ],
+    "description": "전투 시작 시 타임라인 2칸 먼저 시작. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "ON_COMBAT_START",
+      "timelineAdvance": 2
+    }
+  },
+  "paradoxShard": {
+    "id": "paradoxShard",
+    "name": "역설의 파편",
+    "emoji": "💎",
+    "rarity": "legendary",
+    "tags": [
+      "energy"
+    ],
+    "description": "첫 턴 행동력 +2. 마지막 턴 행동력 +2. (이벤트 전용)",
+    "eventOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "firstTurnEnergy": 2,
+      "lastTurnEnergy": 2
+    }
+  },
+  "merchantsBadge": {
+    "id": "merchantsBadge",
+    "name": "상인의 배지",
+    "emoji": "🏅",
+    "rarity": "common",
+    "tags": [
+      null
+    ],
+    "description": "상점에서 모든 물품 10% 추가 할인. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "shopDiscount": 0.1
+    }
+  },
+  "goldPurse": {
+    "id": "goldPurse",
+    "name": "황금 주머니",
+    "emoji": "👝",
+    "rarity": "common",
+    "tags": [
+      null
+    ],
+    "description": "전투 승리 시 골드 +5. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "ON_COMBAT_WIN",
+      "bonusGold": 5
+    }
+  },
+  "bargainingChip": {
+    "id": "bargainingChip",
+    "name": "흥정 토큰",
+    "emoji": "🎰",
+    "rarity": "rare",
+    "tags": [
+      null
+    ],
+    "description": "상점 물품 1개를 무료로 획득 (1회 사용 후 소멸). (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "ON_SHOP_VISIT",
+      "freeItem": 1,
+      "usesPerRun": 1
+    }
+  },
+  "vipCard": {
+    "id": "vipCard",
+    "name": "VIP 카드",
+    "emoji": "💳",
+    "rarity": "rare",
+    "tags": [
+      null
+    ],
+    "description": "상점 방문 시 항상 VIP 할인(15%) 적용. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "permanentVIP": true,
+      "shopDiscount": 0.15
+    }
+  },
+  "investmentToken": {
+    "id": "investmentToken",
+    "name": "투자 증서",
+    "emoji": "📈",
+    "rarity": "rare",
+    "tags": [
+      null
+    ],
+    "description": "층 이동 시 보유 골드의 5% 이자 획득. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "ON_FLOOR_CHANGE",
+      "goldInterestRate": 0.05
+    }
+  },
+  "merchantsEye": {
+    "id": "merchantsEye",
+    "name": "상인의 눈",
+    "emoji": "👁️",
+    "rarity": "special",
+    "tags": [
+      null,
+      null
+    ],
+    "description": "상점에서 모든 물품의 가치를 확인 가능. 구매 시 추가로 랜덤 아이템 1개 획득. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "ON_SHOP_PURCHASE",
+      "revealValues": true,
+      "bonusItem": 1
+    }
+  },
+  "merchantsPact": {
+    "id": "merchantsPact",
+    "name": "상인의 계약",
+    "emoji": "📜",
+    "rarity": "special",
+    "tags": [
+      null
+    ],
+    "description": "상점 새로고침이 무료. 판매 가격 20% 증가. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "freeReroll": true,
+      "sellPriceBonus": 0.2
+    }
+  },
+  "goldenScale": {
+    "id": "goldenScale",
+    "name": "황금 저울",
+    "emoji": "⚖️",
+    "rarity": "legendary",
+    "tags": [
+      null
+    ],
+    "description": "상점에서 구매/판매 가격이 동일. 모든 상점 할인 2배. (상점 전용)",
+    "shopOnly": true,
+    "effects": {
+      "type": "PASSIVE",
+      "equalBuySell": true,
+      "doubleDiscounts": true
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "valiant": {
+    "id": "valiant",
+    "name": "용맹함",
+    "emoji": "⚔️",
+    "description": "두려움 없이 전진하는 성향",
+    "statBonus": {
+      "playerStrength": 1
+    }
+  },
+  "passionate": {
+    "id": "passionate",
+    "name": "열정적",
+    "emoji": "🔥",
+    "description": "뜨거운 열정으로 임하는 성향",
+    "statBonus": {
+      "playerMaxSpeedBonus": 5
+    }
+  },
+  "calm": {
+    "id": "calm",
+    "name": "냉철함",
+    "emoji": "❄️",
+    "description": "차분하게 상황을 분석하는 성향",
+    "statBonus": {
+      "playerInsight": 1
+    }
+  },
+  "thorough": {
+    "id": "thorough",
+    "name": "철저함",
+    "emoji": "🎯",
+    "description": "꼼꼼하게 준비하는 성향",
+    "statBonus": {
+      "extraSubSpecialSlots": 1
+    }
+  },
+  "energetic": {
+    "id": "energetic",
+    "name": "활력적",
+    "emoji": "⚡",
+    "description": "활기차게 움직이는 성향",
+    "statBonus": {
+      "playerEnergyBonus": 1
+    }
+  },
+  "steadfast": {
+    "id": "steadfast",
+    "name": "굳건함",
+    "emoji": "🛡️",
+    "description": "흔들리지 않는 단단한 성향",
+    "statBonus": {
+      "maxHp": 10,
+      "playerHp": 10
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{/* Dungeon.mdx */}
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Dungeon/Overview" />
+
+# 던전 탐험 시스템
+
+던전은 그래프 기반 탐험 시스템으로, 노드를 이동하며 이벤트를 해결하고 보상을 획득합니다.
+
+## 핵심 개념
+
+### 노드 타입
+| 타입 | 아이콘 | 설명 |
+|------|--------|------|
+| `ENTRANCE` | 🚪 | 던전 입구 |
+| `ROOM` | 🏠 | 일반 방 |
+| `CORRIDOR` | 🚶 | 좁은 복도 |
+| `CROSSROAD` | 🔀 | 갈림길 |
+| `EXIT` | 🌅 | 출구 |
+
+### 이벤트 타입
+| 타입 | 아이콘 | 설명 |
+|------|--------|------|
+| `CHEST` | 📦 | 보물 상자 |
+| `COMBAT` | ⚔️ | 전투 조우 |
+| `CURIO` | 🔮 | 수수께끼 |
+| `OBSTACLE` | 🧗 | 장애물 |
+| `TRAP` | ⚠️ | 함정 |
+| `REST` | 🔥 | 휴식처 |
+| `MERCHANT` | 🛒 | 상인 |
+
+## 시간 시스템
+
+던전에는 제한 시간이 있으며, 시간이 지날수록 페널티가 증가합니다.
+
+| 시간 비율 | 레벨 | 색상 | 페널티 |
+|----------|------|------|--------|
+| 0-50% | 0 | 초록 | 없음 |
+| 50-75% | 1 | 노랑 | 경미 |
+| 75-90% | 2 | 주황 | 중간 |
+| 90%+ | 3 | 빨강 | 심각 |
+
+## 선택지 시스템
+
+### 스탯 요구사항
+```tsx
+// 힘 5 이상 필요
+requirements: { strength: 5 }
+
+// 민첩 기반 스케일링 (시도할수록 요구량 증가)
+scalingRequirement: { stat: 'agility', baseValue: 3, increment: 1 }
+```
+
+### 반복 선택
+```tsx
+// 최대 3회까지 시도 가능
+maxAttempts: 3
+
+// 과잉 시도 시 경고
+warningAtAttempt: 2
+warningText: "더 이상 시도하면 위험할 수 있습니다..."
+```
+
+### 특수 선택지
+주특기 카드 보유 시 특별한 선택지가 활성화됩니다.
+
+```tsx
+specialOverrides: [{
+  requiredSpecial: 'lockpick',
+  newText: '자물쇠를 따다',
+  outcome: { type: 'success', text: '쉽게 열렸습니다!' }
+}]
+```
+
+## 컴포넌트 구조
+
+```
+DungeonExploration
+├── DungeonNode (현재 노드 UI)
+│   ├── ChoiceButton (선택지)
+│   └── NavigationButtons (이동)
+└── DungeonModals
+    ├── RewardModal (보상 표시)
+    ├── DungeonSummaryModal (탐험 요약)
+    └── CrossroadModal (갈림길)
+```
+
+## 관련 파일
+- `src/components/dungeon/DungeonNode.tsx` - 노드 UI
+- `src/components/dungeon/DungeonExploration.tsx` - 메인 컴포넌트
+- `src/lib/dungeonChoices.ts` - 선택지 로직
+- `src/data/dungeonNodes.ts` - 노드/이벤트 데이터

@@ -1,0 +1,51 @@
+{
+  "gunslinger": {
+    "id": "gunslinger",
+    "name": "총잡이",
+    "emoji": "🔫",
+    "description": "총기를 다루는 자. 건카타 로고스 해금.",
+    "logos": "gunkata",
+    "preferredEthos": [
+      "flame",
+      "gap",
+      "modernMag",
+      "shadow",
+      "marksman",
+      "neutralize"
+    ],
+    "preferredPathos": [
+      "armorPiercing",
+      "incendiary",
+      "reload",
+      "gunSword",
+      "wanted",
+      "barrage"
+    ]
+  },
+  "swordsman": {
+    "id": "swordsman",
+    "name": "검잡이",
+    "emoji": "⚔️",
+    "description": "검을 다루는 자. 배틀 왈츠 로고스 해금.",
+    "logos": "battleWaltz",
+    "preferredEthos": [
+      "warmup",
+      "extreme",
+      "swordArt",
+      "compression",
+      "master",
+      "archaeology"
+    ],
+    "preferredPathos": [
+      "cross",
+      "counter",
+      "dance",
+      "sharpBlade",
+      "epee",
+      "wayOfSword",
+      "swordGun",
+      "swordDance",
+      "lightSword"
+    ]
+  }
+}
