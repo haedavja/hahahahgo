@@ -23,7 +23,7 @@ export const TIMELINE = {
 /** 행동력 설정 */
 export const ENERGY = {
   /** 플레이어 기본 행동력 */
-  BASE_PLAYER: 6,
+  BASE_PLAYER: 4,
   /** 최대 제출 카드 수 */
   MAX_SUBMIT_CARDS: 5,
   /** 턴 시작 시 기본 드로우 수 */

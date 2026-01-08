@@ -41,8 +41,8 @@ describe('battleData 상수', () => {
       expect(DEFAULT_ENEMY_MAX_SPEED).toBe(30);
     });
 
-    it('BASE_PLAYER_ENERGY가 6이다', () => {
-      expect(BASE_PLAYER_ENERGY).toBe(6);
+    it('BASE_PLAYER_ENERGY가 4이다', () => {
+      expect(BASE_PLAYER_ENERGY).toBe(4);
     });
 
     it('MAX_SUBMIT_CARDS가 5이다', () => {
