@@ -109,23 +109,29 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   }
   if (bossNode) bossNode.type = "boss";
 
-  // 휴식 노드 고정 층 (슬레이 더 스파이어 스타일)
-  const REST_LAYERS = [7, 13]; // 중반, 보스 직전
-  // 정예 노드 고정 층 (슬레이 더 스파이어 스타일)
-  const ELITE_LAYERS = [4, 10]; // 초중반, 후반
+  // 휴식 노드 등장 구간 (구간 내 랜덤 층에서 등장)
+  const REST_ZONES: [number, number][] = [[6, 8], [12, 13]]; // 중반, 보스 직전
+  // 정예 노드 등장 구간
+  const ELITE_ZONES: [number, number][] = [[3, 5], [9, 11]]; // 초중반, 후반
 
-  // 휴식 층의 노드들에 휴식 노드 배치 (각 층에서 1개씩)
-  REST_LAYERS.forEach(restLayer => {
-    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === restLayer);
+  // 휴식 노드 배치 (각 구간에서 랜덤 층 선택 후 1개씩)
+  const restLayers: number[] = [];
+  REST_ZONES.forEach(([minLayer, maxLayer]) => {
+    const layer = randomInt(minLayer, maxLayer);
+    restLayers.push(layer);
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer);
     if (layerNodes.length > 0) {
       const restNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
       restNode.type = "rest";
     }
   });
 
-  // 정예 층의 노드들에 정예 노드 배치 (각 층에서 1개씩)
-  ELITE_LAYERS.forEach(eliteLayer => {
-    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === eliteLayer && n.type !== "rest");
+  // 정예 노드 배치 (각 구간에서 랜덤 층 선택 후 1개씩)
+  const eliteLayers: number[] = [];
+  ELITE_ZONES.forEach(([minLayer, maxLayer]) => {
+    const layer = randomInt(minLayer, maxLayer);
+    eliteLayers.push(layer);
+    const layerNodes = nodes.filter((n: MapNodeGenerated) => n.layer === layer && n.type !== "rest");
     if (layerNodes.length > 0) {
       const eliteNode = layerNodes[Math.floor(Math.random() * layerNodes.length)];
       eliteNode.type = "elite";
@@ -142,11 +148,11 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   });
 
   const remaining = shuffled.slice(eventTarget);
-  // 비고정 휴식/정예도 낮은 확률로 등장 (고정 층 제외)
+  // 비고정 휴식/정예도 낮은 확률로 등장 (이미 배치된 층 제외)
   remaining.forEach((node: MapNodeGenerated) => {
-    // 고정 층이 아닌 곳에서만 비고정 휴식/정예 가능
-    const isRestLayer = REST_LAYERS.includes(node.layer);
-    const isEliteLayer = ELITE_LAYERS.includes(node.layer);
+    // 이미 휴식/정예가 배치된 층에서는 중복 배치 방지
+    const isRestLayer = restLayers.includes(node.layer);
+    const isEliteLayer = eliteLayers.includes(node.layer);
 
     // 기본 pool: 전투, 상점, 던전
     const pool: string[] = ["battle", "battle", "battle", "shop", "dungeon"];
