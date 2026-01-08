@@ -79,8 +79,14 @@ export interface MapAnalysis {
 
 // ==================== 상수 ====================
 
+// 게임과 동일한 맵 설정
+const REST_FLOORS = [7, 13]; // 고정 휴식 층 (모든 노드가 휴식)
+const NO_REST_LAYERS = [0, 1, 2, 3]; // 휴식 금지 층
+const MIN_DUNGEON_LAYER = 7; // 던전 등장 최소 층
+const ELITE_ZONES: [number, number][] = [[4, 5], [9, 11]]; // 정예 등장 구간
+
 const DEFAULT_GENERATION_CONFIG: MapGenerationConfig = {
-  layers: 11,
+  layers: 15,
   nodesPerLayer: { min: 2, max: 4 },
   nodeTypeWeights: {
     combat: 50,
@@ -111,12 +117,15 @@ export class MapSimulator {
   // ==================== 맵 생성 ====================
 
   /**
-   * 맵 생성
+   * 맵 생성 (게임과 동일한 로직)
    */
   generateMap(config: Partial<MapGenerationConfig> = {}): MapState {
     const cfg = { ...DEFAULT_GENERATION_CONFIG, ...config };
     const nodes: MapNode[] = [];
     let nodeIdCounter = 0;
+
+    // 휴식 층 추적 (고정 층 포함)
+    const restLayers = new Set<number>(REST_FLOORS);
 
     // 시작 노드
     const startNode: MapNode = {
@@ -136,6 +145,7 @@ export class MapSimulator {
 
     for (let layer = 1; layer <= cfg.layers; layer++) {
       const isLastLayer = layer === cfg.layers;
+      const isRestFloor = REST_FLOORS.includes(layer);
       const nodeCount = isLastLayer
         ? 1 // 보스 레이어는 1개
         : getGlobalRandom().nextInt(cfg.nodesPerLayer.min, cfg.nodesPerLayer.max);
@@ -143,7 +153,19 @@ export class MapSimulator {
       const currentLayerNodes: MapNode[] = [];
 
       for (let i = 0; i < nodeCount; i++) {
-        const nodeType = isLastLayer ? 'boss' : this.selectNodeType(layer, cfg);
+        // 고정 휴식 층은 모든 노드가 휴식
+        let nodeType: MapNodeType;
+        if (isLastLayer) {
+          nodeType = 'boss';
+        } else if (isRestFloor) {
+          nodeType = 'rest';
+        } else {
+          nodeType = this.selectNodeType(layer, cfg, restLayers);
+          // 휴식이 선택되면 추적
+          if (nodeType === 'rest') {
+            restLayers.add(layer);
+          }
+        }
         const difficulty = cfg.baseDifficulty + layer * cfg.difficultyScaling;
 
         const node: MapNode = {
@@ -177,28 +199,45 @@ export class MapSimulator {
   }
 
   /**
-   * 노드 타입 선택
+   * 노드 타입 선택 (게임과 동일한 로직)
    */
-  private selectNodeType(layer: number, config: MapGenerationConfig): MapNodeType {
+  private selectNodeType(layer: number, config: MapGenerationConfig, restLayers: Set<number>): MapNodeType {
     const rng = getGlobalRandom();
 
-    // 강제 노드 타입 체크
-    if (layer % config.eliteFrequency === 0 && rng.chance(0.5)) {
-      return 'elite';
-    }
-    if (layer % config.shopFrequency === 0 && rng.chance(0.3)) {
-      return 'shop';
-    }
-    if (layer % config.restFrequency === 0 && rng.chance(0.4)) {
+    // 고정 휴식 층은 generateMap에서 처리됨
+    if (REST_FLOORS.includes(layer)) {
       return 'rest';
     }
-    if (layer % config.dungeonFrequency === 0 && rng.chance(0.2)) {
-      return 'dungeon';
+
+    // 정예 구간 체크
+    const isEliteZone = ELITE_ZONES.some(([min, max]) => layer >= min && layer <= max);
+    if (isEliteZone && rng.chance(0.3)) {
+      return 'elite';
     }
 
     // 가중치 기반 선택
-    const weights = { ...config.nodeTypeWeights } as Record<string, number>;
-    delete weights.boss; // 보스는 제외
+    const weights: Record<string, number> = {
+      combat: 50,
+      event: 25,
+      shop: 15,
+    };
+
+    // 던전: 중반 이후에만
+    if (layer >= MIN_DUNGEON_LAYER) {
+      weights.dungeon = 10;
+    }
+
+    // 휴식: 금지 층이 아니고, 인접 층에 휴식이 없으면
+    const isNoRestLayer = NO_REST_LAYERS.includes(layer);
+    const hasAdjacentRest = restLayers.has(layer - 1) || restLayers.has(layer + 1);
+    if (!isNoRestLayer && !hasAdjacentRest) {
+      weights.rest = 10;
+    }
+
+    // 정예: 정예 구간이 아니면 낮은 확률
+    if (!isEliteZone) {
+      weights.elite = 5;
+    }
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
     let random = rng.next() * totalWeight;
