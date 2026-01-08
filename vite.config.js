@@ -63,7 +63,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./src/test/setup.js'],
+    setupFiles: ['./src/test/setup.ts'],
     // E2E 테스트(Playwright)는 vitest에서 제외
     exclude: ['e2e/**', 'node_modules/**', '**/dist/**'],
     mockReset: true,
@@ -71,6 +71,16 @@ export default defineConfig({
     clearMocks: true,
     isolate: true,
     fileParallelism: false,
+    // 스레드 풀 (forks보다 빠름)
+    pool: 'threads',
+    // 의존성 사전 번들링
+    deps: {
+      optimizer: {
+        web: { enabled: true },
+      },
+    },
+    // 테스트 타임아웃
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
