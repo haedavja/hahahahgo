@@ -3,7 +3,7 @@
  * @description 게임 전역 상태 및 맵 생성 시스템
  *
  * ## 맵 구조
- * - 11개 레이어, 7개 컬럼
+ * - 15개 레이어, 7개 컬럼
  * - 레이어당 2-4개 노드
  * - 시작/보스 노드는 중앙 고정
  */
@@ -60,7 +60,7 @@ interface GeneratedMap {
 }
 
 const MAP_COLUMNS = 7;
-const MAP_LAYERS = 11;
+const MAP_LAYERS = 15;
 const MAP_MIN_NODES = 2;
 const MAP_MAX_NODES = 4;
 const MAP_WIDTH = 960;
@@ -110,9 +110,9 @@ const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
   if (bossNode) bossNode.type = "boss";
 
   // 휴식 노드 고정 층 (슬레이 더 스파이어 스타일)
-  const REST_LAYERS = [5, 9]; // 중반, 보스 직전
+  const REST_LAYERS = [7, 13]; // 중반, 보스 직전
   // 정예 노드 고정 층 (슬레이 더 스파이어 스타일)
-  const ELITE_LAYERS = [3, 7]; // 초중반, 후반
+  const ELITE_LAYERS = [4, 10]; // 초중반, 후반
 
   // 휴식 층의 노드들에 휴식 노드 배치 (각 층에서 1개씩)
   REST_LAYERS.forEach(restLayer => {

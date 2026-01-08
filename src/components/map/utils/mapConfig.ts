@@ -3,7 +3,7 @@
  * @description 맵 상수 및 유틸리티
  *
  * ## 레이아웃
- * - 960px 너비, 11개 레이어
+ * - 960px 너비, 15개 레이어
  * - 노드: 96x100px
  */
 
@@ -11,7 +11,7 @@
 export const NODE_WIDTH = 96;
 export const NODE_HEIGHT = 100;
 export const MAP_WIDTH = 960;
-export const MAP_LAYERS = 11;
+export const MAP_LAYERS = 15;
 export const V_SPACING = 220;
 
 // 노드 아이콘 매핑
@@ -61,7 +61,7 @@ export const STAT_LABELS = {
 };
 
 // 패치 버전 태그
-export const PATCH_VERSION_TAG = "01-07 17:50";
+export const PATCH_VERSION_TAG = "01-08 22:35";
 
 // 유틸리티 함수들
 export const describeAmount = (value: number | { min: number; max: number } | null | undefined) => {
