@@ -78,6 +78,7 @@ vi.mock('./battleData', () => ({
       deck: [],
     },
   ],
+  BASE_PLAYER_ENERGY: 4,
 }));
 
 // relicEffects 모킹

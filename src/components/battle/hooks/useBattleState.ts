@@ -25,6 +25,7 @@ import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUn
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
 import { useReducer, useMemo, useCallback, useRef, useEffect, type Dispatch } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
+import { BASE_PLAYER_ENERGY } from '../battleData';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
 import type { HandCard } from '../../../lib/speedQueue';
 
@@ -244,8 +245,8 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     const defaultPlayer: PlayerState = {
       hp: 100,
       maxHp: 100,
-      energy: 6,
-      maxEnergy: 6,
+      energy: BASE_PLAYER_ENERGY,
+      maxEnergy: BASE_PLAYER_ENERGY,
       block: 0,
       maxSpeed: 30,
       tokens: { usage: [], turn: [], permanent: [] },

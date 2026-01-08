@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useGameStore } from "../../state/gameStore";
-import { CARDS } from "../battle/battleData";
+import { CARDS, BASE_PLAYER_ENERGY } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 import { getExtraMainSlots, getExtraSubSlots } from "../../lib/logosEffects";
 import type { Card } from "../../types/core";
@@ -80,7 +80,7 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
 
   // 현재 스탯
   const currentHp = playerHp;
-  const baseEnergy = 6 + playerEnergyBonus;
+  const baseEnergy = BASE_PLAYER_ENERGY + playerEnergyBonus;
   const currentEnergy = baseEnergy;
   const maxEnergy = baseEnergy + passiveEffects.maxEnergy;
   const speed = 30 + playerMaxSpeedBonus;

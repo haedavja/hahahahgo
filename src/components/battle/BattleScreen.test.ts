@@ -79,13 +79,13 @@ describe('BattleScreen', () => {
     });
 
     it('기본 에너지 계산이 올바르게 되어야 함', () => {
-      const baseEnergy = 6;
+      const baseEnergy = 4; // BASE_PLAYER_ENERGY
       const playerEnergyBonus = 2;
       const passiveMaxEnergy = 1;
 
       const totalEnergy = baseEnergy + playerEnergyBonus + passiveMaxEnergy;
 
-      expect(totalEnergy).toBe(9);
+      expect(totalEnergy).toBe(7);
     });
 
     it('시작 HP가 최소 1이어야 함', () => {

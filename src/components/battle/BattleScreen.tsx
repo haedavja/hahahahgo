@@ -13,7 +13,7 @@ import { BattleErrorBoundary } from "./BattleErrorBoundary";
 // DevTools 지연 로딩 (초기 번들 크기 감소)
 const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
-import { ENEMIES } from "./battleData";
+import { ENEMIES, BASE_PLAYER_ENERGY } from "./battleData";
 import type {
   Card,
   TokenState,
@@ -191,7 +191,7 @@ const buildBattlePayload = (
   }
 
   const passiveEffects = calculatePassiveEffects(relics);
-  const baseEnergy = 6 + (playerEnergyBonus || 0) + (passiveEffects.maxEnergy || 0);
+  const baseEnergy = BASE_PLAYER_ENERGY + (playerEnergyBonus || 0) + (passiveEffects.maxEnergy || 0);
   const maxEnergy = baseEnergy;
 
   const combatStartEffects = applyCombatStartEffects(relics, {});
