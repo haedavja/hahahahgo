@@ -102,6 +102,16 @@ const buildBattlePayload = (
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
 
+  // DEBUG: 적 데이터 경로 확인
+  if (import.meta.env.DEV) {
+    console.log('[buildBattlePayload] battle data:', {
+      label: battle.label,
+      enemyCount: battle.enemyCount,
+      mixedEnemies: battle.mixedEnemies?.length ?? 'none',
+      enemies: (battle as { enemies?: unknown[] }).enemies?.length ?? 'none',
+    });
+  }
+
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
