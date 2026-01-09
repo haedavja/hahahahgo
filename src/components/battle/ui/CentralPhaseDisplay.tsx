@@ -135,8 +135,10 @@ interface CentralPhaseDisplayProps {
   beginResolveFromRespond: () => void;
   /** 선택 단계로 되감기 함수 */
   rewindToSelect: () => void;
-  /** 되감기 사용 여부 */
-  rewindUsed: boolean;
+  /** 되감기 사용 횟수 */
+  rewindUsedCount: number;
+  /** 최대 되감기 가능 횟수 (기본 1 + 시계 보너스) */
+  maxRewinds?: number;
   /** 대응 단계 스냅샷 (되감기용) */
   respondSnapshot: RespondSnapshot | null;
   /** 자동 진행 모드 활성화 여부 */
@@ -164,7 +166,8 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = memo(({
   player,
   beginResolveFromRespond,
   rewindToSelect,
-  rewindUsed,
+  rewindUsedCount,
+  maxRewinds = 1,
   respondSnapshot,
   autoProgress,
   enemy,
@@ -228,10 +231,10 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = memo(({
             <button
               onClick={rewindToSelect}
               className="btn-enhanced flex items-center gap-2"
-              disabled={rewindUsed || !respondSnapshot}
-              style={{ fontSize: '1rem', padding: '9.6px 18px', fontWeight: 700, minWidth: '160px', opacity: rewindUsed ? 0.5 : 1 }}
+              disabled={rewindUsedCount >= maxRewinds || !respondSnapshot}
+              style={{ fontSize: '1rem', padding: '9.6px 18px', fontWeight: 700, minWidth: '160px', opacity: rewindUsedCount >= maxRewinds ? 0.5 : 1 }}
             >
-              ⏪ 되감기 (1회)
+              ⏪ 되감기 ({maxRewinds - rewindUsedCount}/{maxRewinds})
             </button>
           </div>
         </div>

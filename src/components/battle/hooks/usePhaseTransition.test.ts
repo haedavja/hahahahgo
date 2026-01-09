@@ -123,7 +123,7 @@ describe('usePhaseTransition', () => {
     setTimelineIndicatorVisible: vi.fn(),
     setNetEtherDelta: vi.fn(),
     setAutoProgress: vi.fn(),
-    setRewindUsed: vi.fn(),
+    incrementRewindUsedCount: vi.fn(),
     setSelected: vi.fn()
   };
 
@@ -148,7 +148,7 @@ describe('usePhaseTransition', () => {
     player: { etherPts: 0 },
     willOverdrive: false,
     turnNumber: 1,
-    rewindUsed: false,
+    rewindUsedCount: 0,
     respondSnapshot: null,
     devilDiceTriggeredRef: { current: false },
     etherSlots: vi.fn(() => 0),
@@ -221,8 +221,8 @@ describe('usePhaseTransition', () => {
       expect(mockActions.setRespondSnapshot).toHaveBeenCalled();
     });
 
-    it('이미 되감기 사용했으면 스냅샷 저장 안함', () => {
-      const props = { ...defaultProps, rewindUsed: true };
+    it('최대 되감기 횟수 사용했으면 스냅샷 저장 안함', () => {
+      const props = { ...defaultProps, rewindUsedCount: 1 }; // 기본 1회 사용
       const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
@@ -390,15 +390,19 @@ describe('usePhaseTransition', () => {
   });
 
   describe('rewindToSelect (되감기)', () => {
-    it('이미 되감기 사용했으면 경고', () => {
-      const props = { ...defaultProps, rewindUsed: true };
+    it('최대 되감기 횟수 사용했으면 경고', () => {
+      const respondSnapshot = {
+        selectedSnapshot: [{ id: 1 }],
+        enemyActions: []
+      };
+      const props = { ...defaultProps, rewindUsedCount: 1, respondSnapshot }; // 기본 1회 사용
       const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();
       });
 
-      expect(defaultProps.addLog).toHaveBeenCalledWith(expect.stringContaining('1회만'));
+      expect(defaultProps.addLog).toHaveBeenCalledWith(expect.stringContaining('1회'));
       expect(mockActions.setPhase).not.toHaveBeenCalled();
     });
 
@@ -418,14 +422,14 @@ describe('usePhaseTransition', () => {
         selectedSnapshot: [{ id: 1 }],
         enemyActions: []
       };
-      const props = { ...defaultProps, respondSnapshot };
+      const props = { ...defaultProps, respondSnapshot, rewindUsedCount: 0 };
       const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {
         result.current.rewindToSelect();
       });
 
-      expect(mockActions.setRewindUsed).toHaveBeenCalledWith(true);
+      expect(mockActions.incrementRewindUsedCount).toHaveBeenCalled();
       expect(mockActions.setPhase).toHaveBeenCalledWith('select');
       expect(mockActions.setSelected).toHaveBeenCalledWith([{ id: 1 }]);
     });
@@ -435,7 +439,7 @@ describe('usePhaseTransition', () => {
         selectedSnapshot: [],
         enemyActions: []
       };
-      const props = { ...defaultProps, respondSnapshot };
+      const props = { ...defaultProps, respondSnapshot, rewindUsedCount: 0 };
       const { result } = renderHook(() => usePhaseTransition(props as TestPhaseTransitionProps as Parameters<typeof usePhaseTransition>[0]));
 
       act(() => {

@@ -203,7 +203,7 @@ export interface BattleActions {
   setResolveStartPlayer: (player: PlayerBattleState | null) => void;
   setResolveStartEnemy: (enemy: EnemyUnit | null) => void;
   setRespondSnapshot: (snapshot: RespondSnapshot | null) => void;
-  setRewindUsed: (used: boolean) => void;
+  incrementRewindUsedCount: () => void;
 
   // 피해 분배 시스템
   setDistributionMode: (mode: boolean) => void;
@@ -381,7 +381,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setResolveStartPlayer: (player: PlayerBattleState | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player }),
     setResolveStartEnemy: (enemy: EnemyUnit | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy }),
     setRespondSnapshot: (snapshot: RespondSnapshot | null) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot }),
-    setRewindUsed: (used: boolean) => dispatch({ type: ACTIONS.SET_REWIND_USED, payload: used }),
+    incrementRewindUsedCount: () => dispatch({ type: ACTIONS.INCREMENT_REWIND_USED_COUNT }),
 
     // === 상징 UI ===
     setHoveredRelic: (relicId: string | null) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),

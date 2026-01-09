@@ -147,7 +147,7 @@ export const ACTIONS = {
   SET_RESOLVE_START_PLAYER: 'SET_RESOLVE_START_PLAYER',
   SET_RESOLVE_START_ENEMY: 'SET_RESOLVE_START_ENEMY',
   SET_RESPOND_SNAPSHOT: 'SET_RESPOND_SNAPSHOT',
-  SET_REWIND_USED: 'SET_REWIND_USED',
+  INCREMENT_REWIND_USED_COUNT: 'INCREMENT_REWIND_USED_COUNT',
 
   // === 상징 UI ===
   SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
@@ -353,7 +353,7 @@ type ProgressAction =
   | { type: typeof ACTIONS.SET_RESOLVE_START_PLAYER; payload: PlayerState | null }
   | { type: typeof ACTIONS.SET_RESOLVE_START_ENEMY; payload: EnemyState | null }
   | { type: typeof ACTIONS.SET_RESPOND_SNAPSHOT; payload: RespondSnapshot | null }
-  | { type: typeof ACTIONS.SET_REWIND_USED; payload: boolean }
+  | { type: typeof ACTIONS.INCREMENT_REWIND_USED_COUNT }
   | { type: typeof ACTIONS.SET_RESOLVED_PLAYER_CARDS; payload: number };
 
 /** 기타 액션 */

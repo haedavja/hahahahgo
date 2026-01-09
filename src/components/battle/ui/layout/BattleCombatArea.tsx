@@ -102,7 +102,8 @@ export interface BattleCombatAreaProps {
   etherSlots: (pts: number) => number;
   beginResolveFromRespond: () => void;
   rewindToSelect: () => void;
-  rewindUsed: boolean;
+  rewindUsedCount: number;
+  maxRewinds?: number;
   respondSnapshot: unknown;
   autoProgress: boolean;
   finishTurn: () => void;
@@ -171,7 +172,8 @@ export const BattleCombatArea = memo(function BattleCombatArea({
   etherSlots,
   beginResolveFromRespond,
   rewindToSelect,
-  rewindUsed,
+  rewindUsedCount,
+  maxRewinds = 1,
   respondSnapshot,
   autoProgress,
   finishTurn,
@@ -231,7 +233,8 @@ export const BattleCombatArea = memo(function BattleCombatArea({
           player={player}
           beginResolveFromRespond={beginResolveFromRespond}
           rewindToSelect={rewindToSelect}
-          rewindUsed={rewindUsed}
+          rewindUsedCount={rewindUsedCount}
+          maxRewinds={maxRewinds}
           respondSnapshot={respondSnapshot}
           autoProgress={autoProgress}
           etherFinalValue={etherFinalValue}

@@ -23,6 +23,7 @@ import type { MutableRefObject } from 'react';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import { sortCombinedOrderStablePF } from '../utils/combatUtils';
+import { calculatePassiveEffects } from '../../../lib/relicEffects';
 import type {
   Card,
   BattleAction,
@@ -71,7 +72,7 @@ interface PhaseTransitionActions {
   setTimelineIndicatorVisible: (visible: boolean) => void;
   setNetEtherDelta: (delta: number | null) => void;
   setAutoProgress: (auto: boolean) => void;
-  setRewindUsed: (used: boolean) => void;
+  incrementRewindUsedCount: () => void;
   setSelected: (cards: Card[]) => void;
 }
 
@@ -105,7 +106,7 @@ interface UsePhaseTransitionParams {
   player: PlayerBattleState;
   willOverdrive: boolean;
   turnNumber: number;
-  rewindUsed: boolean;
+  rewindUsedCount: number;
   respondSnapshot: RespondSnapshot | null;
   devilDiceTriggeredRef: MutableRefObject<boolean>;
   etherSlots: (etherPts: number) => number;
@@ -143,7 +144,7 @@ export function usePhaseTransition({
   player,
   willOverdrive,
   turnNumber,
-  rewindUsed,
+  rewindUsedCount,
   respondSnapshot,
   devilDiceTriggeredRef,
   etherSlots,
@@ -223,7 +224,13 @@ export function usePhaseTransition({
       }
     }
 
-    if (!rewindUsed) {
+    // 되감기를 아직 사용하지 않았으면 스냅샷 저장
+    // 상징 효과로 추가 되감기 횟수 계산
+    const relicIds = relics?.map(r => typeof r === 'string' ? r : r.id) || [];
+    const passiveEffects = calculatePassiveEffects(relicIds);
+    const maxRewinds = 1 + passiveEffects.rewindCount; // 기본 1회 + 시계 보너스
+
+    if (rewindUsedCount < maxRewinds) {
       actions.setRespondSnapshot({
         selectedSnapshot: selected,
         enemyActions: generatedActions,
@@ -231,7 +238,7 @@ export function usePhaseTransition({
     }
     playCardSubmitSound();
     actions.setPhase('respond');
-  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsed, actions, nextTurnEffects, relics, addLog]);
+  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsedCount, actions, nextTurnEffects, relics, addLog]);
 
   // respond → resolve 전환
   const beginResolveFromRespond = useCallback(() => {
@@ -345,23 +352,32 @@ export function usePhaseTransition({
 
   // respond → select 되감기
   const rewindToSelect = useCallback(() => {
-    if (rewindUsed) {
-      addLog('⚠️ 되감기는 전투당 1회만 사용할 수 있습니다.');
+    // 상징 효과로 추가 되감기 횟수 계산
+    const relicIds = relics?.map(r => typeof r === 'string' ? r : r.id) || [];
+    const passiveEffects = calculatePassiveEffects(relicIds);
+    const maxRewinds = 1 + passiveEffects.rewindCount; // 기본 1회 + 시계 보너스
+    const remainingRewinds = maxRewinds - rewindUsedCount;
+
+    if (remainingRewinds <= 0) {
+      const rewindText = maxRewinds > 1 ? `${maxRewinds}회` : '1회';
+      addLog(`⚠️ 되감기는 전투당 ${rewindText}만 사용할 수 있습니다.`);
       return;
     }
     if (!respondSnapshot) {
       addLog('⚠️ 되감기할 상태가 없습니다.');
       return;
     }
-    actions.setRewindUsed(true);
+    actions.incrementRewindUsedCount();
     actions.setPhase('select');
     actions.setFixedOrder(null);
     actions.setQueue([]);
     actions.setQIndex(0);
     actions.setTimelineProgress(0);
     actions.setSelected(respondSnapshot.selectedSnapshot || []);
-    addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
-  }, [rewindUsed, respondSnapshot, addLog, actions]);
+    const newRemaining = remainingRewinds - 1;
+    const remainingText = newRemaining > 0 ? ` (남은 횟수: ${newRemaining})` : '';
+    addLog(`⏪ 되감기 사용: 대응 단계 → 선택 단계${remainingText}`);
+  }, [rewindUsedCount, respondSnapshot, addLog, actions, relics]);
 
   return {
     startResolve,

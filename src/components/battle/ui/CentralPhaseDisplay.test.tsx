@@ -50,7 +50,8 @@ describe('CentralPhaseDisplay', () => {
     player: defaultPlayer,
     beginResolveFromRespond: vi.fn(),
     rewindToSelect: vi.fn(),
-    rewindUsed: false,
+    rewindUsedCount: 0,
+    maxRewinds: 1,
     respondSnapshot: null,
     autoProgress: false,
     etherFinalValue: null,
@@ -194,12 +195,13 @@ describe('CentralPhaseDisplay', () => {
       expect(defaultProps.rewindToSelect).toHaveBeenCalled();
     });
 
-    it('되감기 사용 후 버튼 비활성화', () => {
+    it('되감기 횟수 소진 후 버튼 비활성화', () => {
       render(
         <CentralPhaseDisplay
           {...defaultProps}
           battle={respondBattle}
-          rewindUsed={true}
+          rewindUsedCount={1}
+          maxRewinds={1}
         />
       );
       const button = screen.getByText(/되감기/).closest('button');

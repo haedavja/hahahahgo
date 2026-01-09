@@ -366,7 +366,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
   const resolveStartPlayer = battle.resolveStartPlayer;
   const resolveStartEnemy = battle.resolveStartEnemy;
   const respondSnapshot = battle.respondSnapshot;
-  const rewindUsed = battle.rewindUsed;
+  const rewindUsedCount = battle.rewindUsedCount;
   const autoProgress = battle.autoProgress;
   const resolvedPlayerCards = battle.resolvedPlayerCards;
   const executingCardIndex = battle.executingCardIndex;
@@ -790,7 +790,7 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     player,
     willOverdrive,
     turnNumber,
-    rewindUsed,
+    rewindUsedCount,
     respondSnapshot: respondSnapshot as { selectedSnapshot: Card[]; enemyActions: Card[] } | null,
     devilDiceTriggeredRef,
     etherSlots,
@@ -2249,7 +2249,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
             player={player}
             beginResolveFromRespond={beginResolveFromRespond}
             rewindToSelect={rewindToSelect}
-            rewindUsed={rewindUsed}
+            rewindUsedCount={rewindUsedCount}
+            maxRewinds={1 + (passiveRelicStats.rewindCount || 0)}
             respondSnapshot={respondSnapshot}
             autoProgress={autoProgress}
             etherFinalValue={etherFinalValue}

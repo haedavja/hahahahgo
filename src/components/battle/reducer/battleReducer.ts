@@ -238,8 +238,8 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
       return { ...state, resolveStartEnemy: action.payload };
     case ACTIONS.SET_RESPOND_SNAPSHOT:
       return { ...state, respondSnapshot: action.payload };
-    case ACTIONS.SET_REWIND_USED:
-      return { ...state, rewindUsed: action.payload };
+    case ACTIONS.INCREMENT_REWIND_USED_COUNT:
+      return { ...state, rewindUsedCount: state.rewindUsedCount + 1 };
 
     // === 상징 UI ===
     case ACTIONS.SET_HOVERED_RELIC:

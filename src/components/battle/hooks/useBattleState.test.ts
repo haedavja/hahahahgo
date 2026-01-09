@@ -514,14 +514,22 @@ describe('useBattleState', () => {
       expect(result.current.battle.autoProgress).toBe(true);
     });
 
-    it('setRewindUsed로 되감기 사용 상태가 설정되어야 함', () => {
+    it('incrementRewindUsedCount로 되감기 사용 횟수가 증가해야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
+      expect(result.current.battle.rewindUsedCount).toBe(0);
+
       act(() => {
-        result.current.actions.setRewindUsed(true);
+        result.current.actions.incrementRewindUsedCount();
       });
 
-      expect(result.current.battle.rewindUsed).toBe(true);
+      expect(result.current.battle.rewindUsedCount).toBe(1);
+
+      act(() => {
+        result.current.actions.incrementRewindUsedCount();
+      });
+
+      expect(result.current.battle.rewindUsedCount).toBe(2);
     });
 
     it('setTimelineProgress로 타임라인 진행도가 설정되어야 함', () => {

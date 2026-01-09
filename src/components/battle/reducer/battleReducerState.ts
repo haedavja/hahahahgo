@@ -131,7 +131,7 @@ export interface FullBattleState {
   resolveStartPlayer: PlayerState | null;
   resolveStartEnemy: EnemyState | null;
   respondSnapshot: RespondSnapshot | null;
-  rewindUsed: boolean;
+  rewindUsedCount: number;
 
   // 상징 UI
   hoveredRelic: string | null;
@@ -288,7 +288,7 @@ export const createInitialState = ({
   resolveStartPlayer: null,
   resolveStartEnemy: null,
   respondSnapshot: null,
-  rewindUsed: false,
+  rewindUsedCount: 0,
 
   // === 상징 UI ===
   hoveredRelic: null,
