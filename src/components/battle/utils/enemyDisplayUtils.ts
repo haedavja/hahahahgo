@@ -30,15 +30,23 @@ export function getEnemyNameCounts(enemy: EnemyLike | null): Record<string, numb
   if (!enemy) return {};
 
   const counts: Record<string, number> = {};
-  const extEnemy = enemy as { composition?: Array<{ name?: string }>; count?: number; quantity?: number };
+  const extEnemy = enemy as { composition?: Array<{ name?: string }>; units?: Array<{ name?: string }>; count?: number; quantity?: number };
 
-  (extEnemy.composition || []).forEach((m) => {
+  // composition > units 순서로 확인
+  const memberList = (extEnemy.composition && extEnemy.composition.length > 0)
+    ? extEnemy.composition
+    : (extEnemy.units || []);
+
+  memberList.forEach((m) => {
     const key = m?.name || '몬스터';
     counts[key] = (counts[key] || 0) + 1;
   });
 
+  // 리스트가 비어있으면 기본 정보 사용
   const base = enemy?.name || '몬스터';
-  if (!counts[base]) counts[base] = extEnemy?.count || extEnemy?.quantity || 1;
+  if (Object.keys(counts).length === 0) {
+    counts[base] = extEnemy?.count || extEnemy?.quantity || 1;
+  }
 
   return counts;
 }
@@ -54,11 +62,18 @@ export function getGroupedEnemyMembers(
   if (!enemy) return [];
 
   type EnemyMember = { name?: string; emoji?: string; count?: number };
-  const extEnemy = enemy as { composition?: EnemyMember[]; emoji?: string; count?: number; quantity?: number };
+  const extEnemy = enemy as { composition?: EnemyMember[]; units?: EnemyMember[]; emoji?: string; count?: number; quantity?: number };
 
-  const list: EnemyMember[] = extEnemy?.composition && extEnemy.composition.length > 0
-    ? extEnemy.composition
-    : [{ name: enemy?.name || '몬스터', emoji: extEnemy?.emoji || '👹', count: extEnemy?.count || extEnemy?.quantity || 1 }];
+  // composition > units > 단일 적 순서로 폴백
+  let list: EnemyMember[];
+  if (extEnemy?.composition && extEnemy.composition.length > 0) {
+    list = extEnemy.composition;
+  } else if (extEnemy?.units && extEnemy.units.length > 0) {
+    // units 배열 사용 (리듀서 상태에서 올 때)
+    list = extEnemy.units;
+  } else {
+    list = [{ name: enemy?.name || '몬스터', emoji: extEnemy?.emoji || '👹', count: extEnemy?.count || extEnemy?.quantity || 1 }];
+  }
 
   const map = new Map<string, { name: string; emoji: string; count: number }>();
   list.forEach((m) => {
