@@ -8,7 +8,7 @@ import type { AddLogFn } from '../../../types/hooks';
 import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 import { hasTrait } from "./battleUtils";
-import { applyCardPlayedEffects, applyCardExhaustEffects } from "../../../lib/relicEffects";
+import { executeCardPlayedEffects, executeCardExhaustEffects } from "../../../core/effects";
 import { getDefenseBackfireDamage } from '../../../lib/anomalyEffectUtils';
 
 interface PlayerState {
@@ -81,8 +81,8 @@ export function processImmediateCardTraits({
 
     // ON_CARD_EXHAUST 상징 효과 처리 (영혼의용광로)
     if (relics && relics.length > 0 && setEtherPts && etherPts !== undefined) {
-      const exhaustEffects = applyCardExhaustEffects(relics);
-      if (exhaustEffects.etherGain > 0) {
+      const exhaustEffects = executeCardExhaustEffects(relics);
+      if (exhaustEffects.etherGain && exhaustEffects.etherGain > 0) {
         setEtherPts(etherPts + exhaustEffects.etherGain);
         addLog(`🔥 영혼의용광로: 에테르 +${exhaustEffects.etherGain} (카드 소멸)`);
       }
@@ -115,7 +115,7 @@ export function processCardPlayedRelicEffects({
   relics,
   card,
   playerState,
-  enemyState,
+  enemyState: _enemyState,
   safeInitialPlayer,
   addLog,
   setRelicActivated
@@ -124,9 +124,9 @@ export function processCardPlayedRelicEffects({
     return false;
   }
 
-  const cardRelicEffects = applyCardPlayedEffects(relics, card, { player: playerState, enemy: enemyState });
+  const cardRelicEffects = executeCardPlayedEffects(relics, card.id);
 
-  if (cardRelicEffects.heal) {
+  if (cardRelicEffects.heal && cardRelicEffects.heal > 0) {
     const maxHpVal = playerState.maxHp ?? safeInitialPlayer?.maxHp ?? 100;
     const healed = Math.min(maxHpVal, (playerState.hp || 0) + cardRelicEffects.heal);
     const healDelta = healed - (playerState.hp || 0);

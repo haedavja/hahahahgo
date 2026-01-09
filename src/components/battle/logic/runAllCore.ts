@@ -15,6 +15,7 @@ import { applyAction } from './combatActions';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { createBattleEnemyData } from '../../../state/battleHelpers';
+import { COMBAT_AUDIO } from '../../../core/effects';
 import type {
   BattleAction,
   BattleEvent,
@@ -74,7 +75,7 @@ export function runAllCore(params: RunAllCoreParams) {
     return { completed: false };
   }
 
-  playSound(1000, 150);
+  playSound(COMBAT_AUDIO.ACTION_EXECUTE.tone, COMBAT_AUDIO.ACTION_EXECUTE.duration);
   const relicIds = orderedRelicList.map(r => r.id);
   const passiveRelicEffects = calculatePassiveEffects(relicIds);
 
@@ -277,7 +278,7 @@ export function runAllCore(params: RunAllCoreParams) {
 
     if (E.hp <= 0 && !enemyDefeated) {
       actions.setEnemyHit(true);
-      playSound(200, 500);
+      playSound(COMBAT_AUDIO.DEATH.tone, COMBAT_AUDIO.DEATH.duration);
       addLog('💀 적 처치! 남은 적 행동 건너뛰기');
       enemyDefeated = true;
     }

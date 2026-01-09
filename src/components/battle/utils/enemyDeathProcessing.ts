@@ -10,6 +10,7 @@
 
 import type { OrderItem } from '../../../types';
 import type { PlaySoundFn } from '../../../types/hooks';
+import { COMBAT_AUDIO } from '../../../core/effects';
 
 interface ProcessEnemyDeathActions {
   setEnemyHit: (hit: boolean) => void;
@@ -41,7 +42,7 @@ export function processEnemyDeath({
   actions
 }: ProcessEnemyDeathParams): void {
   actions.setEnemyHit(true);
-  playSound(200, 500);
+  playSound(COMBAT_AUDIO.DEATH.tone, COMBAT_AUDIO.DEATH.duration);
 
   actions.setTimelineIndicatorVisible(false);
   actions.setAutoProgress(false);

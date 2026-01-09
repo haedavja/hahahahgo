@@ -12,6 +12,7 @@
 import { COMBO_MULTIPLIERS } from "./etherCalculations";
 import { applyEtherDeflation } from "./etherCalculations";
 import { detectPokerCombo } from "./comboDetection";
+import { ETHER_AUDIO } from '../../../core/effects';
 import type {
   EtherAnimCard as Card,
   EtherAnimPlayer as Player,
@@ -59,17 +60,17 @@ export function startEtherCalculationAnimationSequence({
     if (etherAmplifierMult > 1 && onMultiplierConsumed) {
       onMultiplierConsumed();
     }
-    playSound(800, 100);
+    playSound(ETHER_AUDIO.GAIN.tone, ETHER_AUDIO.GAIN.duration);
     setTimeout(() => {
       // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
       if (playerDeflation.usageCount > 0) {
         actions.setEtherCalcPhase('deflation');
-        playSound(200, 150);
+        playSound(ETHER_AUDIO.LOSS.tone, ETHER_AUDIO.LOSS.duration);
       }
       setTimeout(() => {
         // 4단계: 최종값 표시 + 묵직한 사운드
         actions.setEtherCalcPhase('result');
-        playSound(400, 200);
+        playSound(ETHER_AUDIO.TRANSFER.tone, ETHER_AUDIO.TRANSFER.duration);
       }, playerDeflation.usageCount > 0 ? 400 : 0);
     }, 600);
   }, 400);

@@ -29,6 +29,7 @@ const EFFECT_TYPE_TO_TIMING: Record<string, EffectTiming> = {
   ON_TURN_START: 'TURN_START',
   ON_TURN_END: 'TURN_END',
   ON_CARD_PLAYED: 'ON_CARD_PLAY',
+  ON_CARD_EXHAUST: 'ON_CARD_EXHAUST',
   ON_DAMAGE_TAKEN: 'ON_DAMAGE_TAKEN',
   ON_RELIC_ACTIVATE: 'ON_RELIC_ACTIVATE',
   ON_SHOP_ENTER: 'ON_SHOP_ENTER',
@@ -87,6 +88,16 @@ function createHandler(relicId: string, effects: Record<string, unknown>): (cont
       if (effects.speedCostReduction) result.speedCostReduction = effects.speedCostReduction as number;
       if (effects.freezeEnemyTimeline) result.freezeEnemyTimeline = true;
       if (effects.grantDefensiveNextTurn) result.grantDefensiveNextTurn = effects.grantDefensiveNextTurn as number;
+    }
+
+    // ON_CARD_PLAYED 효과 (불멸의 가면)
+    if (effects.type === 'ON_CARD_PLAYED') {
+      if (effects.heal) result.heal = effects.heal as number;
+    }
+
+    // ON_CARD_EXHAUST 효과 (영혼의용광로)
+    if (effects.type === 'ON_CARD_EXHAUST') {
+      if (effects.etherGain) result.etherGain = effects.etherGain as number;
     }
 
     // ON_SHOP_ENTER 효과
@@ -222,4 +233,20 @@ export function executeTurnEndEffects(relicIds: string[], turnState?: TurnState)
  */
 export function executeCombatEndEffects(relicIds: string[]): EffectResult {
   return EffectRegistry.execute('ON_COMBAT_END', relicIds, {});
+}
+
+/**
+ * 카드 사용 효과 실행 (EffectRegistry 기반)
+ * applyCardPlayedEffects의 대체 함수
+ */
+export function executeCardPlayedEffects(relicIds: string[], cardId?: string): EffectResult {
+  return EffectRegistry.execute('ON_CARD_PLAY', relicIds, { cardId });
+}
+
+/**
+ * 카드 소멸 효과 실행 (EffectRegistry 기반)
+ * applyCardExhaustEffects의 대체 함수
+ */
+export function executeCardExhaustEffects(relicIds: string[]): EffectResult {
+  return EffectRegistry.execute('ON_CARD_EXHAUST', relicIds, {});
 }

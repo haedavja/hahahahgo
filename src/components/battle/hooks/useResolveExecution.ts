@@ -16,7 +16,7 @@ import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '..
 import { gainGrace, createInitialGraceState, type MonsterGraceState, type PrayerType } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
-import { executeTurnEndEffects, type TurnState } from '../../../core/effects';
+import { executeTurnEndEffects, COMBAT_AUDIO, type TurnState } from '../../../core/effects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
@@ -407,7 +407,7 @@ export function useResolveExecution({
   // 전부 실행 (한 번에 모든 카드 처리)
   const runAll = useCallback(() => {
     if (battle.qIndex >= battle.queue.length) return;
-    playSound(1000, 150);
+    playSound(COMBAT_AUDIO.ACTION_EXECUTE.tone, COMBAT_AUDIO.ACTION_EXECUTE.duration);
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
@@ -496,7 +496,7 @@ export function useResolveExecution({
       }
       if (E.hp <= 0 && !enemyDefeated) {
         actions.setEnemyHit(true);
-        playSound(200, 500);
+        playSound(COMBAT_AUDIO.DEATH.tone, COMBAT_AUDIO.DEATH.duration);
         addLog('💀 적 처치! 남은 적 행동 건너뛰기');
         enemyDefeated = true;
       }

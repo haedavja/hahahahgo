@@ -6,6 +6,7 @@
 
 import { FC, memo, useCallback } from 'react';
 import { playSound } from '../../../lib/soundUtils';
+import { UI_AUDIO } from '../../../core/effects';
 import type { SortType } from '../reducer/battleReducerActions';
 
 interface BattleControlButtonsProps {
@@ -42,12 +43,12 @@ export const BattleControlButtons: FC<BattleControlButtonsProps> = memo(function
       /* ignore */
     }
     setIsSimplified(newVal);
-    playSound(500, 60);
+    playSound(UI_AUDIO.BUTTON_CLICK.tone, UI_AUDIO.BUTTON_CLICK.duration);
   }, [isSimplified, setIsSimplified]);
 
   const handleDevToggle = useCallback(() => {
     setDevForceAllCards(!devForceAllCards);
-    playSound(500, 60);
+    playSound(UI_AUDIO.BUTTON_CLICK.tone, UI_AUDIO.BUTTON_CLICK.duration);
   }, [devForceAllCards, setDevForceAllCards]);
 
   return (

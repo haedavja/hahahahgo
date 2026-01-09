@@ -24,6 +24,7 @@ export type EffectTiming =
   | 'TURN_START'
   | 'TURN_END'
   | 'ON_CARD_PLAY'
+  | 'ON_CARD_EXHAUST'
   | 'ON_DAMAGE_DEALT'
   | 'ON_DAMAGE_TAKEN'
   | 'ON_RELIC_ACTIVATE'
@@ -230,6 +231,7 @@ export const EFFECT_TIMING_DESCRIPTIONS: Record<EffectTiming, string> = {
   TURN_START: '턴 시작 시',
   TURN_END: '턴 종료 시',
   ON_CARD_PLAY: '카드 사용 시',
+  ON_CARD_EXHAUST: '카드 소멸 시',
   ON_DAMAGE_DEALT: '피해 가할 때',
   ON_DAMAGE_TAKEN: '피해 받을 때',
   ON_RELIC_ACTIVATE: '다른 상징 발동 시',

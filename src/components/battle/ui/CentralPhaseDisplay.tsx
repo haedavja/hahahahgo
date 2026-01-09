@@ -7,6 +7,7 @@
 
 import { FC, memo, useCallback } from 'react';
 import type { CSSProperties } from 'react';
+import { UI_AUDIO } from '../../../core/effects';
 import type {
   CentralBattle as Battle,
   CentralPlayer as Player,
@@ -176,7 +177,7 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = memo(({
   // 핸들러 메모이제이션
   const handleSubmit = useCallback(() => {
     startResolve();
-    playSound(900, 120);
+    playSound(UI_AUDIO.SHORTCUT.tone, UI_AUDIO.SHORTCUT.duration);
   }, [startResolve, playSound]);
 
   const handleOverdriveToggle = useCallback(() => {

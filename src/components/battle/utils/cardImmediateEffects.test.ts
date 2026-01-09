@@ -27,17 +27,12 @@ import {
   type TestPlayerState,
 } from '../../../test/factories';
 
-vi.mock('../../../lib/relicEffects', () => ({
-  applyCardPlayedEffects: vi.fn(() => ({})),
-  calculatePassiveEffects: vi.fn(() => ({
-    maxHp: 0,
-    maxEnergy: 0,
-    mainSpecialSlots: 0,
-    subSpecialSlots: 0,
-  }))
+vi.mock('../../../core/effects', () => ({
+  executeCardPlayedEffects: vi.fn(() => ({ heal: 0 })),
+  executeCardExhaustEffects: vi.fn(() => ({ etherGain: 0 })),
 }));
 
-import { applyCardPlayedEffects } from '../../../lib/relicEffects';
+import { executeCardPlayedEffects, executeCardExhaustEffects } from '../../../core/effects';
 
 describe('cardImmediateEffects', () => {
   describe('processImmediateCardTraits', () => {
@@ -226,11 +221,11 @@ describe('cardImmediateEffects', () => {
       });
 
       expect(result).toBe(false);
-      expect(applyCardPlayedEffects).not.toHaveBeenCalled();
+      expect(executeCardPlayedEffects).not.toHaveBeenCalled();
     });
 
     it('힐 효과가 있으면 체력을 회복해야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 80, maxHp: 100 });
@@ -252,7 +247,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('최대 체력을 초과하지 않아야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 50 });
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 50 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 90, maxHp: 100 });
@@ -271,7 +266,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('이미 최대 체력이면 힐하지 않아야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 100, maxHp: 100 });
@@ -291,7 +286,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('힐 효과가 없으면 false를 반환해야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({});
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 0 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
 
@@ -309,7 +304,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('safeInitialPlayer에서 maxHp를 가져올 수 있어야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 10 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState: TestPlayerState = { hp: 80 }; // maxHp 없음
@@ -328,7 +323,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('maxHp 기본값 100을 사용해야 함', () => {
-      (applyCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 30 });
+      (executeCardPlayedEffects as ReturnType<typeof vi.fn>).mockReturnValue({ heal: 30 });
       const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState: TestPlayerState = { hp: 90 }; // maxHp 없음

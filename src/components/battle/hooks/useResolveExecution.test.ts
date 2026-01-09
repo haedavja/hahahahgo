@@ -51,7 +51,14 @@ vi.mock('../../../lib/relicEffects', () => ({
 }));
 
 vi.mock('../../../core/effects', () => ({
-  executeTurnEndEffects: vi.fn(() => ({ strength: 0 }))
+  executeTurnEndEffects: vi.fn(() => ({ strength: 0 })),
+  COMBAT_AUDIO: {
+    ACTION_EXECUTE: { tone: 1000, duration: 150 },
+    DEATH: { tone: 200, duration: 500 },
+    CRITICAL_HIT: { tone: 1600, duration: 260 },
+    NORMAL_HIT: { tone: 1200, duration: 200 },
+    BLOCK: { tone: 800, duration: 150 },
+  },
 }));
 
 vi.mock('../utils/turnEndRelicEffectsProcessing', () => ({

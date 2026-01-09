@@ -13,6 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
 import { setStorageString } from '../../../lib/storageUtils';
+import { UI_AUDIO } from '../../../core/effects';
 import type { Card, PlayerBattleState, OrderItem } from '../../../types';
 import type { BattlePhase } from '../reducer/battleReducerActions';
 
@@ -128,7 +129,7 @@ export function useKeyboardShortcuts({
       if ((e.key === "e" || e.key === "E") && battle.phase === 'select' && battle.selected.length > 0) {
         e.preventDefault();
         startResolve();
-        playSound(900, 120);
+        playSound(UI_AUDIO.SHORTCUT.tone, UI_AUDIO.SHORTCUT.duration);
       }
 
       // E 키: 대응 단계에서 진행

@@ -4,6 +4,7 @@
  */
 
 import { addToken } from '../../../lib/tokenUtils';
+import { COMBAT_AUDIO } from '../../../core/effects';
 import type { TokenEntity } from '../../../types';
 import { hasTrait, hasEnemyUnits } from './battleUtils';
 import { distributeUnitDamage, type EnemyUnit } from './unitDamageDistribution';
@@ -186,7 +187,7 @@ export function checkBattleEnd({
     // 적 사망 처리
     if (turnEtherAccumulated > 0) {
       actions.setEtherCalcPhase('win_calc');
-      playSound(800, 150);
+      playSound(COMBAT_AUDIO.BLOCK.tone, COMBAT_AUDIO.BLOCK.duration);
     }
 
     const resolvedCount = queue.slice(0, newQIndex).filter(q => q.actor === 'player').length;

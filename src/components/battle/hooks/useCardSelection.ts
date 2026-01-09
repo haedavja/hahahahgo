@@ -14,6 +14,7 @@ import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import { useTokenValidation } from './useTokenValidation';
 import { useCardOrdering } from './useCardOrdering';
+import { CARD_AUDIO } from '../../../core/effects';
 import type { Card, PlayerBattleState, EnemyUnit, OrderingEnemyAction, LogFunction } from '../../../types';
 
 /** 카드 선택 액션 인터페이스 */
@@ -128,7 +129,7 @@ export function useCardSelection({
           __uid: card.__handUid || generateUid(),
         };
         startDamageDistribution(cardWithUid);
-        playSound(600, 80);
+        playSound(CARD_AUDIO.DESELECT.tone, CARD_AUDIO.DESELECT.duration);
         return true;
       }
       return false;
@@ -185,7 +186,7 @@ export function useCardSelection({
       if (battlePhase === 'respond') {
         if (exists) {
           const next = selected.filter((s: Card) => (s.__handUid || s.__uid) !== cardUid);
-          playSound(400, 80);
+          playSound(CARD_AUDIO.ERROR.tone, CARD_AUDIO.ERROR.duration);
           applyComboAndOrder(next);
           return;
         }
@@ -201,7 +202,7 @@ export function useCardSelection({
 
         const cardWithTarget = createCardWithTarget(card);
         const next = [...selected, cardWithTarget];
-        playSound(800, 80);
+        playSound(CARD_AUDIO.CONFIRM.tone, CARD_AUDIO.CONFIRM.duration);
         applyComboAndOrder(next);
         return;
       }
@@ -209,7 +210,7 @@ export function useCardSelection({
       // 선택 페이즈
       if (exists) {
         actions.setSelected(battleSelected.filter((s: Card) => (s.__handUid || s.__uid) !== cardUid));
-        playSound(400, 80);
+        playSound(CARD_AUDIO.ERROR.tone, CARD_AUDIO.ERROR.duration);
         return;
       }
 
@@ -224,7 +225,7 @@ export function useCardSelection({
 
       const cardWithTarget = createCardWithTarget(card);
       actions.setSelected([...selected, cardWithTarget]);
-      playSound(800, 80);
+      playSound(CARD_AUDIO.CONFIRM.tone, CARD_AUDIO.CONFIRM.duration);
     },
     [
       battlePhase,

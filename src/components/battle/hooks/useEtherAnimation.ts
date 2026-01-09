@@ -16,6 +16,7 @@
 import { useCallback } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from '../utils/etherCalculations';
+import { ETHER_AUDIO } from '../../../core/effects';
 import type { UseEtherAnimationParams } from '../../../types/hooks';
 
 /**
@@ -113,13 +114,13 @@ export function useEtherAnimation({
           battleRef.current.player = updatedPlayer as never;
         }
       }
-      playSound(800, 100);
+      playSound(ETHER_AUDIO.GAIN.tone, ETHER_AUDIO.GAIN.duration);
       setTimeout(() => {
         // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
         if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
           if (playerDeflation.usageCount > 0) actions.setEtherCalcPhase('deflation');
           if (enemyDeflation.usageCount > 0) actions.setEnemyEtherCalcPhase('deflation');
-          playSound(200, 150);
+          playSound(ETHER_AUDIO.LOSS.tone, ETHER_AUDIO.LOSS.duration);
         }
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
@@ -128,7 +129,7 @@ export function useEtherAnimation({
           // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
           actions.setEtherFinalValue(playerFinalEther);
           actions.setEnemyEtherFinalValue(enemyFinalEther);
-          playSound(400, 200);
+          playSound(ETHER_AUDIO.TRANSFER.tone, ETHER_AUDIO.TRANSFER.duration);
         }, (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) ? 400 : 0);
       }, 600);
     }, 400);

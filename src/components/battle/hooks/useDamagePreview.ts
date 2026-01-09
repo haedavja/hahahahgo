@@ -18,6 +18,7 @@
 
 import { useMemo, useEffect, useRef } from 'react';
 import { simulatePreview } from '../utils/battleSimulation';
+import { COMBAT_AUDIO } from '../../../core/effects';
 import type { UseDamagePreviewParams } from '../../../types/hooks';
 import type { SimActor, SimQueueStep, SimCard, AIMode } from '../../../types/systems';
 
@@ -158,11 +159,11 @@ export function useDamagePreview({
     }
 
     if (overkill && !overkillSoundRef.current) {
-      playSound(1600, 260);
+      playSound(COMBAT_AUDIO.CRITICAL_HIT.tone, COMBAT_AUDIO.CRITICAL_HIT.duration);
       overkillSoundRef.current = true;
       lethalSoundRef.current = true;
     } else if (lethal && !lethalSoundRef.current) {
-      playSound(1200, 200);
+      playSound(COMBAT_AUDIO.NORMAL_HIT.tone, COMBAT_AUDIO.NORMAL_HIT.duration);
       lethalSoundRef.current = true;
     } else if (!lethal) {
       lethalSoundRef.current = false;

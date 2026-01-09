@@ -24,6 +24,7 @@ import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import { sortCombinedOrderStablePF } from '../utils/combatUtils';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
+import { PHASE_AUDIO } from '../../../core/effects';
 import type {
   Card,
   BattleAction,
@@ -320,14 +321,14 @@ export function usePhaseTransition({
     if (willOverdrive && etherSlots(player.etherPts ?? 0) > 0) {
       actions.setPlayer({ ...player, etherPts: (player.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
-      playSound(1400, 220);
+      playSound(PHASE_AUDIO.TURN_START.tone, PHASE_AUDIO.TURN_START.duration);
       setTimeout(() => actions.setPlayerOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if (enemyWillOD) {
       actions.setEnemy({ ...enemy, etherPts: (enemy.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setEnemyOverdriveFlash(true);
-      playSound(900, 220);
+      playSound(PHASE_AUDIO.TURN_END.tone, PHASE_AUDIO.TURN_END.duration);
       setTimeout(() => actions.setEnemyOverdriveFlash(false), ANIMATION_TIMING.OVERDRIVE_FLASH);
       addLog('☄️ 적 에테르 폭주 발동!');
     }

@@ -7,6 +7,15 @@ export { RELIC_AUDIO, RELIC_TONE_BY_TYPE } from './effect-audio';
 export type { RelicAudioConfig } from './effect-audio';
 
 export {
+  CARD_AUDIO,
+  COMBAT_AUDIO,
+  ETHER_AUDIO,
+  PHASE_AUDIO,
+  UI_AUDIO,
+} from './ui-audio';
+export type { AudioConfig } from './ui-audio';
+
+export {
   EffectRegistry,
   EFFECT_TIMING_DESCRIPTIONS,
 } from './effects';
@@ -32,4 +41,6 @@ export {
   executeTurnEndEffects,
   executeShopEnterEffects,
   executeShopPurchaseEffects,
+  executeCardPlayedEffects,
+  executeCardExhaustEffects,
 } from './relic-registration';

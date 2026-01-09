@@ -8,6 +8,7 @@ import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
 import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
+import { CARD_AUDIO } from '../../../core/effects';
 import type { Card, HandCard } from '../../../types';
 
 /** 손패 관리 훅 파라미터 */
@@ -80,7 +81,7 @@ export function useHandManagement({
     actions.setSelected([]);
     actions.setCanRedraw(false);
     addLog('🔄 손패 리드로우 사용');
-    playSound(700, 90);
+    playSound(CARD_AUDIO.SELECT.tone, CARD_AUDIO.SELECT.duration);
   }, [canRedraw, battleHand, battleDeck, battleDiscardPile, battleVanishedCards, escapeBanRef, addLog, playSound, actions]);
 
   // 정렬 방식 순환
@@ -101,7 +102,7 @@ export function useHandManagement({
       type: '종류별 정렬'
     };
     addLog(`🔀 ${sortLabels[nextSort]}`);
-    playSound(600, 80);
+    playSound(CARD_AUDIO.DESELECT.tone, CARD_AUDIO.DESELECT.duration);
   }, [sortType, addLog, playSound, actions]);
 
   // 정렬된 패 반환
