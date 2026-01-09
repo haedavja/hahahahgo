@@ -15,6 +15,7 @@
  * - veilAtStart: 첫 턴 장막 부여
  * - healPerTurn: 매턴 체력 회복
  * - strengthPerTurn: 매턴 힘 증가
+ * - blurPerTurn: 매턴 흐릿함 획득 (영혼형 몬스터)
  */
 
 import { useEffect } from 'react';
@@ -354,6 +355,14 @@ export function useTurnStartEffects({
       const strengthGain = strengthPerTurn;
       updatedEnemy.strength = (updatedEnemy.strength || 0) + strengthGain;
       addLog(`💪 ${enemy.name}: 힘 +${strengthGain} 증가 (현재: ${updatedEnemy.strength})`);
+    }
+
+    // 매턴 흐릿함 획득 (영혼형 몬스터)
+    const blurPerTurn = enemyPassives.blurPerTurn as number | undefined;
+    if (blurPerTurn && blurPerTurn > 0) {
+      const blurResult = addToken(updatedEnemy, 'blur', blurPerTurn);
+      updatedEnemy = { ...updatedEnemy, tokens: blurResult.tokens };
+      addLog(`👻 ${enemy.name}: 흐릿함 +${blurPerTurn} (영혼형)`);
     }
 
     // === 몬스터 기원 시스템 처리 ===

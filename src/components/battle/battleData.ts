@@ -1146,7 +1146,10 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "약함, 초반적. 가끔 때로 등장.",
     onSoulBreak: 'death',  // 영혼 의존 - 즉시 사망
-    category: 'spectral'
+    category: 'spectral',
+    passives: {
+      blurPerTurn: 1  // 영혼형: 매턴 흐릿함 1회 획득
+    }
   },
   {
     id: "marauder",
