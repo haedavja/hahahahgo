@@ -1166,7 +1166,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         createdCards: multiHitResult.createdCards,
         updatedState: { player: P, enemy: E, log: [] },
         cardPlaySpecials: cardPlayResult,
-        defenderTimelineAdvance: multiHitResult.defenderTimelineAdvance || 0
+        defenderTimelineAdvance: multiHitResult.defenderTimelineAdvance || 0,
+        damageTakenEffects: multiHitResult.damageTakenEffects
       };
 
       // battleRef 동기 업데이트
@@ -1226,6 +1227,20 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, queue: updatedQueue };
         }
+      }
+    }
+
+    // === 피해 받기 효과 병합 (철의 심장, 피의 계약인) ===
+    if (actionResult.damageTakenEffects) {
+      const currentNextTurnFx = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
+      const updatedNextTurnFx = {
+        ...currentNextTurnFx,
+        blockNextTurn: (currentNextTurnFx.blockNextTurn || 0) + (actionResult.damageTakenEffects.blockNextTurn || 0),
+        healNextTurn: (currentNextTurnFx.healNextTurn || 0) + (actionResult.damageTakenEffects.healNextTurn || 0)
+      };
+      actions.setNextTurnEffects(updatedNextTurnFx);
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, nextTurnEffects: updatedNextTurnFx };
       }
     }
 

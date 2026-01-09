@@ -349,6 +349,8 @@ export function applyCardPlayedEffects(
 
 /**
  * ON_DAMAGE_TAKEN 효과 처리
+ * - ironHeart: 다음 턴 방어력/체력 +1
+ * - bloodPactSeal: 즉시 힘 +2
  */
 export function applyDamageTakenEffects(
   relicIds: string[] = [],
@@ -358,6 +360,7 @@ export function applyDamageTakenEffects(
   const changes: DamageTakenChanges = {
     blockNextTurn: 0,
     healNextTurn: 0,
+    strength: 0,
   };
 
   if (damage <= 0) return changes;
@@ -368,8 +371,11 @@ export function applyDamageTakenEffects(
 
     const effects = relic.effects;
 
+    // 철의 심장: 다음 턴 방어력/체력
     if (effects.blockNextTurn) changes.blockNextTurn += effects.blockNextTurn;
     if (effects.healNextTurn) changes.healNextTurn += effects.healNextTurn;
+    // 피의 계약인: 즉시 힘 획득
+    if (effects.strength) changes.strength += effects.strength;
   });
 
   return changes;

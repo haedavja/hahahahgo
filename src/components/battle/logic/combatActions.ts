@@ -70,6 +70,8 @@ export function applyAttack(
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
   let totalDefenderTimelineAdvance = 0;
+  // 피해 받기 효과 누적 (철의 심장: 다음 턴 방어력/체력)
+  let accumulatedDamageTakenEffects = { blockNextTurn: 0, healNextTurn: 0 };
   const allEvents: BattleEvent[] = [];
   const allLogs: string[] = [];
 
@@ -90,6 +92,11 @@ export function applyAttack(
   totalTaken += firstHitResult.damageTaken || 0;
   totalBlockDestroyed += firstHitResult.blockDestroyed || 0;
   totalDefenderTimelineAdvance += firstHitResult.timelineAdvance || 0;
+  // 피해 받기 효과 누적
+  if (firstHitResult.damageTakenEffects) {
+    accumulatedDamageTakenEffects.blockNextTurn += firstHitResult.damageTakenEffects.blockNextTurn;
+    accumulatedDamageTakenEffects.healNextTurn += firstHitResult.damageTakenEffects.healNextTurn;
+  }
 
   // queue 수정 정보 저장 (첫 번째 hit에서만)
   const queueModifications = firstHitResult.queueModifications;
@@ -118,6 +125,11 @@ export function applyAttack(
     totalTaken += result.damageTaken || 0;
     totalBlockDestroyed += result.blockDestroyed || 0;
     totalDefenderTimelineAdvance += result.timelineAdvance || 0;
+    // 피해 받기 효과 누적
+    if (result.damageTakenEffects) {
+      accumulatedDamageTakenEffects.blockNextTurn += result.damageTakenEffects.blockNextTurn;
+      accumulatedDamageTakenEffects.healNextTurn += result.damageTakenEffects.healNextTurn;
+    }
     const filteredEvents = result.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
     allEvents.push(...filteredEvents);
   }
@@ -170,6 +182,11 @@ export function applyAttack(
       currentDefender = result.defender;
       totalDealt += result.damage;
       totalTaken += result.damageTaken || 0;
+      // 피해 받기 효과 누적
+      if (result.damageTakenEffects) {
+        accumulatedDamageTakenEffects.blockNextTurn += result.damageTakenEffects.blockNextTurn;
+        accumulatedDamageTakenEffects.healNextTurn += result.damageTakenEffects.healNextTurn;
+      }
       allEvents.push(...result.events);
       allLogs.push(...result.logs);
     }
@@ -186,6 +203,9 @@ export function applyAttack(
   allEvents.push(...(cardCreationResult.events as BattleEvent[]));
   allLogs.push(...cardCreationResult.logs);
 
+  // 피해 받기 효과가 있으면 반환에 포함
+  const hasDamageTakenEffects = accumulatedDamageTakenEffects.blockNextTurn > 0 || accumulatedDamageTakenEffects.healNextTurn > 0;
+
   return {
     attacker: currentAttacker,
     defender: currentDefender,
@@ -196,7 +216,8 @@ export function applyAttack(
     isCritical,
     createdCards: cardCreationResult.createdCards,
     defenderTimelineAdvance: totalDefenderTimelineAdvance,
-    queueModifications
+    queueModifications,
+    ...(hasDamageTakenEffects && { damageTakenEffects: accumulatedDamageTakenEffects })
   };
 }
 

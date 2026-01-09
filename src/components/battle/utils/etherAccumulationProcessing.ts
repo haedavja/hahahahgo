@@ -15,6 +15,7 @@ import type {
   RelicTrigger,
   EtherCard
 } from '../../../types';
+import { applyRelicActivateEffects } from '../../../lib/relicEffects';
 
 /**
  * 에테르 누적 처리 액션
@@ -112,6 +113,7 @@ export function processPlayerEtherAccumulation({
 
   const newCount = resolvedPlayerCards + 1;
 
+  let relicActivateEtherBonus = 0;
   if (relics.length > 0) {
     const triggered = collectTriggeredRelics({
       orderedRelicList,
@@ -120,12 +122,21 @@ export function processPlayerEtherAccumulation({
       triggeredRefs
     });
 
+    // 상징 발동 시 묵주 효과 적용 (각 발동마다 에테르 획득)
+    if (triggered.length > 0) {
+      const activateEffects = applyRelicActivateEffects(orderedRelicList);
+      relicActivateEtherBonus = activateEffects.etherGain * triggered.length;
+      if (relicActivateEtherBonus > 0) {
+        actions.setTurnEtherAccumulated(newTurnEther + relicActivateEtherBonus);
+      }
+    }
+
     playRelicActivationSequence(triggered, flashRelic, actions.setRelicActivated);
   }
 
   actions.setResolvedPlayerCards(newCount);
 
-  return { newTurnEther, newResolvedPlayerCards: newCount };
+  return { newTurnEther: newTurnEther + relicActivateEtherBonus, newResolvedPlayerCards: newCount };
 }
 
 /**

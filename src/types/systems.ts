@@ -1038,6 +1038,8 @@ export interface CardPlayedChanges {
 export interface DamageTakenChanges {
   blockNextTurn: number;
   healNextTurn: number;
+  /** 피의 계약인: 즉시 힘 획득 */
+  strength: number;
 }
 
 /** 추가 슬롯 */

@@ -33,6 +33,8 @@ interface MultiHitResult {
   totalHits: number;
   createdCards?: Card[];
   defenderTimelineAdvance?: number;
+  /** 피해 받기 효과 누적 (철의 심장) */
+  damageTakenEffects?: { blockNextTurn: number; healNextTurn: number };
 }
 
 /**
@@ -55,6 +57,12 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
   let totalTaken = firstHitResult.damageTaken || 0;
   let totalBlockDestroyed: number = Number(firstHitResult.blockDestroyed) || 0;
   let totalTimelineAdvance = firstHitResult.timelineAdvance || 0;
+  // 피해 받기 효과 누적 (철의 심장)
+  const accumulatedDamageTakenEffects = { blockNextTurn: 0, healNextTurn: 0 };
+  if (firstHitResult.damageTakenEffects) {
+    accumulatedDamageTakenEffects.blockNextTurn += firstHitResult.damageTakenEffects.blockNextTurn;
+    accumulatedDamageTakenEffects.healNextTurn += firstHitResult.damageTakenEffects.healNextTurn;
+  }
 
   // 다중 타격 시 개별 데미지 로그 필터링 (Set으로 O(1) 조회)
   const skipEventTypes = hits > 1 ? new Set(['hit', 'blocked', 'pierce']) : null;
@@ -89,7 +97,8 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
         jammed: true,
         hitsCompleted: 1,
         totalHits: hits,
-        createdCards: finalResult.createdCards
+        createdCards: finalResult.createdCards,
+        damageTakenEffects: accumulatedDamageTakenEffects
       };
     }
   }
@@ -116,6 +125,11 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
     totalTaken += hitResult.damageTaken || 0;
     totalBlockDestroyed += Number(hitResult.blockDestroyed) || 0;
     totalTimelineAdvance += hitResult.timelineAdvance || 0;
+    // 피해 받기 효과 누적
+    if (hitResult.damageTakenEffects) {
+      accumulatedDamageTakenEffects.blockNextTurn += hitResult.damageTakenEffects.blockNextTurn;
+      accumulatedDamageTakenEffects.healNextTurn += hitResult.damageTakenEffects.healNextTurn;
+    }
 
     const filteredHitEvents = (hitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes?.has(ev.type));
     allEvents.push(...filteredHitEvents);
@@ -151,7 +165,8 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
           hitsCompleted: actualHits,
           totalHits: hits,
           createdCards: finalResult.createdCards,
-          defenderTimelineAdvance: totalTimelineAdvance
+          defenderTimelineAdvance: totalTimelineAdvance,
+          damageTakenEffects: accumulatedDamageTakenEffects
         };
       }
     }
@@ -195,6 +210,7 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
     hitsCompleted: hits,
     totalHits: hits,
     createdCards: finalResult.createdCards,
-    defenderTimelineAdvance: totalTimelineAdvance
+    defenderTimelineAdvance: totalTimelineAdvance,
+    damageTakenEffects: accumulatedDamageTakenEffects
   };
 }

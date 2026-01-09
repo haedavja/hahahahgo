@@ -206,6 +206,8 @@ export interface AttackResult {
   createdCards?: Card[];
   defenderTimelineAdvance?: number;
   queueModifications?: Array<{ index: number; newSp: number }>;
+  /** 피해 받기 효과 누적 (철의 심장, 피의 계약인) */
+  damageTakenEffects?: { blockNextTurn: number; healNextTurn: number };
 }
 
 /** 방어 행동 결과 */
@@ -705,6 +707,8 @@ export interface SingleHitResult {
   logs: string[];
   preProcessedResult?: PreProcessedResult | null;
   queueModifications?: Array<{ index: number; newSp: number }>;
+  /** 피해 받음 효과 (철의 심장, 피의 계약인 등) */
+  damageTakenEffects?: { blockNextTurn: number; healNextTurn: number; strength: number };
 }
 
 /** 다중 타격 준비 결과 */

@@ -39,7 +39,7 @@ import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse
 import { UNIFIED_CORE_FLAGS } from '../../../core/combat/types';
 import * as EffectCore from '../../../core/combat/effect-core';
 import { toUnifiedTokens, fromUnifiedTokens } from '../../../core/combat/token-core';
-import { calculateLowHpDamageModifiers } from '../../../lib/relicEffects';
+import { calculateLowHpDamageModifiers, applyDamageTakenEffects } from '../../../lib/relicEffects';
 
 /**
  * 반격 처리
@@ -832,6 +832,32 @@ export function calculateSingleHit(
     consumedTokens: attackerConsumedTokens
   };
 
+  // 피해 받기 상징 효과 (철의 심장, 피의 계약인)
+  // 적이 플레이어에게 피해를 입힐 때만 발동
+  let damageTakenEffects: { blockNextTurn: number; healNextTurn: number; strength: number } | undefined;
+  if (attackerName === 'enemy' && damageDealt > 0 && battleContext.relicIds) {
+    const effects = applyDamageTakenEffects(battleContext.relicIds, damageDealt);
+
+    // 피의 계약인: 즉시 힘 획득
+    if (effects.strength > 0) {
+      updatedDefender = {
+        ...updatedDefender,
+        strength: (updatedDefender.strength || 0) + effects.strength
+      };
+      const strengthMsg = `🩸 피의 계약인: 피해 받음! 힘 +${effects.strength}`;
+      events.push({ actor: 'player', type: 'relic' as 'hit', msg: strengthMsg } as BattleEvent);
+      logs.push(strengthMsg);
+    }
+
+    // 철의 심장: 다음 턴 효과 (blockNextTurn, healNextTurn)
+    if (effects.blockNextTurn > 0 || effects.healNextTurn > 0) {
+      damageTakenEffects = effects;
+      const ironHeartMsg = `❤️ 철의 심장: 피해 받음! 다음 턴 방어력 +${effects.blockNextTurn}, 체력 +${effects.healNextTurn}`;
+      events.push({ actor: 'player', type: 'relic' as 'hit', msg: ironHeartMsg } as BattleEvent);
+      logs.push(ironHeartMsg);
+    }
+  }
+
   return {
     attacker: updatedAttacker,
     defender: updatedDefender,
@@ -842,6 +868,7 @@ export function calculateSingleHit(
     events,
     logs,
     preProcessedResult: resultPreProcessed,
-    queueModifications
+    queueModifications,
+    damageTakenEffects
   };
 }

@@ -205,15 +205,18 @@ export function useTurnStartEffects({
     // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
     const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
     const effectiveMaxHp = player.maxHp ?? player.hp;
+    // 철의 심장: 피해 받기 효과 (다음 턴 방어력/체력)
+    const damageTakenHealBonus = nextTurnEffects.healNextTurn || 0;
+    const damageTakenBlockBonus = nextTurnEffects.blockNextTurn || 0;
     // fullHeal 효과: 체력 최대 회복
     let newHp: number;
     if (nextTurnEffects.fullHeal) {
       newHp = effectiveMaxHp;
       addLog(`💖 결투: 체력 최대 회복! (${reflectionHealedHp} → ${effectiveMaxHp})`);
     } else {
-      newHp = Math.min(effectiveMaxHp, reflectionHealedHp + turnStartRelicEffects.heal);
+      newHp = Math.min(effectiveMaxHp, reflectionHealedHp + turnStartRelicEffects.heal + damageTakenHealBonus);
     }
-    const newBlock = (player.block || 0) + turnStartRelicEffects.block;
+    const newBlock = (player.block || 0) + turnStartRelicEffects.block + damageTakenBlockBonus;
     // 방어력이 있으면 def도 true로 설정 (경계 토큰으로 유지된 방어력 포함)
     const newDef = newBlock > 0;
     // 성찰 효과로 얻은 토큰 적용
@@ -256,6 +259,10 @@ export function useTurnStartEffects({
     }
     if (turnStartRelicEffects.energy > 0) {
       addLog(`⚡ 상징 효과: 행동력 +${turnStartRelicEffects.energy}`);
+    }
+    // 철의 심장: 피해 받기 효과 로그
+    if (damageTakenBlockBonus > 0 || damageTakenHealBonus > 0) {
+      addLog(`❤️ 철의 심장: 방어력 +${damageTakenBlockBonus}, 체력 +${damageTakenHealBonus}`);
     }
     if (energyBonus > 0) {
       addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
