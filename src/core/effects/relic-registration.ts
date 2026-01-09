@@ -60,6 +60,17 @@ function createHandler(relicId: string, effects: Record<string, unknown>): (cont
       if (effects.strength) result.strength = effects.strength as number;
     }
 
+    // ON_TURN_START 효과
+    if (effects.type === 'ON_TURN_START') {
+      if (effects.block) result.blockNextTurn = effects.block as number;
+      if (effects.heal) result.healNextTurn = effects.heal as number;
+    }
+
+    // ON_TURN_END 효과
+    if (effects.type === 'ON_TURN_END') {
+      if (effects.strength) result.strength = effects.strength as number;
+    }
+
     // ON_SHOP_ENTER 효과
     if (effects.type === 'ON_SHOP_ENTER') {
       if (effects.discount) result.discount = effects.discount as number;
@@ -168,4 +179,27 @@ export function executeShopPurchaseEffects(
   purchasedItem: { type: string; id: string; cost: number }
 ): EffectResult {
   return EffectRegistry.execute('ON_SHOP_PURCHASE', relicIds, { purchasedItem });
+}
+
+/**
+ * 턴 시작 효과 실행 (EffectRegistry 기반)
+ * applyTurnStartEffects의 대체 함수
+ */
+export function executeTurnStartEffects(relicIds: string[]): EffectResult {
+  return EffectRegistry.execute('TURN_START', relicIds, {});
+}
+
+/**
+ * 턴 종료 효과 실행 (EffectRegistry 기반)
+ * applyTurnEndEffects의 대체 함수
+ */
+export function executeTurnEndEffects(relicIds: string[]): EffectResult {
+  return EffectRegistry.execute('TURN_END', relicIds, {});
+}
+
+/**
+ * 전투 종료 효과 실행 (EffectRegistry 기반)
+ */
+export function executeCombatEndEffects(relicIds: string[]): EffectResult {
+  return EffectRegistry.execute('ON_COMBAT_END', relicIds, {});
 }

@@ -26,6 +26,9 @@ export {
   executeDamageTakenEffects,
   executeRelicActivateEffects,
   executeCombatStartEffects,
+  executeCombatEndEffects,
+  executeTurnStartEffects,
+  executeTurnEndEffects,
   executeShopEnterEffects,
   executeShopPurchaseEffects,
 } from './relic-registration';

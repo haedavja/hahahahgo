@@ -39,7 +39,8 @@ import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse
 import { UNIFIED_CORE_FLAGS } from '../../../core/combat/types';
 import * as EffectCore from '../../../core/combat/effect-core';
 import { toUnifiedTokens, fromUnifiedTokens } from '../../../core/combat/token-core';
-import { calculateLowHpDamageModifiers, applyDamageTakenEffects } from '../../../lib/relicEffects';
+import { calculateLowHpDamageModifiers } from '../../../lib/relicEffects';
+import { executeDamageTakenEffects } from '../../../core/effects';
 
 /**
  * 반격 처리
@@ -836,7 +837,7 @@ export function calculateSingleHit(
   // 적이 플레이어에게 피해를 입힐 때만 발동
   let damageTakenEffects: { blockNextTurn: number; healNextTurn: number; strength: number } | undefined;
   if (attackerName === 'enemy' && damageDealt > 0 && battleContext.relicIds) {
-    const effects = applyDamageTakenEffects(battleContext.relicIds, damageDealt);
+    const effects = executeDamageTakenEffects(battleContext.relicIds, damageDealt);
 
     // 피의 계약인: 즉시 힘 획득
     if (effects.strength > 0) {
