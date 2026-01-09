@@ -37,6 +37,8 @@ vi.mock('../data/newEvents', () => ({
   STAT_EVENT_MIN_LAYER: 5,
   EXPENSIVE_SHOP_EVENTS: [],  // 테스트에서는 고비용 이벤트 없음
   EXPENSIVE_EVENT_MIN_LAYER: 4,
+  RESOURCE_REQUIRING_EVENTS: [],  // 테스트에서는 자원 요구 이벤트 없음
+  RESOURCE_EVENT_MIN_LAYER: 4,
 }));
 
 // Mock metaProgress

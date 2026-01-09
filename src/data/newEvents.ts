@@ -1219,6 +1219,64 @@ export const EXPENSIVE_SHOP_EVENTS = ['rare-collector'];
 // 고비용 상점 이벤트 최소 레이어 (첫 4개 층 이후)
 export const EXPENSIVE_EVENT_MIN_LAYER = 4;
 
+/**
+ * 이벤트가 자원(골드, 은총화, 원자재 등)을 요구하는 선택지만 있는지 확인
+ * 초반 노드에서는 자원 요구 없이 선택에 따라 보상/페널티만 있는 이벤트만 등장
+ *
+ * "자원 요구 이벤트" 정의:
+ * - 모든 유효한 선택지가 cost를 요구하거나
+ * - 보상을 얻으려면 반드시 cost를 지불해야 하는 이벤트
+ */
+export function hasOnlyResourceCostChoices(eventKey: string): boolean {
+  const event = NEW_EVENT_LIBRARY[eventKey];
+  if (!event) return false;
+
+  // 자원 비용 키 (HP는 제외 - HP 손실은 허용)
+  const resourceCostKeys = ['gold', 'grace', 'material', 'intel', 'loot', 'etherPts'];
+
+  const hasResourceCost = (choice: { cost?: Record<string, unknown> }): boolean => {
+    if (!choice.cost) return false;
+    return resourceCostKeys.some(key =>
+      choice.cost && typeof choice.cost[key] === 'number' && (choice.cost[key] as number) > 0
+    );
+  };
+
+  // 최상위 choices 확인 - 무비용 선택지가 있으면 OK
+  if (event.choices) {
+    const hasFreePath = event.choices.some(c => !hasResourceCost(c) && !c.nextStage);
+    if (hasFreePath) return false;
+
+    // 모든 선택지가 비용을 요구하면 자원 요구 이벤트
+    const allRequireCost = event.choices.every(c => hasResourceCost(c) || c.nextStage);
+    if (allRequireCost && event.choices.some(c => hasResourceCost(c))) return true;
+  }
+
+  // stages 확인 - 모든 단계에서 보상을 얻으려면 비용이 필요한지
+  if (event.stages) {
+    for (const stage of Object.values(event.stages)) {
+      // 해당 단계에 무비용 보상 선택지가 있으면 OK
+      const hasFreeBenefit = stage.choices?.some(c =>
+        !hasResourceCost(c) && (c.rewards || c.openShop)
+      );
+      if (hasFreeBenefit) continue;
+
+      // 모든 보상 선택지가 비용을 요구하면 자원 요구 이벤트
+      const rewardChoices = stage.choices?.filter(c => c.rewards || c.openShop) || [];
+      if (rewardChoices.length > 0 && rewardChoices.every(c => hasResourceCost(c))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// 자원 요구 이벤트 최소 레이어 (첫 4개 층 이후)
+export const RESOURCE_EVENT_MIN_LAYER = 4;
+
+// 자원 요구 이벤트 키 목록 (캐시)
+export const RESOURCE_REQUIRING_EVENTS = EVENT_KEYS.filter(hasOnlyResourceCostChoices);
+
 // 특수 상징 정보
 export const SPECIAL_RELICS = {
   "alparius-emblem": {
