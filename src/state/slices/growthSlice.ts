@@ -428,13 +428,14 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
 
   usePathos: (pathosId: string) =>
     set((state) => {
-      // 전투 중 파토스 사용 - 쿨다운 관리는 battleState에서 처리
-      // 여기서는 사용 가능 여부만 체크
+      // 전투 중 파토스 사용
+      // 쿨다운 관리: usePathosManagement 훅 (src/components/battle/hooks/)
+      // 효과 적용: pathosEffects.ts (src/lib/)
       const growth = state.growth || initialGrowthState;
 
       if (!growth.equippedPathos.includes(pathosId)) return state;
 
-      // TODO: 쿨다운 체크 및 효과 적용은 전투 시스템에서 처리
+      // 실제 쿨다운 체크 및 효과는 usePathosManagement에서 처리됨
       return state;
     }),
 

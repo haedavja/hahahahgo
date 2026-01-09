@@ -17,6 +17,11 @@ import type { DetailedStats } from '../analysis/detailed-stats-types';
 let statsModulePromise: Promise<typeof import('../analysis/detailed-stats')> | null = null;
 let statsModule: typeof import('../analysis/detailed-stats') | null = null;
 
+// 대기 중인 작업 큐 (모듈 로드 전 호출된 기록 함수들)
+type PendingOperation = () => void;
+let pendingOperations: PendingOperation[] = [];
+let isFlushingPending = false;
+
 /**
  * detailed-stats 모듈 동적 로드 (캐시됨)
  */
@@ -26,7 +31,39 @@ async function loadStatsModule(): Promise<typeof import('../analysis/detailed-st
     statsModulePromise = import('../analysis/detailed-stats');
   }
   statsModule = await statsModulePromise;
+
+  // 모듈 로드 완료 후 대기 중인 작업 실행
+  flushPendingOperations();
+
   return statsModule;
+}
+
+/**
+ * 대기 중인 작업 큐에 추가
+ */
+function queueOperation(operation: PendingOperation): void {
+  pendingOperations.push(operation);
+}
+
+/**
+ * 대기 중인 작업들 실행
+ */
+function flushPendingOperations(): void {
+  if (isFlushingPending || !statsModule || !globalStatsCollector) return;
+
+  isFlushingPending = true;
+  const ops = [...pendingOperations];
+  pendingOperations = [];
+
+  for (const op of ops) {
+    try {
+      op();
+    } catch (e) {
+      console.warn('[StatsBridge] Failed to execute pending operation:', e);
+    }
+  }
+
+  isFlushingPending = false;
 }
 
 /**
@@ -312,7 +349,7 @@ function saveStatsToStorage(): void {
 
 /**
  * 전역 통계 수집기 가져오기 또는 생성 (동기)
- * 주의: 모듈이 아직 로드되지 않았으면 동기적으로 로드를 시도합니다.
+ * 모듈이 아직 로드되지 않았으면 큐잉 수집기를 반환하여 작업을 대기시킵니다.
  */
 export function getStatsCollector(): StatsCollector {
   if (!globalStatsCollector) {
@@ -320,17 +357,19 @@ export function getStatsCollector(): StatsCollector {
     if (statsModule) {
       globalStatsCollector = statsModule.createStatsCollector();
       isInitialized = true;
+      // 모듈 로드 완료 후 대기 작업 실행
+      flushPendingOperations();
     } else {
-      // 아직 로드되지 않은 경우 - 동적 로드 시작하고 임시 수집기 반환
-      // 이 경로는 initStatsBridge()가 호출되지 않은 경우에만 실행됨
+      // 아직 로드되지 않은 경우 - 동적 로드 시작하고 큐잉 수집기 반환
       loadStatsModule().then(mod => {
         if (!globalStatsCollector) {
           globalStatsCollector = mod.createStatsCollector();
           isInitialized = true;
         }
+        // 대기 중인 작업 실행은 loadStatsModule에서 처리
       });
-      // 임시로 빈 수집기 반환 (noop) - 다음 호출에서 실제 수집기 사용
-      return createNoopCollector();
+      // 큐잉 수집기 반환 - 작업을 대기열에 추가하여 나중에 실행
+      return createQueuingCollector();
     }
   }
   return globalStatsCollector;
@@ -487,6 +526,56 @@ function createNoopCollector(): StatsCollector {
     recordFloorSnapshot: noop,
     recordDeath: noop,
     finalizeRunCardStats: noop,
+    finalize: () => emptyStats,
+  } as StatsCollector;
+}
+
+/**
+ * 모듈 로드 전 작업을 큐에 추가하는 수집기
+ * 모듈 로드 후 실제 수집기에서 실행됨
+ */
+function createQueuingCollector(): StatsCollector {
+  const emptyStats = createEmptyDetailedStats();
+
+  // 큐잉 래퍼 생성 - 인자를 캡처하여 나중에 실행
+  const createQueuedMethod = <T extends unknown[]>(
+    methodName: keyof StatsCollector
+  ) => {
+    return (...args: T) => {
+      queueOperation(() => {
+        if (globalStatsCollector) {
+          const method = globalStatsCollector[methodName];
+          if (typeof method === 'function') {
+            (method as (...args: T) => void).apply(globalStatsCollector, args);
+          }
+        }
+      });
+    };
+  };
+
+  return {
+    startNewRun: createQueuedMethod('startNewRun'),
+    recordBattle: createQueuedMethod('recordBattle'),
+    recordRun: createQueuedMethod('recordRun'),
+    recordRunComplete: createQueuedMethod('recordRunComplete'),
+    recordCardOffered: createQueuedMethod('recordCardOffered'),
+    recordCardPicked: createQueuedMethod('recordCardPicked'),
+    recordCardChoice: createQueuedMethod('recordCardChoice'),
+    recordRelicAcquired: createQueuedMethod('recordRelicAcquired'),
+    recordShopVisit: createQueuedMethod('recordShopVisit'),
+    recordShopService: createQueuedMethod('recordShopService'),
+    recordEvent: createQueuedMethod('recordEvent'),
+    recordEventChoice: createQueuedMethod('recordEventChoice'),
+    recordDungeon: createQueuedMethod('recordDungeon'),
+    recordItemAcquired: createQueuedMethod('recordItemAcquired'),
+    recordItemUsed: createQueuedMethod('recordItemUsed'),
+    recordGrowthInvestment: createQueuedMethod('recordGrowthInvestment'),
+    recordTurnDamage: createQueuedMethod('recordTurnDamage'),
+    recordFlawlessVictory: createQueuedMethod('recordFlawlessVictory'),
+    recordFloorSnapshot: createQueuedMethod('recordFloorSnapshot'),
+    recordDeath: createQueuedMethod('recordDeath'),
+    finalizeRunCardStats: createQueuedMethod('finalizeRunCardStats'),
+    // finalize는 즉시 빈 통계 반환 (큐잉 불가능)
     finalize: () => emptyStats,
   } as StatsCollector;
 }
