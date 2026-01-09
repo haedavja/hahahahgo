@@ -20,6 +20,7 @@ import type {
   GroupedEnemyMember,
   PhaseBattle as Battle
 } from '../../../types';
+import type { EnemyStackState } from '../../../types/enemy';
 
 // =====================
 // 스타일 상수
@@ -323,6 +324,44 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
     return dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`;
   }, [dulledLevel, enemyEtherValue, enemy?.etherCapacity]);
 
+  // 스택 정보 계산
+  const stackInfo = useMemo(() => {
+    const stack = (enemy as { stack?: EnemyStackState }).stack;
+    if (!stack || stack.current === 0) return null;
+
+    const ratio = Math.min(stack.current / stack.config.threshold, 1);
+    return {
+      current: stack.current,
+      threshold: stack.config.threshold,
+      ratio,
+      // 푸른 강철 효과 강도 (스택 비율에 따라 0~1)
+      steelIntensity: ratio
+    };
+  }, [enemy]);
+
+  // 푸른 강철 효과 스타일 (스택 비율에 따라 강도 조절)
+  const steelOverlayStyle = useMemo((): CSSProperties | null => {
+    if (!stackInfo) return null;
+    const intensity = stackInfo.steelIntensity;
+    return {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: '50%',
+      background: `radial-gradient(circle at 30% 30%,
+        rgba(96, 165, 250, ${intensity * 0.3}),
+        rgba(59, 130, 246, ${intensity * 0.4}),
+        rgba(37, 99, 235, ${intensity * 0.5}))`,
+      boxShadow: `0 0 ${20 + intensity * 30}px rgba(59, 130, 246, ${intensity * 0.8}),
+                  inset 0 0 ${10 + intensity * 15}px rgba(147, 197, 253, ${intensity * 0.6})`,
+      pointerEvents: 'none' as const,
+      transition: 'all 0.3s ease',
+      zIndex: 1
+    };
+  }, [stackInfo]);
+
   return (
     <div
       style={CONTAINER_STYLE}
@@ -417,18 +456,34 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
       </div>
       <div
         className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-        title={soulOrbTitle}
-        style={SOUL_ORB_STYLE}
+        title={stackInfo ? `${soulOrbTitle} | 스택: ${stackInfo.current}/${stackInfo.threshold}` : soulOrbTitle}
+        style={{ ...SOUL_ORB_STYLE, position: 'fixed' as const }}
         role="meter"
         aria-label="적 에테르 (소울)"
         aria-valuenow={dulledLevel >= 3 ? 0 : enemyEtherValue}
         aria-valuemin={0}
         aria-valuemax={enemy?.etherCapacity ?? enemyEtherValue}
       >
-        <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+        <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})`, position: 'relative' }}>
+          {/* 푸른 강철 효과 오버레이 (스택이 있을 때만) */}
+          {steelOverlayStyle && <div style={steelOverlayStyle} />}
+        </div>
         <div className="soul-orb-content">
           <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
           <div className="soul-orb-label">SOUL</div>
+          {/* 스택 표시 (있을 때만) */}
+          {stackInfo && dulledLevel < 3 && (
+            <div style={{
+              marginTop: '2px',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              color: '#93c5fd',
+              textShadow: '0 0 4px rgba(59, 130, 246, 0.8)',
+              letterSpacing: '0.05em'
+            }}>
+              ⚔ {stackInfo.current}/{stackInfo.threshold}
+            </div>
+          )}
         </div>
       </div>
       {/* 은총 오브 */}

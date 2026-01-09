@@ -38,12 +38,28 @@ export function calculateTurnEndEther({
 
   const playerFinalEther = playerDeflation.gain;
 
-  const enemyComboMult = enemyCombo ? (COMBO_MULTIPLIERS[enemyCombo.name || ''] || 1) : 1;
-  const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+  // 보스 여부 확인: 보스만 콤보 배율 적용, 일반 몬스터는 etherPerTurn 고정값
+  const isBoss = (enemy as { isBoss?: boolean }).isBoss === true;
+  const passives = (enemy as { passives?: { etherPerTurn?: number } }).passives;
+  const etherPerTurn = passives?.etherPerTurn;
 
-  const enemyDeflation = enemyCombo?.name
-    ? applyEtherDeflation(enemyBeforeDeflation, enemyCombo.name, enemy.comboUsageCount || {})
-    : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
+  let enemyComboMult: number;
+  let enemyBeforeDeflation: number;
+  let enemyDeflation: { gain: number; multiplier: number; usageCount: number };
+
+  if (!isBoss && etherPerTurn !== undefined) {
+    // 일반 몬스터: etherPerTurn 고정값 사용 (콤보 무시)
+    enemyComboMult = 1;
+    enemyBeforeDeflation = etherPerTurn;
+    enemyDeflation = { gain: etherPerTurn, multiplier: 1, usageCount: 0 };
+  } else {
+    // 보스: 기존 콤보 배율 + 디플레이션 적용
+    enemyComboMult = enemyCombo ? (COMBO_MULTIPLIERS[enemyCombo.name || ''] || 1) : 1;
+    enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+    enemyDeflation = enemyCombo?.name
+      ? applyEtherDeflation(enemyBeforeDeflation, enemyCombo.name, enemy.comboUsageCount || {})
+      : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
+  }
 
   const enemyTokens = getAllTokens(enemy);
   const hasHalfEther = enemyTokens.some((t: { id: string }) => t.id === 'half_ether');

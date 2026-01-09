@@ -1148,7 +1148,8 @@ export const ENEMIES: EnemyDefinition[] = [
     onSoulBreak: 'death',  // 영혼 의존 - 즉시 사망
     category: 'spectral',
     passives: {
-      blurPerTurn: 1  // 영혼형: 매턴 흐릿함 1회 획득
+      blurPerTurn: 1,  // 영혼형: 매턴 흐릿함 1회 획득
+      etherPerTurn: 15  // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
     }
   },
   {
@@ -1164,7 +1165,10 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다.",
     onSoulBreak: 'stun',  // 인간형 - 1턴 기절
-    category: 'physical'
+    category: 'physical',
+    passives: {
+      etherPerTurn: 8  // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
+    }
   },
   {
     id: "deserter",
@@ -1182,7 +1186,8 @@ export const ENEMIES: EnemyDefinition[] = [
     category: 'physical',
     passives: {
       veilAtStart: true,      // 전투 시작 시 장막 (통찰 차단)
-      healPerTurn: 4          // 매턴 체력 4 회복
+      healPerTurn: 4,         // 매턴 체력 4 회복
+      etherPerTurn: 20        // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
     }
   },
   {
@@ -1217,7 +1222,10 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편.",
     onSoulBreak: 'weaken',  // 변이체 - 2턴 쇠약
-    category: 'mutant'
+    category: 'mutant',
+    passives: {
+      etherPerTurn: 18  // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
+    }
   },
 
   // === 1막 신규 일반 적 ===
@@ -1234,7 +1242,10 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "빠르고 약한 적. 떼로 나타나면 성가시다.",
     onSoulBreak: 'stun',  // 야수형 - 1턴 기절
-    category: 'beast'
+    category: 'beast',
+    passives: {
+      etherPerTurn: 5  // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
+    }
   },
   {
     id: "berserker",
@@ -1251,7 +1262,8 @@ export const ENEMIES: EnemyDefinition[] = [
     onSoulBreak: 'stun',  // 인간형 - 1턴 기절
     category: 'physical',
     passives: {
-      strengthPerTurn: 1  // 광폭화: 매턴 힘 1 증가
+      strengthPerTurn: 1,  // 광폭화: 매턴 힘 1 증가
+      etherPerTurn: 12     // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
     }
   },
   {
@@ -1267,7 +1279,10 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "방사능에 오염된 괴생명체. 독을 뿌리며 최후엔 자폭한다.",
     onSoulBreak: 'weaken',  // 변이체 - 2턴 쇠약
-    category: 'mutant'
+    category: 'mutant',
+    passives: {
+      etherPerTurn: 16  // 일반 몬스터: 고정 에테르 (조합 콤보 없음)
+    }
   },
 
   // === 1막 엘리트 적 ===
