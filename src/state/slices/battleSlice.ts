@@ -145,6 +145,9 @@ export const createBattleActions: SliceCreator = (set) => ({
         rewards: battleConfig.rewards ?? { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
         difficulty: enemy?.tier || 2,
         enemyInfo,
+        // 다중 적 전투용 (buildBattlePayload에서 사용)
+        enemies: battleConfig.composition,
+        enemyCount: battleConfig.enemyCount,
         playerLibrary: toBattleCards(playerLibrary),
         playerDrawPile: toBattleCards(playerDrawPile),
         playerDiscardPile: [],
