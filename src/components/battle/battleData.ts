@@ -1159,7 +1159,7 @@ export const ENEMIES: EnemyDefinition[] = [
     speed: 6,
     maxSpeed: 6,
     deck: ["wildrat_bite", "wildrat_bite", "wildrat_swarm", "wildrat_flee"],
-    cardsPerTurn: 2,
+    cardsPerTurn: 1,  // 1마리당 1장, x4면 4장
     emoji: "🐀",
     tier: 1,
     description: "빠르고 약한 적. 떼로 나타나면 성가시다."
