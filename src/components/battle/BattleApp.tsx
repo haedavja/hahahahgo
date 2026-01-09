@@ -756,7 +756,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     playSound,
     addLog,
     actions,
-    nextTurnEffects
+    nextTurnEffects,
+    relics: orderedRelics
   });
 
   // 패 관리 (커스텀 훅으로 분리)
@@ -797,7 +798,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     actions,
     pathosNextCardEffects,
     consumeNextCardEffects,
-    nextTurnEffects
+    nextTurnEffects,
+    relics: orderedRelics
   });
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)

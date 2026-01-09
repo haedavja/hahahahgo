@@ -28,6 +28,9 @@ interface NextTurnEffectsState {
   [key: string]: unknown;
 }
 
+/** 상징 정보 타입 */
+type RelicInfo = string | { id: string; [key: string]: unknown };
+
 interface UseCardSelectionParams {
   battlePhase: string;
   battleSelected: Card[];
@@ -46,6 +49,7 @@ interface UseCardSelectionParams {
   addLog: LogFunction;
   actions: CardSelectionActions;
   nextTurnEffects?: NextTurnEffectsState | null;
+  relics?: RelicInfo[];
 }
 
 /**
@@ -72,6 +76,7 @@ export function useCardSelection({
   addLog,
   actions,
   nextTurnEffects,
+  relics,
 }: UseCardSelectionParams) {
   // 토큰 검증 훅 사용 (종속성: player)
   const { checkRequiredTokens } = useTokenValidation(player);
@@ -86,6 +91,7 @@ export function useCardSelection({
     addLog,
     actions,
     nextTurnEffects,
+    relics,
   });
 
   /**
@@ -149,12 +155,20 @@ export function useCardSelection({
     (cards: Card[]) => {
       const combo = detectPokerCombo(cards);
       const enhanced = applyPokerBonus(cards, combo);
-      const speedReduction = nextTurnEffects?.speedCostReduction || 0;
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility, undefined, undefined, speedReduction);
+
+      // 웃는 종(laughingBell): 낸 카드가 3장 이하면 카드의 시간소모 5 감소
+      const hasLaughingBell = relics?.some(r => (typeof r === 'string' ? r : r.id) === 'laughingBell');
+      const laughingBellApplies = hasLaughingBell && cards.length <= 3 && cards.length > 0;
+      const laughingBellReduction = laughingBellApplies ? 5 : 0;
+
+      const nextTurnReduction = nextTurnEffects?.speedCostReduction || 0;
+      const totalSpeedReduction = laughingBellReduction + nextTurnReduction;
+
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility, undefined, undefined, totalSpeedReduction);
       actions.setFixedOrder(withSp);
       actions.setSelected(cards);
     },
-    [enemyPlanActions, effectiveAgility, actions, nextTurnEffects]
+    [enemyPlanActions, effectiveAgility, actions, nextTurnEffects, relics]
   );
 
   /**

@@ -88,6 +88,9 @@ interface NextTurnEffectsState {
   [key: string]: unknown;
 }
 
+/** 상징 정보 타입 */
+type RelicInfo = string | { id: string; [key: string]: unknown };
+
 /** 페이즈 전환 훅 파라미터 */
 interface UsePhaseTransitionParams {
   battleRef: MutableRefObject<BattleRefValue | null>;
@@ -112,6 +115,7 @@ interface UsePhaseTransitionParams {
   pathosNextCardEffects?: PathosNextCardEffects;
   consumeNextCardEffects?: () => void;
   nextTurnEffects?: NextTurnEffectsState | null;
+  relics?: RelicInfo[];
 }
 
 /** 페이즈 전환 훅 반환 타입 */
@@ -148,7 +152,8 @@ export function usePhaseTransition({
   actions,
   pathosNextCardEffects,
   consumeNextCardEffects,
-  nextTurnEffects
+  nextTurnEffects,
+  relics
 }: UsePhaseTransitionParams): UsePhaseTransitionReturn {
   // select → respond 전환
   const startResolve = useCallback(() => {
@@ -188,10 +193,23 @@ export function usePhaseTransition({
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
     const currentPlayer = currentBattle.player as PlayerBattleState;
-    const speedReduction = nextTurnEffects?.speedCostReduction || 0;
+
+    // 웃는 종(laughingBell): 낸 카드가 3장 이하면 카드의 시간소모 5 감소 (현재 턴 적용)
+    const hasLaughingBell = relics?.some(r => (typeof r === 'string' ? r : r.id) === 'laughingBell');
+    const laughingBellApplies = hasLaughingBell && selected.length <= 3 && selected.length > 0;
+    const laughingBellReduction = laughingBellApplies ? 5 : 0;
+
+    // nextTurnEffects의 speedCostReduction은 이전 턴에서 누적된 효과
+    const nextTurnReduction = nextTurnEffects?.speedCostReduction || 0;
+    const totalSpeedReduction = laughingBellReduction + nextTurnReduction;
+
+    if (laughingBellApplies) {
+      addLog(`🔔 웃는 종: 카드 ${selected.length}장 → 시간소모 -5`);
+    }
+
     const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility, undefined, undefined, speedReduction)
-      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0, speedReduction);
+      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility, undefined, undefined, totalSpeedReduction)
+      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0, totalSpeedReduction);
     actions.setFixedOrder(q);
 
     if (currentPlayer.enemyFrozen) {
@@ -213,7 +231,7 @@ export function usePhaseTransition({
     }
     playCardSubmitSound();
     actions.setPhase('respond');
-  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsed, actions, nextTurnEffects]);
+  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsed, actions, nextTurnEffects, relics, addLog]);
 
   // respond → resolve 전환
   const beginResolveFromRespond = useCallback(() => {
