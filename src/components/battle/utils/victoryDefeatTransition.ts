@@ -53,7 +53,8 @@ export function processVictoryDefeatTransition({
 
     // 영혼파괴 상태 및 토큰 적용
     if (actions.setEnemy && enemy) {
-      let updatedEnemy = { ...enemy, soulBroken: true };
+      // 에테르를 0으로 리셋 (영혼파괴 트리거됨)
+      let updatedEnemy = { ...enemy, soulBroken: true, etherPts: 0 };
 
       if (victoryCheck.soulBreakEffect === 'stun') {
         const tokenResult = addToken(updatedEnemy, 'soulStun', 1);
@@ -67,6 +68,11 @@ export function processVictoryDefeatTransition({
 
       actions.setEnemy(updatedEnemy);
     }
+
+    // 영혼파괴 이펙트 1.2초 후 해제
+    setTimeout(() => {
+      actions.setSoulShatter(false);
+    }, 1200);
 
     // 영혼파괴 이펙트 표시 후 전투 계속
     return { shouldReturn: false, isVictory: false, isDefeat: false };
