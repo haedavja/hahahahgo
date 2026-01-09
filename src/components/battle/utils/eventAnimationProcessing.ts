@@ -11,6 +11,7 @@
 import type {
   SimActionEvent as AnimActionEvent,
 } from '../../../types';
+import { BATTLE_TIMING, UI_TIMING } from '../../../core/effects';
 
 // 이벤트 애니메이션에서 필요한 action 최소 속성
 interface AnimAction {
@@ -33,7 +34,7 @@ function triggerScreenShake(intensity: number = 1): void {
   const root = document.getElementById('root');
   if (root) {
     root.classList.add('screen-shake');
-    setTimeout(() => root.classList.remove('screen-shake'), 250);
+    setTimeout(() => root.classList.remove('screen-shake'), BATTLE_TIMING.SCREEN_SHAKE);
   }
 }
 
@@ -54,7 +55,7 @@ function createDamagePopup(target: 'player' | 'enemy', value: number, type: 'dam
   }
 
   document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 800);
+  setTimeout(() => popup.remove(), UI_TIMING.POPUP_DISPLAY);
 }
 
 /**
@@ -83,12 +84,12 @@ export function processActionEventAnimations({
 
       if (ev.actor === 'player') {
         actions.setEnemyHit(true);
-        setTimeout(() => actions.setEnemyHit(false), 300);
+        setTimeout(() => actions.setEnemyHit(false), BATTLE_TIMING.HIT_ANIMATION);
       } else {
         const shakeIntensity = ev.dmg >= 15 ? 3 : (ev.dmg >= 8 ? 2 : 1);
         triggerScreenShake(shakeIntensity);
         actions.setPlayerHit(true);
-        setTimeout(() => actions.setPlayerHit(false), 300);
+        setTimeout(() => actions.setPlayerHit(false), BATTLE_TIMING.HIT_ANIMATION);
       }
     }
 
@@ -103,10 +104,10 @@ export function processActionEventAnimations({
 
       if (ev.actor === 'player') {
         actions.setPlayerBlockAnim(true);
-        setTimeout(() => actions.setPlayerBlockAnim(false), 400);
+        setTimeout(() => actions.setPlayerBlockAnim(false), BATTLE_TIMING.BLOCK_ANIMATION);
       } else {
         actions.setEnemyBlockAnim(true);
-        setTimeout(() => actions.setEnemyBlockAnim(false), 400);
+        setTimeout(() => actions.setEnemyBlockAnim(false), BATTLE_TIMING.BLOCK_ANIMATION);
       }
     }
 
@@ -118,11 +119,11 @@ export function processActionEventAnimations({
         triggerScreenShake(2);
         createDamagePopup('player', ev.dmg || 0, 'damage');
         actions.setPlayerHit(true);
-        setTimeout(() => actions.setPlayerHit(false), 300);
+        setTimeout(() => actions.setPlayerHit(false), BATTLE_TIMING.HIT_ANIMATION);
       } else {
         createDamagePopup('enemy', ev.dmg || 0, 'damage');
         actions.setEnemyHit(true);
-        setTimeout(() => actions.setEnemyHit(false), 300);
+        setTimeout(() => actions.setEnemyHit(false), BATTLE_TIMING.HIT_ANIMATION);
       }
     }
   });

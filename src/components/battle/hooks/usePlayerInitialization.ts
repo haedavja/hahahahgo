@@ -140,7 +140,7 @@ export function usePlayerInitialization(params: UsePlayerInitializationParams): 
         actions.setInsightAnimLevel(Math.min(3, safeInitialPlayer?.insight || 0));
         actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
         setTimeout(() => actions.setInsightAnimLevel(0), ANIMATION_TIMING.INSIGHT_ANIMATION);
-        setTimeout(() => actions.setInsightBadge({ ...(battle.insightBadge as Record<string, unknown>), show: false }), 1200);
+        setTimeout(() => actions.setInsightBadge({ ...(battle.insightBadge as Record<string, unknown>), show: false }), ANIMATION_TIMING.INSIGHT_ANIMATION);
       }, 50);
     }
     actions.setPhase('select');

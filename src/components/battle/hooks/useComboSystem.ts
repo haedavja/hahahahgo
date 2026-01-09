@@ -8,6 +8,7 @@ import { useMemo, useEffect } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, calculateComboEtherGain } from '../utils/etherCalculations';
 import type { UseComboSystemParams } from '../../../types/hooks';
+import { UI_TIMING } from '../../../core/effects';
 
 /**
  * 콤보 시스템 훅
@@ -63,7 +64,7 @@ export function useComboSystem({
   useEffect(() => {
     if (battlePhase !== 'resolve') return;
     actions.setMultiplierPulse(true);
-    const t = setTimeout(() => actions.setMultiplierPulse(false), 250);
+    const t = setTimeout(() => actions.setMultiplierPulse(false), UI_TIMING.MULTIPLIER_PULSE);
     return () => clearTimeout(t);
   }, [finalComboMultiplier, battlePhase, actions]);
 

@@ -16,7 +16,7 @@ import type {
   EtherCard
 } from '../../../types';
 import { RELIC_TONE_BY_TYPE } from '../../../core/effects/effect-audio';
-import { executeRelicActivateEffects } from '../../../core/effects';
+import { executeRelicActivateEffects, UI_TIMING } from '../../../core/effects';
 
 /**
  * 에테르 누적 처리 액션
@@ -110,7 +110,7 @@ export function processPlayerEtherAccumulation({
   actions.setTurnEtherAccumulated(newTurnEther);
 
   actions.setEtherPulse(true);
-  setTimeout(() => actions.setEtherPulse(false), 300);
+  setTimeout(() => actions.setEtherPulse(false), UI_TIMING.ETHER_PULSE);
 
   const newCount = resolvedPlayerCards + 1;
 

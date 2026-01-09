@@ -44,3 +44,11 @@ export {
   executeCardPlayedEffects,
   executeCardExhaustEffects,
 } from './relic-registration';
+
+export {
+  BATTLE_TIMING,
+  UI_TIMING,
+  MESSAGE_TIMING,
+  INIT_TIMING,
+} from './animation-timing';
+export type { AnimationTiming } from './animation-timing';

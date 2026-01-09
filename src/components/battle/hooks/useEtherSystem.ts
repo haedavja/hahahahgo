@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ETHER_THRESHOLD } from '../battleData';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost, MAX_SLOTS } from '../../../lib/etherUtils';
+import { UI_TIMING } from '../../../core/effects';
 
 /**
  * useEtherSystem Hook
@@ -65,7 +66,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
         // 오버드라이브 도달 시 플래시
         if (pts + amount >= threshold && pts < threshold) {
           setOverdriveFlash(true);
-          setTimeout(() => setOverdriveFlash(false), 1000);
+          setTimeout(() => setOverdriveFlash(false), UI_TIMING.OVERDRIVE_FLASH);
         }
       }, 500);
     } else {

@@ -10,6 +10,7 @@
 
 import { useCallback, type MutableRefObject } from 'react';
 import type { BattleResult } from '../../../types';
+import { UI_TIMING } from '../../../core/effects';
 
 interface PlayerState {
   etherPts?: number;
@@ -88,7 +89,7 @@ export function useBattleResultCallbacks(params: UseBattleResultCallbacksParams)
     if (!outcome) return;
     notifyBattleResult(outcome);
     if (typeof window !== 'undefined' && window.top === window) {
-      setTimeout(() => { window.location.href = '/'; }, 100);
+      setTimeout(() => { window.location.href = '/'; }, UI_TIMING.REDIRECT_DELAY);
     }
   }, [postCombatOptions, enemy, player, notifyBattleResult]);
 

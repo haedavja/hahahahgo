@@ -21,6 +21,7 @@ import { useMemo, useEffect, useRef } from 'react';
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from '../utils/insightSystem';
 import type { UseInsightSystemParams } from '../../../types/hooks';
 import type { InsightUnit } from '../../../types';
+import { UI_TIMING } from '../../../core/effects';
 
 /**
  * 통찰 시스템 훅
@@ -114,7 +115,7 @@ export function useInsightSystem({
       actions.setInsightAnimLevel(lvl);
       actions.setInsightAnimPulseKey((k: number) => k + 1);
       playInsightSound(Math.min(lvl, 3));
-      insightAnimTimerRef.current = setTimeout(() => actions.setInsightAnimLevel(0), 1200);
+      insightAnimTimerRef.current = setTimeout(() => actions.setInsightAnimLevel(0), UI_TIMING.INSIGHT_ANIMATION);
     } else {
       actions.setInsightAnimLevel(0);
     }
