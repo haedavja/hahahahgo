@@ -25,13 +25,16 @@ vi.mock('../../../data/relics', () => ({
 }));
 
 vi.mock('../../../lib/relicEffects', () => ({
-  applyTurnStartEffects: vi.fn(() => ({
+  calculatePassiveEffects: vi.fn(() => ({
+    etherMultiplier: 1
+  }))
+}));
+
+vi.mock('../../../core/effects', () => ({
+  executeTurnStartEffects: vi.fn(() => ({
     energy: 0,
     block: 0,
     heal: 0
-  })),
-  calculatePassiveEffects: vi.fn(() => ({
-    etherMultiplier: 1
   }))
 }));
 

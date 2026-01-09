@@ -47,8 +47,11 @@ vi.mock('../utils/cardTraitEffects', () => ({
 }));
 
 vi.mock('../../../lib/relicEffects', () => ({
-  applyTurnEndEffects: vi.fn(() => ({})),
   calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 }))
+}));
+
+vi.mock('../../../core/effects', () => ({
+  executeTurnEndEffects: vi.fn(() => ({ strength: 0 }))
 }));
 
 vi.mock('../utils/turnEndRelicEffectsProcessing', () => ({

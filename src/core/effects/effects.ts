@@ -33,6 +33,20 @@ export type EffectTiming =
   | 'ON_SHOP_PURCHASE';
 
 /**
+ * 턴 상태 (조건부 효과 판단용)
+ */
+export interface TurnState {
+  /** 이번 턴 사용한 카드 수 */
+  cardsPlayedThisTurn?: number;
+  /** 모든 카드가 방어 카드인지 */
+  allCardsDefense?: boolean;
+  /** 모든 카드가 저비용(1코스트 이하)인지 */
+  allCardsLowCost?: boolean;
+  /** 이번 턴 피격 횟수 */
+  timesAttackedThisTurn?: number;
+}
+
+/**
  * 효과 컨텍스트 (핸들러에 전달되는 정보)
  */
 export interface EffectContext {
@@ -46,6 +60,8 @@ export interface EffectContext {
   purchasedItem?: { type: string; id: string; cost: number };
   /** 발동한 상징 목록 (ON_RELIC_ACTIVATE) */
   triggeredRelics?: string[];
+  /** 턴 상태 (조건부 효과용) */
+  turnState?: TurnState;
 }
 
 /**
@@ -62,6 +78,8 @@ export interface EffectResult {
   blockNextTurn?: number;
   /** 다음 턴 회복량 추가 (피해 받기) */
   healNextTurn?: number;
+  /** 다음 턴 행동력 추가 */
+  energyNextTurn?: number;
   /** 힘 추가 */
   strength?: number;
   /** 에테르 추가 */
@@ -74,6 +92,12 @@ export interface EffectResult {
   discount?: number;
   /** 골드 획득 */
   goldGain?: number;
+  /** 속도비용 감소 */
+  speedCostReduction?: number;
+  /** 적 타임라인 동결 */
+  freezeEnemyTimeline?: boolean;
+  /** 다음 턴 수세 부여 */
+  grantDefensiveNextTurn?: number;
 }
 
 /**
@@ -133,12 +157,16 @@ class EffectRegistryImpl {
       energy: 0,
       blockNextTurn: 0,
       healNextTurn: 0,
+      energyNextTurn: 0,
       strength: 0,
       etherGain: 0,
       bonusDamage: 0,
       damageReduction: 0,
       discount: 0,
       goldGain: 0,
+      speedCostReduction: 0,
+      freezeEnemyTimeline: false,
+      grantDefensiveNextTurn: 0,
     };
 
     return activeHandlers.reduce((accumulated, { handler }) => {
@@ -157,12 +185,16 @@ class EffectRegistryImpl {
       energy: (a.energy || 0) + (b.energy || 0),
       blockNextTurn: (a.blockNextTurn || 0) + (b.blockNextTurn || 0),
       healNextTurn: (a.healNextTurn || 0) + (b.healNextTurn || 0),
+      energyNextTurn: (a.energyNextTurn || 0) + (b.energyNextTurn || 0),
       strength: (a.strength || 0) + (b.strength || 0),
       etherGain: (a.etherGain || 0) + (b.etherGain || 0),
       bonusDamage: (a.bonusDamage || 0) + (b.bonusDamage || 0),
       damageReduction: (a.damageReduction || 0) + (b.damageReduction || 0),
       discount: (a.discount || 0) + (b.discount || 0),
       goldGain: (a.goldGain || 0) + (b.goldGain || 0),
+      speedCostReduction: (a.speedCostReduction || 0) + (b.speedCostReduction || 0),
+      freezeEnemyTimeline: (a.freezeEnemyTimeline || false) || (b.freezeEnemyTimeline || false),
+      grantDefensiveNextTurn: (a.grantDefensiveNextTurn || 0) + (b.grantDefensiveNextTurn || 0),
     };
   }
 

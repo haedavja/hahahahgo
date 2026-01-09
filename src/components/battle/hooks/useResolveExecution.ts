@@ -16,7 +16,7 @@ import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '..
 import { gainGrace, createInitialGraceState, type MonsterGraceState, type PrayerType } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
-import { executeTurnEndEffects } from '../../../core/effects';
+import { executeTurnEndEffects, type TurnState } from '../../../core/effects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
@@ -190,7 +190,17 @@ export function useResolveExecution({
 
     // 상징 턴 종료 효과 적용
     const relicIds = relics;
-    const turnEndRelicEffects = executeTurnEndEffects(relicIds);
+
+    // 조건부 효과 판단용 턴 상태 구성
+    const cardsPlayedThisTurn = battle.selected?.length ?? selected?.length ?? 0;
+    const turnState: TurnState = {
+      cardsPlayedThisTurn,
+      allCardsDefense: selected.length > 0 && selected.every((card) => card?.type === 'defense'),
+      allCardsLowCost: selected.length > 0 && selected.every((card) => (card?.actionCost ?? 0) <= 1),
+      timesAttackedThisTurn: (battle as { timesAttackedThisTurn?: number }).timesAttackedThisTurn ?? 0,
+    };
+
+    const turnEndRelicEffects = executeTurnEndEffects(relicIds, turnState);
 
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({

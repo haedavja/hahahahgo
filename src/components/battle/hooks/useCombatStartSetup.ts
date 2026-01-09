@@ -14,6 +14,7 @@ import { ANIMATION_TIMING } from '../ui/constants/layout';
 import { createReducerEnemyState } from '../../../state/battleHelpers';
 import { RELICS } from '../../../data/relics';
 import { applyCombatStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
+import { RELIC_AUDIO } from '../../../core/effects';
 import { initializeDeck, drawFromDeck } from '../utils/handGeneration';
 import { generateHandUid } from '../../../lib/randomUtils';
 import { DEFAULT_DRAW_COUNT, ENEMIES } from '../battleData';
@@ -71,7 +72,7 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
         const relic = RELICS[relicId as keyof typeof RELICS];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           actions.setRelicActivated(relicId);
-          playSound(800, 200);
+          playSound(RELIC_AUDIO.COMBAT_START.tone, RELIC_AUDIO.COMBAT_START.duration);
           setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
         }
       });

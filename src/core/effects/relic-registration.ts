@@ -16,8 +16,11 @@
  * - ON_RELIC_ACTIVATE → ON_RELIC_ACTIVATE
  */
 
-import { EffectRegistry, type EffectTiming, type EffectContext, type EffectResult } from './effects';
+import { EffectRegistry, type EffectTiming, type EffectContext, type EffectResult, type TurnState } from './effects';
 import { RELICS } from '../../data/relics';
+
+/** 조건 함수 타입 */
+type ConditionFn = (state: TurnState) => boolean;
 
 /** 상징 효과 타입 → EffectTiming 매핑 */
 const EFFECT_TYPE_TO_TIMING: Record<string, EffectTiming> = {
@@ -36,8 +39,18 @@ const EFFECT_TYPE_TO_TIMING: Record<string, EffectTiming> = {
  * 개별 상징 효과를 EffectResult로 변환하는 핸들러 생성
  */
 function createHandler(relicId: string, effects: Record<string, unknown>): (context: EffectContext) => EffectResult {
+  // 조건 함수 캐싱
+  const condition = effects.condition as ConditionFn | undefined;
+
   return (context: EffectContext): EffectResult => {
     const result: EffectResult = {};
+
+    // 조건부 효과 체크 (turnState가 있을 때만)
+    if (condition && context.turnState) {
+      if (!condition(context.turnState)) {
+        return result; // 조건 불충족 시 빈 결과 반환
+      }
+    }
 
     // ON_DAMAGE_TAKEN 효과
     if (effects.type === 'ON_DAMAGE_TAKEN') {
@@ -67,9 +80,13 @@ function createHandler(relicId: string, effects: Record<string, unknown>): (cont
       if (effects.energy) result.energy = effects.energy as number;
     }
 
-    // ON_TURN_END 효과
+    // ON_TURN_END 효과 (조건부 효과 포함)
     if (effects.type === 'ON_TURN_END') {
       if (effects.strength) result.strength = effects.strength as number;
+      if (effects.energyNextTurn) result.energyNextTurn = effects.energyNextTurn as number;
+      if (effects.speedCostReduction) result.speedCostReduction = effects.speedCostReduction as number;
+      if (effects.freezeEnemyTimeline) result.freezeEnemyTimeline = true;
+      if (effects.grantDefensiveNextTurn) result.grantDefensiveNextTurn = effects.grantDefensiveNextTurn as number;
     }
 
     // ON_SHOP_ENTER 효과
@@ -193,9 +210,11 @@ export function executeTurnStartEffects(relicIds: string[]): EffectResult {
 /**
  * 턴 종료 효과 실행 (EffectRegistry 기반)
  * applyTurnEndEffects의 대체 함수
+ * @param relicIds - 활성화된 상징 ID 목록
+ * @param turnState - 턴 상태 (조건부 효과 판단용)
  */
-export function executeTurnEndEffects(relicIds: string[]): EffectResult {
-  return EffectRegistry.execute('TURN_END', relicIds, {});
+export function executeTurnEndEffects(relicIds: string[], turnState?: TurnState): EffectResult {
+  return EffectRegistry.execute('TURN_END', relicIds, { turnState });
 }
 
 /**

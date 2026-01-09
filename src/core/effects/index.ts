@@ -16,6 +16,7 @@ export type {
   EffectContext,
   EffectResult,
   EffectHandler,
+  TurnState,
 } from './effects';
 
 export {

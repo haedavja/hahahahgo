@@ -9,6 +9,7 @@ import type {
   NextTurnEffects
 } from '../../../types';
 import { ANIMATION_TIMING } from '../ui/constants/layout';
+import { RELIC_AUDIO } from '../../../core/effects';
 
 interface RelicProcessActions {
   setRelicActivated: (relicId: string | null) => void;
@@ -62,7 +63,7 @@ export function playTurnEndRelicAnimations({
       const condition = relicEffects.condition;
       if (!condition || condition({ cardsPlayedThisTurn, player, enemy })) {
         actions.setRelicActivated(relicId);
-        playSound(800, 200);
+        playSound(RELIC_AUDIO.TURN_END.tone, RELIC_AUDIO.TURN_END.duration);
         setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
       }
     }

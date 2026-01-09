@@ -61,8 +61,13 @@ vi.mock('../../../data/monsterEther', () => ({
 }));
 
 vi.mock('../../../lib/relicEffects', () => ({
-  applyTurnEndEffects: vi.fn(() => ({})),
+  applyComboEffects: vi.fn(() => ({ grantOffensePlus: 0, comboMultiplierBonus: 0 })),
+  applyGraceGainEffects: vi.fn(() => ({ grantOffense: 0, grantDefense: 0 })),
   calculatePassiveEffects: vi.fn(() => ({ hpLossPerTurn: 0 })),
+}));
+
+vi.mock('../../../core/effects', () => ({
+  executeTurnEndEffects: vi.fn(() => ({ strength: 0 })),
 }));
 
 // ==================== 테스트 헬퍼 ====================

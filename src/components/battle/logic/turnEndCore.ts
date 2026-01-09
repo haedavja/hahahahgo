@@ -22,7 +22,7 @@ import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
 import { applyComboEffects, applyGraceGainEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
-import { executeTurnEndEffects } from '../../../core/effects';
+import { executeTurnEndEffects, type TurnState } from '../../../core/effects';
 import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
 import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
 
@@ -85,7 +85,20 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
 
   // 상징 턴 종료 효과
   const relicIds = relics.map((r: Relic) => (typeof r === 'string' ? r : r.id || ''));
-  const turnEndRelicEffects = executeTurnEndEffects(relicIds);
+
+  // 조건부 효과 판단용 턴 상태 구성
+  const cardsPlayedThisTurn = battle.selected?.length ?? selected?.length ?? 0;
+  const turnState: TurnState = {
+    cardsPlayedThisTurn,
+    // 모든 카드가 방어 카드인지 (카드 타입이 defense인지 확인)
+    allCardsDefense: selected.length > 0 && selected.every((card: { type?: string }) => card?.type === 'defense'),
+    // 모든 카드가 저비용(1코스트 이하)인지
+    allCardsLowCost: selected.length > 0 && selected.every((card: { actionCost?: number }) => (card?.actionCost ?? 0) <= 1),
+    // 피격 횟수 (battle에서 추적하는 경우)
+    timesAttackedThisTurn: (battle as { timesAttackedThisTurn?: number }).timesAttackedThisTurn ?? 0,
+  };
+
+  const turnEndRelicEffects = executeTurnEndEffects(relicIds, turnState);
 
   playTurnEndRelicAnimations({
     relics: relicIds,

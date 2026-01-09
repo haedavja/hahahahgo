@@ -26,6 +26,15 @@ export const RELIC_AUDIO = {
 
   /** PASSIVE + etherFiveCardBonus: 5장째 카드에서 발동 (악마의 주사위) */
   FIVE_CARD_BONUS: { tone: 980, duration: 800 },
+
+  /** ON_TURN_END: 턴 종료 시 발동 */
+  TURN_END: { tone: 800, duration: 200 },
+
+  /** ON_TURN_START: 턴 시작 시 발동 */
+  TURN_START: { tone: 800, duration: 200 },
+
+  /** ON_COMBAT_START: 전투 시작 시 발동 */
+  COMBAT_START: { tone: 800, duration: 200 },
 } as const;
 
 /**

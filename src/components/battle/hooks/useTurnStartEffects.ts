@@ -21,7 +21,7 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
-import { executeTurnStartEffects } from '../../../core/effects';
+import { executeTurnStartEffects, RELIC_AUDIO } from '../../../core/effects';
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
 import { processEthosAtBattleStart } from '../../../lib/ethosEffects';
@@ -137,7 +137,7 @@ export function useTurnStartEffects({
       const relic = RELICS[relicId as keyof typeof RELICS];
       if (relic && 'effects' in relic && (relic.effects as { type?: string })?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
-        playSound(800, 200);
+        playSound(RELIC_AUDIO.TURN_START.tone, RELIC_AUDIO.TURN_START.duration);
         setTimeout(() => actions.setRelicActivated(null), ANIMATION_TIMING.RELIC_ACTIVATION);
       }
     });
