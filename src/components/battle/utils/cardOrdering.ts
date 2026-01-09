@@ -40,6 +40,7 @@ function hasCardTrait(card: { id?: string; traits?: string[] }, traitId: string,
  * @param effectiveAgility - 플레이어의 유효 민첩성
  * @param playerState - 이변 효과가 포함된 플레이어 상태 (선택, 속도 불안정 효과 적용용)
  * @param cardGrowth - 카드 성장 상태 맵 (특성 확인용)
+ * @param speedCostReduction - 플레이어 카드 속도 감소량 (상징 효과)
  * @returns sp 값이 계산된 fixedOrder 배열
  */
 export function createFixedOrder(
@@ -47,7 +48,8 @@ export function createFixedOrder(
   enemyActions: Card[] | null | undefined,
   effectiveAgility: number,
   playerState?: AnomalyPlayerState,
-  cardGrowth?: CardGrowthMap
+  cardGrowth?: CardGrowthMap,
+  speedCostReduction: number = 0
 ): OrderItem[] {
   // "last" 특성이 있는 카드와 없는 카드 분리
   const normalCards = enhancedPlayerCards.filter(card => !card.traits?.includes('last'));
@@ -91,7 +93,9 @@ export function createFixedOrder(
     const strainOffset = hasStrain && item.card.strainOffset !== undefined
       ? item.card.strainOffset
       : 0;
-    const adjustedSpeed = Math.max(1, baseSpeed - strainOffset);
+    // 상징 효과로 인한 속도 감소 적용 (플레이어 카드만)
+    const relicReduction = isPlayer ? speedCostReduction : 0;
+    const adjustedSpeed = Math.max(1, baseSpeed - strainOffset - relicReduction);
 
     // 플레이어 카드에 불안정 이변 효과 적용 (playerState가 있을 때만)
     const finalSpeed = isPlayer && playerState

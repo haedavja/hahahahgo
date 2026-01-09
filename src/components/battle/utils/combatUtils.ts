@@ -17,19 +17,23 @@ import { applyAgility } from '../../../lib/agilityUtils';
  * @param enemyCards - 적 카드 배열
  * @param playerAgility - 플레이어 민첩 스탯
  * @param enemyAgility - 적 민첩 스탯
+ * @param speedCostReduction - 플레이어 카드 속도 감소량 (상징 효과)
  * @returns 정렬된 행동 큐
  */
 export function sortCombinedOrderStablePF(
   playerCards: OrderingCardInfo[] | null | undefined,
   enemyCards: OrderingCardInfo[] | null | undefined,
   playerAgility: number = 0,
-  enemyAgility: number = 0
+  enemyAgility: number = 0,
+  speedCostReduction: number = 0
 ): CombatQueueItem[] {
   const q: CombatQueueItem[] = [];
   let ps = 0, es = 0;
 
   (playerCards || []).forEach((c, idx) => {
-    const finalSpeed = applyAgility(c.speedCost, playerAgility);
+    // 상징 효과로 인한 속도 감소 적용 (최소 1)
+    const reducedSpeedCost = Math.max(1, c.speedCost - speedCostReduction);
+    const finalSpeed = applyAgility(reducedSpeedCost, playerAgility);
     ps += finalSpeed;
     q.push({ actor: 'player', card: c, sp: ps, idx, originalSpeed: c.speedCost, finalSpeed });
   });

@@ -17,6 +17,12 @@ interface CardOrderingActions {
   setSelected: (cards: Card[]) => void;
 }
 
+/** 다음 턴 효과 (상징 효과 포함) */
+interface NextTurnEffectsState {
+  speedCostReduction?: number;
+  [key: string]: unknown;
+}
+
 interface UseCardOrderingParams {
   battlePhase: string;
   selected: Card[];
@@ -25,6 +31,7 @@ interface UseCardOrderingParams {
   effectiveAgility: number;
   addLog: LogFunction;
   actions: CardOrderingActions;
+  nextTurnEffects?: NextTurnEffectsState | null;
 }
 
 /**
@@ -41,6 +48,7 @@ export function useCardOrdering({
   effectiveAgility,
   addLog,
   actions,
+  nextTurnEffects,
 }: UseCardOrderingParams) {
   /**
    * 포커 조합 적용 및 순서 업데이트
@@ -49,11 +57,12 @@ export function useCardOrdering({
     (cards: Card[]) => {
       const combo = detectPokerCombo(cards);
       const enhanced = applyPokerBonus(cards, combo);
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
+      const speedReduction = nextTurnEffects?.speedCostReduction || 0;
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility, undefined, undefined, speedReduction);
       actions.setFixedOrder(withSp);
       actions.setSelected(cards);
     },
-    [enemyPlanActions, effectiveAgility, actions]
+    [enemyPlanActions, effectiveAgility, actions, nextTurnEffects]
   );
 
   /**

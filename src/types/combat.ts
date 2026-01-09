@@ -518,6 +518,7 @@ export interface NextTurnEffects {
   blockNextTurn?: number;
   healNextTurn?: number;
   energyNextTurn?: number;
+  speedCostReduction?: number;
   otherEffect?: unknown;
   [key: string]: unknown;
 }

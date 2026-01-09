@@ -974,6 +974,7 @@ export interface TurnStartChanges {
 export interface TurnEndChanges {
   strength: number;
   energyNextTurn: number;
+  speedCostReduction: number;
 }
 
 /** 카드 사용 효과 */

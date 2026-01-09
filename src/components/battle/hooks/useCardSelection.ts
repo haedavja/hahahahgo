@@ -22,6 +22,12 @@ interface CardSelectionActions {
   setSelected: (cards: Card[]) => void;
 }
 
+/** 다음 턴 효과 (상징 효과 포함) */
+interface NextTurnEffectsState {
+  speedCostReduction?: number;
+  [key: string]: unknown;
+}
+
 interface UseCardSelectionParams {
   battlePhase: string;
   battleSelected: Card[];
@@ -39,6 +45,7 @@ interface UseCardSelectionParams {
   playSound: (frequency: number, duration: number) => void;
   addLog: LogFunction;
   actions: CardSelectionActions;
+  nextTurnEffects?: NextTurnEffectsState | null;
 }
 
 /**
@@ -64,6 +71,7 @@ export function useCardSelection({
   playSound,
   addLog,
   actions,
+  nextTurnEffects,
 }: UseCardSelectionParams) {
   // 토큰 검증 훅 사용 (종속성: player)
   const { checkRequiredTokens } = useTokenValidation(player);
@@ -77,6 +85,7 @@ export function useCardSelection({
     effectiveAgility,
     addLog,
     actions,
+    nextTurnEffects,
   });
 
   /**
@@ -140,11 +149,12 @@ export function useCardSelection({
     (cards: Card[]) => {
       const combo = detectPokerCombo(cards);
       const enhanced = applyPokerBonus(cards, combo);
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
+      const speedReduction = nextTurnEffects?.speedCostReduction || 0;
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility, undefined, undefined, speedReduction);
       actions.setFixedOrder(withSp);
       actions.setSelected(cards);
     },
-    [enemyPlanActions, effectiveAgility, actions]
+    [enemyPlanActions, effectiveAgility, actions, nextTurnEffects]
   );
 
   /**

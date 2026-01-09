@@ -82,6 +82,12 @@ interface PathosNextCardEffects {
   aoe?: boolean;
 }
 
+/** 다음 턴 효과 (상징 효과 포함) */
+interface NextTurnEffectsState {
+  speedCostReduction?: number;
+  [key: string]: unknown;
+}
+
 /** 페이즈 전환 훅 파라미터 */
 interface UsePhaseTransitionParams {
   battleRef: MutableRefObject<BattleRefValue | null>;
@@ -105,6 +111,7 @@ interface UsePhaseTransitionParams {
   actions: PhaseTransitionActions;
   pathosNextCardEffects?: PathosNextCardEffects;
   consumeNextCardEffects?: () => void;
+  nextTurnEffects?: NextTurnEffectsState | null;
 }
 
 /** 페이즈 전환 훅 반환 타입 */
@@ -140,7 +147,8 @@ export function usePhaseTransition({
   addLog,
   actions,
   pathosNextCardEffects,
-  consumeNextCardEffects
+  consumeNextCardEffects,
+  nextTurnEffects
 }: UsePhaseTransitionParams): UsePhaseTransitionReturn {
   // select → respond 전환
   const startResolve = useCallback(() => {
@@ -180,9 +188,10 @@ export function usePhaseTransition({
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
     const currentPlayer = currentBattle.player as PlayerBattleState;
+    const speedReduction = nextTurnEffects?.speedCostReduction || 0;
     const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
-      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
+      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility, undefined, undefined, speedReduction)
+      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0, speedReduction);
     actions.setFixedOrder(q);
 
     if (currentPlayer.enemyFrozen) {
@@ -204,7 +213,7 @@ export function usePhaseTransition({
     }
     playCardSubmitSound();
     actions.setPhase('respond');
-  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsed, actions]);
+  }, [battleRef, battleSelected, selected, effectiveAgility, enemy, enemyCount, etherSlots, rewindUsed, actions, nextTurnEffects]);
 
   // respond → resolve 전환
   const beginResolveFromRespond = useCallback(() => {

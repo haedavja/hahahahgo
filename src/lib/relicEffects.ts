@@ -214,6 +214,7 @@ export function applyTurnEndEffects(
   const changes: TurnEndChanges = {
     strength: 0,
     energyNextTurn: 0,
+    speedCostReduction: 0,
   };
 
   relicIds.forEach(relicId => {
@@ -227,6 +228,7 @@ export function applyTurnEndEffects(
 
     if (effects.strength) changes.strength += effects.strength;
     if (effects.energyNextTurn) changes.energyNextTurn += effects.energyNextTurn;
+    if (effects.speedCostReduction) changes.speedCostReduction += effects.speedCostReduction;
   });
 
   return changes;

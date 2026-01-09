@@ -755,7 +755,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     startDamageDistribution,
     playSound,
     addLog,
-    actions
+    actions,
+    nextTurnEffects
   });
 
   // 패 관리 (커스텀 훅으로 분리)
@@ -795,7 +796,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     addLog,
     actions,
     pathosNextCardEffects,
-    consumeNextCardEffects
+    consumeNextCardEffects,
+    nextTurnEffects
   });
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
@@ -1832,15 +1834,17 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     actions.setSelected(updatedSelected);
 
     // fixedOrder도 다시 계산
+    const speedReduction = nextTurnEffects?.speedCostReduction || 0;
     const newFixedOrder = createFixedOrder(
       updatedSelected,
       enemyPlan.actions,
       effectiveAgility,
       player,
-      cardGrowth
+      cardGrowth,
+      speedReduction
     );
     actions.setFixedOrder(newFixedOrder);
-  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth]);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth, nextTurnEffects]);
 
   // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1회만 소모)
   const handleStrainOffsetChange = useCallback((cardUid: string, newOffset: number) => {
@@ -1876,15 +1880,17 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
     actions.setSelected(updatedSelected);
 
     // fixedOrder도 다시 계산
+    const speedReduction = nextTurnEffects?.speedCostReduction || 0;
     const newFixedOrder = createFixedOrder(
       updatedSelected,
       enemyPlan.actions,
       effectiveAgility,
       player,
-      cardGrowth
+      cardGrowth,
+      speedReduction
     );
     actions.setFixedOrder(newFixedOrder);
-  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth]);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth, nextTurnEffects]);
 
   // 카드 이름 + 업그레이드 배지 렌더링 (메모이제이션)
   const memoizedRenderNameWithBadge = useCallback(

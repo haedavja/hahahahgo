@@ -18,6 +18,7 @@ interface RelicProcessActions {
 interface TurnEndRelicEffects {
   energyNextTurn: number;
   strength: number;
+  speedCostReduction: number;
 }
 
 interface PlayTurnEndRelicAnimationsParams {
@@ -67,7 +68,7 @@ export function playTurnEndRelicAnimations({
 
 /**
  * 턴 종료 상징 효과를 다음 턴에 적용
- * - 행동력 보너스, 힘 증가 등
+ * - 행동력 보너스, 힘 증가, 속도 감소 등
  */
 export function applyTurnEndRelicEffectsToNextTurn({
   turnEndRelicEffects,
@@ -88,6 +89,11 @@ export function applyTurnEndRelicEffectsToNextTurn({
     const newStrength = currentStrength + turnEndRelicEffects.strength;
     addLog(`💪 상징 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
     actions.setPlayer({ ...player, strength: newStrength });
+  }
+
+  if (turnEndRelicEffects.speedCostReduction > 0) {
+    updatedNextTurnEffects.speedCostReduction = (updatedNextTurnEffects.speedCostReduction ?? 0) + turnEndRelicEffects.speedCostReduction;
+    addLog(`🔔 상징 효과: 다음턴 카드 속도 -${turnEndRelicEffects.speedCostReduction}`);
   }
 
   return updatedNextTurnEffects;
