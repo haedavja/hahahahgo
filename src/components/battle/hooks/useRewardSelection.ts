@@ -187,10 +187,19 @@ export function useRewardSelection({
     setRecallSelection(null);
   }, [addLog]);
 
+  /** 특성 보상이 가능한 전투 타입 (엘리트, 보스, 이벤트/던전 전투) */
+  const TRAIT_REWARD_BATTLE_TYPES = ['elite', 'boss', 'event', 'dungeon'];
+
   // 승리 시 보상 시퀀스 시작 (특성 30% → 카드)
+  // 특성 보상은 엘리트/보스/이벤트 전투에서만 획득 가능
   const showCardRewardModal = useCallback(() => {
-    // 30% 확률로 특성 보상 먼저 표시
-    if (Math.random() < TRAIT_REWARD_CHANCE) {
+    // 전투 타입 확인: 엘리트, 보스, 이벤트 전투에서만 특성 보상 가능
+    const activeBattle = useGameStore.getState().activeBattle;
+    const battleKind = activeBattle?.kind || '';
+    const canGetTraitReward = TRAIT_REWARD_BATTLE_TYPES.includes(battleKind);
+
+    // 30% 확률로 특성 보상 먼저 표시 (엘리트/보스/이벤트 전투만)
+    if (canGetTraitReward && Math.random() < TRAIT_REWARD_CHANCE) {
       // 이미 가진 특성은 제외
       const storedTraits = useGameStore.getState().storedTraits || [];
       const availableTraits = getRewardableTraits().filter(
