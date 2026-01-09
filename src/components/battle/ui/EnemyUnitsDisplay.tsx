@@ -304,7 +304,9 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
               {/* 이름 */}
               <div style={UNIT_HEADER_STYLE}>
                 <span style={UNIT_NAME_STYLE}>
-                  {unit.name} x{unit.unitId + 1}
+                  {(unit as { count?: number }).count && (unit as { count?: number }).count! > 1
+                    ? `${unit.name} x${(unit as { count?: number }).count}`
+                    : unit.name}
                 </span>
                 {isSelected && showTargeting && (
                   <span style={TARGET_BADGE_STYLE}>
