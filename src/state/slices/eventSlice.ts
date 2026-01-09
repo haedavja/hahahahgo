@@ -9,7 +9,7 @@ import type { StateCreator } from 'zustand';
 import type { GameStore, EventSliceActions, MapLogEntry, MapLogType } from './types';
 import type { ActiveEvent } from '../../types';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
-import { CARDS } from '../../components/battle/battleData';
+import { CARDS, TRAITS } from '../../components/battle/battleData';
 import { canAfford, payCost, grantRewards, resolveAmount, extractResourceDelta } from '../gameStoreHelpers';
 import { recordEventChoice, recordEventOccurrence } from '../../simulator/bridge/stats-bridge';
 
@@ -93,6 +93,28 @@ export const createEventActions: SliceCreator = (set) => ({
         }
       }
 
+      // 특성 보상 처리
+      let newStoredTraits = [...(state.storedTraits || [])];
+      if (choice.rewards?.trait) {
+        const traitReward = choice.rewards.trait;
+        if (traitReward === 'random') {
+          // 랜덤 특성 선택 (긍정 특성만, weight 2 이하, 중복 방지)
+          const availableTraits = Object.values(TRAITS).filter(
+            (t) => t.type === 'positive' && t.weight <= 2 && !newStoredTraits.includes(t.id)
+          );
+          if (availableTraits.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availableTraits.length);
+            const selectedTrait = availableTraits[randomIndex];
+            newStoredTraits.push(selectedTrait.id);
+          }
+        } else if (typeof traitReward === 'string') {
+          // 특정 특성 ID가 지정된 경우
+          if (!newStoredTraits.includes(traitReward)) {
+            newStoredTraits.push(traitReward);
+          }
+        }
+      }
+
       const updatedCharacterBuild = { ...state.characterBuild, ownedCards: newOwnedCards };
 
       if (choice.nextStage && active.definition?.stages?.[choice.nextStage]) {
@@ -101,6 +123,7 @@ export const createEventActions: SliceCreator = (set) => ({
           resources: resources as GameStore['resources'],
           playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
+          storedTraits: newStoredTraits,
           activeEvent: { ...active, currentStage: choice.nextStage },
         } as Partial<GameStore>;
       }
@@ -111,6 +134,7 @@ export const createEventActions: SliceCreator = (set) => ({
           resources: resources as GameStore['resources'],
           playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
+          storedTraits: newStoredTraits,
           activeShop: { merchantType: choice.openShop },
           activeEvent: {
             ...active,
@@ -165,6 +189,7 @@ export const createEventActions: SliceCreator = (set) => ({
         resources: resources as GameStore['resources'],
         playerHp: newPlayerHp,
         characterBuild: updatedCharacterBuild,
+        storedTraits: newStoredTraits,
         completedEvents: newCompletedEvents,
         pendingNextEvent,
         mapLogs: [eventLogEntry, ...(state.mapLogs || [])].slice(0, 50),
