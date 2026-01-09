@@ -56,12 +56,14 @@ export function useEnemyDisplayData(params: UseEnemyDisplayDataParams): EnemyDis
 
   // DEBUG: 적 데이터 구조 확인
   if (import.meta.env.DEV && enemy) {
+    const comp = (enemy as { composition?: unknown[] }).composition;
+    const units = (enemy as { units?: unknown[] }).units;
     console.log('[useEnemyDisplayData] enemy data:', {
       name: enemy.name,
-      composition: (enemy as { composition?: unknown[] }).composition?.length ?? 'none',
-      units: (enemy as { units?: unknown[] }).units?.length ?? 'none',
-      count: enemy.count,
-      quantity: enemy.quantity,
+      composition: comp?.length ?? 'none',
+      compositionFirst: comp?.[0] ? JSON.stringify(comp[0]) : 'none',
+      units: units?.length ?? 'none',
+      unitsFirst: units?.[0] ? JSON.stringify(units[0]) : 'none',
     });
   }
 
