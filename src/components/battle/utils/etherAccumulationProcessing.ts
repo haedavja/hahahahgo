@@ -15,6 +15,7 @@ import type {
   RelicTrigger,
   EtherCard
 } from '../../../types';
+import { RELIC_TONE_BY_TYPE } from '../../../core/effects/effect-audio';
 import { applyRelicActivateEffects } from '../../../lib/relicEffects';
 
 /**
@@ -128,8 +129,7 @@ export function processPlayerEtherAccumulation({
       // ON_RELIC_ACTIVATE 타입 상징은 발동 횟수 계산에서 제외
       const relicData = orderedRelicList.includes(t.id) ? true : false;
       if (!relicData) return true;
-      // tone 750은 ON_RELIC_ACTIVATE 상징 (relicActivationAnimation에서 설정)
-      return t.tone !== 750;
+      return t.tone !== RELIC_TONE_BY_TYPE.ON_RELIC_ACTIVATE;
     }).length;
 
     if (pureTriggeredCount > 0) {

@@ -9,6 +9,7 @@
  */
 
 import { RELICS } from "../../../data/relics";
+import { RELIC_AUDIO } from '../../../core/effects/effect-audio';
 import type {
   RelicTriggeredRefs as TriggeredRefs,
   RelicTrigger
@@ -53,7 +54,7 @@ export function collectTriggeredRelics({
 
     // 에테르 결정: 카드마다 콤보 배율 증가 (comboMultiplierPerCard)
     if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-      triggered.push({ id: relicId, tone: 800, duration: 500 });
+      triggered.push({ id: relicId, ...RELIC_AUDIO.COMBO_MULTIPLIER });
     }
     // 희귀한 조약돌, 참고서 등: 에테르 배율 증가
     else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
@@ -61,17 +62,17 @@ export function collectTriggeredRelics({
         // 참고서는 마지막 카드에서만 한 번 발동
         if (isLastPlayerCard && !triggeredRefs.referenceBookTriggered.current) {
           triggeredRefs.referenceBookTriggered.current = true;
-          triggered.push({ id: relicId, tone: 820, duration: 500 });
+          triggered.push({ id: relicId, ...RELIC_AUDIO.ETHER_MULTIPLIER, duration: 500 });
         }
         return;
       }
       // 희귀한 조약돌 등: 카드마다 즉시 발동
-      triggered.push({ id: relicId, tone: 820, duration: 400 });
+      triggered.push({ id: relicId, ...RELIC_AUDIO.ETHER_MULTIPLIER });
     }
     // 악마의 주사위: 5장째 카드에서 발동
     else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !triggeredRefs.devilDiceTriggered.current) {
       triggeredRefs.devilDiceTriggered.current = true;
-      triggered.push({ id: relicId, tone: 980, duration: 800 });
+      triggered.push({ id: relicId, ...RELIC_AUDIO.FIVE_CARD_BONUS });
     }
   });
 
@@ -80,7 +81,7 @@ export function collectTriggeredRelics({
     orderedRelicList.forEach((relicId: string) => {
       const relic = relicsRecord[relicId];
       if (relic?.effects?.type === 'ON_RELIC_ACTIVATE' && relic?.effects?.etherGain) {
-        triggered.push({ id: relicId, tone: 750, duration: 400 });
+        triggered.push({ id: relicId, ...RELIC_AUDIO.RELIC_CHAIN });
       }
     });
   }

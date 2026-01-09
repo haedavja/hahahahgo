@@ -374,8 +374,9 @@ export function applyDamageTakenEffects(
     // 철의 심장: 다음 턴 방어력/체력
     if (effects.blockNextTurn) changes.blockNextTurn += effects.blockNextTurn;
     if (effects.healNextTurn) changes.healNextTurn += effects.healNextTurn;
-    // 피의 계약인: 즉시 힘 획득
+    // 피의 계약인: 즉시 힘 획득 (고정값 또는 피해량 비례)
     if (effects.strength) changes.strength += effects.strength;
+    if (effects.strengthPerDamage) changes.strength += damage * effects.strengthPerDamage;
   });
 
   return changes;

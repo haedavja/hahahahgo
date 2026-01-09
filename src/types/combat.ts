@@ -230,6 +230,18 @@ export interface ActionResult {
   cardPlaySpecials?: CardPlaySpecialsResult;
   defenderTimelineAdvance?: number;
   queueModifications?: Array<{ index: number; newSp: number }>;
+  /** 피해 받기 효과 (철의 심장, 피의 계약인) */
+  damageTakenEffects?: DamageTakenEffectChanges;
+}
+
+/** 피해 받기 효과 변화 */
+export interface DamageTakenEffectChanges {
+  /** 다음 턴 방어력 (철의 심장) */
+  blockNextTurn: number;
+  /** 다음 턴 회복 (철의 심장) */
+  healNextTurn: number;
+  /** 즉시 힘 획득 (피의 계약인) */
+  strength: number;
 }
 
 /** 카드 사용 특수 효과 결과 - CardPlayResult와 호환 */
