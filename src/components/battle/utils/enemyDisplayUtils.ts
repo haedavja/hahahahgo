@@ -98,22 +98,13 @@ export function getGroupedEnemyMembers(
 
   // composition > units > 단일 적 순서로 폴백 (composition은 정규화 필요)
   let list: EnemyMember[];
-  let source = 'none';
   if (extEnemy?.composition && extEnemy.composition.length > 0) {
     list = normalizeComposition(extEnemy.composition);
-    source = 'composition';
   } else if (extEnemy?.units && extEnemy.units.length > 0) {
     // units 배열 사용 (리듀서 상태에서 올 때)
     list = extEnemy.units;
-    source = 'units';
   } else {
     list = [{ name: enemy?.name || '몬스터', emoji: extEnemy?.emoji || '👹', count: extEnemy?.count || extEnemy?.quantity || 1 }];
-    source = 'fallback';
-  }
-
-  // DEBUG: 리스트 확인
-  if (import.meta.env.DEV) {
-    console.log('[getGroupedEnemyMembers] source:', source, 'list:', JSON.stringify(list.map(m => ({ name: m?.name, count: m?.count }))));
   }
 
   const map = new Map<string, { name: string; emoji: string; count: number }>();
@@ -132,11 +123,6 @@ export function getGroupedEnemyMembers(
   });
 
   const result = Array.from(map.values());
-
-  // DEBUG: 결과 확인
-  if (import.meta.env.DEV) {
-    console.log('[getGroupedEnemyMembers] result:', JSON.stringify(result));
-  }
 
   return result;
 }

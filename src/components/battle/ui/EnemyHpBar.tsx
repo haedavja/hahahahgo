@@ -291,11 +291,6 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   frozenOrder,
   graceState
 }) => {
-  // DEBUG: EnemyHpBar에 전달된 groupedEnemyMembers 확인
-  if (import.meta.env.DEV) {
-    console.log('[EnemyHpBar] groupedEnemyMembers:', JSON.stringify(groupedEnemyMembers));
-  }
-
   // HP 텍스트 계산 메모이제이션
   const { hpText, blockText, showDamage, hideEnemyVitals } = useMemo(() => {
     const hide = dulledLevel >= 3;

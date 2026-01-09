@@ -233,10 +233,6 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   onCancelDistribution,
   enemy,
 }) => {
-  // DEBUG: units 배열 확인
-  if (import.meta.env.DEV) {
-    console.log('[EnemyUnitsDisplay] units:', JSON.stringify(units?.map(u => ({ unitId: u.unitId, name: u.name, count: (u as { count?: number }).count, hp: u.hp }))));
-  }
   // 살아있는 유닛만 표시 (useMemo로 불필요한 재계산 방지)
   // 주의: React hooks 규칙 - 모든 훅은 early return 전에 호출되어야 함
   const aliveUnits = useMemo(() => (units || []).filter(u => u.hp > 0), [units]);

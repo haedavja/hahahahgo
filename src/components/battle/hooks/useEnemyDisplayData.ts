@@ -54,19 +54,6 @@ interface EnemyDisplayData {
 export function useEnemyDisplayData(params: UseEnemyDisplayDataParams): EnemyDisplayData {
   const { enemy, enemyPlan, battleLog } = params;
 
-  // DEBUG: 적 데이터 구조 확인
-  if (import.meta.env.DEV && enemy) {
-    const comp = (enemy as { composition?: unknown[] }).composition;
-    const units = (enemy as { units?: unknown[] }).units;
-    console.log('[useEnemyDisplayData] enemy data:', {
-      name: enemy.name,
-      composition: comp?.length ?? 'none',
-      compositionFirst: comp?.[0] ? JSON.stringify(comp[0]) : 'none',
-      units: units?.length ?? 'none',
-      unitsFirst: units?.[0] ? JSON.stringify(units[0]) : 'none',
-    });
-  }
-
   // 적 이름별 개수 계산
   const enemyNameCounts = useMemo(() => getEnemyNameCounts(enemy), [
     enemy?.composition,
