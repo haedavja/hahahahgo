@@ -7,10 +7,18 @@
 
 import { FC, memo, useMemo, useCallback, useEffect } from 'react';
 import { Sword, Shield } from './BattleIcons';
-import type { RewardCard as Card } from '../../../types';
+import type { RewardCard as Card, CardRarity } from '../../../types';
 
 /** 카드 타입에 따른 아이콘 반환 */
 const getCardIcon = (card: Card) => card.icon || (card.type === 'attack' ? Sword : Shield);
+
+/** 희귀도별 라벨 및 색상 */
+const RARITY_CONFIG: Record<CardRarity, { label: string; color: string; bgColor: string }> = {
+  common: { label: '일반', color: '#94a3b8', bgColor: 'rgba(148, 163, 184, 0.2)' },
+  rare: { label: '희귀', color: '#60a5fa', bgColor: 'rgba(96, 165, 250, 0.2)' },
+  special: { label: '특별', color: '#c084fc', bgColor: 'rgba(192, 132, 252, 0.2)' },
+  legendary: { label: '전설', color: '#fbbf24', bgColor: 'rgba(251, 191, 36, 0.2)' }
+};
 
 interface CardRewardModalProps {
   rewardCards: Card[] | null;
@@ -62,18 +70,26 @@ export const CardRewardModal: FC<CardRewardModalProps> = memo(({
           {rewardCards.map((card, idx) => {
             const Icon = cardIcons[idx];
             const isAttack = card.type === 'attack';
+            const rarity = (card.rarity || 'common') as CardRarity;
+            const rarityConfig = RARITY_CONFIG[rarity];
 
             return (
               <div
                 key={`reward-option-${idx}`}
-                className={`reward-card-option ${isAttack ? 'attack' : 'defense'}`}
+                className={`reward-card-option ${isAttack ? 'attack' : 'defense'} rarity-${rarity}`}
                 onClick={() => handleCardClick(card, idx)}
                 role="option"
-                aria-label={`${card.name} - ${isAttack ? '공격' : '방어'} 카드`}
+                aria-label={`${card.name} - ${isAttack ? '공격' : '방어'} 카드 (${rarityConfig.label})`}
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && handleCardClick(card, idx)}
               >
                 <div className="reward-card-cost" aria-label={`행동력 ${card.actionCost}`}>{card.actionCost}</div>
+                <div
+                  className="reward-card-rarity"
+                  style={{ color: rarityConfig.color, background: rarityConfig.bgColor }}
+                >
+                  {rarityConfig.label}
+                </div>
                 <div className="reward-card-name">{card.name}</div>
                 <div className="reward-card-icon">
                   <Icon size={48} className="text-white" />
@@ -210,6 +226,38 @@ export const CardRewardModal: FC<CardRewardModalProps> = memo(({
           color: #000;
           font-size: 1rem;
           box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+        }
+
+        .reward-card-rarity {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          border: 1px solid currentColor;
+        }
+
+        /* 희귀도별 카드 테두리 효과 */
+        .reward-card-option.rarity-rare {
+          border-color: #60a5fa;
+        }
+
+        .reward-card-option.rarity-special {
+          border-color: #c084fc;
+          box-shadow: 0 0 15px rgba(192, 132, 252, 0.3);
+        }
+
+        .reward-card-option.rarity-legendary {
+          border-color: #fbbf24;
+          box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+          animation: legendaryGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes legendaryGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+          50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.6); }
         }
 
         .reward-card-name {

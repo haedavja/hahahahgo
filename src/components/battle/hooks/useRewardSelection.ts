@@ -12,11 +12,59 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useGameStore } from '../../../state/gameStore';
-import type { Card, NextTurnEffects } from '../../../types';
+import type { Card, CardRarity, NextTurnEffects } from '../../../types';
 import type { UseRewardSelectionParams } from '../../../types/hooks';
 import { shuffle } from '../../../lib/randomUtils';
 import { TRAITS } from '../battleData';
 import { recordCardPick } from '../../../simulator/bridge/stats-bridge';
+
+/** 희귀도별 드랍 가중치 (높을수록 자주 등장) */
+const RARITY_WEIGHTS: Record<CardRarity, number> = {
+  common: 60,    // 일반: 60%
+  rare: 30,      // 희귀: 30%
+  special: 8,    // 특별: 8%
+  legendary: 2   // 전설: 2%
+};
+
+/**
+ * 희귀도 기반 가중치 랜덤 선택
+ * @param cards 카드 풀
+ * @param count 선택할 카드 수
+ * @returns 선택된 카드 배열
+ */
+function selectCardsByRarity(cards: Card[], count: number): Card[] {
+  const result: Card[] = [];
+  const available = [...cards];
+
+  for (let i = 0; i < count && available.length > 0; i++) {
+    // 각 카드의 가중치 계산
+    const weights = available.map(card => {
+      const rarity = (card.rarity || 'common') as CardRarity;
+      return RARITY_WEIGHTS[rarity] || RARITY_WEIGHTS.common;
+    });
+
+    // 가중치 합계
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+    // 랜덤 값으로 카드 선택
+    let random = Math.random() * totalWeight;
+    let selectedIdx = 0;
+
+    for (let j = 0; j < weights.length; j++) {
+      random -= weights[j];
+      if (random <= 0) {
+        selectedIdx = j;
+        break;
+      }
+    }
+
+    // 선택된 카드를 결과에 추가하고 가용 풀에서 제거
+    result.push(available[selectedIdx]);
+    available.splice(selectedIdx, 1);
+  }
+
+  return result;
+}
 
 /** 카드 보상 상태 타입 */
 export interface CardRewardState {
@@ -64,11 +112,11 @@ export function useRewardSelection({
   // 함성(recallCard) 카드 선택 상태
   const [recallSelection, setRecallSelection] = useState<{ availableCards: typeof CARDS } | null>(null);
 
-  // 카드 보상 모달 표시 (내부 함수)
+  // 카드 보상 모달 표시 (내부 함수) - 희귀도 기반 가중치 적용
   const openCardRewardModal = useCallback(() => {
     const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general')) as Card[];
-    const shuffled = shuffle(cardPool);
-    const rewardCards = shuffled.slice(0, 3);
+    // 희귀도 기반 가중치로 3장 선택 (common: 60%, rare: 30%, special: 8%, legendary: 2%)
+    const rewardCards = selectCardsByRarity(cardPool, 3);
     setCardReward({ cards: rewardCards });
   }, [CARDS]);
 

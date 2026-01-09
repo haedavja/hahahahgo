@@ -116,7 +116,8 @@ export const CARDS: Card[] = [
     cardCategory: "fencing",
     special: "advanceTimeline",
     advanceAmount: 4,
-    appliedTokens: [{ id: 'blur', target: 'player' }]
+    appliedTokens: [{ id: 'blur', target: 'player' }],
+    rarity: 'rare'
   },
   {
     id: "lunge",
@@ -130,7 +131,8 @@ export const CARDS: Card[] = [
     traits: ["knockback"],
     cardCategory: "fencing",
     special: "pushEnemyTimeline",
-    pushAmount: 5
+    pushAmount: 5,
+    rarity: 'rare'
   },
   {
     id: "fleche",
@@ -144,7 +146,8 @@ export const CARDS: Card[] = [
     traits: ["creation", "cross"],
     cardCategory: "fencing",
     special: "createAttackOnHit",
-    crossBonus: { type: 'gun_attack', count: 1 }
+    crossBonus: { type: 'gun_attack', count: 1 },
+    rarity: 'special'
   },
   {
     id: "flank",
@@ -156,7 +159,8 @@ export const CARDS: Card[] = [
     iconKey: "sword",
     description: "공격력 24. 분쇄 특성으로 상대 방어력에 2배 피해를 준다.",
     traits: ["crush"],
-    cardCategory: "fencing"
+    cardCategory: "fencing",
+    rarity: 'rare'
   },
   {
     id: "thrust",
@@ -170,7 +174,8 @@ export const CARDS: Card[] = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'shaken', target: 'enemy' }]
+    appliedTokens: [{ id: 'shaken', target: 'enemy' }],
+    rarity: 'rare'
   },
   {
     id: "beat",
@@ -186,7 +191,8 @@ export const CARDS: Card[] = [
     cardCategory: "fencing",
     special: "beatEffect",
     pushAmount: 2,
-    crossBonus: { type: 'damage_mult', value: 2 }
+    crossBonus: { type: 'damage_mult', value: 2 },
+    rarity: 'rare'
   },
   {
     id: "feint",
@@ -200,7 +206,8 @@ export const CARDS: Card[] = [
     traits: ["chain"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }]
+    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
+    rarity: 'rare'
   },
   {
     id: "defensive_stance",
@@ -215,7 +222,8 @@ export const CARDS: Card[] = [
     cardCategory: "fencing",
     special: "growingDefense",
     ignoreStrength: true,
-    ignoreStatus: true
+    ignoreStatus: true,
+    rarity: 'rare'
   },
   {
     id: "disrupt",
@@ -229,7 +237,8 @@ export const CARDS: Card[] = [
     traits: ["knockback"],
     cardCategory: "fencing",
     special: "pushLastEnemyCard",
-    pushAmount: 9
+    pushAmount: 9,
+    rarity: 'rare'
   },
   {
     id: "redoublement",
@@ -245,7 +254,8 @@ export const CARDS: Card[] = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    crossBonus: { type: 'gun_attack', count: 1 }
+    crossBonus: { type: 'gun_attack', count: 1 },
+    rarity: 'rare'
   },
   {
     id: "grind",
@@ -257,7 +267,8 @@ export const CARDS: Card[] = [
     iconKey: "flame",
     description: "공격력 55, 방어력 무시. 순수 깡딜로 상대를 갈아버린다.",
     traits: [],
-    special: "ignoreBlock"
+    special: "ignoreBlock",
+    rarity: 'legendary'
   },
   {
     id: "strike",
@@ -270,7 +281,8 @@ export const CARDS: Card[] = [
     description: "공격력 15.",
     traits: ["chain"],
     cardCategory: "fencing",
-    advanceAmount: 3
+    advanceAmount: 3,
+    rarity: 'common'
   },
   {
     id: "binding",
@@ -283,7 +295,8 @@ export const CARDS: Card[] = [
     description: "공격력 4. 교차 시 교차된 카드를 다음 카드까지 최대 8만큼 밀어냄. 밀어낸 만큼 방어력 획득.",
     traits: ["cross", "followup"],
     cardCategory: "fencing",
-    crossBonus: { type: 'push_gain_block', maxPush: 8 }
+    crossBonus: { type: 'push_gain_block', maxPush: 8 },
+    rarity: 'rare'
   },
 
   // === 총기 카드 ===
@@ -297,7 +310,8 @@ export const CARDS: Card[] = [
     iconKey: "flame",
     description: "공격력 5. 기본 총격 공격.",
     traits: [],
-    cardCategory: "gun"
+    cardCategory: "gun",
+    rarity: 'common'
   },
   {
     id: "aimed_shot",
@@ -310,7 +324,8 @@ export const CARDS: Card[] = [
     description: "공격력 8. 교차 시 치명타.",
     traits: [],
     cardCategory: "gun",
-    crossBonus: { type: "damage_mult", value: 2.0 }
+    crossBonus: { type: "damage_mult", value: 2.0 },
+    rarity: 'rare'
   },
   {
     id: "quick_shot",
@@ -323,7 +338,8 @@ export const CARDS: Card[] = [
     iconKey: "flame",
     description: "공격력 4를 2회 발사. 빠른 연사.",
     traits: [],
-    cardCategory: "gun"
+    cardCategory: "gun",
+    rarity: 'common'
   },
   {
     id: "fan_the_hammer",
@@ -338,7 +354,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "gun",
     special: "fanTheHammer",
-    appliedTokens: [{ id: "jamming", stacks: 1, target: "self" }]
+    appliedTokens: [{ id: "jamming", stacks: 1, target: "self" }],
+    rarity: 'rare'
   },
   {
     id: "gyrus_roulette",
@@ -352,7 +369,8 @@ export const CARDS: Card[] = [
     traits: [],
     special: "gyrusRoulette",
     cardCategory: "gun",
-    requiredTokens: [{ id: 'finesse', stacks: 1 }]
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    rarity: 'special'
   },
   {
     id: "ap_load",
@@ -367,11 +385,11 @@ export const CARDS: Card[] = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
     onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
+      actions.resetTokenForPlayer('roulette', 'permanent', 0);
       actions.addTokenToPlayer('armor_piercing', 1);
-    }
+    },
+    rarity: 'rare'
   },
   {
     id: "incendiary_load",
@@ -386,11 +404,11 @@ export const CARDS: Card[] = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
     onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
+      actions.resetTokenForPlayer('roulette', 'permanent', 0);
       actions.addTokenToPlayer('incendiary', 1);
-    }
+    },
+    rarity: 'rare'
   },
   {
     id: "reload",
@@ -404,10 +422,10 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "gun",
     onPlay: (battle: unknown, actions: BattleTokenActions) => {
-      // 탄걸림 해제 + 룰렛 0으로 초기화
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
-    }
+      actions.resetTokenForPlayer('roulette', 'permanent', 0);
+    },
+    rarity: 'common'
   },
   {
     id: "hawks_eye",
@@ -419,7 +437,8 @@ export const CARDS: Card[] = [
     iconKey: "shield",
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
-    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }]
+    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
+    rarity: 'rare'
   },
   {
     id: "gun_headshot",
@@ -432,7 +451,8 @@ export const CARDS: Card[] = [
     description: "공격력 8. 확정 치명타. 사용 후 탄걸림.",
     traits: ["finisher"],
     special: ["guaranteedCrit", "emptyAfterUse"],
-    cardCategory: "gun"
+    cardCategory: "gun",
+    rarity: 'rare'
   },
   {
     id: "reload_spray",
@@ -446,8 +466,8 @@ export const CARDS: Card[] = [
     description: "장전 후 5피해를 4회 사격. 사용 후 빈탄창.",
     traits: [],
     special: "reloadSpray",
-    cardCategory: "gun"
-    // loaded 토큰은 processPreAttackSpecials에서 처리 (빈탄창 상쇄)
+    cardCategory: "gun",
+    rarity: 'rare'
   },
   {
     id: "long_draw",
@@ -460,7 +480,8 @@ export const CARDS: Card[] = [
     description: "방어력 10. 손패에 장전카드가 있으면 자동으로 장전한다.",
     traits: [],
     cardCategory: "fencing",
-    special: "autoReload"
+    special: "autoReload",
+    rarity: 'rare'
   },
   {
     id: "mental_focus",
@@ -472,7 +493,8 @@ export const CARDS: Card[] = [
     iconKey: "shield",
     description: "다음 턴 최대속도 8 증가, 카드 2장 더 사용 가능.",
     traits: [],
-    special: "mentalFocus"
+    special: "mentalFocus",
+    rarity: 'rare'
   },
 
   // === 펜싱 유틸리티 카드 ===
@@ -490,7 +512,8 @@ export const CARDS: Card[] = [
     special: "parryPush",
     parryRange: 5,
     parryPushAmount: 3,
-    advanceAmount: 3
+    advanceAmount: 3,
+    rarity: 'common'
   },
   {
     id: "breach",
@@ -503,7 +526,8 @@ export const CARDS: Card[] = [
     description: "방어력 5. 공격/방어 카드 3장을 창조해 하나를 선택, 타임라인 +3 속도로 끼워넣음.",
     traits: ["creation"],
     special: "breach",
-    breachSpOffset: 3
+    breachSpOffset: 3,
+    rarity: 'common'
   },
   {
     id: "octave",
@@ -516,7 +540,8 @@ export const CARDS: Card[] = [
     description: "방어력 12. 교차 시 방어력 2배.",
     traits: ["cross"],
     cardCategory: "fencing",
-    crossBonus: { type: 'block_mult', value: 2 }
+    crossBonus: { type: 'block_mult', value: 2 },
+    rarity: 'common'
   },
   {
     id: "quarte",
@@ -530,7 +555,8 @@ export const CARDS: Card[] = [
     traits: ["chain", "cross"],
     cardCategory: "fencing",
     advanceAmount: 3,
-    crossBonus: { type: 'gun_attack', count: 1 }
+    crossBonus: { type: 'gun_attack', count: 1 },
+    rarity: 'common'
   },
   {
     id: "septime",
@@ -550,7 +576,8 @@ export const CARDS: Card[] = [
     crossBonus: { type: 'add_tokens', tokens: [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
-    ]}
+    ]},
+    rarity: 'rare'
   },
   {
     id: "double_tap_v2",
@@ -564,7 +591,8 @@ export const CARDS: Card[] = [
     description: "공격력 5x2. 룰렛 1회만 증가. 치명타 시 장전.",
     traits: [],
     cardCategory: "gun",
-    special: ["singleRoulette", "critLoad"]
+    special: ["singleRoulette", "critLoad"],
+    rarity: 'rare'
   },
   {
     id: "intercept",
@@ -581,7 +609,8 @@ export const CARDS: Card[] = [
       { id: 'dullPlus', stacks: 1, target: 'enemy' }
     ],
     special: ["interceptTokens"],
-    crossBonus: { type: 'intercept_upgrade' }
+    crossBonus: { type: 'intercept_upgrade' },
+    rarity: 'rare'
   },
   {
     id: "shout",
@@ -593,7 +622,8 @@ export const CARDS: Card[] = [
     iconKey: "star",
     description: "대기 카드 중 하나를 다음 턴에 손패로 가져온다.",
     traits: [],
-    special: ["recallCard"]
+    special: ["recallCard"],
+    rarity: 'rare'
   },
   {
     id: "emergency_response",
@@ -605,7 +635,8 @@ export const CARDS: Card[] = [
     iconKey: "star",
     description: "손패가 6장 이하일 경우 대기 카드 3장을 즉시 뽑는다.",
     traits: [],
-    special: ["emergencyDraw"]
+    special: ["emergencyDraw"],
+    rarity: 'rare'
   },
   {
     id: "stance",
@@ -617,7 +648,8 @@ export const CARDS: Card[] = [
     iconKey: "star",
     description: "부정적 토큰 제거. 이전 카드가 총격이면 연계, 검격이면 장전 획득.",
     traits: [],
-    special: ["stance"]
+    special: ["stance"],
+    rarity: 'rare'
   },
   {
     id: "violent_mort",
@@ -631,7 +663,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "fencing",
     special: ["violentMort"],
-    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+    requiredTokens: [{ id: 'finesse', stacks: 2 }],
+    rarity: 'special'
   },
   {
     id: "hologram",
@@ -644,7 +677,8 @@ export const CARDS: Card[] = [
     description: "기교 2 소모. 최대 체력만큼의 방어력 획득. 지속 1 (턴 종료 후에도 유지)",
     traits: ["guard_stance"],
     special: ["hologram"],
-    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+    requiredTokens: [{ id: 'finesse', stacks: 2 }],
+    rarity: 'special'
   },
   {
     id: "tempete_dechainee",
@@ -658,7 +692,8 @@ export const CARDS: Card[] = [
     description: "공격력 10x3. 기교 스택 x3만큼 추가 타격 후 기교 모두 소모.",
     traits: [],
     cardCategory: "fencing",
-    special: ["tempeteDechainee"]
+    special: ["tempeteDechainee"],
+    rarity: 'special'
   },
   {
     id: "coup_droit",
@@ -673,7 +708,8 @@ export const CARDS: Card[] = [
     cardCategory: "fencing",
     crossBonus: { type: 'push', value: 3 },
     appliedTokens: [{ id: 'exposed', stacks: 1, target: 'enemy' }],
-    requiredTokens: [{ id: 'finesse', stacks: 1 }]
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    rarity: 'special'
   },
   {
     id: "el_rapide",
@@ -687,8 +723,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "fencing",
     special: ["elRapide"],
-    optionalFinesse: { stacks: 1, skipToken: 'pain' }
-    // 민첩 +2와 아픔은 elRapide special에서 처리
+    optionalFinesse: { stacks: 1, skipToken: 'pain' },
+    rarity: 'special'
   },
   // === 추가 카드들 ===
   {
@@ -703,7 +739,8 @@ export const CARDS: Card[] = [
     traits: ["followup", "cross"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
-    crossBonus: { type: 'destroy_card', value: 1 }
+    crossBonus: { type: 'destroy_card', value: 1 },
+    rarity: 'special'
   },
   {
     id: "manipulation",
@@ -716,7 +753,8 @@ export const CARDS: Card[] = [
     description: "탄걸림 상태면 장전. 아니면 사격 1회.",
     traits: ["chain"],
     cardCategory: "gun",
-    special: ["manipulation"]
+    special: ["manipulation"],
+    rarity: 'rare'
   },
   {
     id: "spread",
@@ -729,7 +767,8 @@ export const CARDS: Card[] = [
     description: "적의 수만큼 사격. (3마리면 3회, 1마리면 1회)",
     traits: ["followup"],
     cardCategory: "gun",
-    special: ["spreadShot"]
+    special: ["spreadShot"],
+    rarity: 'rare'
   },
   {
     id: "griffe_du_dragon",
@@ -744,7 +783,8 @@ export const CARDS: Card[] = [
     traits: ["finisher"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 2 }],
-    appliedTokens: [{ id: 'burn', stacks: 3, target: 'enemy' }]
+    appliedTokens: [{ id: 'burn', stacks: 3, target: 'enemy' }],
+    rarity: 'special'
   },
   {
     id: "au_bord_du_gouffre",
@@ -759,7 +799,8 @@ export const CARDS: Card[] = [
     traits: ["finisher", "followup"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
-    special: ["doubleCrit", "critKnockback4"]
+    special: ["doubleCrit", "critKnockback4"],
+    rarity: 'legendary'
   },
   {
     id: "vent_des_lames",
@@ -773,7 +814,8 @@ export const CARDS: Card[] = [
     traits: ["chain"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
-    special: ["aoeAttack", "createFencingCards3"]
+    special: ["aoeAttack", "createFencingCards3"],
+    rarity: 'legendary'
   },
   {
     id: "execution_squad",
@@ -787,7 +829,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 2 }],
-    special: ["executionSquad"]
+    special: ["executionSquad"],
+    rarity: 'special'
   },
   {
     id: "sharpen_blade",
@@ -800,7 +843,8 @@ export const CARDS: Card[] = [
     description: "이번 전투 모든 검격 카드 공격력 +3.",
     traits: ["vanish"],
     cardCategory: "fencing",
-    special: ["sharpenBlade"]
+    special: ["sharpenBlade"],
+    rarity: 'special'
   },
   {
     id: "flint_shot",
@@ -813,7 +857,8 @@ export const CARDS: Card[] = [
     description: "사격 1회 + 화상 부여.",
     traits: [],
     cardCategory: "gun",
-    appliedTokens: [{ id: 'burn', stacks: 1, target: 'enemy' }]
+    appliedTokens: [{ id: 'burn', stacks: 1, target: 'enemy' }],
+    rarity: 'rare'
   },
   {
     id: "evasive_shot",
@@ -829,7 +874,8 @@ export const CARDS: Card[] = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'blur', stacks: 1, target: 'player' }],
     crossBonus: { type: 'guaranteed_crit', value: 1 },
-    special: ["evasiveShot"]
+    special: ["evasiveShot"],
+    rarity: 'rare'
   },
   {
     id: "combat_meditation",
@@ -842,7 +888,8 @@ export const CARDS: Card[] = [
     description: "기교 1 획득.",
     traits: ["vanish"],
     cardCategory: "fencing",
-    appliedTokens: [{ id: 'finesse', stacks: 1, target: 'player' }]
+    appliedTokens: [{ id: 'finesse', stacks: 1, target: 'player' }],
+    rarity: 'rare'
   },
   {
     id: "rapid_link",
@@ -859,7 +906,8 @@ export const CARDS: Card[] = [
     appliedTokens: [
       { id: 'vulnerable', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
-    ]
+    ],
+    rarity: 'special'
   },
   // === 신규 총기 카드 ===
   {
@@ -874,7 +922,8 @@ export const CARDS: Card[] = [
     traits: ["finisher"],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
-    special: ["causeJam"]
+    special: ["causeJam"],
+    rarity: 'special'
   },
   {
     id: "fragmentation_load",
@@ -888,7 +937,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
-    appliedTokens: [{ id: 'fragmentation', stacks: 3, target: 'player' }]
+    appliedTokens: [{ id: 'fragmentation', stacks: 3, target: 'player' }],
+    rarity: 'special'
   },
   {
     id: "suppression_fire",
@@ -903,7 +953,8 @@ export const CARDS: Card[] = [
     traits: ["chain"],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 2 }],
-    special: ["causeJam", "knockbackOnHit3"]
+    special: ["causeJam", "knockbackOnHit3"],
+    rarity: 'special'
   },
   {
     id: "atomic_bomb",
@@ -917,7 +968,8 @@ export const CARDS: Card[] = [
     traits: [],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
-    special: ["aoeAttack"]
+    special: ["aoeAttack"],
+    rarity: 'legendary'
   },
   // === 신규 펜싱/유틸 카드 ===
   {
@@ -932,7 +984,8 @@ export const CARDS: Card[] = [
     traits: ["followup", "cross"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
-    special: ["onHitBlock7Advance3"]
+    special: ["onHitBlock7Advance3"],
+    rarity: 'special'
   },
   {
     id: "chant_du_vent_fleuri",
@@ -945,7 +998,8 @@ export const CARDS: Card[] = [
     description: "기교 2 소모. 방어력 30.",
     traits: ["chain", "followup"],
     cardCategory: "fencing",
-    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+    requiredTokens: [{ id: 'finesse', stacks: 2 }],
+    rarity: 'special'
   },
   {
     id: "le_songe_du_vieillard",
@@ -960,7 +1014,8 @@ export const CARDS: Card[] = [
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
     special: ["repeatTimeline", "blockPerCard5"],
-    appliedTokens: [{ id: 'vigilance', target: 'player' }]
+    appliedTokens: [{ id: 'vigilance', target: 'player' }],
+    rarity: 'legendary'
   },
   {
     id: "tear_smoke_grenade",
@@ -978,7 +1033,8 @@ export const CARDS: Card[] = [
       { id: 'blurPlus', stacks: 1, target: 'player' },
       { id: 'dull', stacks: 3, target: 'enemy' },
       { id: 'shaken', stacks: 3, target: 'enemy' }
-    ]
+    ],
+    rarity: 'special'
   },
   {
     id: "duel",
@@ -992,7 +1048,8 @@ export const CARDS: Card[] = [
     traits: ["chain", "followup"],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 2 }],
-    special: ["fullHeal", "jamImmunity2", "counterShot5"]
+    special: ["fullHeal", "jamImmunity2", "counterShot5"],
+    rarity: 'legendary'
   },
 ];
 
