@@ -24,6 +24,9 @@ import type { MonsterGraceState, PrayerType } from '../data/monsterEther';
 
 // ==================== 기본 타입 ====================
 
+/** 영혼파괴 시 효과 타입 */
+export type SoulBreakEffect = 'death' | 'stun' | 'weaken';
+
 /** 패시브 효과 정의 */
 export interface EnemyPassives {
   /** 전투 시작 시 장막 (통찰 차단) */
@@ -79,6 +82,14 @@ export interface EnemyDefinition extends EnemyBase {
   passives?: EnemyPassives;
   /** 사용 가능한 기원 목록 */
   availablePrayers?: PrayerType[];
+  /**
+   * 영혼파괴(에테르 0) 시 효과
+   * - death: 즉시 사망 (구울 등 영혼 의존 존재)
+   * - stun: 1턴 기절 (인간형, 야수형)
+   * - weaken: 2턴 쇠약 (변이체)
+   * @default 'stun'
+   */
+  onSoulBreak?: SoulBreakEffect;
 }
 
 // ==================== 전투 상태 타입 ====================
@@ -162,6 +173,10 @@ export interface EnemyBattleState {
   isBoss?: boolean;
   /** 에테르 */
   ether?: number;
+  /** 영혼파괴 시 효과 */
+  onSoulBreak?: SoulBreakEffect;
+  /** 영혼이 이미 파괴되었는지 여부 */
+  soulBroken?: boolean;
 
   // === 다중 적 ===
   /** 개별 유닛 배열 (항상 존재해야 함) */

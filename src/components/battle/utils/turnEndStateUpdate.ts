@@ -112,17 +112,89 @@ export function createTurnEndEnemyState(
 }
 
 /**
- * 승리 조건 확인
+ * 영혼파괴 효과 타입
  */
-export function checkVictoryCondition(enemy: { hp: number }, enemyEtherPts: number): VictoryCheckResult {
-  const isEtherVictory = enemyEtherPts <= 0;
-  const isHpVictory = enemy.hp <= 0;
-  const isVictory = isHpVictory || isEtherVictory;
-  const delay = isEtherVictory ? 1200 : 500;
+type SoulBreakEffect = 'death' | 'stun' | 'weaken';
 
+/**
+ * 승리 조건 확인
+ * @param enemy - 적 상태 (hp, onSoulBreak, soulBroken 포함)
+ * @param enemyEtherPts - 적 에테르 포인트
+ */
+export function checkVictoryCondition(
+  enemy: { hp: number; onSoulBreak?: SoulBreakEffect; soulBroken?: boolean },
+  enemyEtherPts: number
+): VictoryCheckResult {
+  const isHpVictory = enemy.hp <= 0;
+  const etherDepleted = enemyEtherPts <= 0;
+  const soulBreakEffect = enemy.onSoulBreak || 'stun';  // 기본값: stun
+  const alreadySoulBroken = enemy.soulBroken || false;
+
+  // HP 승리
+  if (isHpVictory) {
+    return {
+      isVictory: true,
+      isEtherVictory: false,
+      delay: 500
+    };
+  }
+
+  // 에테르가 고갈된 경우
+  if (etherDepleted) {
+    // 이미 영혼이 파괴된 상태면 추가 효과 없음 (전투 계속)
+    if (alreadySoulBroken) {
+      return {
+        isVictory: false,
+        isEtherVictory: false,
+        delay: 0
+      };
+    }
+
+    // 영혼파괴 효과에 따라 분기
+    switch (soulBreakEffect) {
+      case 'death':
+        // 영혼 의존 존재: 즉시 사망 (에테르 승리)
+        return {
+          isVictory: true,
+          isEtherVictory: true,
+          delay: 1200,
+          soulBreakEffect: 'death',
+          shouldApplySoulBreak: true
+        };
+
+      case 'stun':
+        // 인간형/야수형: 1턴 기절 (전투 계속)
+        return {
+          isVictory: false,
+          isEtherVictory: false,
+          delay: 800,
+          soulBreakEffect: 'stun',
+          shouldApplySoulBreak: true
+        };
+
+      case 'weaken':
+        // 변이체: 2턴 쇠약 (전투 계속)
+        return {
+          isVictory: false,
+          isEtherVictory: false,
+          delay: 800,
+          soulBreakEffect: 'weaken',
+          shouldApplySoulBreak: true
+        };
+
+      default:
+        return {
+          isVictory: false,
+          isEtherVictory: false,
+          delay: 0
+        };
+    }
+  }
+
+  // 승리 조건 없음
   return {
-    isVictory,
-    isEtherVictory,
-    delay
+    isVictory: false,
+    isEtherVictory: false,
+    delay: 0
   };
 }

@@ -22,6 +22,7 @@ import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
 import { applyTurnEndEffects } from '../../../lib/relicEffects';
+import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
 
 /**
  * finishTurn 핵심 로직
@@ -55,6 +56,23 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   // 턴소모 토큰 제거
   actions.clearPlayerTurnTokens();
   actions.clearEnemyTurnTokens();
+
+  // soulWeaken 토큰 지속시간 감소 (매 턴 1씩 감소)
+  if (hasToken(enemy, 'soulWeaken')) {
+    const currentStacks = getTokenStacks(enemy, 'soulWeaken');
+    if (currentStacks > 1) {
+      // 스택 감소
+      const tokenResult = removeToken(enemy, 'soulWeaken', 'permanent', 1);
+      actions.setEnemy({ ...enemy, tokens: tokenResult.tokens });
+      addLog(`👻 영혼 쇠약: 지속시간 감소 (${currentStacks} → ${currentStacks - 1}턴)`);
+    } else {
+      // 토큰 제거
+      const tokenResult = removeToken(enemy, 'soulWeaken', 'permanent', currentStacks);
+      const updatedEnemy = { ...enemy, tokens: tokenResult.tokens, soulBroken: false };
+      actions.setEnemy(updatedEnemy);
+      addLog(`👻 영혼 쇠약이 해제되었습니다!`);
+    }
+  }
 
   // 탈주 카드 차단
   escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
@@ -208,7 +226,11 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     player,
     nextEnemyPtsSnapshot: nextPts,
     checkVictoryCondition,
-    actions: actions as never
+    actions: {
+      ...(actions as never),
+      setEnemy: actions.setEnemy
+    },
+    addLog
   });
 
   if (transitionResult.shouldReturn) {

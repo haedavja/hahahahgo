@@ -817,6 +817,10 @@ export interface VictoryCheckResult {
   isVictory: boolean;
   isEtherVictory?: boolean;
   delay: number;
+  /** 영혼파괴 효과 (death/stun/weaken) */
+  soulBreakEffect?: 'death' | 'stun' | 'weaken';
+  /** 영혼이 지금 파괴되는지 여부 */
+  shouldApplySoulBreak?: boolean;
 }
 
 /** 승리/패배 전환 액션 */
@@ -825,6 +829,8 @@ export interface VictoryDefeatActions {
   setNetEtherDelta: (value: null | number) => void;
   setPostCombatOptions: (options: PostCombatOptions) => void;
   setPhase: (phase: string) => void;
+  /** 적 상태 업데이트 (영혼파괴 토큰/상태 적용용) */
+  setEnemy?: (enemy: unknown) => void;
 }
 
 /** 승리/패배 처리 결과 */

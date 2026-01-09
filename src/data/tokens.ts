@@ -553,6 +553,26 @@ export const TOKENS: Record<string, TokenDefinition> = {
     emoji: '🛡️',
     description: '이번 턴 종료 시 방어력이 유지된다.',
     effect: { type: 'BLOCK_RETAIN', value: 1 }
+  },
+
+  // === 영혼파괴 관련 토큰 ===
+  soulStun: {
+    id: 'soulStun',
+    name: '영혼 기절',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '💫',
+    description: '영혼이 파괴되어 이번 턴 행동할 수 없다.',
+    effect: { type: 'SOUL_STUN', value: 1 }
+  },
+  soulWeaken: {
+    id: 'soulWeaken',
+    name: '영혼 쇠약',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '👻',
+    description: '영혼이 파괴되어 공격력이 50% 감소한다. (2턴 지속)',
+    effect: { type: 'SOUL_WEAKEN', value: 0.5, duration: 2 }
   }
 };
 

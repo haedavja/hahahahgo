@@ -1087,7 +1087,8 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 2,
     emoji: "💀",
     tier: 1,
-    description: "약함, 초반적. 가끔 때로 등장."
+    description: "약함, 초반적. 가끔 때로 등장.",
+    onSoulBreak: 'death'  // 영혼 의존 - 즉시 사망
   },
   {
     id: "marauder",
@@ -1100,7 +1101,8 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 1,
     emoji: "🗡️",
     tier: 1,
-    description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다."
+    description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다.",
+    onSoulBreak: 'stun'  // 인간형 - 1턴 기절
   },
   {
     id: "deserter",
@@ -1114,6 +1116,7 @@ export const ENEMIES: EnemyDefinition[] = [
     emoji: "⚔️",
     tier: 2,
     description: "한때 보편국에 충성했던 병사입니다. 그러나 세상이 붕괴한 지금 자기 한몸 사리기 급급해 더 이상 수단과 방법을 가리지 않습니다.",
+    onSoulBreak: 'stun',  // 인간형 - 1턴 기절
     passives: {
       veilAtStart: true,      // 전투 시작 시 장막 (통찰 차단)
       healPerTurn: 4          // 매턴 체력 4 회복
@@ -1132,6 +1135,7 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 3,
     description: "혼자 다니는 준보스급 적.",
     isBoss: true,
+    onSoulBreak: 'stun',  // 인간형 - 1턴 기절
     passives: {
       // strengthPerTurn 제거 - 무한 스케일링 문제 해결
     }
@@ -1147,7 +1151,8 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 1,
     emoji: "🟢",
     tier: 1,
-    description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편."
+    description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편.",
+    onSoulBreak: 'weaken'  // 변이체 - 2턴 쇠약
   },
 
   // === 1막 신규 일반 적 ===
@@ -1162,7 +1167,8 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 1,  // 1마리당 1장, x4면 4장
     emoji: "🐀",
     tier: 1,
-    description: "빠르고 약한 적. 떼로 나타나면 성가시다."
+    description: "빠르고 약한 적. 떼로 나타나면 성가시다.",
+    onSoulBreak: 'stun'  // 야수형 - 1턴 기절
   },
   {
     id: "berserker",
@@ -1176,6 +1182,7 @@ export const ENEMIES: EnemyDefinition[] = [
     emoji: "🔥",
     tier: 1,
     description: "정신이 붕괴한 생존자. 이성 없이 덤벼든다.",
+    onSoulBreak: 'stun',  // 인간형 - 1턴 기절
     passives: {
       strengthPerTurn: 1  // 광폭화: 매턴 힘 1 증가
     }
@@ -1191,7 +1198,8 @@ export const ENEMIES: EnemyDefinition[] = [
     cardsPerTurn: 1,
     emoji: "☠️",
     tier: 1,
-    description: "방사능에 오염된 괴생명체. 독을 뿌리며 최후엔 자폭한다."
+    description: "방사능에 오염된 괴생명체. 독을 뿌리며 최후엔 자폭한다.",
+    onSoulBreak: 'weaken'  // 변이체 - 2턴 쇠약
   },
 
   // === 1막 엘리트 적 ===
@@ -1207,6 +1215,7 @@ export const ENEMIES: EnemyDefinition[] = [
     emoji: "🎯",
     tier: 2,
     description: "숙련된 사냥꾼. 함정을 설치하고 치명적인 사격을 가한다.",
+    onSoulBreak: 'stun',  // 인간형 - 1턴 기절
     passives: {
       critBoostAtStart: 5  // 전투 시작 시 치명타율 +5%
     }
@@ -1226,6 +1235,7 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 3,
     description: "탈영병들을 이끄는 전직 장교. 강력한 방어와 치명적인 공격을 가한다.",
     isBoss: true,
+    onSoulBreak: 'stun',  // 인간형 보스 - 1턴 기절
     passives: {
       veilAtStart: true,     // 전투 시작 시 장막
       healPerTurn: 3         // 매턴 체력 3 회복 (5→3 너프)

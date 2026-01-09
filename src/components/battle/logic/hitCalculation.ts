@@ -275,6 +275,13 @@ export function calculateSingleHit(
 
   let dmg = (base + fencingBonus + strengthBonus + ethosBonus) * boost;
 
+  // soulWeaken 효과: 영혼이 파괴된 적의 공격력 50% 감소
+  if (attackerName === 'enemy' && hasToken(currentAttacker, 'soulWeaken')) {
+    const originalDmg = dmg;
+    dmg = Math.floor(dmg * 0.5);
+    specialLogs.push(`👻 영혼 쇠약: 공격력 ${originalDmg} → ${dmg} (50% 감소)`);
+  }
+
   if (isCritical) {
     dmg = applyCriticalDamage(dmg, true);
   }

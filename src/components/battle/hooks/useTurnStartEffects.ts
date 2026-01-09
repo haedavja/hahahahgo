@@ -432,6 +432,15 @@ export function useTurnStartEffects({
     const refEnemyPlan = battleRef.current?.enemyPlan as EnemyPlan | undefined;
     const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
 
+    // 영혼 기절 체크 - 기절 상태면 카드를 내지 않음
+    const allEnemyTokens = getAllTokens(enemy);
+    const hasSoulStun = allEnemyTokens.some(t => t.id === 'soulStun');
+    if (hasSoulStun) {
+      addLog('💫 적이 영혼 기절 상태로 행동할 수 없습니다!');
+      actions.setEnemyPlan({ mode, actions: [] });
+      return;
+    }
+
     if (latestManuallyModified) {
       const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });

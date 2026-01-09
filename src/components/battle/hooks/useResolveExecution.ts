@@ -373,9 +373,11 @@ export function useResolveExecution({
         setSoulShatter: actions.setSoulShatter,
         setNetEtherDelta: actions.setNetEtherDelta,
         setPostCombatOptions: actions.setPostCombatOptions,
-        setPhase: actions.setPhase
+        setPhase: actions.setPhase,
+        setEnemy: actions.setEnemy
       },
-      onVictory: showCardRewardModal
+      onVictory: showCardRewardModal,
+      addLog
     });
     if (transitionResult.shouldReturn) return;
 
