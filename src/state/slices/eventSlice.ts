@@ -6,7 +6,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, EventSliceActions } from './types';
+import type { GameStore, EventSliceActions, MapLogEntry, MapLogType } from './types';
 import type { ActiveEvent } from '../../types';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { CARDS } from '../../components/battle/battleData';
@@ -16,6 +16,24 @@ import { recordEventChoice, recordEventOccurrence } from '../../simulator/bridge
 export type EventActionsSlice = EventSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], EventActionsSlice>;
+
+/** 로그 ID 카운터 */
+let eventLogIdCounter = 0;
+
+/** 로그 항목 생성 헬퍼 */
+const createLogEntry = (
+  type: MapLogType,
+  message: string,
+  details?: string,
+  icon?: string
+): MapLogEntry => ({
+  id: `event_log_${Date.now()}_${eventLogIdCounter++}`,
+  timestamp: Date.now(),
+  type,
+  message,
+  details,
+  icon,
+});
 
 export const createEventActions: SliceCreator = (set) => ({
   chooseEvent: (choiceId) =>
@@ -124,6 +142,24 @@ export const createEventActions: SliceCreator = (set) => ({
         });
       }
 
+      // 이벤트 로그 생성
+      const eventName = active.definition?.name || '이벤트';
+      const rewardDetails: string[] = [];
+      const appliedRewards = rewards as Record<string, number>;
+      if (appliedRewards.gold) rewardDetails.push(`금 +${appliedRewards.gold}`);
+      if (appliedRewards.loot) rewardDetails.push(`전리품 +${appliedRewards.loot}`);
+      if (appliedRewards.intel) rewardDetails.push(`정보 +${appliedRewards.intel}`);
+      if (appliedRewards.memory) rewardDetails.push(`기억 +${appliedRewards.memory}`);
+      if (choice.cost?.gold) rewardDetails.push(`금 -${choice.cost.gold}`);
+      if (choice.cost?.hp) rewardDetails.push(`HP -${choice.cost.hp}`);
+
+      const eventLogEntry = createLogEntry(
+        'event',
+        `${eventName}: ${choice.label}`,
+        rewardDetails.length > 0 ? rewardDetails.join(' · ') : undefined,
+        '📜'
+      );
+
       return {
         ...state,
         resources: resources as GameStore['resources'],
@@ -131,6 +167,7 @@ export const createEventActions: SliceCreator = (set) => ({
         characterBuild: updatedCharacterBuild,
         completedEvents: newCompletedEvents,
         pendingNextEvent,
+        mapLogs: [eventLogEntry, ...(state.mapLogs || [])].slice(0, 50),
         activeEvent: {
           ...active,
           resolved: true,

@@ -43,6 +43,7 @@ import { createRestActions } from "./slices/restSlice";
 import { createShopActions } from "./slices/shopSlice";
 import { createDevActions } from "./slices/devSlice";
 import { createGrowthActions } from "./slices/growthSlice";
+import { createLogActions, logInitialState } from "./slices/logSlice";
 
 // ==================== 타입 재export (하위 호환성) ====================
 
@@ -84,10 +85,12 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
   const shopActions = createShopActions(...args);
   const devActions = createDevActions(...args);
   const growthActions = createGrowthActions(...args);
+  const logActions = createLogActions(...args);
 
   return {
     // 초기 상태
     ...initialState,
+    ...logInitialState,
 
     // 개발자 모드 상태 (초기값)
     devDulledLevel: null as number | null,
@@ -108,6 +111,7 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
     ...shopActions,
     ...devActions,
     ...growthActions,
+    ...logActions,
 
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
     resetRun: () => set(() => {
@@ -116,7 +120,7 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
       const deck = newState.characterBuild?.ownedCards || [];
       const relics = newState.relics || [];
       recordRunStart(deck, relics);
-      return newState as Partial<GameStore>;
+      return { ...newState, ...logInitialState } as Partial<GameStore>;
     }),
   } as GameStore;
 }));

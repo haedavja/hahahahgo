@@ -429,6 +429,30 @@ export interface ShopSliceActions {
   closeShop: () => void;
 }
 
+/** 맵 로그 항목 타입 */
+export type MapLogType = 'battle' | 'event' | 'shop' | 'rest' | 'dungeon' | 'item' | 'relic' | 'system';
+
+/** 맵 로그 항목 */
+export interface MapLogEntry {
+  id: string;
+  timestamp: number;
+  type: MapLogType;
+  message: string;
+  details?: string;
+  icon?: string;
+}
+
+/** 로그 슬라이스 상태 */
+export interface LogSliceState {
+  mapLogs: MapLogEntry[];
+}
+
+/** 로그 슬라이스 액션 */
+export interface LogSliceActions {
+  addMapLog: (type: MapLogType, message: string, details?: string, icon?: string) => void;
+  clearMapLogs: () => void;
+}
+
 /** 개발자 슬라이스 상태 */
 export interface DevSliceState {
   devDulledLevel: number | null;
@@ -469,7 +493,8 @@ export type GameStoreState =
   & RestSliceState
   & ShopSliceState
   & DevSliceState
-  & GrowthSliceState;
+  & GrowthSliceState
+  & LogSliceState;
 
 /** 게임 스토어 전체 액션 */
 export type GameStoreActions =
@@ -485,6 +510,7 @@ export type GameStoreActions =
   & ShopSliceActions
   & DevSliceActions
   & GrowthSliceActions
+  & LogSliceActions
   & { resetRun: () => void };
 
 /** 게임 스토어 전체 타입 */

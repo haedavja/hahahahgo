@@ -19,6 +19,7 @@ const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.De
 const StatsWidget = lazy(() => import("./ui/StatsWidget").then(m => ({ default: m.StatsWidget })));
 const RelicsBar = lazy(() => import("./ui/RelicsBar").then(m => ({ default: m.RelicsBar })));
 const PathosBar = lazy(() => import("./ui/PathosBar").then(m => ({ default: m.PathosBar })));
+const MapLog = lazy(() => import("./ui/MapLog").then(m => ({ default: m.MapLog })));
 import {
   NODE_WIDTH,
   NODE_HEIGHT,
@@ -426,6 +427,11 @@ function MapDemoComponent() {
       {/* 우측 상단 통계 위젯 */}
       <Suspense fallback={null}>
         <StatsWidget />
+      </Suspense>
+
+      {/* 우측 하단 활동 로그 */}
+      <Suspense fallback={null}>
+        <MapLog />
       </Suspense>
 
       {/* 좌측 상단 임시 버프 표시 */}

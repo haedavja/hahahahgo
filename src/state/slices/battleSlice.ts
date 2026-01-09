@@ -6,7 +6,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, BattleSliceActions, BattleCard, BattleRewards } from './types';
+import type { GameStore, BattleSliceActions, BattleCard, BattleRewards, MapLogEntry, MapLogType } from './types';
 import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
@@ -33,6 +33,24 @@ type SliceCreator = StateCreator<GameStore, [], [], BattleActionsSlice>;
 /** Convert card IDs to BattleCard objects */
 const toBattleCards = (cardIds: string[]): BattleCard[] =>
   cardIds.map(id => CARD_LIBRARY[id]).filter(Boolean);
+
+/** 로그 ID 카운터 */
+let battleLogIdCounter = 0;
+
+/** 로그 항목 생성 헬퍼 */
+const createLogEntry = (
+  type: MapLogType,
+  message: string,
+  details?: string,
+  icon?: string
+): MapLogEntry => ({
+  id: `battle_log_${Date.now()}_${battleLogIdCounter++}`,
+  timestamp: Date.now(),
+  type,
+  message,
+  details,
+  icon,
+});
 
 export const createBattleActions: SliceCreator = (set) => ({
   startBattle: (battleConfig = {}) =>
@@ -284,6 +302,29 @@ export const createBattleActions: SliceCreator = (set) => ({
         appliedRewards.relic = rewardedRelicId;
       }
 
+      // 전투 결과 로그 생성
+      const enemyName = state.activeBattle.enemyInfo?.name || state.activeBattle.label || '적';
+      const battleKind = state.activeBattle.kind === 'elite' ? '정예' : state.activeBattle.kind === 'boss' ? '보스' : '';
+      const resultIcon = resultLabel === 'victory' ? '🏆' : '💀';
+      const logMessage = resultLabel === 'victory'
+        ? `${battleKind} ${enemyName} 처치!`
+        : `${battleKind} ${enemyName}에게 패배...`;
+
+      // 보상 상세 정보
+      const rewardDetails: string[] = [];
+      if (appliedRewards.gold) rewardDetails.push(`금 +${appliedRewards.gold}`);
+      if (appliedRewards.loot) rewardDetails.push(`전리품 +${appliedRewards.loot}`);
+      if (appliedRewards.intel) rewardDetails.push(`정보 +${appliedRewards.intel}`);
+      if (appliedRewards.memory) rewardDetails.push(`기억 +${appliedRewards.memory}`);
+      if (appliedRewards.relic) rewardDetails.push(`상징 획득!`);
+
+      const battleLogEntry = createLogEntry(
+        'battle',
+        logMessage.trim(),
+        rewardDetails.length > 0 ? rewardDetails.join(' · ') : undefined,
+        resultIcon
+      );
+
       return {
         ...state,
         resources: rewards.next as GameStore['resources'],
@@ -291,6 +332,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         playerHp: Math.max(0, finalPlayerHp),
         maxHp: newMaxHp,
         activeBattle: null,
+        mapLogs: [battleLogEntry, ...(state.mapLogs || [])].slice(0, 50),
         lastBattleResult: {
           nodeId: state.activeBattle.nodeId || '',
           kind: state.activeBattle.kind || '',
