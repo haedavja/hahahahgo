@@ -303,21 +303,57 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
 
 /**
  * 다중 몬스터 유령카드 확장
+ * - 다중 유닛: 각 유닛에 분배 (기존 로직)
+ * - 단일 유닛 + count > 1: count 기반 유령 카드 생성 (들쥐x4 지원)
  */
 export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AICard[] {
   if (!actions || actions.length === 0) return actions;
   if (!units || units.length === 0) return actions;
 
   const aliveUnits = units.filter(u => (u.hp ?? 0) > 0);
-  if (aliveUnits.length <= 1) {
+  if (aliveUnits.length === 0) return actions;
+
+  // 총 개체 수 계산 (count 기반, 없으면 1)
+  const totalCount = aliveUnits.reduce((sum, u) => sum + ((u as { count?: number }).count || 1), 0);
+
+  // 1마리 이하면 유령 카드 생성 안 함
+  if (totalCount <= 1) {
     return assignSourceUnitToActions(actions, units);
   }
 
   const expandedActions: AICard[] = [];
-  let unitIndex = 0;
 
+  // 케이스 1: 다중 유닛 (기존 로직 유지)
+  if (aliveUnits.length > 1) {
+    let unitIndex = 0;
+    for (const card of actions) {
+      const primaryUnit = aliveUnits[unitIndex % aliveUnits.length];
+      const realCard: AICard = {
+        ...card,
+        __sourceUnitId: primaryUnit.unitId,
+        __uid: generateTimestampUid(`real_${card.id}`)
+      };
+      expandedActions.push(realCard);
+
+      for (let i = 1; i < aliveUnits.length; i++) {
+        const ghostUnit = aliveUnits[(unitIndex + i) % aliveUnits.length];
+        const ghostCard: AICard = {
+          ...card,
+          isGhost: true,
+          __sourceUnitId: ghostUnit.unitId,
+          __uid: generateTimestampUid(`ghost_${card.id}_${ghostUnit.unitId}`),
+          createdBy: card.id
+        };
+        expandedActions.push(ghostCard);
+      }
+      unitIndex++;
+    }
+    return expandedActions;
+  }
+
+  // 케이스 2: 단일 유닛 + count > 1 (들쥐x4 등)
+  const primaryUnit = aliveUnits[0];
   for (const card of actions) {
-    const primaryUnit = aliveUnits[unitIndex % aliveUnits.length];
     const realCard: AICard = {
       ...card,
       __sourceUnitId: primaryUnit.unitId,
@@ -325,19 +361,17 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
     };
     expandedActions.push(realCard);
 
-    for (let i = 1; i < aliveUnits.length; i++) {
-      const ghostUnit = aliveUnits[(unitIndex + i) % aliveUnits.length];
+    // count - 1개의 유령 카드 생성
+    for (let i = 1; i < totalCount; i++) {
       const ghostCard: AICard = {
         ...card,
         isGhost: true,
-        __sourceUnitId: ghostUnit.unitId,
-        __uid: generateTimestampUid(`ghost_${card.id}_${ghostUnit.unitId}`),
+        __sourceUnitId: primaryUnit.unitId,
+        __uid: generateTimestampUid(`ghost_${card.id}_${i}`),
         createdBy: card.id
       };
       expandedActions.push(ghostCard);
     }
-
-    unitIndex++;
   }
 
   return expandedActions;
