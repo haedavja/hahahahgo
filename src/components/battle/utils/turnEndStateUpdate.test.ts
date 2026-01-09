@@ -389,19 +389,38 @@ describe('turnEndStateUpdate', () => {
       expect(result.delay).toBe(500);
     });
 
-    it('적 에테르가 0이면 에테르 승리해야 함', () => {
-      const result = checkVictoryCondition({ hp: 50 }, 0);
+    it('onSoulBreak: death인 적의 에테르가 0이면 에테르 승리해야 함', () => {
+      const result = checkVictoryCondition({ hp: 50, onSoulBreak: 'death' }, 0);
 
       expect(result.isVictory).toBe(true);
       expect(result.isEtherVictory).toBe(true);
       expect(result.delay).toBe(1200);
+      expect(result.shouldApplySoulBreak).toBe(true);
     });
 
-    it('적 에테르가 음수면 에테르 승리해야 함', () => {
-      const result = checkVictoryCondition({ hp: 50 }, -5);
+    it('onSoulBreak: death인 적의 에테르가 음수면 에테르 승리해야 함', () => {
+      const result = checkVictoryCondition({ hp: 50, onSoulBreak: 'death' }, -5);
 
       expect(result.isVictory).toBe(true);
       expect(result.isEtherVictory).toBe(true);
+    });
+
+    it('기본값(stun)인 적의 에테르가 0이면 영혼파괴(기절)해야 함', () => {
+      const result = checkVictoryCondition({ hp: 50 }, 0);
+
+      expect(result.isVictory).toBe(false);
+      expect(result.isEtherVictory).toBe(false);
+      expect(result.shouldApplySoulBreak).toBe(true);
+      expect(result.soulBreakEffect).toBe('stun');
+    });
+
+    it('onSoulBreak: weaken인 적의 에테르가 0이면 영혼파괴(쇠약)해야 함', () => {
+      const result = checkVictoryCondition({ hp: 50, onSoulBreak: 'weaken' }, 0);
+
+      expect(result.isVictory).toBe(false);
+      expect(result.isEtherVictory).toBe(false);
+      expect(result.shouldApplySoulBreak).toBe(true);
+      expect(result.soulBreakEffect).toBe('weaken');
     });
 
     it('둘 다 만족하지 않으면 승리가 아니어야 함', () => {
@@ -411,12 +430,21 @@ describe('turnEndStateUpdate', () => {
       expect(result.isEtherVictory).toBe(false);
     });
 
-    it('HP와 에테르 둘 다 0이면 에테르 승리로 처리해야 함', () => {
+    it('HP와 에테르 둘 다 0이면 HP 승리로 처리해야 함', () => {
+      // HP 승리가 에테르 승리보다 우선
       const result = checkVictoryCondition({ hp: 0 }, 0);
 
       expect(result.isVictory).toBe(true);
-      expect(result.isEtherVictory).toBe(true);
-      expect(result.delay).toBe(1200); // 에테르 승리 delay
+      expect(result.isEtherVictory).toBe(false);
+      expect(result.delay).toBe(500); // HP 승리 delay
+    });
+
+    it('이미 영혼이 파괴된 적은 추가 영혼파괴가 발생하지 않아야 함', () => {
+      const result = checkVictoryCondition({ hp: 50, soulBroken: true }, 0);
+
+      expect(result.isVictory).toBe(false);
+      expect(result.isEtherVictory).toBe(false);
+      expect(result.shouldApplySoulBreak).toBeFalsy();
     });
   });
 });
