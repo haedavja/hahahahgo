@@ -15,7 +15,10 @@ const DungeonExploration = lazy(() => import("../dungeon/DungeonExploration").th
 const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
 const ShopModal = lazy(() => import("../shop/ShopModal").then(m => ({ default: m.ShopModal })));
 const RestModal = lazy(() => import("./ui/RestModal").then(m => ({ default: m.RestModal })));
-const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
+// DevTools는 개발 모드에서만 로드 (프로덕션 번들 제외)
+const DevTools = import.meta.env.DEV
+  ? lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })))
+  : null;
 const StatsWidget = lazy(() => import("./ui/StatsWidget").then(m => ({ default: m.StatsWidget })));
 const RelicsBar = lazy(() => import("./ui/RelicsBar").then(m => ({ default: m.RelicsBar })));
 const PathosBar = lazy(() => import("./ui/PathosBar").then(m => ({ default: m.PathosBar })));
@@ -723,8 +726,8 @@ function MapDemoComponent() {
         </Suspense>
       )}
 
-      {/* 개발자 도구 오버레이 */}
-      {devToolsOpen && (
+      {/* 개발자 도구 오버레이 (개발 모드에서만) */}
+      {import.meta.env.DEV && DevTools && devToolsOpen && (
         <Suspense fallback={null}>
           <DevTools
             isOpen={devToolsOpen}

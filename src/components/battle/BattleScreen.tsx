@@ -10,8 +10,10 @@ import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
 import { BattleErrorBoundary } from "./BattleErrorBoundary";
 
-// DevTools 지연 로딩 (초기 번들 크기 감소)
-const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
+// DevTools 지연 로딩 (개발 모드에서만 로드 - 프로덕션 번들 제외)
+const DevTools = import.meta.env.DEV
+  ? lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })))
+  : null;
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES, BASE_PLAYER_ENERGY } from "./battleData";
 import type {
@@ -349,7 +351,7 @@ export const BattleScreen: FC = memo(function BattleScreen() {
           onBattleResult={handleBattleResult}
         />
 
-        {devToolsOpen && (
+        {import.meta.env.DEV && DevTools && devToolsOpen && (
           <Suspense fallback={<div style={{ position: 'fixed', top: 0, left: 0, padding: '20px', background: '#1e293b', color: '#fff' }}>Loading DevTools...</div>}>
             <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
           </Suspense>
