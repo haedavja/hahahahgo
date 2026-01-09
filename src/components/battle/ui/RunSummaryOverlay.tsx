@@ -263,7 +263,7 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
     maxHp,
     gold,
     relics,
-    deck,
+    cards,
     traits,
     lastBattleResult
   } = useGameStore(useShallow(state => ({
@@ -272,10 +272,14 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
     maxHp: state.maxHp,
     gold: state.resources.gold,
     relics: state.relics,
-    deck: state.characterBuild?.cards?.map(c => c.id) || [],
-    traits: state.playerTraits || [],
+    cards: state.characterBuild?.cards,
+    traits: state.playerTraits,
     lastBattleResult: state.lastBattleResult
   })));
+
+  // 카드 ID 배열 (안정적인 참조를 위해 useMemo 사용)
+  const deck = useMemo(() => cards?.map(c => c.id) || [], [cards]);
+  const safeTraits = useMemo(() => traits || [], [traits]);
 
   // 전투 승리 횟수 계산 (간단하게 현재 층에서 추정)
   const battlesWon = result === 'victory' ? layer : Math.max(0, layer - 1);
@@ -289,7 +293,7 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
       gold,
       relics,
       deck,
-      traits,
+      traits: safeTraits,
       battlesWon
     });
 
@@ -308,7 +312,7 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);
     }
-  }, [result, layer, hp, maxHp, gold, relics, deck, traits, battlesWon]);
+  }, [result, layer, hp, maxHp, gold, relics, deck, safeTraits, battlesWon]);
 
   const titleColor = result === 'victory' ? '#22c55e' : '#ef4444';
   const titleEmoji = result === 'victory' ? '🏆' : '💀';
@@ -387,11 +391,11 @@ export const RunSummaryOverlay: FC<RunSummaryOverlayProps> = memo(({ result, onE
         )}
 
         {/* 특성 */}
-        {traits.length > 0 && (
+        {safeTraits.length > 0 && (
           <div style={SECTION_STYLE}>
-            <div style={SECTION_TITLE_STYLE}>특성 ({traits.length})</div>
+            <div style={SECTION_TITLE_STYLE}>특성 ({safeTraits.length})</div>
             <div style={TAG_CONTAINER_STYLE}>
-              {traits.map(trait => (
+              {safeTraits.map(trait => (
                 <span key={trait} style={TAG_STYLE}>{trait}</span>
               ))}
             </div>
