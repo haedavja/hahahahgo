@@ -17,3 +17,15 @@ export type {
   EffectResult,
   EffectHandler,
 } from './effects';
+
+export {
+  registerAllRelicEffects,
+  registerRelicEffect,
+  unregisterRelicEffect,
+  clearRegistry,
+  executeDamageTakenEffects,
+  executeRelicActivateEffects,
+  executeCombatStartEffects,
+  executeShopEnterEffects,
+  executeShopPurchaseEffects,
+} from './relic-registration';
