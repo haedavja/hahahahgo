@@ -63,7 +63,10 @@ export function useBreachSelection({
     const breach = breachSelectionRef.current;
     if (!breach) return;
 
-    const insertSp = (breach.breachSp ?? 0) + ((breach.breachCard as Card & { breachSpOffset?: number })?.breachSpOffset ?? 3);
+    const rawInsertSp = (breach.breachSp ?? 0) + ((breach.breachCard as Card & { breachSpOffset?: number })?.breachSpOffset ?? 3);
+    // maxSpeed로 클램핑하여 타임라인 범위 초과 방지
+    const playerMaxSpeed = battleRef.current?.player?.maxSpeed || 10;
+    const insertSp = Math.min(rawInsertSp, playerMaxSpeed);
 
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
