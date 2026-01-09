@@ -62,6 +62,10 @@ interface EnemyEtherBoxProps {
   enemyEtherCalcPhase: string;
   enemyTurnEtherAccumulated: number;
   COMBO_MULTIPLIERS: Record<string, number>;
+  /** 보스 여부 (false면 etherPerTurn 고정값 사용) */
+  isBoss?: boolean;
+  /** 일반 몬스터의 고정 에테르값 */
+  etherPerTurn?: number;
 }
 
 export const EnemyEtherBox: FC<EnemyEtherBoxProps> = memo(({
@@ -71,8 +75,12 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = memo(({
   enemyCurrentDeflation,
   enemyEtherCalcPhase,
   enemyTurnEtherAccumulated,
-  COMBO_MULTIPLIERS
+  COMBO_MULTIPLIERS,
+  isBoss,
+  etherPerTurn
 }) => {
+  // 일반 몬스터는 콤보 대신 etherPerTurn 고정값 사용 → 콤보 표시 숨김
+  const isRegularMonster = isBoss === false && etherPerTurn !== undefined;
   // 에테르 PT 스타일 (동적)
   const etherPtStyle = useMemo((): CSSProperties => ({
     fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
@@ -113,8 +121,8 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = memo(({
   return (
     <div className="enemy-ether-box" style={CONTAINER_STYLE} data-testid="enemy-ether-box">
       <div className="combo-display" data-testid="enemy-combo-display">
-        {/* 콤보 이름 (콤보가 있을 때만 표시) */}
-        {enemyCombo && (
+        {/* 콤보 이름 (콤보가 있고 일반 몬스터가 아닐 때만 표시) */}
+        {enemyCombo && !isRegularMonster && (
           <div style={COMBO_NAME_BASE}>
             <span>{enemyCombo.name}</span>
             <DeflationBadge
@@ -128,8 +136,8 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = memo(({
         <div style={etherPtStyle}>
           + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
         </div>
-        {/* 배율 표시 (콤보가 있을 때만) */}
-        {enemyCombo && (
+        {/* 배율 표시 (콤보가 있고 일반 몬스터가 아닐 때만) */}
+        {enemyCombo && !isRegularMonster && (
           <div style={multiplierStyle}>
             <span>× {(COMBO_MULTIPLIERS[enemyCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
           </div>

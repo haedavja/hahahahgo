@@ -2296,6 +2296,8 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
               enemyEtherCalcPhase={(enemyEtherCalcPhase ?? null) as string}
               enemyTurnEtherAccumulated={enemyTurnEtherAccumulated}
               COMBO_MULTIPLIERS={COMBO_MULTIPLIERS}
+              isBoss={isBoss}
+              etherPerTurn={(enemy as { passives?: { etherPerTurn?: number } })?.passives?.etherPerTurn}
             />
             {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
             {hasMultipleUnits ? (
