@@ -27,6 +27,60 @@ import type { MonsterGraceState, PrayerType } from '../data/monsterEther';
 /** 영혼파괴 시 효과 타입 */
 export type SoulBreakEffect = 'death' | 'stun' | 'weaken';
 
+/** 몬스터 카테고리 (물리형/영혼형/변이형/야수형) */
+export type MonsterCategory = 'physical' | 'spectral' | 'mutant' | 'beast';
+
+/** 스택 효과 타입 */
+export type StackEffectType =
+  | 'A'  // 임계점 폭발 - 10스택 시 강력한 한방
+  | 'B'  // 누적 버프 - 스택당 지속 버프
+  | 'D'  // 변환형 - 5스택 소모하여 특수 효과
+  | 'F'; // 시한폭탄 - 매턴 자동 증가, 임계점 시 폭발
+
+/** 스택 발동 시 효과 */
+export interface StackTriggerEffect {
+  /** 고정 피해 */
+  damage?: number;
+  /** 체력 회복 */
+  heal?: number;
+  /** 방어막 생성 */
+  block?: number;
+  /** 부여할 토큰 (자신) */
+  selfTokens?: Array<{ id: string; stacks?: number }>;
+  /** 부여할 토큰 (플레이어) */
+  playerTokens?: Array<{ id: string; stacks?: number }>;
+  /** 강제 행동 */
+  forcedAction?: string;
+}
+
+/** 스택 설정 */
+export interface StackConfig {
+  /** 스택 효과 타입 */
+  type: StackEffectType;
+  /** 매턴 자동 획득량 (F형 전용) */
+  autoGain?: number;
+  /** B형: 스택당 공격력 증가 */
+  attackPerStack?: number;
+  /** B형: 스택당 방어력 증가 */
+  blockPerStack?: number;
+  /** 발동 임계값 */
+  threshold: number;
+  /** D형: 소모 스택량 */
+  consumeAmount?: number;
+  /** 발동 시 효과 */
+  effect: StackTriggerEffect;
+}
+
+/** 전투 중 스택 상태 */
+export interface EnemyStackState {
+  /** 현재 스택 */
+  current: number;
+  /** 최대 스택 */
+  max: number;
+  /** 스택 설정 */
+  config: StackConfig;
+}
+
 /** 패시브 효과 정의 */
 export interface EnemyPassives {
   /** 전투 시작 시 장막 (통찰 차단) */
@@ -90,6 +144,10 @@ export interface EnemyDefinition extends EnemyBase {
    * @default 'stun'
    */
   onSoulBreak?: SoulBreakEffect;
+  /** 몬스터 카테고리 */
+  category?: MonsterCategory;
+  /** 스택 설정 */
+  stackConfig?: StackConfig;
 }
 
 // ==================== 전투 상태 타입 ====================
@@ -177,6 +235,10 @@ export interface EnemyBattleState {
   onSoulBreak?: SoulBreakEffect;
   /** 영혼이 이미 파괴되었는지 여부 */
   soulBroken?: boolean;
+  /** 몬스터 카테고리 */
+  category?: MonsterCategory;
+  /** 스택 상태 */
+  stack?: EnemyStackState;
 
   // === 다중 적 ===
   /** 개별 유닛 배열 (항상 존재해야 함) */
