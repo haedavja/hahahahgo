@@ -54,7 +54,7 @@ export const RelicsTab = memo(function RelicsTab({ relics, addRelic, removeRelic
       r.name.toLowerCase().includes(query) ||
       r.description.toLowerCase().includes(query) ||
       r.id.toLowerCase().includes(query) ||
-      (r.tags && r.tags.some(tag => tag.toLowerCase().includes(query)));
+      (r.tags && r.tags.some(tag => tag && tag.toLowerCase().includes(query)));
     return matchesRarity && matchesSearch;
   }), [allRelics, selectedRarity, searchQuery]);
 
