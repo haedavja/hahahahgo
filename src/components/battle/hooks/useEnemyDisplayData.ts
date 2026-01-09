@@ -16,6 +16,7 @@ import type { Card } from '../../../types/core';
 
 interface EnemyState {
   composition?: unknown[];
+  units?: unknown[];
   name?: string;
   count?: number;
   quantity?: number;
@@ -56,15 +57,17 @@ export function useEnemyDisplayData(params: UseEnemyDisplayDataParams): EnemyDis
   // 적 이름별 개수 계산
   const enemyNameCounts = useMemo(() => getEnemyNameCounts(enemy), [
     enemy?.composition,
+    enemy?.units,
     enemy?.name,
-    (enemy as { count?: number })?.count,
-    (enemy as { quantity?: number })?.quantity,
+    enemy?.count,
+    enemy?.quantity,
     enemy
   ]);
 
   // 그룹화된 적 멤버
   const groupedEnemyMembers = useMemo(() => getGroupedEnemyMembers(enemy), [
     enemy?.composition,
+    enemy?.units,
     enemy?.name,
     enemy?.emoji,
     enemy?.count,
