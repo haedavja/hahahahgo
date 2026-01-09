@@ -178,7 +178,27 @@ export function useTurnStartEffects({
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const baseEnergy = baseMaxEnergy;
     const reflectionEnergyBonus = reflectionResult.updatedBattleState.bonusEnergy || 0;
-    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy + reflectionEnergyBonus;
+
+    // 상징 패시브 효과: 조건부 에너지 보너스
+    let relicEnergyBonus = 0;
+    // 영혼조각: HP 50% 이하 +1, 25% 이하 +2 행동력
+    if (passiveRelicEffects.conditionalEnergy) {
+      const hpPercent = player.hp / (player.maxHp || player.hp);
+      if (hpPercent <= 0.25) {
+        relicEnergyBonus += passiveRelicEffects.conditionalEnergy.threshold25;
+        addLog(`💎 영혼조각: HP 25% 이하! 행동력 +${passiveRelicEffects.conditionalEnergy.threshold25}`);
+      } else if (hpPercent <= 0.5) {
+        relicEnergyBonus += passiveRelicEffects.conditionalEnergy.threshold50;
+        addLog(`💎 영혼조각: HP 50% 이하! 행동력 +${passiveRelicEffects.conditionalEnergy.threshold50}`);
+      }
+    }
+    // 역설의파편: 첫 턴 행동력 보너스
+    if (turnNumber === 1 && passiveRelicEffects.firstTurnEnergy > 0) {
+      relicEnergyBonus += passiveRelicEffects.firstTurnEnergy;
+      addLog(`⚡ 역설의파편: 첫 턴 행동력 +${passiveRelicEffects.firstTurnEnergy}`);
+    }
+
+    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy + reflectionEnergyBonus + relicEnergyBonus;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
@@ -401,7 +421,13 @@ export function useTurnStartEffects({
         // 덱에서 카드 드로우 (소멸된 카드는 제외)
         const vanishedCardIds = (battle.vanishedCards || []).map((c) => typeof c === 'string' ? c : c.id);
         const mainSpecialOnly = nextTurnEffects?.mainSpecialOnly ?? false;
-        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds, { mainSpecialOnly });
+        // 상징 패시브 효과: 추가 드로우 (금단의지혜)
+        const bonusDrawCount = passiveRelicEffects.drawPerTurn || 0;
+        const totalDrawCount = DEFAULT_DRAW_COUNT + bonusDrawCount;
+        if (bonusDrawCount > 0) {
+          addLog(`📚 금단의지혜: 추가 드로우 +${bonusDrawCount}장`);
+        }
+        const drawResult = drawFromDeck(currentDeck, currentDiscard, totalDrawCount, escapeBanRef.current, vanishedCardIds, { mainSpecialOnly });
 
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);

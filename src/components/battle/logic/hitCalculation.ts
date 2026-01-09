@@ -39,6 +39,7 @@ import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse
 import { UNIFIED_CORE_FLAGS } from '../../../core/combat/types';
 import * as EffectCore from '../../../core/combat/effect-core';
 import { toUnifiedTokens, fromUnifiedTokens } from '../../../core/combat/token-core';
+import { calculateLowHpDamageModifiers } from '../../../lib/relicEffects';
 
 /**
  * 반격 처리
@@ -372,6 +373,35 @@ export function calculateSingleHit(
   }
 
   dmg = tokenDamageResult.finalDamage;
+
+  // 상징 효과: 저HP 데미지 보정 (공허의심장, 불사조의재)
+  const relicIds = battleContext.relicIds || [];
+  if (relicIds.length > 0) {
+    if (attackerName === 'player') {
+      // 플레이어 공격: 플레이어 HP 기반 데미지 배율 적용
+      const playerMaxHp = battleContext.playerMaxHp || currentAttacker.maxHp || 100;
+      const modifiers = calculateLowHpDamageModifiers(relicIds, currentAttacker.hp, playerMaxHp);
+      if (modifiers.damageMultiplier !== 1.0) {
+        const originalDmg = dmg;
+        dmg = Math.floor(dmg * modifiers.damageMultiplier);
+        if (dmg !== originalDmg) {
+          logs.push(`🖤 저HP 보너스: 피해량 ${originalDmg} → ${dmg} (×${modifiers.damageMultiplier.toFixed(2)})`);
+        }
+      }
+    } else {
+      // 적 공격: 플레이어 방어 배율 적용 (받는 피해 감소)
+      const playerMaxHp = battleContext.playerMaxHp || currentDefender.maxHp || 100;
+      const modifiers = calculateLowHpDamageModifiers(relicIds, currentDefender.hp, playerMaxHp);
+      if (modifiers.damageTakenMultiplier !== 1.0) {
+        const originalDmg = dmg;
+        dmg = Math.floor(dmg * modifiers.damageTakenMultiplier);
+        if (dmg !== originalDmg) {
+          logs.push(`🖤 저HP 보호: 받는 피해 ${originalDmg} → ${dmg} (×${modifiers.damageTakenMultiplier.toFixed(2)})`);
+        }
+      }
+    }
+  }
+
   const ignoreBlock = shouldIgnoreBlock(modifiedCard);
 
   if (!ignoreBlock && updatedDefender.def && (updatedDefender.block || 0) > 0) {

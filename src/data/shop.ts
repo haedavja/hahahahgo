@@ -18,6 +18,7 @@
 import { RELICS, RELIC_RARITIES } from './relics';
 import { ITEMS } from './items';
 import { shuffle } from '../lib/randomUtils';
+import { calculatePassiveEffects } from '../lib/relicEffects';
 
 // ==================== 타입 정의 ====================
 
@@ -251,12 +252,14 @@ interface ShopCard {
  * @param merchantType - 상인 유형
  * @param ownedRelics - 이미 보유한 상징 ID 배열
  * @param allCards - 전체 카드 배열 (CARDS)
+ * @param relicIds - 보유 상징 ID 배열 (할인 효과용)
  * @returns { relics, items, cards }
  */
 export function generateShopInventory(
   merchantType: string = 'shop',
   ownedRelics: string[] = [],
-  allCards: ShopCard[] = []
+  allCards: ShopCard[] = [],
+  relicIds: string[] = []
 ) {
   const merchant = getMerchant(merchantType);
   const inventory: {
@@ -264,6 +267,17 @@ export function generateShopInventory(
     items: Array<{ id: string; price: number }>;
     cards: Array<{ id: string; price: number; rarity: CardRarity }>;
   } = { relics: [], items: [], cards: [] };
+
+  // 상징 패시브 효과로 할인 계산
+  const passiveEffects = calculatePassiveEffects(relicIds);
+  let discountRate = passiveEffects.shopDiscount || 0;
+  // 황금저울: 모든 할인 2배
+  if (passiveEffects.doubleDiscounts) {
+    discountRate *= 2;
+  }
+  // 최대 할인 50% 제한
+  discountRate = Math.min(discountRate, 0.5);
+  const discountMultiplier = 1 - discountRate;
 
   // 상징 선택
   const availableRelics = Object.values(RELICS).filter(r => {
@@ -300,7 +314,7 @@ export function generateShopInventory(
         const basePrice = RELIC_PRICES[relic.rarity] || 100;
         inventory.relics.push({
           id: relic.id,
-          price: Math.round(basePrice * merchant.priceMultiplier),
+          price: Math.round(basePrice * merchant.priceMultiplier * discountMultiplier),
         });
         break;
       }
@@ -317,7 +331,7 @@ export function generateShopInventory(
     const basePrice = ITEM_PRICES[tier] ?? 30;
     inventory.items.push({
       id: item.id,
-      price: Math.round(basePrice * merchant.priceMultiplier),
+      price: Math.round(basePrice * merchant.priceMultiplier * discountMultiplier),
     });
   }
 
@@ -360,7 +374,7 @@ export function generateShopInventory(
           const basePrice = CARD_PRICES[cardRarity] ?? CARD_PRICES.common;
           inventory.cards.push({
             id: card.id,
-            price: Math.round(basePrice * merchant.priceMultiplier),
+            price: Math.round(basePrice * merchant.priceMultiplier * discountMultiplier),
             rarity: cardRarity,
           });
           break;

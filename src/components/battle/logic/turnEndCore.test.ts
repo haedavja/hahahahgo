@@ -62,6 +62,7 @@ vi.mock('../../../data/monsterEther', () => ({
 
 vi.mock('../../../lib/relicEffects', () => ({
   applyTurnEndEffects: vi.fn(() => ({})),
+  calculatePassiveEffects: vi.fn(() => ({ hpLossPerTurn: 0 })),
 }));
 
 // ==================== 테스트 헬퍼 ====================

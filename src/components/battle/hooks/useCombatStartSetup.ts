@@ -13,7 +13,7 @@ import { useGameStore } from '../../../state/gameStore';
 import { ANIMATION_TIMING } from '../ui/constants/layout';
 import { createReducerEnemyState } from '../../../state/battleHelpers';
 import { RELICS } from '../../../data/relics';
-import { applyCombatStartEffects } from '../../../lib/relicEffects';
+import { applyCombatStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { initializeDeck, drawFromDeck } from '../utils/handGeneration';
 import { generateHandUid } from '../../../lib/randomUtils';
 import { DEFAULT_DRAW_COUNT, ENEMIES } from '../battleData';
@@ -79,6 +79,11 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
       if (combatStartEffects.damage > 0) {
         addLog(`⛓️ 상징 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
       }
+      // 패시브 상징 효과: 전투 시작 데미지 (금단의힘)
+      const passiveEffects = calculatePassiveEffects(orderedRelicList);
+      if (passiveEffects.combatDamage > 0) {
+        addLog(`🔥 금단의힘: 전투 시작 시 체력 -${passiveEffects.combatDamage}`);
+      }
       if (combatStartEffects.strength > 0) {
         addLog(`💪 상징 효과: 힘 +${combatStartEffects.strength}`);
       }
@@ -113,8 +118,15 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
           // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
           const cardGrowthState = useGameStore.getState().cardGrowth || {};
           const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id), cardGrowthState);
+          // 상징 패시브 효과: 덱 크기 감소 (금단의지혜)
+          let effectiveDeck = initialDeck;
+          if (passiveEffects.deckSizePenalty > 0) {
+            const penalty = passiveEffects.deckSizePenalty;
+            effectiveDeck = initialDeck.slice(0, Math.max(0, initialDeck.length - penalty));
+            addLog(`📖 금단의지혜: 덱 크기 -${penalty}장 (${initialDeck.length} → ${effectiveDeck.length})`);
+          }
           // 덱에서 카드 드로우
-          const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+          const drawResult = drawFromDeck(effectiveDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
           actions.setDeck(drawResult.newDeck);
           actions.setDiscardPile(drawResult.newDiscardPile);
           // 주특기 + 드로우한 카드 = 손패

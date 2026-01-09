@@ -952,6 +952,40 @@ export interface PassiveStats {
   negativeTraitMultiplier: number;
   /** 축하의화환: 긍정 특성 배율 */
   positiveTraitMultiplier: number;
+  /** 에테르보석: 카드 1장당 곱배수 추가 */
+  comboMultiplierPerCard: number;
+  /** 영혼조각: HP 50% 이하 +1, 25% 이하 +2 행동력 */
+  conditionalEnergy: { threshold50: number; threshold25: number } | null;
+  /** 공허의심장: HP 30% 이하 시 피해량/받는피해 보정 */
+  lowHpBonus: { damageBonus: number; damageReduction: number; threshold: number } | null;
+  /** 금단의힘: 매 전투 체력 손실 */
+  combatDamage: number;
+  /** 금단의지혜: 매 턴 추가 드로우 */
+  drawPerTurn: number;
+  /** 금단의지혜: 덱 크기 페널티 */
+  deckSizePenalty: number;
+  /** 불사조의재: HP 1%당 피해량 증가 */
+  lowHpDamageScaling: boolean;
+  /** 심연의핵: 콤보 배율 보너스 (PASSIVE) */
+  comboMultiplierBonus: number;
+  /** 심연의핵: 매 턴 체력 손실 */
+  hpLossPerTurn: number;
+  /** 역설의파편: 첫 턴 행동력 보너스 */
+  firstTurnEnergy: number;
+  /** 역설의파편: 마지막 턴 행동력 보너스 */
+  lastTurnEnergy: number;
+  /** 상인뱃지/VIP카드/상인계약: 상점 할인율 */
+  shopDiscount: number;
+  /** VIP카드: 영구 VIP 상태 */
+  permanentVIP: boolean;
+  /** 상인계약: 무료 새로고침 */
+  freeReroll: boolean;
+  /** 상인계약: 판매 가격 보너스 */
+  sellPriceBonus: number;
+  /** 황금저울: 구매/판매 가격 동일 */
+  equalBuySell: boolean;
+  /** 황금저울: 모든 할인 2배 */
+  doubleDiscounts: boolean;
 }
 
 /** 전투 시작 효과 */

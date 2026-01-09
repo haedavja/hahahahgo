@@ -69,6 +69,24 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
     rewindCount: 0,
     negativeTraitMultiplier: 1,
     positiveTraitMultiplier: 1,
+    // 새로 추가된 효과들
+    comboMultiplierPerCard: 0,
+    conditionalEnergy: null,
+    lowHpBonus: null,
+    combatDamage: 0,
+    drawPerTurn: 0,
+    deckSizePenalty: 0,
+    lowHpDamageScaling: false,
+    comboMultiplierBonus: 0,
+    hpLossPerTurn: 0,
+    firstTurnEnergy: 0,
+    lastTurnEnergy: 0,
+    shopDiscount: 0,
+    permanentVIP: false,
+    freeReroll: false,
+    sellPriceBonus: 0,
+    equalBuySell: false,
+    doubleDiscounts: false,
   };
 
   relicIds.forEach(relicId => {
@@ -97,6 +115,50 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
     if (effects.negativeTraitMultiplier) stats.negativeTraitMultiplier *= effects.negativeTraitMultiplier;
     // 축하의화환: 긍정 특성 배율 (곱셈)
     if (effects.positiveTraitMultiplier) stats.positiveTraitMultiplier *= effects.positiveTraitMultiplier;
+
+    // === 새로 추가된 효과들 ===
+    // 에테르보석: 카드 1장당 곱배수 추가
+    if (effects.comboMultiplierPerCard) stats.comboMultiplierPerCard += effects.comboMultiplierPerCard;
+    // 영혼조각: 조건부 행동력
+    if (effects.conditionalEnergy) {
+      const ce = effects.conditionalEnergy as { threshold50?: number; threshold25?: number };
+      stats.conditionalEnergy = {
+        threshold50: (stats.conditionalEnergy?.threshold50 || 0) + (ce.threshold50 || 1),
+        threshold25: (stats.conditionalEnergy?.threshold25 || 0) + (ce.threshold25 || 2),
+      };
+    }
+    // 공허의심장: 저체력 보너스
+    if (effects.lowHpBonus) {
+      const lhb = effects.lowHpBonus as { damageBonus?: number; damageReduction?: number; threshold?: number };
+      stats.lowHpBonus = {
+        damageBonus: (stats.lowHpBonus?.damageBonus || 0) + (lhb.damageBonus || 0.5),
+        damageReduction: (stats.lowHpBonus?.damageReduction || 0) + (lhb.damageReduction || 0.3),
+        threshold: lhb.threshold || 0.3,
+      };
+    }
+    // 금단의힘: 전투 시 체력 손실
+    if (effects.combatDamage) stats.combatDamage += effects.combatDamage;
+    // 금단의지혜: 매 턴 추가 드로우
+    if (effects.drawPerTurn) stats.drawPerTurn += effects.drawPerTurn;
+    // 금단의지혜: 덱 크기 페널티
+    if (effects.deckSizePenalty) stats.deckSizePenalty += effects.deckSizePenalty;
+    // 불사조의재: HP 비율 피해 스케일링
+    if (effects.lowHpDamageScaling) stats.lowHpDamageScaling = true;
+    // 심연의핵: 콤보 배율 보너스 (PASSIVE에서도 적용)
+    if (effects.comboMultiplierBonus) stats.comboMultiplierBonus += effects.comboMultiplierBonus;
+    // 심연의핵: 매 턴 체력 손실
+    if (effects.hpLossPerTurn) stats.hpLossPerTurn += effects.hpLossPerTurn;
+    // 역설의파편: 첫 턴 행동력
+    if (effects.firstTurnEnergy) stats.firstTurnEnergy += effects.firstTurnEnergy;
+    // 역설의파편: 마지막 턴 행동력
+    if (effects.lastTurnEnergy) stats.lastTurnEnergy += effects.lastTurnEnergy;
+    // 상점 할인 관련
+    if (effects.shopDiscount) stats.shopDiscount += effects.shopDiscount;
+    if (effects.permanentVIP) stats.permanentVIP = true;
+    if (effects.freeReroll) stats.freeReroll = true;
+    if (effects.sellPriceBonus) stats.sellPriceBonus += effects.sellPriceBonus;
+    if (effects.equalBuySell) stats.equalBuySell = true;
+    if (effects.doubleDiscounts) stats.doubleDiscounts = true;
   });
 
   // 결과 캐싱
@@ -572,4 +634,61 @@ export function applyDeathEffects(
   });
 
   return changes;
+}
+
+/** 데미지 보정 결과 */
+export interface DamageModifierResult {
+  /** 최종 데미지 배율 (1.0 = 100%) */
+  damageMultiplier: number;
+  /** 받는 피해 배율 (1.0 = 100%) */
+  damageTakenMultiplier: number;
+}
+
+/**
+ * 저HP 상태 데미지 보정 계산 (공허의심장, 불사조의재)
+ * @param relicIds - 보유 상징 ID 목록
+ * @param currentHp - 현재 HP
+ * @param maxHp - 최대 HP
+ * @returns 데미지 배율 정보
+ */
+export function calculateLowHpDamageModifiers(
+  relicIds: string[] = [],
+  currentHp: number,
+  maxHp: number
+): DamageModifierResult {
+  const result: DamageModifierResult = {
+    damageMultiplier: 1.0,
+    damageTakenMultiplier: 1.0,
+  };
+
+  if (maxHp <= 0) return result;
+
+  const hpPercent = currentHp / maxHp;
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'PASSIVE') return;
+
+    const effects = relic.effects;
+
+    // 공허의심장: HP가 threshold 이하일 때 피해량 증가, 받는 피해 감소
+    if (effects.lowHpBonus) {
+      const threshold = effects.lowHpBonus.threshold ?? 0.3;
+      if (hpPercent <= threshold) {
+        result.damageMultiplier += effects.lowHpBonus.damageBonus ?? 0;
+        result.damageTakenMultiplier -= effects.lowHpBonus.damageReduction ?? 0;
+      }
+    }
+
+    // 불사조의재: 잃은 HP 비율만큼 피해량 증가 (최대 100%)
+    if (effects.lowHpDamageScaling) {
+      const lostHpPercent = 1 - hpPercent;
+      result.damageMultiplier += lostHpPercent;
+    }
+  });
+
+  // 받는 피해 배율은 최소 0.1 (90% 감소 제한)
+  result.damageTakenMultiplier = Math.max(0.1, result.damageTakenMultiplier);
+
+  return result;
 }

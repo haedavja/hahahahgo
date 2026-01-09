@@ -21,7 +21,7 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
-import { applyTurnEndEffects, applyComboEffects, applyGraceGainEffects } from '../../../lib/relicEffects';
+import { applyTurnEndEffects, applyComboEffects, applyGraceGainEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
 import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
 
@@ -228,11 +228,24 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
   const newEnemyUsageCount = updateComboUsageCount(updatedEnemy.comboUsageCount, eComboEnd, [], 'enemy');
 
+  // 상징 패시브 효과: 매 턴 체력 손실 (심연의핵)
+  const passiveRelicEffects = calculatePassiveEffects(relicIds);
+  let playerHpAfterLoss = player.hp;
+  if (passiveRelicEffects.hpLossPerTurn > 0) {
+    const hpLoss = passiveRelicEffects.hpLossPerTurn;
+    playerHpAfterLoss = Math.max(1, player.hp - hpLoss); // 최소 1 HP 유지
+    addLog(`⚫ 심연의핵: 턴 종료 시 ${hpLoss} 체력 손실 (${player.hp} → ${playerHpAfterLoss})`);
+  }
+
   // 상태 업데이트 (턴 종료 상징 효과의 힘 증가 반영)
-  const playerWithStrength = turnEndRelicEffects.strength !== 0
-    ? { ...player, strength: (player.strength || 0) + turnEndRelicEffects.strength }
-    : player;
-  actions.setPlayer(createTurnEndPlayerState(playerWithStrength as never, {
+  const playerWithHpAndStrength = {
+    ...player,
+    hp: playerHpAfterLoss,
+    strength: turnEndRelicEffects.strength !== 0
+      ? (player.strength || 0) + turnEndRelicEffects.strength
+      : player.strength || 0
+  };
+  actions.setPlayer(createTurnEndPlayerState(playerWithHpAndStrength as never, {
     comboUsageCount: newUsageCount,
     etherPts: nextPlayerPts,
     etherOverflow: playerOverflow,

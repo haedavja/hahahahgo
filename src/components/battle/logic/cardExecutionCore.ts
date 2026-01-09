@@ -157,7 +157,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     pathosTurnEffects,
     pathosNextCardEffects,
     // 다음 카드 치명타 보장 효과
-    guaranteedCrit: pathosNextCardEffects?.guaranteeCrit
+    guaranteedCrit: pathosNextCardEffects?.guaranteeCrit,
+    // 상징 효과용 (데미지 보정)
+    relicIds: orderedRelicList.map(r => r.id),
+    playerMaxHp: safeInitialPlayer?.maxHp || P.maxHp || 100,
   };
 
   // 카드가 없으면 early return (타입 가드)

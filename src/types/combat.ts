@@ -355,6 +355,10 @@ export interface BattleContext {
   };
   // 상징 개수 (고고학 에토스용)
   symbolCount?: number;
+  // 상징 ID 목록 (데미지 보정용)
+  relicIds?: string[];
+  // 플레이어 maxHp (데미지 보정용)
+  playerMaxHp?: number;
 }
 
 // ==================== 배틀 상태 객체 ====================

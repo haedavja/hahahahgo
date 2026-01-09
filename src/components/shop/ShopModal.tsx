@@ -141,7 +141,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const merchant = MERCHANT_TYPES[merchantType] ?? MERCHANT_TYPES.shop;
 
   const [inventory, setInventory] = useState(() =>
-    generateShopInventory(merchantType, relics, CARDS)
+    generateShopInventory(merchantType, relics, CARDS, relics)
   );
   const [purchasedRelics, setPurchasedRelics] = useState<Set<string>>(new Set());
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
@@ -330,7 +330,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
       }
       case 'reroll': {
         addResources({ gold: -price });
-        setInventory(generateShopInventory(merchantType, relics, CARDS));
+        setInventory(generateShopInventory(merchantType, relics, CARDS, relics));
         setPurchasedRelics(new Set());
         setPurchasedItems(new Set());
         setPurchasedCards(new Set());

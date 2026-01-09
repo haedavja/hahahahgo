@@ -210,7 +210,7 @@ const buildBattlePayload = (
     1,
     Math.min(
       maxHp,
-      (initialPlayer?.hp ?? maxHp) - combatStartEffects.damage + combatStartEffects.heal
+      (initialPlayer?.hp ?? maxHp) - combatStartEffects.damage - (passiveEffects.combatDamage || 0) + combatStartEffects.heal
     )
   );
 
