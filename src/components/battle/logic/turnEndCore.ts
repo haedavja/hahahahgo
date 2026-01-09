@@ -21,7 +21,8 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
-import { applyTurnEndEffects, applyComboEffects, applyGraceGainEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
+import { applyComboEffects, applyGraceGainEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
+import { executeTurnEndEffects } from '../../../core/effects';
 import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
 import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
 
@@ -84,11 +85,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
 
   // 상징 턴 종료 효과
   const relicIds = relics.map((r: Relic) => (typeof r === 'string' ? r : r.id || ''));
-  const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
-    cardsPlayedThisTurn: battle.selected.length,
-    player,
-    enemy,
-  });
+  const turnEndRelicEffects = executeTurnEndEffects(relicIds);
 
   playTurnEndRelicAnimations({
     relics: relicIds,

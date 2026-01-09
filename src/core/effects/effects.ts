@@ -52,9 +52,15 @@ export interface EffectContext {
  * 효과 결과
  */
 export interface EffectResult {
-  /** 다음 턴 방어력 추가 */
+  /** 즉시 방어력 추가 (턴 시작/종료) */
+  block?: number;
+  /** 즉시 회복량 추가 (턴 시작/종료) */
+  heal?: number;
+  /** 행동력 추가 (턴 시작) */
+  energy?: number;
+  /** 다음 턴 방어력 추가 (피해 받기) */
   blockNextTurn?: number;
-  /** 다음 턴 회복량 추가 */
+  /** 다음 턴 회복량 추가 (피해 받기) */
   healNextTurn?: number;
   /** 힘 추가 */
   strength?: number;
@@ -120,10 +126,25 @@ class EffectRegistryImpl {
     const handlers = this.effects.get(timing) || [];
     const activeHandlers = handlers.filter(h => activeRelicIds.includes(h.relicId));
 
+    // 빈 결과도 항상 0으로 초기화된 객체 반환
+    const defaultResult: EffectResult = {
+      block: 0,
+      heal: 0,
+      energy: 0,
+      blockNextTurn: 0,
+      healNextTurn: 0,
+      strength: 0,
+      etherGain: 0,
+      bonusDamage: 0,
+      damageReduction: 0,
+      discount: 0,
+      goldGain: 0,
+    };
+
     return activeHandlers.reduce((accumulated, { handler }) => {
       const result = handler(context);
       return this.mergeResults(accumulated, result);
-    }, {} as EffectResult);
+    }, defaultResult);
   }
 
   /**
@@ -131,6 +152,9 @@ class EffectRegistryImpl {
    */
   private mergeResults(a: EffectResult, b: EffectResult): EffectResult {
     return {
+      block: (a.block || 0) + (b.block || 0),
+      heal: (a.heal || 0) + (b.heal || 0),
+      energy: (a.energy || 0) + (b.energy || 0),
       blockNextTurn: (a.blockNextTurn || 0) + (b.blockNextTurn || 0),
       healNextTurn: (a.healNextTurn || 0) + (b.healNextTurn || 0),
       strength: (a.strength || 0) + (b.strength || 0),

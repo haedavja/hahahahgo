@@ -15,7 +15,8 @@ import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { gainGrace, createInitialGraceState, type MonsterGraceState, type PrayerType } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
-import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
+import { calculatePassiveEffects } from '../../../lib/relicEffects';
+import { executeTurnEndEffects } from '../../../core/effects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
@@ -189,11 +190,7 @@ export function useResolveExecution({
 
     // 상징 턴 종료 효과 적용
     const relicIds = relics;
-    const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
-      cardsPlayedThisTurn: battle.selected.length,
-      player,
-      enemy,
-    });
+    const turnEndRelicEffects = executeTurnEndEffects(relicIds);
 
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({

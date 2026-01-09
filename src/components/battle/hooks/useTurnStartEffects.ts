@@ -20,7 +20,8 @@
 import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
-import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
+import { calculatePassiveEffects } from '../../../lib/relicEffects';
+import { executeTurnStartEffects } from '../../../core/effects';
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
 import { processEthosAtBattleStart } from '../../../lib/ethosEffects';
@@ -129,7 +130,7 @@ export function useTurnStartEffects({
     actions.setWillOverdrive(false);
 
     // 상징 턴 시작 효과 적용 (피피한 갑옷 등)
-    const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
+    const turnStartRelicEffects = executeTurnStartEffects(orderedRelicList);
 
     // 턴 시작 상징 발동 애니메이션
     orderedRelicList.forEach((relicId: string) => {

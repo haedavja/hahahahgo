@@ -60,10 +60,11 @@ function createHandler(relicId: string, effects: Record<string, unknown>): (cont
       if (effects.strength) result.strength = effects.strength as number;
     }
 
-    // ON_TURN_START 효과
+    // ON_TURN_START 효과 (즉시 적용 필드 사용)
     if (effects.type === 'ON_TURN_START') {
-      if (effects.block) result.blockNextTurn = effects.block as number;
-      if (effects.heal) result.healNextTurn = effects.heal as number;
+      if (effects.block) result.block = effects.block as number;
+      if (effects.heal) result.heal = effects.heal as number;
+      if (effects.energy) result.energy = effects.energy as number;
     }
 
     // ON_TURN_END 효과

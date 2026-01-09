@@ -16,7 +16,7 @@ import type {
   EtherCard
 } from '../../../types';
 import { RELIC_TONE_BY_TYPE } from '../../../core/effects/effect-audio';
-import { applyRelicActivateEffects } from '../../../lib/relicEffects';
+import { executeRelicActivateEffects } from '../../../core/effects';
 
 /**
  * 에테르 누적 처리 액션
@@ -133,8 +133,8 @@ export function processPlayerEtherAccumulation({
     }).length;
 
     if (pureTriggeredCount > 0) {
-      const activateEffects = applyRelicActivateEffects(orderedRelicList);
-      relicActivateEtherBonus = activateEffects.etherGain * pureTriggeredCount;
+      const activateEffects = executeRelicActivateEffects(orderedRelicList, []);
+      relicActivateEtherBonus = (activateEffects.etherGain || 0) * pureTriggeredCount;
       if (relicActivateEtherBonus > 0) {
         actions.setTurnEtherAccumulated(newTurnEther + relicActivateEtherBonus);
       }
