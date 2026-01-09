@@ -30,6 +30,8 @@ export interface EtherTransferResultWithGrace extends EtherTransferResult {
   updatedGraceState?: MonsterGraceState;
   /** 보호막이 막은 피해량 */
   shieldBlocked: number;
+  /** 적 에테르 0 이후 초과 피해량 (오버킬 보너스용) */
+  overkillEther: number;
 }
 
 /**
@@ -64,6 +66,7 @@ export function calculateEtherTransfer(
   let enemyGraceGain = 0;
   let updatedGraceState = graceState;
   let shieldBlocked = 0;
+  let overkillEther = 0;
 
   if (netTransfer > 0) {
     // 플레이어가 더 많이 획득 → 적의 영혼에서 빼앗기
@@ -80,6 +83,14 @@ export function calculateEtherTransfer(
     movedPts += soulDamage;
     nextPlayerPts += soulDamage;
     nextEnemyPts = Math.max(0, currentEnemyPts - soulDamage);
+
+    // 오버킬 계산: 적 에테르가 0이 된 후 남은 초과분
+    // (보호막에 막힌 피해는 제외하고, 실제로 적 영혼을 0으로 만든 뒤의 초과분만 계산)
+    if (nextEnemyPts === 0) {
+      const actualSoulDamageNeeded = currentEnemyPts; // 적 영혼을 0으로 만드는 데 필요한 양
+      const totalDamageDealt = netTransfer - shieldBlocked; // 보호막 제외 실제 피해
+      overkillEther = Math.max(0, totalDamageDealt - actualSoulDamageNeeded);
+    }
   } else if (netTransfer < 0) {
     // 적이 더 많이 획득 → 은총으로만 증가, 영혼(etherPts) 변화 없음
     // 플레이어 에테르 뺏기 불가
@@ -101,6 +112,7 @@ export function calculateEtherTransfer(
     movedPts,
     enemyGraceGain,
     updatedGraceState,
-    shieldBlocked
+    shieldBlocked,
+    overkillEther
   };
 }

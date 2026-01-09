@@ -23,6 +23,8 @@ export interface EtherTransferProcessResultWithGrace extends EtherTransferProces
   enemyGraceGain: number;
   updatedGraceState?: MonsterGraceState;
   shieldBlocked: number;
+  /** 적 에테르 0 이후 초과 피해량 (오버킬 보너스용) */
+  overkillEther: number;
 }
 
 /**
@@ -66,7 +68,8 @@ export function processEtherTransfer({
     movedPts,
     enemyGraceGain = 0,
     updatedGraceState,
-    shieldBlocked = 0
+    shieldBlocked = 0,
+    overkillEther = 0
   } = result;
 
   // 보호막이 영혼 피해를 막은 경우
@@ -98,5 +101,5 @@ export function processEtherTransfer({
     addLog(`✨ 적 은총 획득: +${enemyGraceGain} PT (영혼 불변)`);
   }
 
-  return { nextPlayerPts, nextEnemyPts, movedPts, enemyGraceGain, updatedGraceState, shieldBlocked };
+  return { nextPlayerPts, nextEnemyPts, movedPts, enemyGraceGain, updatedGraceState, shieldBlocked, overkillEther };
 }

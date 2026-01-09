@@ -26,6 +26,7 @@ import { executeTurnEndEffects, type TurnState } from '../../../core/effects';
 import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
 import { hasToken, getTokenStacks, removeToken, addToken } from '../../../lib/tokenUtils';
 import { processTurnEndStack } from '../utils/enemyStack';
+import { calculateOverkillBonus } from '../utils/overkillBonus';
 
 /**
  * finishTurn 핵심 로직
@@ -198,7 +199,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     ? rawGrace as MonsterGraceState
     : createInitialGraceState(availablePrayers);
 
-  const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
+  const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState, overkillEther } = processEtherTransfer({
     playerAppliedEther: effectivePlayerAppliedEther,
     enemyAppliedEther,
     curPlayerPts,
@@ -210,6 +211,21 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     playSound: playSound as never,
     actions: actions as never
   });
+
+  // 오버킬 보너스: 적 에테르 0 이후 초과분을 버프 토큰으로 변환
+  if (overkillEther > 0) {
+    const overkillResult = calculateOverkillBonus(overkillEther);
+
+    // 로그 출력
+    for (const msg of overkillResult.logMessages) {
+      addLog(msg);
+    }
+
+    // 토큰 지급
+    for (const tokenInfo of overkillResult.tokens) {
+      actions.addPlayerToken(tokenInfo.id, tokenInfo.stacks);
+    }
+  }
 
   // 은총 상태 업데이트 (보호막 소모 + 은총 획득)
   const validUpdatedGrace = (updatedGraceState && typeof updatedGraceState === 'object' && 'gracePts' in updatedGraceState)
