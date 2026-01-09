@@ -272,6 +272,7 @@ export function cardsToAICards(cards: import('./core').Card[]): AICard[] {
 export interface AIEnemy {
   id?: string;
   hp?: number;
+  maxSpeed?: number;
   deck?: string[];
   unitId?: number;
   units?: unknown[];

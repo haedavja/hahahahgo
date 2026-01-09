@@ -116,14 +116,21 @@ export function generateEnemyActions(
 
   const extraEnergy = Math.max(0, minCards - 1) * 2;
   const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots || 0) + extraEnergy;
-  const effectiveMaxSpeed = MAX_SPEED + Math.max(0, minCards - 1) * 10;
+  // 적의 maxSpeed 사용 (없으면 MAX_SPEED 폴백)
+  const baseMaxSpeed = enemy.maxSpeed ?? MAX_SPEED;
+  const effectiveMaxSpeed = baseMaxSpeed + Math.max(0, minCards - 1) * 10;
 
   let deck = (enemy.deck || [])
     .map(id => ENEMY_CARDS.find((c: AICard) => c.id === id))
     .filter(Boolean) as AICard[];
 
   if (deck.length === 0) {
-    deck = [...ENEMY_CARDS];
+    // 폴백: 적의 maxSpeed 이하인 카드만 사용 (무의미한 행동 방지)
+    deck = ENEMY_CARDS.filter((c: AICard) => (c.speedCost || 0) <= baseMaxSpeed);
+    // 그래도 없으면 가장 빠른 카드들 사용
+    if (deck.length === 0) {
+      deck = [...ENEMY_CARDS].sort((a, b) => (a.speedCost || 0) - (b.speedCost || 0)).slice(0, 5);
+    }
   }
 
   if (deck.length < minCards) {

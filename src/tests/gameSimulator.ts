@@ -622,7 +622,7 @@ function selectEnemyActions(enemy: SimEnemyState, turnNumber: number): AICard[] 
   }
 
   const actions = generateEnemyActions(
-    { id: enemy.id, hp: enemy.hp, deck: enemy.deck } as never,
+    { id: enemy.id, hp: enemy.hp, maxSpeed: enemy.maxSpeed, deck: enemy.deck } as never,
     mode,
     0,
     enemy.cardsPerTurn,
