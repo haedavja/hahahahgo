@@ -71,7 +71,7 @@
     },
     "wildrat_swarm": {
       "id": "wildrat_swarm",
-      "name": "들쥐 떼",
+      "name": "들쥐x4",
       "tier": 1,
       "enemies": [
         "wildrat",
@@ -98,7 +98,7 @@
     },
     "wildrat_horde": {
       "id": "wildrat_horde",
-      "name": "들쥐 대군",
+      "name": "들쥐x6",
       "tier": 1,
       "enemies": [
         "wildrat",

@@ -1296,7 +1296,7 @@ export const ENEMY_GROUPS = [
   // 초반 노드 (1-3)
   {
     id: "wildrat_swarm",
-    name: "들쥐 떼",
+    name: "들쥐x4",
     tier: 1,
     nodeRange: [1, 3],
     enemies: ["wildrat", "wildrat", "wildrat", "wildrat"]
@@ -1319,7 +1319,7 @@ export const ENEMY_GROUPS = [
   },
   {
     id: "wildrat_horde",
-    name: "들쥐 대군",
+    name: "들쥐x6",
     tier: 1,
     nodeRange: [4, 7],
     enemies: ["wildrat", "wildrat", "wildrat", "wildrat", "wildrat", "wildrat"]
