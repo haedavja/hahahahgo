@@ -123,9 +123,18 @@ export function processPlayerEtherAccumulation({
     });
 
     // 상징 발동 시 묵주 효과 적용 (각 발동마다 에테르 획득)
-    if (triggered.length > 0) {
+    // ON_RELIC_ACTIVATE 상징(묵주)을 제외한 순수 발동 상징 수로 계산
+    const pureTriggeredCount = triggered.filter(t => {
+      // ON_RELIC_ACTIVATE 타입 상징은 발동 횟수 계산에서 제외
+      const relicData = orderedRelicList.includes(t.id) ? true : false;
+      if (!relicData) return true;
+      // tone 750은 ON_RELIC_ACTIVATE 상징 (relicActivationAnimation에서 설정)
+      return t.tone !== 750;
+    }).length;
+
+    if (pureTriggeredCount > 0) {
       const activateEffects = applyRelicActivateEffects(orderedRelicList);
-      relicActivateEtherBonus = activateEffects.etherGain * triggered.length;
+      relicActivateEtherBonus = activateEffects.etherGain * pureTriggeredCount;
       if (relicActivateEtherBonus > 0) {
         actions.setTurnEtherAccumulated(newTurnEther + relicActivateEtherBonus);
       }

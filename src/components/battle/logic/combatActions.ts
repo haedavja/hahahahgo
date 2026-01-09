@@ -70,8 +70,8 @@ export function applyAttack(
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
   let totalDefenderTimelineAdvance = 0;
-  // 피해 받기 효과 누적 (철의 심장: 다음 턴 방어력/체력)
-  let accumulatedDamageTakenEffects = { blockNextTurn: 0, healNextTurn: 0 };
+  // 피해 받기 효과 누적 (철의 심장: 다음 턴 방어력/체력, 피의 계약인: 즉시 힘)
+  let accumulatedDamageTakenEffects = { blockNextTurn: 0, healNextTurn: 0, strength: 0 };
   const allEvents: BattleEvent[] = [];
   const allLogs: string[] = [];
 
@@ -96,6 +96,7 @@ export function applyAttack(
   if (firstHitResult.damageTakenEffects) {
     accumulatedDamageTakenEffects.blockNextTurn += firstHitResult.damageTakenEffects.blockNextTurn;
     accumulatedDamageTakenEffects.healNextTurn += firstHitResult.damageTakenEffects.healNextTurn;
+    accumulatedDamageTakenEffects.strength += firstHitResult.damageTakenEffects.strength || 0;
   }
 
   // queue 수정 정보 저장 (첫 번째 hit에서만)
@@ -129,6 +130,7 @@ export function applyAttack(
     if (result.damageTakenEffects) {
       accumulatedDamageTakenEffects.blockNextTurn += result.damageTakenEffects.blockNextTurn;
       accumulatedDamageTakenEffects.healNextTurn += result.damageTakenEffects.healNextTurn;
+      accumulatedDamageTakenEffects.strength += result.damageTakenEffects.strength || 0;
     }
     const filteredEvents = result.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
     allEvents.push(...filteredEvents);
@@ -186,6 +188,7 @@ export function applyAttack(
       if (result.damageTakenEffects) {
         accumulatedDamageTakenEffects.blockNextTurn += result.damageTakenEffects.blockNextTurn;
         accumulatedDamageTakenEffects.healNextTurn += result.damageTakenEffects.healNextTurn;
+        accumulatedDamageTakenEffects.strength += result.damageTakenEffects.strength || 0;
       }
       allEvents.push(...result.events);
       allLogs.push(...result.logs);
@@ -204,7 +207,7 @@ export function applyAttack(
   allLogs.push(...cardCreationResult.logs);
 
   // 피해 받기 효과가 있으면 반환에 포함
-  const hasDamageTakenEffects = accumulatedDamageTakenEffects.blockNextTurn > 0 || accumulatedDamageTakenEffects.healNextTurn > 0;
+  const hasDamageTakenEffects = accumulatedDamageTakenEffects.blockNextTurn > 0 || accumulatedDamageTakenEffects.healNextTurn > 0 || accumulatedDamageTakenEffects.strength > 0;
 
   return {
     attacker: currentAttacker,
@@ -407,7 +410,8 @@ export function applyAction(
       createdCards: result.createdCards || [],
       cardPlaySpecials: cardPlayResult,
       defenderTimelineAdvance: result.defenderTimelineAdvance || 0,
-      queueModifications: result.queueModifications
+      queueModifications: result.queueModifications,
+      damageTakenEffects: result.damageTakenEffects
     };
   }
 

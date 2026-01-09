@@ -420,6 +420,8 @@ export function useResolveExecution({
 
     let localTurnEther = turnEtherAccumulated;
     let localEnemyTurnEther = enemyTurnEtherAccumulated;
+    // 피해 받기 효과 누적 (철의 심장, 피의 계약인)
+    let accumulatedDamageTakenEffects = { blockNextTurn: 0, healNextTurn: 0 };
 
     // 최적화: 루프 외부에서 카테고리 Set 초기화 (기존: 매 반복마다 slice+filter+map+Set 생성)
     const usedCategoriesSet = new Set<string>();
@@ -454,9 +456,16 @@ export function useResolveExecution({
         fencingDamageBonus: previewNextTurnEffects.fencingDamageBonus || 0
       };
 
-      const { events } = applyAction(tempState, a.actor, a.card, battleContext as CombatBattleContext);
+      const actionResult = applyAction(tempState, a.actor, a.card, battleContext as CombatBattleContext);
+      const { events, damageTakenEffects } = actionResult;
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
+
+      // 피해 받기 효과 누적 (적 공격 시에만)
+      if (a.actor === 'enemy' && damageTakenEffects) {
+        accumulatedDamageTakenEffects.blockNextTurn += damageTakenEffects.blockNextTurn || 0;
+        accumulatedDamageTakenEffects.healNextTurn += damageTakenEffects.healNextTurn || 0;
+      }
 
       if (a.actor === 'player') {
         // 카테고리 누적 (다음 반복에서 사용)
@@ -492,6 +501,20 @@ export function useResolveExecution({
     actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
     actions.setActionEvents({ ...battle.actionEvents, ...newEvents });
     actions.setQIndex(battle.queue.length);
+
+    // 피해 받기 효과 nextTurnEffects에 저장 (철의 심장)
+    if (accumulatedDamageTakenEffects.blockNextTurn > 0 || accumulatedDamageTakenEffects.healNextTurn > 0) {
+      const currentNextTurnFx = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
+      const updatedNextTurnFx = {
+        ...currentNextTurnFx,
+        blockNextTurn: (currentNextTurnFx.blockNextTurn || 0) + accumulatedDamageTakenEffects.blockNextTurn,
+        healNextTurn: (currentNextTurnFx.healNextTurn || 0) + accumulatedDamageTakenEffects.healNextTurn
+      };
+      actions.setNextTurnEffects(updatedNextTurnFx);
+      if (battleRef.current) {
+        battleRef.current.nextTurnEffects = updatedNextTurnFx;
+      }
+    }
 
     // 타임라인 완료 후 에테르 계산 애니메이션
     const latestPlayerForAnim = battleRef.current?.player || player;

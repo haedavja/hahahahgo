@@ -75,6 +75,16 @@ export function collectTriggeredRelics({
     }
   });
 
+  // ON_RELIC_ACTIVATE 상징 (묵주): 다른 상징이 발동될 때 함께 발동
+  if (triggered.length > 0) {
+    orderedRelicList.forEach((relicId: string) => {
+      const relic = relicsRecord[relicId];
+      if (relic?.effects?.type === 'ON_RELIC_ACTIVATE' && relic?.effects?.etherGain) {
+        triggered.push({ id: relicId, tone: 750, duration: 400 });
+      }
+    });
+  }
+
   return triggered;
 }
 
