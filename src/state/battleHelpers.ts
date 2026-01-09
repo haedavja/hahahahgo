@@ -26,6 +26,7 @@ import type { MapNode, ActiveEvent, Resources, ResolverSimulationResult } from "
 import type { HandCard, InflatedCard, TimelineEntry } from "../lib/speedQueue";
 import type { MapState, CharacterBuild, BattleRewards, EnemyInfo } from "./slices/types";
 import type { EnemyDefinition, EnemyBattleState, EnemyUnitState } from "../types/enemy";
+import { initializeEnemyStack } from "../components/battle/utils/enemyStack";
 
 // ==================== 타입 정의 ====================
 
@@ -218,6 +219,10 @@ export const createReducerEnemyState = (
     }];
   }
 
+  // 스택 초기화 (적 ID 기반)
+  const enemyId = enemyData.id as string | undefined;
+  const stack = enemyId ? initializeEnemyStack(enemyId) : undefined;
+
   return {
     ...enemyData,
     hp,
@@ -231,7 +236,8 @@ export const createReducerEnemyState = (
     etherCapacity: ether,
     etherOverdriveActive: false,
     tokens: { usage: [], turn: [], permanent: [] },
-    units
+    units,
+    stack
   };
 };
 

@@ -24,7 +24,8 @@ import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../.
 import { applyComboEffects, applyGraceGainEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { executeTurnEndEffects, type TurnState } from '../../../core/effects';
 import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
-import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
+import { hasToken, getTokenStacks, removeToken, addToken } from '../../../lib/tokenUtils';
+import { processTurnEndStack } from '../utils/enemyStack';
 
 /**
  * finishTurn 핵심 로직
@@ -232,6 +233,67 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   let updatedEnemy = enemy;
   if (newGrace !== currentGrace || enemyGraceGain > 0) {
     updatedEnemy = { ...enemy, grace: newGrace };
+  }
+
+  // 스택 시스템 처리 (에테르 델타 기반)
+  if (updatedEnemy.stack) {
+    const etherDelta = enemyAppliedEther - effectivePlayerAppliedEther;
+    const stackResult = processTurnEndStack(updatedEnemy.stack, etherDelta);
+    updatedEnemy = { ...updatedEnemy, stack: stackResult.newStack };
+
+    // 스택 획득 로깅
+    if (etherDelta > 0) {
+      const stackGain = Math.floor(etherDelta / 10);
+      if (stackGain > 0) {
+        addLog(`📊 적 스택 증가: +${stackGain} (에테르 우세: ${etherDelta})`);
+      }
+    }
+
+    // 스택 효과 발동 처리 (D형: 턴 종료 시 발동)
+    if (stackResult.triggeredEffect) {
+      const effect = stackResult.triggeredEffect;
+      addLog(`⚡ 스택 효과 발동!`);
+
+      // 플레이어에게 피해
+      if (effect.damage && effect.damage > 0) {
+        const newPlayerHp = Math.max(0, player.hp - effect.damage);
+        actions.setPlayer({ ...player, hp: newPlayerHp });
+        addLog(`💥 스택 피해: ${effect.damage} (${player.hp} → ${newPlayerHp})`);
+      }
+
+      // 적 체력 회복
+      if (effect.heal && effect.heal > 0) {
+        const newEnemyHp = Math.min(updatedEnemy.maxHp, updatedEnemy.hp + effect.heal);
+        updatedEnemy = { ...updatedEnemy, hp: newEnemyHp };
+        addLog(`💚 적 회복: ${effect.heal}`);
+      }
+
+      // 적 방어막
+      if (effect.block && effect.block > 0) {
+        const newBlock = (updatedEnemy.block || 0) + effect.block;
+        updatedEnemy = { ...updatedEnemy, block: newBlock };
+        addLog(`🛡️ 적 방어막: +${effect.block}`);
+      }
+
+      // 적 자신에게 토큰 부여
+      if (effect.selfTokens && effect.selfTokens.length > 0) {
+        let enemyTokens = { ...updatedEnemy.tokens };
+        for (const tokenInfo of effect.selfTokens) {
+          const result = addToken({ tokens: enemyTokens } as never, tokenInfo.id, 'permanent', tokenInfo.stacks || 1);
+          enemyTokens = result.tokens;
+          addLog(`🔶 적 토큰: ${tokenInfo.id} +${tokenInfo.stacks || 1}`);
+        }
+        updatedEnemy = { ...updatedEnemy, tokens: enemyTokens };
+      }
+
+      // 플레이어에게 토큰 부여
+      if (effect.playerTokens && effect.playerTokens.length > 0) {
+        for (const tokenInfo of effect.playerTokens) {
+          actions.addPlayerToken(tokenInfo.id, tokenInfo.stacks || 1);
+          addLog(`🔷 플레이어 토큰: ${tokenInfo.id} +${tokenInfo.stacks || 1}`);
+        }
+      }
+    }
   }
 
   // 조합 사용 카운트 업데이트

@@ -38,6 +38,8 @@ import {
   createInitialGraceState
 } from '../../../data/monsterEther';
 import type { PrayerType, MonsterGraceState } from '../../../data/monsterEther';
+import { processTurnStartStack } from '../utils/enemyStack';
+import type { StackTriggerEffect } from '../../../types/enemy';
 import type {
   Combatant,
   EnemyPlan,
@@ -403,6 +405,43 @@ export function useTurnStartEffects({
 
     // 은총 상태 업데이트
     updatedEnemy = { ...updatedEnemy, grace: newGrace };
+
+    // 스택 처리 (F형 자동 증가)
+    if (updatedEnemy.stack) {
+      const stackResult = processTurnStartStack(updatedEnemy.stack);
+      updatedEnemy = { ...updatedEnemy, stack: stackResult.newStack };
+
+      // 스택 효과 발동 시 처리
+      if (stackResult.triggeredEffect) {
+        const effect = stackResult.triggeredEffect;
+        addLog(`💀 스택 효과 발동! (${updatedEnemy.stack.config.type}형)`);
+
+        // 고정 피해 (F형)
+        if (effect.damage) {
+          const gameState = useGameStore.getState();
+          const newPlayerHp = Math.max(0, gameState.hp - effect.damage);
+          useGameStore.getState().setHp(newPlayerHp);
+          addLog(`💥 ${effect.damage} 고정 피해!`);
+        }
+
+        // 적 토큰 부여
+        if (effect.selfTokens) {
+          for (const token of effect.selfTokens) {
+            const tokenResult = addToken(updatedEnemy, token.id, token.stacks || 1);
+            updatedEnemy = { ...updatedEnemy, tokens: tokenResult.tokens };
+            addLog(`✨ 적에게 ${token.id} 토큰 부여`);
+          }
+        }
+
+        // 플레이어 토큰 부여
+        if (effect.playerTokens) {
+          for (const token of effect.playerTokens) {
+            addLog(`⚠️ 플레이어에게 ${token.id} 토큰 부여`);
+            // 플레이어 토큰은 별도 처리 필요 (현재는 로그만)
+          }
+        }
+      }
+    }
 
     // 적 상태 업데이트
     if (JSON.stringify(updatedEnemy) !== JSON.stringify(enemy)) {
