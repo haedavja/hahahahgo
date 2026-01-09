@@ -13,12 +13,15 @@ import { ANIMATION_TIMING } from '../ui/constants/layout';
 interface RelicProcessActions {
   setRelicActivated: (relicId: string | null) => void;
   setPlayer: (player: Combatant) => void;
+  setFrozenOrder?: (count: number) => void;
 }
 
 interface TurnEndRelicEffects {
   energyNextTurn: number;
   strength: number;
   speedCostReduction: number;
+  freezeEnemyTimeline: boolean;
+  grantDefensiveNextTurn: number;
 }
 
 interface PlayTurnEndRelicAnimationsParams {
@@ -68,7 +71,7 @@ export function playTurnEndRelicAnimations({
 
 /**
  * 턴 종료 상징 효과를 다음 턴에 적용
- * - 행동력 보너스, 힘 증가, 속도 감소 등
+ * - 행동력 보너스, 힘 증가, 속도 감소, 타임라인 동결, 방어 부여 등
  */
 export function applyTurnEndRelicEffectsToNextTurn({
   turnEndRelicEffects,
@@ -94,6 +97,21 @@ export function applyTurnEndRelicEffectsToNextTurn({
   if (turnEndRelicEffects.speedCostReduction > 0) {
     updatedNextTurnEffects.speedCostReduction = (updatedNextTurnEffects.speedCostReduction ?? 0) + turnEndRelicEffects.speedCostReduction;
     addLog(`🔔 상징 효과: 다음턴 카드 속도 -${turnEndRelicEffects.speedCostReduction}`);
+  }
+
+  // 의수/적선의금화: 적 타임라인 동결 (다음 턴 플레이어 카드 먼저 실행)
+  if (turnEndRelicEffects.freezeEnemyTimeline) {
+    updatedNextTurnEffects.freezeEnemyTimeline = true;
+    if (actions.setFrozenOrder) {
+      actions.setFrozenOrder(1);
+    }
+    addLog(`❄️ 상징 효과: 다음 턴 적 타임라인 동결!`);
+  }
+
+  // 방탄복: 다음 턴 방어 부여
+  if (turnEndRelicEffects.grantDefensiveNextTurn > 0) {
+    updatedNextTurnEffects.grantDefensiveNextTurn = (updatedNextTurnEffects.grantDefensiveNextTurn ?? 0) + turnEndRelicEffects.grantDefensiveNextTurn;
+    addLog(`🛡️ 상징 효과: 다음 턴 방어 ${turnEndRelicEffects.grantDefensiveNextTurn}회 부여`);
   }
 
   return updatedNextTurnEffects;

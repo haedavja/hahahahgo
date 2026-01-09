@@ -21,7 +21,8 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
-import { applyTurnEndEffects } from '../../../lib/relicEffects';
+import { applyTurnEndEffects, applyComboEffects, applyGraceGainEffects } from '../../../lib/relicEffects';
+import { COMBO_INFO, type ComboName } from '../../../lib/comboDetection';
 import { hasToken, getTokenStacks, removeToken } from '../../../lib/tokenUtils';
 
 /**
@@ -113,14 +114,35 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const pComboEnd = detectPokerCombo(selected as never);
   const eComboEnd = detectPokerCombo(enemyPlan.actions as never);
 
-  // 에테르 최종 계산
+  // ON_COMBO 상징 효과 처리 (목장갑, 총알)
+  let comboMultiplierBonus = 0;
+  if (pComboEnd?.name) {
+    // 콤보 랭크 계산 (1-indexed: 하이카드=1, 페어=2, ...)
+    const comboRank = (COMBO_INFO[pComboEnd.name as ComboName]?.rank ?? 0) + 1;
+    const comboEffects = applyComboEffects(relicIds, comboRank);
+
+    // 목장갑: 공세+ 부여
+    if (comboEffects.grantOffensePlus > 0) {
+      actions.addPlayerToken('offensePlus', comboEffects.grantOffensePlus);
+      addLog(`🧤 목장갑: 공세+ ${comboEffects.grantOffensePlus}회 획득 (${pComboEnd.name})`);
+    }
+
+    // 총알: 콤보 배율 보너스
+    if (comboEffects.comboMultiplierBonus > 0) {
+      comboMultiplierBonus = comboEffects.comboMultiplierBonus;
+      addLog(`🔫 총알: 에테르 배율 +${comboEffects.comboMultiplierBonus} (하이카드)`);
+    }
+  }
+
+  // 에테르 최종 계산 (총알 상징 보너스 적용)
   const latestPlayer = battleRef.current?.player || player;
+  const adjustedComboMultiplier = finalComboMultiplier + comboMultiplierBonus;
   const etherResult = calculateTurnEndEther({
     playerCombo: pComboEnd,
     enemyCombo: eComboEnd,
     turnEtherAccumulated,
     enemyTurnEtherAccumulated,
-    finalComboMultiplier,
+    finalComboMultiplier: adjustedComboMultiplier,
     player: latestPlayer,
     enemy
   });
@@ -185,6 +207,17 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   let newGrace: MonsterGraceState = validUpdatedGrace || currentGrace;
   if (enemyGraceGain > 0) {
     newGrace = gainGrace(newGrace, enemyGraceGain);
+
+    // ON_GRACE_GAIN 상징 효과 처리 (화환)
+    const graceGainEffects = applyGraceGainEffects(relicIds);
+    if (graceGainEffects.grantOffense > 0) {
+      actions.addPlayerToken('offense', graceGainEffects.grantOffense);
+      addLog(`🌸 화환: 공세 ${graceGainEffects.grantOffense}회 획득 (적 은총 획득)`);
+    }
+    if (graceGainEffects.grantDefense > 0) {
+      actions.addPlayerToken('defense', graceGainEffects.grantDefense);
+      addLog(`🌸 화환: 수세 ${graceGainEffects.grantDefense}회 획득 (적 은총 획득)`);
+    }
   }
   let updatedEnemy = enemy;
   if (newGrace !== currentGrace || enemyGraceGain > 0) {

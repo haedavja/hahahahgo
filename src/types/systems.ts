@@ -946,6 +946,12 @@ export interface PassiveStats {
   etherCardMultiplier: boolean;
   maxSubmitCards: number;
   extraCardPlay: number;
+  /** 시계: 되감기 횟수 추가 */
+  rewindCount: number;
+  /** 비웃는가면: 부정 특성 배율 */
+  negativeTraitMultiplier: number;
+  /** 축하의화환: 긍정 특성 배율 */
+  positiveTraitMultiplier: number;
 }
 
 /** 전투 시작 효과 */
@@ -955,6 +961,14 @@ export interface CombatStartChanges {
   energy: number;
   damage: number;
   strength: number;
+  /** 보약: 면역 부여 횟수 */
+  grantImmunity: number;
+  /** 죽음의포옹: 체력 설정값 */
+  setHp: number | null;
+  /** 죽음의포옹: 무적 부여 횟수 */
+  grantInvincible: number;
+  /** 시간의고리: 타임라인 선행 (플레이어 카드 먼저 실행) */
+  timelineAdvance: number;
 }
 
 /** 전투 종료 효과 */
@@ -975,6 +989,10 @@ export interface TurnEndChanges {
   strength: number;
   energyNextTurn: number;
   speedCostReduction: number;
+  /** 의수/적선의금화: 적 타임라인 동결 */
+  freezeEnemyTimeline: boolean;
+  /** 방탄복: 다음 턴 방어 부여 */
+  grantDefensiveNextTurn: number;
 }
 
 /** 카드 사용 효과 */

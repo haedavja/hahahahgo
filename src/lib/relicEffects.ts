@@ -66,6 +66,9 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
     etherCardMultiplier: false,
     maxSubmitCards: 0,
     extraCardPlay: 0,
+    rewindCount: 0,
+    negativeTraitMultiplier: 1,
+    positiveTraitMultiplier: 1,
   };
 
   relicIds.forEach(relicId => {
@@ -88,6 +91,12 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
     if (effects.etherCardMultiplier) stats.etherCardMultiplier = true;
     if (effects.maxSubmitCards) stats.maxSubmitCards = effects.maxSubmitCards;
     if (effects.extraCardPlay) stats.extraCardPlay += effects.extraCardPlay;
+    // 시계: 되감기 횟수 추가
+    if (effects.rewindCount) stats.rewindCount += effects.rewindCount;
+    // 비웃는가면: 부정 특성 배율 (곱셈)
+    if (effects.negativeTraitMultiplier) stats.negativeTraitMultiplier *= effects.negativeTraitMultiplier;
+    // 축하의화환: 긍정 특성 배율 (곱셈)
+    if (effects.positiveTraitMultiplier) stats.positiveTraitMultiplier *= effects.positiveTraitMultiplier;
   });
 
   // 결과 캐싱
@@ -116,6 +125,10 @@ export function applyCombatStartEffects(
     energy: 0,
     damage: 0,
     strength: 0,
+    grantImmunity: 0,
+    setHp: null,
+    grantInvincible: 0,
+    timelineAdvance: 0,
   };
 
   relicIds.forEach(relicId => {
@@ -128,6 +141,14 @@ export function applyCombatStartEffects(
     if (effects.energy) changes.energy += effects.energy;
     if (effects.damage) changes.damage += effects.damage;
     if (effects.strength) changes.strength += effects.strength;
+    // 보약: 면역 부여
+    if (effects.grantImmunity) changes.grantImmunity += effects.grantImmunity;
+    // 죽음의포옹: 체력 설정
+    if (effects.setHp !== undefined) changes.setHp = effects.setHp;
+    // 죽음의포옹: 무적 부여
+    if (effects.grantInvincible) changes.grantInvincible += effects.grantInvincible;
+    // 시간의고리: 타임라인 선행
+    if (effects.timelineAdvance) changes.timelineAdvance += effects.timelineAdvance;
   });
 
   return changes;
@@ -215,6 +236,8 @@ export function applyTurnEndEffects(
     strength: 0,
     energyNextTurn: 0,
     speedCostReduction: 0,
+    freezeEnemyTimeline: false,
+    grantDefensiveNextTurn: 0,
   };
 
   relicIds.forEach(relicId => {
@@ -229,6 +252,10 @@ export function applyTurnEndEffects(
     if (effects.strength) changes.strength += effects.strength;
     if (effects.energyNextTurn) changes.energyNextTurn += effects.energyNextTurn;
     if (effects.speedCostReduction) changes.speedCostReduction += effects.speedCostReduction;
+    // 의수/적선의금화: 적 타임라인 동결
+    if (effects.freezeEnemyTimeline) changes.freezeEnemyTimeline = true;
+    // 방탄복: 다음 턴 방어 부여
+    if (effects.grantDefensiveNextTurn) changes.grantDefensiveNextTurn += effects.grantDefensiveNextTurn;
   });
 
   return changes;
@@ -343,4 +370,206 @@ export function calculateExtraSlots(relicIds: string[] = []): ExtraSlots {
     mainSlots: passiveEffects.mainSpecialSlots,
     subSlots: passiveEffects.subSpecialSlots,
   };
+}
+
+// ==================== 새 이벤트 타입 효과 ====================
+
+/** 콤보 효과 결과 */
+export interface ComboEffectChanges {
+  grantOffensePlus: number;
+  comboMultiplierBonus: number;
+}
+
+/**
+ * ON_COMBO 효과 처리 (목장갑, 총알)
+ * @param relicIds - 상징 ID 배열
+ * @param comboRank - 콤보 랭크 (1=하이카드, 2=페어, 3=투페어, ...)
+ */
+export function applyComboEffects(
+  relicIds: string[] = [],
+  comboRank: number = 0
+): ComboEffectChanges {
+  const changes: ComboEffectChanges = {
+    grantOffensePlus: 0,
+    comboMultiplierBonus: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_COMBO') return;
+
+    const effects = relic.effects;
+
+    // 조건 체크 (comboRank 기반)
+    if (effects.condition && !effects.condition(comboRank)) return;
+
+    // 목장갑: 공세+ 부여
+    if (effects.grantOffensePlus) changes.grantOffensePlus += effects.grantOffensePlus;
+    // 총알: 콤보 배율 보너스
+    if (effects.comboMultiplierBonus) changes.comboMultiplierBonus += effects.comboMultiplierBonus;
+  });
+
+  return changes;
+}
+
+/** 은총 획득 효과 결과 */
+export interface GraceGainEffectChanges {
+  grantOffense: number;
+  grantDefense: number;
+}
+
+/**
+ * ON_GRACE_GAIN 효과 처리 (화환)
+ */
+export function applyGraceGainEffects(
+  relicIds: string[] = []
+): GraceGainEffectChanges {
+  const changes: GraceGainEffectChanges = {
+    grantOffense: 0,
+    grantDefense: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_GRACE_GAIN') return;
+
+    const effects = relic.effects;
+
+    // 화환: 공격/방어 부여
+    if (effects.grantOffense) changes.grantOffense += effects.grantOffense;
+    if (effects.grantDefense) changes.grantDefense += effects.grantDefense;
+  });
+
+  return changes;
+}
+
+/** 토큰 획득 효과 결과 */
+export interface TokenGainEffectChanges {
+  heal: number;
+  damage: number;
+}
+
+/**
+ * ON_TOKEN_GAIN 효과 처리 (불발탄)
+ * @param isPositive - 긍정 토큰인지 여부
+ */
+export function applyTokenGainEffects(
+  relicIds: string[] = [],
+  isPositive: boolean = true
+): TokenGainEffectChanges {
+  const changes: TokenGainEffectChanges = {
+    heal: 0,
+    damage: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_TOKEN_GAIN') return;
+
+    const effects = relic.effects;
+
+    // 불발탄: 긍정 토큰 → 체력 회복, 부정 토큰 → 체력 손실
+    if (isPositive && effects.healOnPositive) {
+      changes.heal += effects.healOnPositive;
+    }
+    if (!isPositive && effects.damageOnNegative) {
+      changes.damage += effects.damageOnNegative;
+    }
+  });
+
+  return changes;
+}
+
+/** 상징 활성화 효과 결과 */
+export interface RelicActivateEffectChanges {
+  etherGain: number;
+}
+
+/**
+ * ON_RELIC_ACTIVATE 효과 처리 (묵주)
+ */
+export function applyRelicActivateEffects(
+  relicIds: string[] = []
+): RelicActivateEffectChanges {
+  const changes: RelicActivateEffectChanges = {
+    etherGain: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_RELIC_ACTIVATE') return;
+
+    const effects = relic.effects;
+
+    // 묵주: 에테르 획득
+    if (effects.etherGain) changes.etherGain += effects.etherGain;
+  });
+
+  return changes;
+}
+
+/** 카드 소진 효과 결과 */
+export interface CardExhaustEffectChanges {
+  etherGain: number;
+}
+
+/**
+ * ON_CARD_EXHAUST 효과 처리 (영혼의용광로)
+ */
+export function applyCardExhaustEffects(
+  relicIds: string[] = []
+): CardExhaustEffectChanges {
+  const changes: CardExhaustEffectChanges = {
+    etherGain: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_CARD_EXHAUST') return;
+
+    const effects = relic.effects;
+
+    // 영혼의용광로: 에테르 획득
+    if (effects.etherGain) changes.etherGain += effects.etherGain;
+  });
+
+  return changes;
+}
+
+/** 사망 효과 결과 */
+export interface DeathEffectChanges {
+  revive: boolean;
+  reviveHpPercent: number;
+}
+
+/**
+ * ON_DEATH 효과 처리 (불사조의깃털)
+ * @param usedRevives - 이번 런에서 이미 사용한 부활 횟수
+ */
+export function applyDeathEffects(
+  relicIds: string[] = [],
+  usedRevives: number = 0
+): DeathEffectChanges {
+  const changes: DeathEffectChanges = {
+    revive: false,
+    reviveHpPercent: 0,
+  };
+
+  relicIds.forEach(relicId => {
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
+    if (!relic || relic.effects.type !== 'ON_DEATH') return;
+
+    const effects = relic.effects;
+
+    // 불사조의깃털: 부활 (런당 1회 제한 확인)
+    if (effects.revive) {
+      const usesPerRun = effects.usesPerRun ?? 1;
+      if (usedRevives < usesPerRun) {
+        changes.revive = true;
+        changes.reviveHpPercent = effects.reviveHpPercent ?? 0.5;
+      }
+    }
+  });
+
+  return changes;
 }

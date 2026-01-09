@@ -23,6 +23,7 @@ import type {
   VictoryDefeatProcessResult
 } from '../../../types';
 import { addToken } from '../../../lib/tokenUtils';
+import { applyDeathEffects } from '../../../lib/relicEffects';
 
 /**
  * 승리/패배 체크 및 페이즈 전환 처리
@@ -34,7 +35,11 @@ export function processVictoryDefeatTransition({
   checkVictoryCondition,
   actions,
   onVictory,
-  addLog
+  addLog,
+  relics,
+  usedRevives,
+  setUsedRevives,
+  setPlayer
 }: {
   enemy: VictoryEnemy;
   player: VictoryPlayer;
@@ -43,6 +48,10 @@ export function processVictoryDefeatTransition({
   actions: VictoryDefeatActions;
   onVictory?: () => void;
   addLog?: (message: string) => void;
+  relics?: string[];
+  usedRevives?: number;
+  setUsedRevives?: (count: number) => void;
+  setPlayer?: (player: VictoryPlayer) => void;
 }): VictoryDefeatProcessResult {
   // 승리 체크
   const victoryCheck = checkVictoryCondition(enemy, nextEnemyPtsSnapshot);
@@ -98,6 +107,24 @@ export function processVictoryDefeatTransition({
 
   // 패배 체크
   if (player.hp <= 0) {
+    // ON_DEATH 상징 효과 처리 (불사조의깃털)
+    if (relics && relics.length > 0 && setPlayer && setUsedRevives !== undefined) {
+      const deathEffects = applyDeathEffects(relics, usedRevives || 0);
+      if (deathEffects.revive) {
+        // 부활 처리
+        const maxHp = player.maxHp || 100;
+        const reviveHp = Math.ceil(maxHp * deathEffects.reviveHpPercent);
+        const revivedPlayer = { ...player, hp: reviveHp };
+        setPlayer(revivedPlayer);
+        if (setUsedRevives) {
+          setUsedRevives((usedRevives || 0) + 1);
+        }
+        addLog?.(`🔥 불사조의깃털: 부활! 체력 ${reviveHp}로 회복`);
+        // 부활했으므로 전투 계속
+        return { shouldReturn: false, isVictory: false, isDefeat: false };
+      }
+    }
+
     actions.setNetEtherDelta(null);
     setTimeout(() => {
       actions.setPostCombatOptions({ type: 'defeat' });

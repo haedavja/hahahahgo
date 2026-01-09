@@ -519,6 +519,10 @@ export interface NextTurnEffects {
   healNextTurn?: number;
   energyNextTurn?: number;
   speedCostReduction?: number;
+  /** 의수/적선의금화: 적 타임라인 동결 */
+  freezeEnemyTimeline?: boolean;
+  /** 방탄복: 다음 턴 방어 부여 횟수 */
+  grantDefensiveNextTurn?: number;
   otherEffect?: unknown;
   [key: string]: unknown;
 }

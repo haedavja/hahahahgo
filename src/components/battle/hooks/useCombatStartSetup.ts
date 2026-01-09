@@ -88,6 +88,21 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
       if (combatStartEffects.heal > 0) {
         addLog(`💚 상징 효과: 체력 +${combatStartEffects.heal}`);
       }
+      // 보약: 면역 부여
+      if (combatStartEffects.grantImmunity > 0) {
+        addLog(`💊 상징 효과: 면역 ${combatStartEffects.grantImmunity}회 부여 (보약)`);
+      }
+      // 죽음의포옹: 체력 1로 설정 + 무적 부여
+      if (combatStartEffects.setHp !== null) {
+        addLog(`💀 상징 효과: 체력 ${combatStartEffects.setHp}로 설정 (죽음의 포옹)`);
+      }
+      if (combatStartEffects.grantInvincible > 0) {
+        addLog(`✨ 상징 효과: 무적 ${combatStartEffects.grantInvincible}회 부여 (죽음의 포옹)`);
+      }
+      // 시간의고리: 타임라인 선행 (첫 N턴 동안 플레이어 카드 먼저)
+      if (combatStartEffects.timelineAdvance > 0) {
+        addLog(`⏰ 상징 효과: ${combatStartEffects.timelineAdvance}턴간 타임라인 선행 (시간의 고리)`);
+      }
 
       // 덱/무덤 시스템 초기화 (이미 초기화되었으면 스킵)
       if (!deckInitializedRef.current) {

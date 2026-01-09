@@ -139,7 +139,8 @@ import { TOKENS } from "../../data/tokens";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   calculatePassiveEffects,
-  applyCombatStartEffects
+  applyCombatStartEffects,
+  applyTokenGainEffects
 } from "../../lib/relicEffects";
 import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection, BattleRefType, EscapeBanRefType, CommonBattleActions, BattleRefValue, SimActionEvent } from "../../types";
 import type { Relic, TokenType, TokenInstance, TokenEffect } from "../../types/core";
@@ -1124,6 +1125,22 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
           } else {
             const tokenResult = addToken(P as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             P = { ...P, tokens: tokenResult.tokens };
+
+            // ON_TOKEN_GAIN 상징 효과 처리 (불발탄)
+            const tokenDef = TOKENS[tokenInfo.id];
+            if (tokenDef && orderedRelicList.length > 0) {
+              const isPositive = tokenDef.category === 'positive';
+              const tokenGainEffects = applyTokenGainEffects(orderedRelicList, isPositive);
+              if (tokenGainEffects.heal > 0) {
+                const newHp = Math.min(P.hp + tokenGainEffects.heal, P.maxHp);
+                P = { ...P, hp: newHp };
+                actions.addLog(`🔫 불발탄: 체력 +${tokenGainEffects.heal} (긍정 토큰 획득)`);
+              }
+              if (tokenGainEffects.damage > 0) {
+                P = { ...P, hp: P.hp - tokenGainEffects.damage };
+                actions.addLog(`🔫 불발탄: 체력 -${tokenGainEffects.damage} (부정 토큰 획득)`);
+              }
+            }
           }
         });
       }
@@ -1464,7 +1481,10 @@ const Game = memo(function Game({ initialPlayer, initialEnemy, playerEther = 0, 
         playerState: P,
         nextTurnEffects,
         addLog,
-        addVanishedCard: actions.addVanishedCard
+        addVanishedCard: actions.addVanishedCard,
+        relics: orderedRelicList,
+        setEtherPts: (pts: number) => { P.etherPts = pts; },
+        etherPts: P.etherPts || 0
       });
       if (updatedNextTurnEffects !== nextTurnEffects) {
         actions.setNextTurnEffects(updatedNextTurnEffects);

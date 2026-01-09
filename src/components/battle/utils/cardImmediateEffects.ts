@@ -8,7 +8,7 @@ import type { AddLogFn } from '../../../types/hooks';
 import { ANIMATION_TIMING } from '../ui/constants/layout';
 
 import { hasTrait } from "./battleUtils";
-import { applyCardPlayedEffects } from "../../../lib/relicEffects";
+import { applyCardPlayedEffects, applyCardExhaustEffects } from "../../../lib/relicEffects";
 import { getDefenseBackfireDamage } from '../../../lib/anomalyEffectUtils';
 
 interface PlayerState {
@@ -29,6 +29,9 @@ interface ProcessImmediateCardTraitsParams {
   nextTurnEffects: NextTurnEffects;
   addLog: AddLogFn;
   addVanishedCard?: (cardId: string) => void;
+  relics?: string[];
+  setEtherPts?: (pts: number) => void;
+  etherPts?: number;
 }
 
 interface ProcessCardPlayedRelicEffectsParams {
@@ -50,7 +53,10 @@ export function processImmediateCardTraits({
   playerState,
   nextTurnEffects,
   addLog,
-  addVanishedCard
+  addVanishedCard,
+  relics,
+  setEtherPts,
+  etherPts
 }: ProcessImmediateCardTraitsParams): NextTurnEffects {
   const updatedNextTurnEffects = { ...nextTurnEffects };
 
@@ -72,6 +78,15 @@ export function processImmediateCardTraits({
   if (hasTrait(card, 'vanish') && addVanishedCard && card.id) {
     addVanishedCard(card.id);
     addLog(`💨 "소멸" - "${card.name}" 카드가 소멸되었습니다.`);
+
+    // ON_CARD_EXHAUST 상징 효과 처리 (영혼의용광로)
+    if (relics && relics.length > 0 && setEtherPts && etherPts !== undefined) {
+      const exhaustEffects = applyCardExhaustEffects(relics);
+      if (exhaustEffects.etherGain > 0) {
+        setEtherPts(etherPts + exhaustEffects.etherGain);
+        addLog(`🔥 영혼의용광로: 에테르 +${exhaustEffects.etherGain} (카드 소멸)`);
+      }
+    }
   }
 
   if (hasTrait(card, 'robber')) {
