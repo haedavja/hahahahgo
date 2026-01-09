@@ -313,9 +313,10 @@ export const BuyTab = memo(function BuyTab({ inventory, purchasedRelics, purchas
 /**
  * 판매 탭
  */
-export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSellItem }: {
+export const SellTab = memo(function SellTab({ sellableItems, merchantType, relicIds = [], onSellItem }: {
   sellableItems: SellableItem[];
   merchantType: string;
+  relicIds?: string[];
   onSellItem: (slotIndex: number) => void;
 }) {
   return (
@@ -328,7 +329,7 @@ export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSe
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {sellableItems.map(({ item, slotIndex }) => {
-            const sellPrice = getItemSellPrice(item, merchantType);
+            const sellPrice = getItemSellPrice(item, merchantType, relicIds);
 
             return (
               <div
@@ -368,9 +369,10 @@ export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSe
 /**
  * 서비스 탭
  */
-export const ServiceTab = memo(function ServiceTab({ gold, merchantType, onUseService }: {
+export const ServiceTab = memo(function ServiceTab({ gold, merchantType, relicIds = [], onUseService }: {
   gold: number;
   merchantType: string;
+  relicIds?: string[];
   onUseService: (service: ShopService) => void;
 }) {
   return (
@@ -378,8 +380,8 @@ export const ServiceTab = memo(function ServiceTab({ gold, merchantType, onUseSe
       <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>🔧 서비스</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
         {SHOP_SERVICES.map((service) => {
-          const price = getServicePrice(service.id, merchantType);
-          const canAfford = gold >= price;
+          const price = getServicePrice(service.id, merchantType, relicIds);
+          const canAfford = gold >= price || price === 0; // freeReroll 처리
 
           return (
             <div

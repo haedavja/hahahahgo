@@ -291,16 +291,17 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     const item = items[slotIndex];
     if (!item) return;
 
-    const sellPrice = getItemSellPrice(item, merchantType);
+    const sellPrice = getItemSellPrice(item, merchantType, relics);
     addResources({ gold: sellPrice });
     removeItem(slotIndex);
     showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
   const handleUseService = (service: ShopService) => {
-    const price = getServicePrice(service.id, merchantType);
+    const price = getServicePrice(service.id, merchantType, relics);
 
-    if (gold < price) {
+    // freeReroll: 무료 리롤 시 골드 체크 건너뛰기
+    if (gold < price && price > 0) {
       showNotification('골드가 부족합니다!', 'error');
       return;
     }
@@ -513,6 +514,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
             <SellTab
               sellableItems={sellableItems}
               merchantType={merchantType}
+              relicIds={relics}
               onSellItem={handleSellItem}
             />
           )}
@@ -521,6 +523,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
             <ServiceTab
               gold={gold}
               merchantType={merchantType}
+              relicIds={relics}
               onUseService={handleUseService}
             />
           )}

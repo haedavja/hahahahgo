@@ -100,9 +100,29 @@ export const BULK_DISCOUNTS: BulkDiscount[] = [
 /**
  * 단골 할인율 계산
  * @param shopVisits - 상점 방문 횟수
+ * @param relicIds - 보유 상징 ID 배열 (VIP 효과용)
  * @returns 할인 정보
  */
-export function getLoyaltyDiscount(shopVisits: number): LoyaltyDiscount {
+export function getLoyaltyDiscount(shopVisits: number, relicIds: string[] = []): LoyaltyDiscount {
+  // 상징 패시브 효과 확인
+  const passiveEffects = calculatePassiveEffects(relicIds);
+
+  // permanentVIP: VIP 할인(15%) 항상 적용
+  if (passiveEffects.permanentVIP) {
+    // VIP는 6회 방문 기준 (15% 할인)
+    const vipDiscount = LOYALTY_DISCOUNTS.find(d => d.visits === 6);
+    if (vipDiscount) {
+      // 실제 방문 횟수와 VIP 중 더 좋은 것 선택
+      let bestDiscount = vipDiscount;
+      for (const level of LOYALTY_DISCOUNTS) {
+        if (shopVisits >= level.visits && level.discountRate > bestDiscount.discountRate) {
+          bestDiscount = level;
+        }
+      }
+      return bestDiscount;
+    }
+  }
+
   let discount = LOYALTY_DISCOUNTS[0];
   for (const level of LOYALTY_DISCOUNTS) {
     if (shopVisits >= level.visits) {
@@ -402,12 +422,33 @@ interface ShopRelic {
  * 아이템 판매 가격 계산
  * @param item - 아이템 객체
  * @param merchantType - 상인 유형
+ * @param relicIds - 보유 상징 ID 배열 (판매가 보너스용)
  * @returns 판매 가격
  */
-export function getItemSellPrice(item: ShopItem, merchantType: string = 'shop'): number {
+export function getItemSellPrice(item: ShopItem, merchantType: string = 'shop', relicIds: string[] = []): number {
   const merchant = getMerchant(merchantType);
   const tier = (item.tier ?? 1) as ItemTier;
   const basePrice = ITEM_PRICES[tier] ?? 30;
+
+  // 상징 효과 확인
+  if (relicIds.length > 0) {
+    const passiveEffects = calculatePassiveEffects(relicIds);
+
+    // equalBuySell: 구매가와 판매가 동일
+    if (passiveEffects.equalBuySell) {
+      return Math.round(basePrice * merchant.priceMultiplier);
+    }
+
+    // sellPriceBonus: 판매가 보너스 (예: 0.4 = 40% 보너스)
+    if (passiveEffects.sellPriceBonus > 0) {
+      const baseSellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
+      const bonusMultiplier = baseSellMultiplier + passiveEffects.sellPriceBonus;
+      // 최대 100% (구매가)까지만
+      const finalMultiplier = Math.min(bonusMultiplier, 1.0);
+      return Math.round(basePrice * finalMultiplier);
+    }
+  }
+
   const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
@@ -416,11 +457,31 @@ export function getItemSellPrice(item: ShopItem, merchantType: string = 'shop'):
  * 상징 판매 가격 계산 (보유 상징 판매 시)
  * @param relic - 상징 객체
  * @param merchantType - 상인 유형
+ * @param relicIds - 보유 상징 ID 배열 (판매가 보너스용)
  * @returns 판매 가격
  */
-export function getRelicSellPrice(relic: ShopRelic, merchantType: string = 'shop'): number {
+export function getRelicSellPrice(relic: ShopRelic, merchantType: string = 'shop', relicIds: string[] = []): number {
   const merchant = getMerchant(merchantType);
   const basePrice = RELIC_PRICES[relic.rarity] ?? 100;
+
+  // 상징 효과 확인
+  if (relicIds.length > 0) {
+    const passiveEffects = calculatePassiveEffects(relicIds);
+
+    // equalBuySell: 구매가와 판매가 동일
+    if (passiveEffects.equalBuySell) {
+      return Math.round(basePrice * merchant.priceMultiplier);
+    }
+
+    // sellPriceBonus: 판매가 보너스
+    if (passiveEffects.sellPriceBonus > 0) {
+      const baseSellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
+      const bonusMultiplier = baseSellMultiplier + passiveEffects.sellPriceBonus;
+      const finalMultiplier = Math.min(bonusMultiplier, 1.0);
+      return Math.round(basePrice * finalMultiplier);
+    }
+  }
+
   const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
@@ -430,15 +491,36 @@ export function getRelicSellPrice(relic: ShopRelic, merchantType: string = 'shop
  * @param _card - 카드 객체 (미사용, 향후 확장용)
  * @param cardRarity - 카드 등급 (업그레이드된 등급 사용)
  * @param merchantType - 상인 유형
+ * @param relicIds - 보유 상징 ID 배열 (판매가 보너스용)
  * @returns 판매 가격
  */
 export function getCardSellPrice(
   _card: ShopCard,
   cardRarity: CardRarity = 'common',
-  merchantType: string = 'shop'
+  merchantType: string = 'shop',
+  relicIds: string[] = []
 ): number {
   const merchant = getMerchant(merchantType);
   const basePrice = CARD_PRICES[cardRarity] ?? CARD_PRICES.common;
+
+  // 상징 효과 확인
+  if (relicIds.length > 0) {
+    const passiveEffects = calculatePassiveEffects(relicIds);
+
+    // equalBuySell: 구매가와 판매가 동일
+    if (passiveEffects.equalBuySell) {
+      return Math.round(basePrice * merchant.priceMultiplier);
+    }
+
+    // sellPriceBonus: 판매가 보너스
+    if (passiveEffects.sellPriceBonus > 0) {
+      const baseSellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
+      const bonusMultiplier = baseSellMultiplier + passiveEffects.sellPriceBonus;
+      const finalMultiplier = Math.min(bonusMultiplier, 1.0);
+      return Math.round(basePrice * finalMultiplier);
+    }
+  }
+
   const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
@@ -447,12 +529,22 @@ export function getCardSellPrice(
  * 서비스 가격 조회
  * @param serviceId - 서비스 ID
  * @param merchantType - 상인 유형
+ * @param relicIds - 보유 상징 ID 배열 (무료 리롤 효과용)
  * @returns 서비스 가격
  */
-export function getServicePrice(serviceId: string, merchantType: string = 'shop'): number {
+export function getServicePrice(serviceId: string, merchantType: string = 'shop', relicIds: string[] = []): number {
   const merchant = getMerchant(merchantType);
   const isValidServiceId = serviceId in SERVICE_PRICES;
   const basePrice = isValidServiceId ? SERVICE_PRICES[serviceId as ServiceId] : 50;
+
+  // freeReroll: 상점 새로고침 무료
+  if (serviceId === 'reroll' && relicIds.length > 0) {
+    const passiveEffects = calculatePassiveEffects(relicIds);
+    if (passiveEffects.freeReroll) {
+      return 0;
+    }
+  }
+
   return Math.round(basePrice * merchant.priceMultiplier);
 }
 
