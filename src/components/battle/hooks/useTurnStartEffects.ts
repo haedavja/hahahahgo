@@ -437,11 +437,15 @@ export function useTurnStartEffects({
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
       const slots = etherSlots((enemy?.etherPts as number | undefined) || 0);
-      // 단일 몬스터 기준 카드 수 (다중 몬스터는 유령카드로 확장)
-      const singleEnemyCards = enemy?.cardsPerTurn || 1;
+      const units = (enemy?.units || []) as EnemyUnit[];
+      // count 기반 다중 몬스터 여부 확인 (들쥐x4 등)
+      const totalCount = units.reduce((sum, u) => sum + ((u as { count?: number }).count || 1), 0);
+      const isCountBasedMultiEnemy = units.length === 1 && totalCount > 1;
+      // count 기반 다중 몬스터는 1개 카드만 생성 (유령으로 확장됨)
+      const singleEnemyCards = isCountBasedMultiEnemy ? 1 : (enemy?.cardsPerTurn || 1);
       const rawActions = generateEnemyActions(enemy, mode, slots, singleEnemyCards, Math.min(1, singleEnemyCards));
       // 다중 몬스터: 실제 카드 + 유령카드로 확장
-      const planActions = expandActionsWithGhosts(rawActions, (enemy?.units as EnemyUnit[] | undefined) || []);
+      const planActions = expandActionsWithGhosts(rawActions, units);
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
