@@ -5,7 +5,7 @@
  *
  * ## 기능
  * - 승리 후 카드 보상 선택
- * - 특성 보상 선택 (30% 확률)
+ * - 특성 보상 선택 (엘리트/보스/이벤트/던전 전투 시 100%)
  * - 함성 카드 선택 처리
  * - 덱에 카드 추가
  */
@@ -76,8 +76,8 @@ export interface TraitRewardState {
   traits: Array<{ id: string; name: string; type: string; description: string }>;
 }
 
-/** 특성 보상 확률 (30%) */
-const TRAIT_REWARD_CHANCE = 0.3;
+/** 특성 보상 확률 - 엘리트/보스/이벤트/던전 전투 시 100% */
+const TRAIT_REWARD_CHANCE = 1.0;
 
 /** 보상으로 등장할 수 있는 특성 (긍정 특성만, weight 2 이하) */
 function getRewardableTraits() {
