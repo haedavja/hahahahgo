@@ -195,8 +195,11 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
   const newEnemyUsageCount = updateComboUsageCount(updatedEnemy.comboUsageCount, eComboEnd, [], 'enemy');
 
-  // 상태 업데이트
-  actions.setPlayer(createTurnEndPlayerState(player as never, {
+  // 상태 업데이트 (턴 종료 상징 효과의 힘 증가 반영)
+  const playerWithStrength = turnEndRelicEffects.strength !== 0
+    ? { ...player, strength: (player.strength || 0) + turnEndRelicEffects.strength }
+    : player;
+  actions.setPlayer(createTurnEndPlayerState(playerWithStrength as never, {
     comboUsageCount: newUsageCount,
     etherPts: nextPlayerPts,
     etherOverflow: playerOverflow,

@@ -324,10 +324,13 @@ export function useResolveExecution({
     const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd as Card | null, queue, 'player');
     const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd as Card | null, [], 'enemy');
 
-    // 턴 종료 상태 업데이트
+    // 턴 종료 상태 업데이트 (턴 종료 상징 효과의 힘 증가 반영)
+    const playerWithStrength = turnEndRelicEffects.strength !== 0
+      ? { ...latestPlayer, strength: (latestPlayer.strength || 0) + turnEndRelicEffects.strength }
+      : latestPlayer;
     let newPlayerState;
     try {
-      newPlayerState = createTurnEndPlayerState(latestPlayer as PlayerBattleState, {
+      newPlayerState = createTurnEndPlayerState(playerWithStrength as PlayerBattleState, {
         comboUsageCount: newUsageCount,
         etherPts: nextPlayerPts,
         etherOverflow: playerOverflow,
@@ -336,7 +339,7 @@ export function useResolveExecution({
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
-      newPlayerState = { ...latestPlayer, etherMultiplier: 1 } as PlayerBattleState;
+      newPlayerState = { ...playerWithStrength, etherMultiplier: 1 } as PlayerBattleState;
     }
     actions.setPlayer(newPlayerState as PlayerBattleState);
 
