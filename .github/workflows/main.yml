@@ -18,8 +18,8 @@ jobs:
           import requests
           import json
           
-          NOTION_TOKEN = "${{ secrets.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 }}"
-          NOTION_DB_ID = "${{ secrets.2df41cdce3048026ae26dc8a59af1678?v=2ed41cdce30480a1a6ff000ce3d673e3 }}"
+          NOTION_TOKEN = "${{secrets.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}}"
+          NOTION_DB_ID = "${{secrets.2df41cdce3048026ae26dc8a59af1678?v=2ed41cdce30480a1a6ff000ce3d673e3}}"
           
           # GitHub 이벤트 정보
           title = "${{ github.event.issue.title }}"
