@@ -1,0 +1,191 @@
+{
+  "ghoul": {
+    "type": "cycle",
+    "pattern": [
+      "attack",
+      "attack",
+      "defense"
+    ],
+    "description": "2연속 공격 후 방어"
+  },
+  "marauder": {
+    "type": "cycle",
+    "pattern": [
+      "attack",
+      "defense"
+    ],
+    "description": "공격과 방어 교대"
+  },
+  "slurthim": {
+    "type": "cycle",
+    "pattern": [
+      "debuff_burn",
+      "debuff_vulnerable",
+      "debuff_dull"
+    ],
+    "description": "화상 → 취약 → 무딤 로테이션"
+  },
+  "deserter": {
+    "type": "cycle",
+    "pattern": [
+      "buff",
+      "attack",
+      "attack",
+      "defense"
+    ],
+    "description": "기합으로 강화 후 2연속 공격, 방어"
+  },
+  "slaughterer": {
+    "type": "phase",
+    "phases": [
+      {
+        "hpThreshold": 100,
+        "pattern": [
+          "attack",
+          "attack",
+          "defense"
+        ],
+        "description": "일반 공세"
+      },
+      {
+        "hpThreshold": 50,
+        "pattern": [
+          "charging",
+          "big_attack",
+          "rest"
+        ],
+        "description": "충전 후 처형, 휴식"
+      },
+      {
+        "hpThreshold": 25,
+        "pattern": [
+          "rage",
+          "rage"
+        ],
+        "description": "광폭화 - 연속 처형"
+      }
+    ],
+    "specialActions": {
+      "charging": {
+        "mode": "turtle",
+        "showIntent": "⚡ 힘을 모으는 중...",
+        "useCard": "slaughterer_blur_block"
+      },
+      "big_attack": {
+        "mode": "aggro",
+        "damage": 15,
+        "showIntent": "💥 처형!",
+        "useCard": "slaughterer_heavy"
+      },
+      "rage": {
+        "mode": "aggro",
+        "ignoreBlock": true,
+        "showIntent": "🔥 광폭화!",
+        "useCard": "slaughterer_heavy"
+      },
+      "rest": {
+        "mode": "turtle",
+        "heal": 5,
+        "showIntent": "💤 휴식",
+        "useCard": "slaughterer_rest"
+      }
+    },
+    "description": "HP에 따라 페이즈 변경: 일반→충전→광폭화"
+  },
+  "wildrat": {
+    "type": "cycle",
+    "pattern": [
+      "attack",
+      "attack",
+      "swarm",
+      "defense"
+    ],
+    "description": "연속 공격 후 도주"
+  },
+  "berserker": {
+    "type": "cycle",
+    "pattern": [
+      "buff",
+      "attack",
+      "attack"
+    ],
+    "description": "분노로 강화 후 연속 공격"
+  },
+  "polluted": {
+    "type": "cycle",
+    "pattern": [
+      "debuff_poison",
+      "debuff_poison",
+      "defense",
+      "explode"
+    ],
+    "description": "독 축적 후 자폭"
+  },
+  "hunter": {
+    "type": "cycle",
+    "pattern": [
+      "defense",
+      "buff",
+      "attack",
+      "big_attack"
+    ],
+    "description": "덫 설치 → 조준 → 사격 → 처형"
+  },
+  "captain": {
+    "type": "phase",
+    "phases": [
+      {
+        "hpThreshold": 100,
+        "pattern": [
+          "attack",
+          "attack",
+          "defense"
+        ],
+        "description": "일반 공세"
+      },
+      {
+        "hpThreshold": 60,
+        "pattern": [
+          "command",
+          "attack",
+          "rally",
+          "defense"
+        ],
+        "description": "지휘 및 방어 강화"
+      },
+      {
+        "hpThreshold": 30,
+        "pattern": [
+          "execution",
+          "execution",
+          "fortify"
+        ],
+        "description": "광폭화 - 군법처형 연발"
+      }
+    ],
+    "specialActions": {
+      "command": {
+        "mode": "turtle",
+        "showIntent": "📢 지휘!",
+        "useCard": "captain_command"
+      },
+      "rally": {
+        "mode": "turtle",
+        "showIntent": "🛡️ 집결!",
+        "useCard": "captain_rally"
+      },
+      "execution": {
+        "mode": "aggro",
+        "ignoreBlock": true,
+        "showIntent": "⚔️ 군법처형!",
+        "useCard": "captain_execution"
+      },
+      "fortify": {
+        "mode": "turtle",
+        "showIntent": "🛡️ 방어태세",
+        "useCard": "captain_fortify"
+      }
+    },
+    "description": "HP에 따라 페이즈 변경: 일반→지휘→광폭화"
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "version": "2.0.0",
+  "lastUpdated": "2026-01-01",
+  "syncedFrom": "battleData.ts",
+  "totalEnemies": 10,
+  "enemies": {
+    "ghoul": {
+      "id": "ghoul",
+      "name": "구울",
+      "hp": 40,
+      "maxHp": 40,
+      "ether": 100,
+      "maxSpeed": 10,
+      "deck": [
+        "ghoul_attack",
+        "ghoul_attack",
+        "ghoul_block",
+        "ghoul_block"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 1
+    },
+    "marauder": {
+      "id": "marauder",
+      "name": "약탈자",
+      "hp": 20,
+      "maxHp": 20,
+      "ether": 80,
+      "maxSpeed": 8,
+      "deck": [
+        "marauder_attack",
+        "marauder_block"
+      ],
+      "cardsPerTurn": 1,
+      "tier": 1
+    },
+    "deserter": {
+      "id": "deserter",
+      "name": "탈영병",
+      "hp": 70,
+      "maxHp": 70,
+      "ether": 200,
+      "maxSpeed": 15,
+      "deck": [
+        "deserter_attack",
+        "deserter_block",
+        "deserter_double",
+        "deserter_offense",
+        "deserter_fortify"
+      ],
+      "cardsPerTurn": 3,
+      "tier": 2,
+      "passives": {
+        "veilAtStart": true,
+        "healPerTurn": 4
+      }
+    },
+    "slaughterer": {
+      "id": "slaughterer",
+      "name": "살육자",
+      "hp": 120,
+      "maxHp": 120,
+      "ether": 300,
+      "maxSpeed": 25,
+      "deck": [
+        "slaughterer_heavy",
+        "slaughterer_blur_block",
+        "slaughterer_quick",
+        "slaughterer_rest"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 3,
+      "isBoss": true,
+      "passives": {}
+    },
+    "slurthim": {
+      "id": "slurthim",
+      "name": "슬러심",
+      "hp": 60,
+      "maxHp": 60,
+      "ether": 150,
+      "maxSpeed": 12,
+      "deck": [
+        "slurthim_burn",
+        "slurthim_vulnerable",
+        "slurthim_dull"
+      ],
+      "cardsPerTurn": 1,
+      "tier": 1
+    },
+    "wildrat": {
+      "id": "wildrat",
+      "name": "들쥐",
+      "hp": 12,
+      "maxHp": 12,
+      "ether": 40,
+      "maxSpeed": 6,
+      "deck": [
+        "wildrat_bite",
+        "wildrat_bite",
+        "wildrat_swarm",
+        "wildrat_flee"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 1
+    },
+    "berserker": {
+      "id": "berserker",
+      "name": "폭주자",
+      "hp": 55,
+      "maxHp": 55,
+      "ether": 120,
+      "maxSpeed": 12,
+      "deck": [
+        "berserker_slam",
+        "berserker_rage",
+        "berserker_charge",
+        "berserker_roar"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 1,
+      "passives": {
+        "strengthPerTurn": 1
+      }
+    },
+    "polluted": {
+      "id": "polluted",
+      "name": "오염체",
+      "hp": 35,
+      "maxHp": 35,
+      "ether": 100,
+      "maxSpeed": 10,
+      "deck": [
+        "polluted_spit",
+        "polluted_spit",
+        "polluted_cloud",
+        "polluted_explode"
+      ],
+      "cardsPerTurn": 1,
+      "tier": 1
+    },
+    "hunter": {
+      "id": "hunter",
+      "name": "현상금 사냥꾼",
+      "hp": 85,
+      "maxHp": 85,
+      "ether": 180,
+      "maxSpeed": 14,
+      "deck": [
+        "hunter_shoot",
+        "hunter_shoot",
+        "hunter_trap",
+        "hunter_aim",
+        "hunter_execute"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 2,
+      "passives": {
+        "critBoostAtStart": 5
+      }
+    },
+    "captain": {
+      "id": "captain",
+      "name": "탈영병 대장",
+      "hp": 180,
+      "maxHp": 180,
+      "ether": 350,
+      "maxSpeed": 18,
+      "deck": [
+        "captain_slash",
+        "captain_slash",
+        "captain_command",
+        "captain_rally",
+        "captain_execution",
+        "captain_fortify"
+      ],
+      "cardsPerTurn": 3,
+      "tier": 3,
+      "isBoss": true,
+      "passives": {
+        "veilAtStart": true,
+        "healPerTurn": 3
+      }
+    }
+  }
+}

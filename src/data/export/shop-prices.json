@@ -1,0 +1,48 @@
+{
+  "cards": {
+    "common": 12,
+    "rare": 25,
+    "special": 45,
+    "legendary": 70
+  },
+  "relics": {
+    "common": 50,
+    "rare": 100,
+    "special": 160,
+    "legendary": 280
+  },
+  "services": {
+    "healSmall": 22,
+    "healFull": 60,
+    "removeCard": 40,
+    "upgradeCard": 55,
+    "reroll": 10
+  },
+  "loyaltyDiscounts": [
+    {
+      "visits": 0,
+      "discountRate": 0,
+      "name": "첫 방문"
+    },
+    {
+      "visits": 2,
+      "discountRate": 0.05,
+      "name": "단골 (5% 할인)"
+    },
+    {
+      "visits": 4,
+      "discountRate": 0.1,
+      "name": "친한 단골 (10% 할인)"
+    },
+    {
+      "visits": 6,
+      "discountRate": 0.15,
+      "name": "VIP (15% 할인)"
+    },
+    {
+      "visits": 10,
+      "discountRate": 0.2,
+      "name": "명예 고객 (20% 할인)"
+    }
+  ]
+}
